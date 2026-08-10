@@ -36,8 +36,9 @@ export function MacroSummary({ total, target, label }: { total?: PeriodTotal; ta
           const consumed = total?.[field] ?? "0";
           const targetValue = target[field];
           const percentage = Math.min(100, Math.max(0, Number(consumed) / Number(targetValue || 1) * 100));
-          const difference = total?.targetDifference?.[field];
-          return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Number(consumed)} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{formatTargetDifference(difference, unit)}</small></div>;
+          const difference = total?.targetDifference?.[field] ?? (total ? undefined : `-${targetValue}`);
+          const differenceLabel = formatTargetDifference(difference, unit);
+          return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Math.min(Number(targetValue), Number(consumed))} aria-valuetext={`${consumed} of ${targetValue} ${unit}; ${differenceLabel}`} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{differenceLabel}</small></div>;
         })}
       </div>
       <details className="plan-micronutrients">

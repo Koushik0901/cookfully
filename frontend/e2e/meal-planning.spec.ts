@@ -82,7 +82,7 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await expect(tabs).toHaveCount(7);
   for (let index = 0; index < 7; index += 1) {
     await tabs.nth(index).click();
-    await page.getByLabel("Recipe to add").first().selectOption(recipeId);
+    await page.getByLabel("Breakfast recipe to add").selectOption(recipeId);
     await page.getByRole("button", { name: "Add to breakfast" }).click();
     await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   }

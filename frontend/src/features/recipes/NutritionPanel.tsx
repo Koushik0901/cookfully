@@ -70,7 +70,7 @@ export function NutritionPanel({
           <div><dt>Source provided</dt><dd>Published by the recipe source rather than calculated ingredient by ingredient.</dd></div>
           <div><dt>Manual</dt><dd>Entered or corrected by you; provenance and prior values remain recorded.</dd></div>
           <div><dt>Stale</dt><dd>The recipe changed after calculation; recalculate before relying on it.</dd></div>
-          <div><dt>Pending or failed</dt><dd>Calculation is still running or needs the recovery action shown below.</dd></div>
+          <div><dt>Pending or failed</dt><dd>Calculation is in progress or needs the recovery action shown below.</dd></div>
         </dl>
         <p className="muted">Coverage is the percentage of quantified ingredients contributing evidence. Lower coverage means more of the recipe is unresolved; unavailable values are not treated as zero.</p>
       </details>

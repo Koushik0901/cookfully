@@ -160,6 +160,12 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByText("129.9 g remaining")).toBeVisible();
   });
 
+  it("shows full targets remaining when a day has no entries", () => {
+    render(<MacroSummary target={goal} label="Empty day" />);
+    expect(screen.getByText("2200.000000 kcal remaining")).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Calories budget used" })).toHaveAttribute("aria-valuetext", "0 of 2200.000000 kcal; 2200.000000 kcal remaining");
+  });
+
   it("renders week/day navigation, meal slots, entry controls, and optimistic mutations", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {

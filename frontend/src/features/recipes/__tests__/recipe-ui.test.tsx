@@ -124,8 +124,18 @@ describe("recipe UI", () => {
     );
     expect(screen.getByText("512.340000 kcal")).toBeVisible();
     expect(screen.getByText("31.125000 g protein")).toBeVisible();
+    expect(screen.getByText("estimated", { selector: ".recipe-card__state" })).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: /archive exact oats/i }));
     expect(onArchive).toHaveBeenCalledWith(recipe.id, 3);
+  });
+
+  it("labels manually corrected nutrition consistently on recipe cards", () => {
+    render(
+      <MemoryRouter>
+        <RecipeCard recipe={{ ...recipe, nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("manual", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
   it("validates exact decimals and preserves original ingredient text in the editor", async () => {

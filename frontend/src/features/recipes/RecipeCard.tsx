@@ -13,11 +13,12 @@ export function RecipeCard({
   onRestore: (id: string, version: number) => void;
 }) {
   const nutrition = recipe.nutrition;
+  const displayedNutritionState = nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
   return (
     <article className="recipe-card">
       <Link className="recipe-card__media" to={`/app/recipes/${recipe.id}`} aria-label={`Open ${recipe.title}`}>
         {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" /> : <span aria-hidden="true">V&amp;V</span>}
-        <span className="recipe-card__state">{recipe.nutritionState.replace("_", " ")}</span>
+        <span className="recipe-card__state">{displayedNutritionState.replace("_", " ")}</span>
       </Link>
       <div className="recipe-card__body">
         <div className="recipe-card__heading">
@@ -44,4 +45,3 @@ export function RecipeCard({
     </article>
   );
 }
-
