@@ -111,16 +111,27 @@ Whether to fork Mealie/Tandoor directly and rework/declutter it, or build fresh 
 | Goals & planning | TDEE/goal profile, meal calendar, daily/weekly totals vs. goal, grocery list generation | 1-2 weeks |
 | Auto-suggestion engine | Constraint-based weekly meal suggestion against calorie/macro targets | 2-3 weeks |
 | Agent integration | MCP server / structured API surface | 1 week |
+| Pantry & micronutrients | Pantry inventory/search/deductions and the fixed supported micronutrient set | 1-2 weeks |
+| Release hardening | Security, accessibility, backup/owner-erasure recovery, performance, and deployment gates | 2-3 weeks |
 
-**Total: roughly 9-13 weeks part-time** for a genuinely usable v1 covering must-have + should-have features.
+**Total: roughly 13-18 weeks part-time** for implementation of the complete must-have and should-have
+scope, excluding calendar time needed to recruit and conduct the required 20-participant usability study.
+The dependency-ordered tasks and evidence gates in `specs/001-nutrition-recipe-planner/tasks.md` are
+authoritative when they conflict with this rough estimate.
 
-**Recommended build order:** validate the nutrition estimation pipeline against 20-30 real recipes from the user's own recipe list *before* investing in UI polish — it's the piece the rest of the app depends on, and the biggest unknown.
+**Required build order:** assemble the versioned 50-public-page benchmark and pass its stable 30-recipe
+constitutional subset *before* investing in the searchable library, polished editor, recipe-detail UI,
+or later stories. Report all 50 cases for the P1 release checkpoint.
 
-## 9. Open Questions (to resolve before/during build)
+## 9. Resolved Build Decisions
 
-- Frontend framework choice (React/Next.js vs. Vue vs. other)
-- Fork Mealie/Tandoor and rework, or build fresh while reusing their scraping/parsing pieces (see Section 6)
-- Single-user only, or lightweight household/multi-user support?
-- Self-hosted only, or hosted option considered later?
-- Which LLM provider/model for the ingredient-parsing and matching calls, and how to handle API cost at scale if the recipe library grows large?
-- Exact MCP tool surface — start minimal (read goals, read/write meal plan, read grocery list) and expand based on real usage.
+- Use a React 19.2 client-rendered SPA with Vite and a generated client from the OpenAPI 3.1 API v0.2.0 contract.
+- Build a fresh nutrition-first FastAPI/PostgreSQL application while reusing maintained import, parsing,
+  unit, reference-data, optimization, and MCP dependencies rather than forking Mealie or Tandoor.
+- Support one owner or a small household sharing one goal context; broad multi-user administration is out of scope.
+- Keep the complete core product self-hosted and usable without a recurring subscription.
+- Keep optional AI behind a disabled-by-default provider-neutral structured-output boundary. Deterministic
+  parsing and local USDA matching remain the baseline, and provider loss cannot block manual workflows.
+- Implement the exact HTTP/MCP surfaces, decimal contracts, lifecycle behavior, retention, owner erasure,
+  suggestion ranking, micronutrient set, and release evidence defined under
+  `specs/001-nutrition-recipe-planner/`.

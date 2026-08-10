@@ -305,6 +305,16 @@ the backup position forward, applies idempotent subject-scope erasure commands, 
 if the ledger is missing, discontinuous, or behind the manifest cursor. Ledger cleanup may remove a
 record only after every backup with an earlier cursor has expired plus the 30-day safety margin.
 
+An `owner`/`owner_owned` record represents the whole owner-controlled namespace rather than a database
+foreign key. Replaying it deletes the OwnerAccount and every related core/expansion row, token, session,
+job, outbox record, managed media object, diagnostic, and export, then returns the instance to bootstrap
+state. The offline erasure command verifies maintenance mode and an appendable ledger, moves managed
+files to same-volume quarantine, appends the ledger record, applies the idempotent database deletion,
+then removes quarantine after verifying bootstrap state. Failed preflight or ledger append restores
+quarantine and leaves live state unchanged. Any failure after the ledger append keeps the instance in
+maintenance mode and resumes from the durable record; activation is forbidden until the whole scope is
+verified absent.
+
 ## Goals and Meal Planning
 
 ### UserGoal
@@ -426,7 +436,8 @@ review rather than silently deleting manual state.
 
 `SuggestionRun` stores scope (`meal`, `day`, `week`), target snapshot, tolerances, exclusions,
 required recipes, repetition limit, solver/pipeline version, time limit, status (`queued`, `running`,
-`feasible`, `infeasible`, `failed`, `expired`), objective score, and unmet constraints.
+`feasible`, `infeasible`, `failed`, `expired`), unmet-constraint count, normalized weighted objective
+score, per-component deviations, ordered tie-break recipe identifiers, and unmet constraints.
 `SuggestionItem` stores the candidate recipe, date/slot, servings, projected nutrition snapshot, and
 acceptance state. Accepted items go through the normal MealPlan command and concurrency checks.
 
@@ -435,6 +446,14 @@ acceptance state. Accepted items go through the normal MealPlan command and conc
 `PantryItem` stores normalized/display food identity, quantity/unit, optional FoodReference, match
 status, and version. `PantryDeduction` links a GroceryItem to a PantryItem with the converted amount,
 assumption, and reversible state. No ambiguous match is deducted automatically.
+
+### SupportedMicronutrientValue (P6)
+
+Supported micronutrients are typed columns or records keyed only by `dietary_fiber_g`, `sodium_mg`,
+`potassium_mg`, `calcium_mg`, `iron_mg`, `magnesium_mg`, `vitamin_d_ug`, `vitamin_b12_ug`, and
+`vitamin_c_mg`. Each value uses `numeric(20,6)`, records the canonical unit and versioned USDA nutrient
+mapping, and carries the same source, input hash, coverage, assumptions, and calculation timestamp as
+core macros. Null means unavailable or insufficiently covered; zero requires an explicit source zero.
 
 ## State Transitions
 
@@ -470,6 +489,10 @@ queued -> running -> feasible
                   \-> infeasible
                   \-> failed
 feasible|infeasible -> expired
+
+Owner namespace (offline maintenance mode only):
+active -> erasure_staged -> erased/bootstrap
+       \-> unchanged                         (any failed precondition or ledger append)
 ```
 
 Invalid transitions return a conflict response and do not mutate the aggregate.
@@ -531,3 +554,6 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
   survives application restore, and is retained until every older backup expires plus 30 days.
 - Staged restore must verify the backup ledger cursor, replay all later erasures idempotently, and
   remain inactive if ledger continuity cannot be proven.
+- Full owner erasure removes the account and all owner-controlled core/expansion rows and managed files;
+  its single `owner_owned` ledger record makes the same whole-namespace deletion idempotent during
+  staged restore replay.

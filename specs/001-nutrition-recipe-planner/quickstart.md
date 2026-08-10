@@ -119,6 +119,9 @@ uv run --directory backend vigor-vine nutrition-report --format markdown --outpu
 The gate runs all 50 versioned recipes, reports the stable 30-recipe primary constitutional subset and
 20 extension/stress cases separately, and passes only when SC-001/SC-002 thresholds are met. Every miss
 is classified as parse, match, conversion, yield, reference-data, or benchmark-eligibility error.
+Do not begin the searchable recipe library, polished editor, recipe-detail UI, or any later story until
+the stable 30-recipe subset passes. Only the minimum review/correction harness needed to diagnose the
+gate may exist beforehand.
 
 ## 7. Validate Planning and Grocery Behavior
 
@@ -150,6 +153,17 @@ with `specs/001-nutrition-recipe-planner/contracts/openapi.yaml` and that the ge
 client has no uncommitted changes. Retention-clock tests verify successful HTML is absent after
 extraction, opt-in encrypted failed-import HTML expires within 24 hours, detailed diagnostics reduce
 after 30 days, and safe job metadata expires after one year.
+
+Run provider-disabled, timeout, invalid-output, and failure substitutes while exercising manual recipe
+editing, manual nutrition, goals, plans, groceries, backup, and export. Every workflow must complete
+without a provider call or corrupt state, while affected automated nutrition reaches an explicit
+partial/failed state with a recovery action. Verify estimated recipe, plan-impact, and suggestion
+surfaces show accessible planning-aid—not-medical-advice language.
+
+Performance evidence uses a Linux x86-64 Docker host limited to 4 vCPU, 8 GiB RAM, and SSD with API,
+worker, PostgreSQL, and Redis on the same host. Seed the documented reference dataset, make 10
+unmeasured warm-up requests per path, and report p50/p95/max across at least 100 measured requests in
+each of three runs.
 
 UI acceptance covers desktop and 390x844 viewports, keyboard-only navigation, visible focus, readable
 contrast, no page-level horizontal overflow, and explicit loading, empty, partial, estimated, manual,
@@ -189,6 +203,21 @@ uv run --directory backend vigor-vine backup compare --target $restoreProject
 
 The restore report must show the backup cursor, verified current cursor, every replayed subject/scope,
 zero resurrected recipe-owned records, intact detached history, and the final inactive/active decision.
+
+Validate full owner erasure only against a disposable restore-test project. Stop its API, worker,
+outbox, and web services; capture the owner UUID; first prove an incorrect confirmation and an
+unavailable ledger leave all data unchanged; then run the exact confirmed command:
+
+```powershell
+$ownerId = '<disposable-owner-uuid>'
+docker compose -p $restoreProject -f deploy/compose.restore-test.yaml stop api worker outbox web
+uv run --directory backend vigor-vine owner erase --owner-id $ownerId --confirm "ERASE OWNER $ownerId" --erasure-ledger ../deploy/erasure-ledger
+```
+
+Verify the disposable instance returns to bootstrap state, all owner-controlled database and managed-
+file data is absent, one `owner_owned` record was appended, and restoring the pre-erasure backup plus
+current ledger replays that record with zero resurrection. Never run this validation against the active
+development project.
 
 ## 11. MCP Expansion Validation (P5)
 

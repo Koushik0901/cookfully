@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-nutrition-recipe-planner`  
 **Created**: 2026-08-09  
-**Status**: Draft  
+**Status**: In implementation  
 **Input**: User description: "Create the product specification from nutrition-recipe-app-spec.md"
 
 ## Clarifications
@@ -14,6 +14,14 @@
 - Q: What should happen when recipes are archived, restored, or permanently deleted? → A: Archive is reversible and removes a recipe from active use; restore returns it to its prior usable state or marks nutrition stale; confirmed permanent deletion is limited to archived recipes, cancels active jobs, removes recipe-owned data, and preserves detached historical snapshots and provenance.
 - Q: What retention policy should apply to imported content, provider data, diagnostics, and audit history? → A: Discard successful-import HTML after extraction; permit encrypted failed-import HTML for 24 hours only with owner-enabled diagnostics; never retain raw provider requests or responses; retain detailed job diagnostics for 30 days then safe codes and timestamps for one year; retain estimates and corrections until owner erasure; let backup rotation govern residual copies while an independent content-free erasure ledger prevents restored backups from resurrecting erased data.
 - Q: How should import and nutrition jobs acknowledge, retry, and communicate completion? → A: Persist and acknowledge within one second, discover status by polling every two seconds on visible job screens and every 15 seconds elsewhere, time out attempts after 60 seconds, retry after 5 seconds, 30 seconds, 2 minutes, and 5 minutes for at most five attempts, and reach a visible terminal state within 15 minutes.
+
+### Session 2026-08-10
+
+- Q: How must full owner erasure work? → A: Provide an offline operator CLI that requires the instance to be stopped, the owner identifier, and an exact destructive confirmation; erase the owner account and every owner-controlled core, expansion, media, token, session, diagnostic, export, and job record, append an independent `owner_owned` ledger record, and return the instance to bootstrap state without allowing an older backup to resurrect erased data.
+- Q: What environment defines reference-hardware performance results? → A: Use a Linux x86-64 Docker host limited to 4 vCPU, 8 GiB RAM, and SSD storage, with API, worker, PostgreSQL, and Redis on the same host; seed the documented dataset, warm each path with 10 unmeasured requests, then report p50/p95/max over at least 100 measured requests in each of three runs.
+- Q: How are closest infeasible meal suggestions ranked? → A: Never violate recipe exclusions; first minimize the number of other unmet constraints, then minimize a normalized weighted distance using calories 4, protein 3, carbohydrates 1, fat 1, repetition 2, and missing required recipes 5, followed by fewer entries and lexicographic recipe-ID tie-breaks.
+- Q: Which micronutrients does P6 support initially? → A: Support dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C with canonical USDA nutrient mappings and units, while preserving null as unavailable rather than zero.
+- Q: How are planning-aid framing and optional-provider degradation proven? → A: Label estimated nutrition and suggestion surfaces as planning aids rather than medical advice, describe the same limitation in API/MCP/export documentation, and run provider-disabled and forced-provider-failure fixtures proving manual recipe, nutrition, goal, plan, grocery, backup, and export workflows remain usable.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -47,6 +55,9 @@ result or a specific, recoverable processing state.
 6. **Given** an archived recipe, **When** the user restores or permanently deletes it, **Then** restore
    returns it to its prior usable state or a visible stale state, while confirmed deletion removes the
    recipe without changing historical plan totals or grocery provenance.
+7. **Given** estimated nutrition, **When** the user reviews or acts on it, **Then** the relevant recipe,
+   planning, and suggestion surface identifies it as a planning aid rather than medical advice without
+   obscuring provenance, uncertainty, or correction controls.
 
 ---
 
@@ -198,6 +209,10 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - Backup, export, or restore occurs while nutrition processing or plan changes are in progress.
 - Retention cleanup runs while a failed import is being inspected, owner erasure occurs while backups
   still contain an older snapshot, or diagnostic mode is disabled before its 24-hour expiry.
+- An optional provider is disabled, unreachable, returns invalid structured output, or fails while the
+  owner is editing recipes, entering manual nutrition, planning, shopping, backing up, or exporting.
+- Full owner erasure is requested while the application is running, the confirmation does not exactly
+  match, the independent ledger is unavailable, or a staged restore predates the erasure.
 
 ## Constitution Alignment *(mandatory)*
 
@@ -288,7 +303,8 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-019**: Users MUST be able to back up and export recipes, nutrition provenance and corrections,
   goals, plans, and grocery data in documented, portable forms.
 - **FR-020**: Optional automated processing failures MUST NOT prevent recipe editing, manual nutrition
-  entry, goal management, meal planning, grocery use, backup, or export.
+  entry, goal management, meal planning, grocery use, backup, or export. Provider-disabled and forced-
+  failure validation MUST exercise each of those workflows without a provider call or corrupt state.
 
 #### Expansion Scope (P4-P6)
 
@@ -297,7 +313,11 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-022**: Users MUST be able to set variety constraints, exclusions, required recipes, and maximum
   repetition for suggestions.
 - **FR-023**: When no suggestion satisfies every constraint, the system MUST show the closest useful
-  alternatives and identify the constraints each alternative misses.
+  alternatives and identify the constraints each alternative misses. Recipe exclusions MUST remain
+  hard constraints. Alternatives MUST first minimize the number of other unmet constraints, then a
+  normalized weighted distance using weights of 4 for calories, 3 for protein, 1 for carbohydrates,
+  1 for fat, 2 for repetition overage, and 5 for each missing required recipe; ties MUST prefer fewer
+  entries and then lexicographically ordered recipe identifiers so results are deterministic.
 - **FR-024**: Users MUST be able to preview a suggestion's target impact and accept all or part of it
   into the meal plan without totals changing from the preview.
 - **FR-025**: Authorized external tools MUST be able to read goals, recipe nutrition and provenance,
@@ -311,7 +331,10 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-029**: Pantry deductions from grocery lists MUST occur only for safely matched items and MUST
   remain visible and reversible.
 - **FR-030**: The system MUST display supported micronutrients while distinguishing unavailable values
-  from true zero values and retaining provenance and estimation status.
+  from true zero values and retaining provenance and estimation status. The initial supported set MUST
+  be dietary fiber in grams; sodium, potassium, calcium, iron, magnesium, and vitamin C in milligrams;
+  and vitamin D and vitamin B12 in micrograms. Each value MUST use a versioned canonical USDA nutrient
+  mapping, and an absent or insufficiently covered value MUST remain null rather than become zero.
 
 #### Scope Guardrails
 
@@ -322,6 +345,10 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-034**: The product MUST NOT add social, community, or broad multi-user administration features
   without a separately approved scope change.
 - **FR-035**: Nutrition estimates MUST be presented as planning aids rather than medical advice.
+  Recipe nutrition, plan-impact, and suggestion preview/acceptance surfaces MUST show concise planning-
+  aid language wherever an estimated value can drive a decision. API, MCP, and export documentation
+  MUST carry the same limitation; the language MUST remain accessible and MUST NOT obscure provenance,
+  uncertainty, or correction controls.
 - **FR-036**: Successful-import HTML MUST exist only for the active extraction and be discarded when
   extraction ends. Failed-import HTML MAY be retained only when the owner has enabled diagnostics; it
   MUST be encrypted at rest and deleted within 24 hours. Raw AI/provider requests and responses MUST
@@ -337,6 +364,16 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   ledger, replay every later erasure before validation, and refuse activation when ledger continuity
   cannot be proven. An erasure record MUST remain until all backups predating its erasure have expired
   under configured rotation plus a 30-day safety margin, then MUST be deleted automatically.
+  Full owner erasure MUST be available through an offline operator CLI only while application services
+  are stopped. It MUST require the owner identifier and exact destructive confirmation, verify that the
+  independent ledger can be appended, erase the owner account and all owner-controlled recipes,
+  nutrition records, goals, plans, grocery data, suggestions, pantry data, tokens, sessions, jobs,
+  outbox records, managed media, diagnostics, and exports, append one `owner`/`owner_owned` ledger
+  record, and leave the instance in bootstrap state. It MUST fail closed without partial erasure when
+  preconditions or ledger persistence cannot be proven. After the ledger record is durable, any later
+  database or managed-file failure MUST keep the instance in maintenance mode and make the command
+  idempotently resumable from that record; the instance MUST NOT become active until the entire
+  `owner_owned` scope has been applied and verified.
 - **FR-037**: Recipe save and import requests that require background work MUST persist the recipe and
   authoritative job and acknowledge within one second rather than wait for nutrition completion.
   Relevant visible screens MUST poll authoritative status every two seconds; other active application
@@ -428,17 +465,29 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   active corrections, goals, plan entries, and grocery manual state intact. When the current erasure
   ledger contains records newer than the backup cursor, 100% of those erasures are replayed before the
   restored instance can become active, zero erased recipe-owned records are resurrected, and a missing
-  or discontinuous ledger prevents activation with a documented recovery error.
+  or discontinuous ledger prevents activation with a documented recovery error. A replayed
+  `owner_owned` record MUST remove 100% of owner-controlled application and managed-file data and leave
+  the restored instance in bootstrap state.
 - **SC-012**: Across desktop and narrow-mobile acceptance checks, all primary journeys are operable by
   keyboard, have no horizontal page overflow, and communicate status without color as the only cue.
 - **SC-013**: Automated retention and redaction fixtures show that 100% of successful-import HTML is
   absent after extraction, diagnostic HTML expires within 24 hours, detailed diagnostics are reduced
   after 30 days, safe codes and timestamps expire within one year, and no stored record or default log
   contains a raw provider request or response.
-- **SC-014**: On reference hardware, 100% of background recipe save/import acceptance fixtures return
+- **SC-014**: On a Linux x86-64 Docker host limited to 4 vCPU, 8 GiB RAM, and SSD storage, with API,
+  worker, PostgreSQL, and Redis on the same host, 100% of background recipe save/import acceptance
+  fixtures return
   a persisted recipe and job within one second; job-state integration fixtures enforce the specified
   attempt timeout, retry schedule, five-attempt maximum, and 15-minute terminal deadline; visible UI
   fixtures surface terminal state within one foreground polling interval and resume after reload.
+  Performance reports MUST seed the documented dataset, warm each measured path with 10 unmeasured
+  requests, and report p50, p95, and maximum latency over at least 100 measured requests in each of
+  three runs.
+- **SC-015**: With the optional structured provider disabled and with a substitute forced to time out,
+  return invalid output, and fail, 100% of manual recipe editing, manual nutrition entry, goal
+  management, meal planning, grocery use, backup, and export acceptance fixtures complete without a
+  provider call, state corruption, or loss of a stored recipe; affected automated nutrition work ends
+  in an explicit partial or failed state with a recovery action.
 
 ## Assumptions
 

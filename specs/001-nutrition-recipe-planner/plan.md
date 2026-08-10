@@ -12,10 +12,13 @@ list. Use a React single-page client over one versioned FastAPI application API,
 of record, and Redis-backed Celery workers for durable imports and nutrition jobs. Reuse
 `recipe-scrapers`, `ingredient-parser-nlp`, Pint, USDA FoodData Central, and later OR-Tools; keep
 optional LLM assistance behind a schema-validated provider boundary and expose later MCP tools through
-the same application services used by the API. The clarified design uses exact decimal-string
+the same application services used by the OpenAPI 3.1 contract for API v0.2.0. The clarified design
+uses exact decimal-string
 contracts, a versioned 50-recipe validation corpus, explicit archive/restore/erasure semantics,
 privacy-bounded retention, an independently preserved erasure ledger, explicit reference-dataset
-activation, and polling-based jobs with deterministic retry deadlines.
+activation, an offline fail-closed full-owner erasure command, a reproducible reference-hardware
+profile, deterministic infeasible-suggestion ranking, a fixed P6 micronutrient set, and polling-based
+jobs with deterministic retry deadlines.
 
 ## Technical Context
 
@@ -25,7 +28,7 @@ activation, and polling-based jobs with deterministic retry deadlines.
 **Testing**: pytest, pytest-asyncio, Hypothesis, Testcontainers, OpenAPI/MCP/background-job/backup-ledger contract tests, Vitest, React Testing Library, axe-core, Playwright, retention-clock fixtures, and a versioned 50-public-page recipe accuracy/import corpus with a stable 30-recipe constitutional subset
 **Target Platform**: Linux containers deployed by Docker Compose; current evergreen desktop and mobile browsers, with 390x844 as the narrow acceptance viewport  
 **Project Type**: Self-hosted web application with API and separately scalable worker process  
-**Performance Goals**: Interactive reads and plan mutations p95 under 500 ms on reference hardware; visible plan totals within 2 seconds for 50 entries; recipe save/import acknowledgement under 1 second; visible job-state discovery within 2 seconds on the active job screen; terminal import/nutrition outcome within 15 minutes; feasible weekly suggestions within 10 seconds
+**Performance Goals**: Interactive reads and plan mutations p95 under 500 ms on the reference profile (Linux x86-64 Docker host, 4 vCPU, 8 GiB RAM, SSD, API/worker/PostgreSQL/Redis colocated); visible plan totals within 2 seconds for 50 entries; recipe save/import acknowledgement under 1 second; visible job-state discovery within 2 seconds on the active job screen; terminal import/nutrition outcome within 15 minutes; feasible weekly suggestions within 10 seconds. Each latency report seeds the documented dataset, performs 10 unmeasured warm-up requests, and reports p50/p95/max for at least 100 measured requests in each of three runs
 **Constraints**: One owner or small household; no recurring product subscription; no in-app chatbot; fixed-decimal storage and decimal-string public contracts; deterministic round-half-up display totals; manual corrections authoritative; optional AI failure cannot block manual workflows; jobs retry-safe, idempotent, and bounded to five attempts; raw provider payloads are never retained; secrets stay server-side
 **Scale/Scope**: Initial core P1-P3, followed by P4-P6; up to 10,000 recipes, 50 planned entries per week, one active goal context, one worker by default, and horizontal worker scaling without API changes
 
@@ -42,7 +45,7 @@ No `NEEDS CLARIFICATION` items remain.
 | Bounded processing | PASS — parsing/matching are finite jobs and suggestions are deterministic. | `contracts/background-jobs.md` fixes attempt timeouts, retry delays, five-attempt limits, a 15-minute deadline, idempotency, and stale-input rejection. |
 | Data ownership and contracts | PASS — self-hosted storage, portable exports, documented lifecycle/erasure, one business-logic layer. | `contracts/openapi.yaml`, `contracts/mcp-tools.md`, and `contracts/export-format.md` cover recipe restore/erasure, an independent erasure-ledger restore gate, grocery manual CRUD, access tokens, suggestions, exact decimals, and degraded states. |
 | Reuse and product quality | PASS — a source spike compared both fork candidates and selected maintained dependencies. | `research.md` records adopt/adapt/reject and licensing decisions; `DESIGN.md` is a required UI acceptance input. |
-| Verification | PASS — critical calculation, lifecycle, retention, job, contract, and journey tests are mandatory. | The project structure separates unit, integration, contract, end-to-end, accessibility, retention, performance, and 50-recipe corpus evidence. |
+| Verification | PASS — critical calculation, lifecycle, retention, job, contract, and journey tests are mandatory. | The project structure separates unit, integration, contract, end-to-end, accessibility, retention, provider-outage, owner-erasure, performance, and 50-recipe corpus evidence. |
 
 No constitution exception is required.
 
@@ -87,7 +90,9 @@ elsewhere; it does not depend on Celery result state.
    original ingredient retention, deterministic parsing, local reference matching, unit/density
    conversion, bounded job states, source nutrition, estimates, corrections, reprocessing, and
    explicit Foundation Foods/SR Legacy release activation with a no-dataset degraded state. Run all
-   50 captured public-page cases and report the stable 30-recipe primary subset separately.
+   50 captured public-page cases and report the stable 30-recipe primary subset separately. Assemble
+   the corpus and pass the 30-recipe constitutional accuracy gate after the minimum review/correction
+   flow but before the searchable library, polished editor, or recipe-detail UI is implemented.
 3. **Goals and planning (P2)**: goal effective dates, optional meal targets, weekly plan CRUD,
    immutable display-quantized nutrition snapshots, exact decimal-string totals, and desktop/narrow-
    mobile target visualization.
@@ -98,9 +103,11 @@ elsewhere; it does not depend on Celery result state.
    access-token HTTP routes and MCP plan reads/writes; pantry matching, deductions, search, and
    micronutrients. Each expansion remains separately releasable and cannot weaken P1-P3 guarantees.
 
-The P1 accuracy gate blocks major UI-polish work beyond the minimum recipe review/correction flow if
-SC-001 or SC-002 fails. Failures must be classified as parse, match, conversion, yield, reference-data,
-or benchmark-eligibility errors before changing thresholds or adding AI assistance.
+The P1 accuracy gate blocks the searchable library, polished editor, recipe-detail UI, and all later
+stories until the stable 30-recipe subset passes SC-001 and SC-002. Only the minimum review/correction
+harness needed to inspect benchmark failures may precede the gate. Failures must be classified as
+parse, match, conversion, yield, reference-data, or benchmark-eligibility errors before changing
+thresholds or adding AI assistance. The full 50-recipe report remains required for the P1 checkpoint.
 
 ## Numeric and Benchmark Rules
 
@@ -117,6 +124,22 @@ or benchmark-eligibility errors before changing thresholds or adding AI assistan
   (b) resolved non-optional ingredient count divided by total non-optional ingredient count; a missing
   denominator yields zero. Median absolute percentage error gates are 20% for calories and 25% for
   protein, carbohydrates, and fat. Near-zero floors and absolute-error reporting follow SC-002 exactly.
+- The P6 micronutrient keys are `dietary_fiber_g`, `sodium_mg`, `potassium_mg`, `calcium_mg`,
+  `iron_mg`, `magnesium_mg`, `vitamin_d_ug`, `vitamin_b12_ug`, and `vitamin_c_mg`. A versioned mapping
+  manifest binds them to canonical USDA nutrient identifiers for each imported release. Missing or
+  insufficiently covered values remain null; zero is stored only when the source value is truly zero.
+
+## Suggestion Ranking Rules
+
+- Recipe exclusions, positive serving bounds, and active-recipe availability are inviolable hard
+  constraints. A candidate violating any of them is never returned as an alternative.
+- Feasible runs satisfy every selected tolerance and required/repetition constraint. When none exists,
+  rank alternatives lexicographically by: fewest other unmet constraints; lowest normalized weighted
+  distance; fewest entries; then the ordered recipe UUID tuple.
+- Normalize each calorie/macro deviation by its positive selected tolerance, using a denominator of one
+  display unit when a tolerance is zero. The weighted distance is `4*calorie + 3*protein +
+  1*carbohydrate + 1*fat + 2*repetition_overage + 5*missing_required_recipe_count`. Persist the score,
+  component deviations, and missed constraints so UI, API, MCP, and fixtures explain the same result.
 
 ## Security, Lifecycle, and Reliability Boundaries
 
@@ -144,6 +167,20 @@ or benchmark-eligibility errors before changing thresholds or adding AI assistan
   is replicated with the backup set but never overwritten by restore, and gates activation until every
   post-backup erasure is replayed. Records remain through backup rotation plus 30 days. Portable JSON
   export is versioned separately.
+- Full owner erasure is an offline operator action, not an HTTP/MCP mutation. The CLI acquires an
+  instance-wide maintenance lock, verifies API/worker/outbox processes are stopped, requires the owner
+  UUID plus exact `ERASE OWNER <uuid>` confirmation, verifies an appendable independent ledger, stages
+  managed files into same-volume quarantine, appends one `owner_owned` record, applies the idempotent
+  owner-scope database deletion, and then removes quarantine after verification. Failed preflight or
+  ledger append restores quarantine and leaves live state unchanged. A database/file failure after the
+  ledger append keeps services in maintenance mode and is resumed idempotently from the durable ledger
+  record; activation is forbidden until database, managed-file, and bootstrap-state verification pass.
+- Estimated nutrition and suggestion decision surfaces display concise planning-aid—not-medical-advice
+  copy with provenance and correction controls. API v0.2.0, MCP, and export documentation carry the
+  same limitation.
+- Provider-disabled, timeout, invalid-output, and failure substitutes must leave deterministic results
+  or explicit partial/failed nutrition states while manual recipes, nutrition, goals, plans, groceries,
+  backups, and exports remain operational. Cross-workflow fixtures prove SC-015 before release.
 
 ## Project Structure
 
@@ -174,12 +211,12 @@ backend/
 ├── migrations/
 ├── src/vigor_vine/
 │   ├── api/                    # HTTP routes, exact-decimal DTOs, auth/session transport
-│   ├── application/            # Commands, queries, orchestration, policies
+│   ├── application/            # Commands, queries, orchestration, policies, owner erasure
 │   ├── domain/                 # Entities, fixed decimals, calculations, lifecycle
 │   ├── infrastructure/         # SQL repositories, FDC, media, retention, fetcher, providers
 │   ├── jobs/                   # Celery tasks, outbox dispatcher, reconciliation
 │   ├── mcp/                    # MCP adapter over application services
-│   └── cli/                    # Bootstrap, reference import, backup/restore
+│   └── cli/                    # Bootstrap, reference import, backup/restore, owner erasure
 └── tests/
     ├── unit/
     ├── integration/

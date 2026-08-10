@@ -174,8 +174,12 @@ no paid provider. It also constrains transmitted data to the minimum necessary i
 ## 9. Meal Suggestion Solver
 
 **Decision**: Use OR-Tools CP-SAT in P4. Scale nutrition values to integers, model servings as bounded
-decision variables, express exclusions and repetition as hard constraints, minimize weighted calorie/
-macro deviation plus repetition penalties, and impose a solver time limit with best-found results.
+decision variables, and keep exclusions, active-recipe availability, and positive serving bounds as
+inviolable hard constraints. Feasible results satisfy every selected tolerance and required/repetition
+constraint. If no feasible result exists, first minimize the count of other unmet constraints, then a
+normalized weighted distance with calorie/protein/carbohydrate/fat/repetition/missing-required weights
+of 4/3/1/1/2/5, then entry count, then the ordered recipe UUID tuple. Persist score components and impose
+a solver time limit with deterministic best-found results.
 
 **Rationale**: OR-Tools identifies CP-SAT as its primary constraint-programming solver in the official
 [constraint optimization guide](https://developers.google.com/optimization/cp), and current Python
@@ -248,6 +252,11 @@ expected import fields, expected parse/match classifications, and measured error
 stable 30-recipe primary subset for the constitutional gate and 20 additional extension/stress cases.
 Gate median absolute percentage error at 20% for calories and 25% for protein, carbohydrates, and fat,
 using the nutrient-specific near-zero floors and absolute-error reporting defined by SC-002.
+Assemble and run the 30-recipe subset after only the minimum review/correction harness and before major
+recipe UI investment. Run latency checks on a Linux x86-64 Docker host limited to 4 vCPU, 8 GiB RAM,
+and SSD with colocated API, worker, PostgreSQL, and Redis; use 10 unmeasured warm-ups and three runs of
+at least 100 measured requests. Add provider-disabled/failure cross-workflow fixtures and full-owner-
+erasure plus replay fixtures.
 
 **Rationale**: The hardest failures cross parser, reference match, unit conversion, yield, correction,
 and aggregation boundaries. Layered fixtures locate the error instead of reporting only a final macro
@@ -306,8 +315,17 @@ record hash, and cursor. Restore must fail closed if the current independent led
 discontinuous and must replay all records newer than the backup cursor before activation. A record is
 retained until all backups predating it have rotated out plus 30 days.
 
-**Rationale**: This provides owner erasure without rewriting historical nutrition totals or obscuring
-what a past grocery item represented.
+Full owner erasure is a separate offline operator CLI. It requires stopped application services, the
+owner UUID, and exact `ERASE OWNER <uuid>` confirmation; verifies that the independent ledger is
+appendable; moves managed files to same-volume quarantine; appends one `owner`/`owner_owned` ledger
+record; applies idempotent owner-scope database deletion; removes quarantine after verification; and
+returns the instance to bootstrap state. A failed preflight or ledger append restores quarantine and
+leaves live state unchanged. A later failure keeps the instance in maintenance mode and resumes from
+the durable ledger record. Restore replay uses the same idempotent scope command before activation.
+
+**Rationale**: Recipe erasure preserves meaningful detached history, while full owner erasure provides
+a deliberately broader reset when the owner wants every controlled record removed. The independent
+ledger prevents either scope from being undone by restoring an older backup.
 
 **Alternatives considered**:
 
@@ -348,7 +366,28 @@ inside the terminal deadline for every attempt.
   proxy/connection lifecycle before it provides necessary product value.
 - **Manual refresh or synchronous processing**: poor recovery and violates the asynchronous boundary.
 
-## 19. Complete Contract Before Code Generation
+## 19. Initial Micronutrient Set and Safety Framing
+
+**Decision**: P6 supports dietary fiber (g); sodium, potassium, calcium, iron, magnesium, and vitamin C
+(mg); and vitamin D and vitamin B12 (µg). A versioned manifest maps canonical application keys to USDA
+nutrient identifiers for each imported release. Missing or insufficiently covered nutrients remain
+null, and zero is reserved for an explicit source zero. Recipe nutrition, plan impact, and suggestion
+decision surfaces identify estimates as planning aids rather than medical advice; API v0.2.0, MCP, and
+export documentation use the same limitation.
+
+**Rationale**: This bounded set covers commonly reviewed dietary and gym-planning context without
+implying clinical completeness. Fixed keys and units make rollups, contract generation, and
+null-versus-zero fixtures deterministic.
+
+**Alternatives considered**:
+
+- **Every USDA nutrient immediately**: creates a very large sparse contract and an unreviewable UI.
+- **Dynamically display whatever a release contains**: makes API/client behavior release-dependent and
+  prevents stable acceptance fixtures.
+- **Omit planning-aid language from compact surfaces**: risks presenting estimates as medical fact at
+  the point where users make decisions.
+
+## 20. Complete Contract Before Code Generation
 
 **Decision**: The Phase 1 canonical contract includes recipe restore/permanent deletion, manual grocery
 item create/delete, access-token management, suggestion status/result/acceptance, and an MCP meal-plan

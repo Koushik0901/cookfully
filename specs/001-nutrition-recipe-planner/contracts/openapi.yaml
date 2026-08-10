@@ -5,7 +5,8 @@ info:
   description: >-
     Canonical HTTP contract for recipes, honest nutrition estimates, goals, meal plans,
     grocery lists, exports, agent access, and later goal-aware suggestions. Public decimal
-    values are canonical strings. MCP tools compose the same application commands and queries.
+    values are canonical strings. Estimated nutrition and suggestion projections are planning
+    aids, not medical advice. MCP tools compose the same application commands and queries.
 servers:
   - url: /api/v1
 security:
@@ -1134,10 +1135,27 @@ components:
           additionalProperties: { $ref: "#/components/schemas/PeriodTotal" }
         projectedWeekTotal: { oneOf: [{ $ref: "#/components/schemas/PeriodTotal" }, { type: "null" }] }
         missedConstraints: { type: array, items: { type: string } }
+        unmetConstraintCount: { type: [integer, "null"], minimum: 0 }
+        objectiveScore: { oneOf: [{ $ref: "#/components/schemas/DecimalString" }, { type: "null" }] }
+        distanceComponents:
+          oneOf:
+            - $ref: "#/components/schemas/SuggestionDistanceComponents"
+            - type: "null"
         planVersion: { type: integer, minimum: 1 }
         failureCode: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
         expiresAt: { type: [string, "null"], format: date-time }
+    SuggestionDistanceComponents:
+      type: object
+      additionalProperties: false
+      required: [calories, protein, carbohydrates, fat, repetitionOverage, missingRequiredRecipes]
+      properties:
+        calories: { $ref: "#/components/schemas/DecimalString" }
+        protein: { $ref: "#/components/schemas/DecimalString" }
+        carbohydrates: { $ref: "#/components/schemas/DecimalString" }
+        fat: { $ref: "#/components/schemas/DecimalString" }
+        repetitionOverage: { type: integer, minimum: 0 }
+        missingRequiredRecipes: { type: integer, minimum: 0 }
     SuggestionAcceptance:
       type: object
       additionalProperties: false

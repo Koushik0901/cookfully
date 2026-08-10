@@ -57,6 +57,9 @@ domain fields defined in `data-model.md`. Nutrients and ingredient quantities se
 decimal strings with at most six fractional places; servings use at most three; plan snapshot calories
 use whole-kilocalorie strings and macros use one-decimal strings. Dates and timestamps use ISO 8601.
 Null means unavailable; decimal string `"0"` or `"0.0"` remains a true zero.
+The manifest and methodology document MUST state that estimated nutrition and suggestion projections
+are planning aids rather than medical advice. Exported records preserve provenance, assumptions,
+coverage, and correction precedence so the limitation is not separated from the values it describes.
 
 Permanently deleted recipes are absent. Historical MealPlanEntry snapshots and GroceryItem source text
 remain with a null recipe link so exports preserve the meaning of prior plans without recreating erased
