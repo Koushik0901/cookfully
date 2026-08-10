@@ -218,8 +218,8 @@ decimal plan totals match the preview exactly.
 
 - [X] T102 [P] [US4] Write failing CP-SAT scaling, inviolable exclusion/availability/positive-serving constraints, feasible tolerance, fewest-unmet-constraint ranking, normalized 4/3/1/1/2/5 weighted distance, fewer-entry and ordered-recipe-ID tie-break, timeout, determinism, and infeasibility tests in `backend/tests/unit/test_suggestion_solver.py`
 - [X] T103 [P] [US4] Write failing OpenAPI 3.1 API v0.2.0 suggestion create/status/result, exact-decimal objective components/preview, partial acceptance, stale-plan, expiry, and parity contract tests in `backend/tests/contract/test_suggestions_api.py`
-- [ ] T104 [P] [US4] Write failing constraint form, feasible/infeasible explanation, preview, and acceptance component tests in `frontend/src/features/suggestions/__tests__/`
-- [ ] T105 [P] [US4] Write failing daily/weekly suggestion and accepted-total parity journeys in `frontend/e2e/suggestions.spec.ts`
+- [X] T104 [P] [US4] Write failing constraint form, feasible/infeasible explanation, preview, and acceptance component tests in `frontend/src/features/suggestions/__tests__/`
+- [X] T105 [P] [US4] Write failing daily/weekly suggestion and accepted-total parity journeys in `frontend/e2e/suggestions.spec.ts`
 
 ### Implementation for User Story 4
 
@@ -229,8 +229,8 @@ decimal plan totals match the preview exactly.
 - [X] T109 [US4] Implement idempotent suggestion execution using shared fixed retry/deadline policy and stale-plan rejection in `backend/src/vigor_vine/jobs/suggestions.py`
 - [X] T110 [US4] Implement OpenAPI 3.1 API v0.2.0 suggestion create/status/result/accept routes, canonical decimal-string DTOs, unmet-constraint count, objective score/components, and deterministic ranking disclosure in `backend/src/vigor_vine/api/routes/suggestions.py` and `backend/src/vigor_vine/api/schemas/suggestions.py`
 - [X] T111 [US4] Regenerate and commit exact-decimal suggestion TypeScript bindings in `frontend/src/app/api/generated/`
-- [ ] T112 [US4] Implement meal/day/week constraint editing, progress, deterministically ranked alternatives, unmet-constraint/objective explanations, projected totals, and accessible planning-aid-not-medical-advice language in `frontend/src/features/suggestions/SuggestionPage.tsx`
-- [ ] T113 [US4] Implement selective suggestion acceptance through normal plan mutations with conflict recovery in `frontend/src/features/suggestions/useAcceptSuggestion.ts`
+- [X] T112 [US4] Implement meal/day/week constraint editing, progress, deterministically ranked alternatives, unmet-constraint/objective explanations, projected totals, and accessible planning-aid-not-medical-advice language in `frontend/src/features/suggestions/SuggestionPage.tsx`
+- [X] T113 [US4] Implement selective suggestion acceptance through normal plan mutations with conflict recovery in `frontend/src/features/suggestions/useAcceptSuggestion.ts`
 - [ ] T114 [US4] Add SC-009 feasible/infeasible corpus reporting, exclusion invariants, exact ranking/objective/tie-break evidence, preview/accepted exact-total parity, and under-ten-second solver metrics in `backend/tests/accuracy/test_suggestion_corpus.py`
 
 **Checkpoint**: US4 is independently releasable behind an expansion feature flag and cannot modify

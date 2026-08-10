@@ -160,6 +160,8 @@ small {
 
 .stack,
 .recipe-form,
+.suggestion-form,
+.suggestion-results,
 .goal-form,
 .settings-section,
 .meal-targets,
@@ -176,12 +178,135 @@ small {
 .settings-section,
 .meal-slot,
 .macro-summary,
-.plan-entry {
+.plan-entry,
+.suggestion-form,
+.suggestion-explanation,
+.suggestion-preview,
+.blockers,
+.accept-panel,
+.success-panel {
   min-width: 0;
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   background: var(--color-surface-low);
+}
+
+.suggestion-fields,
+.tolerance-grid,
+.suggestion-macros,
+.objective-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.suggestion-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tolerance-grid,
+.recipe-constraints {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+}
+
+.tolerance-grid legend,
+.recipe-constraints legend {
+  padding-inline: var(--space-xs);
+  font-weight: 700;
+}
+
+.recipe-constraints {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.recipe-rule {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) auto auto;
+  gap: var(--space-md);
+  align-items: center;
+  border-bottom: 1px solid var(--color-outline-variant);
+  padding-bottom: var(--space-sm);
+}
+
+.recipe-rule label,
+.suggestion-item__select {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.result-banner {
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  background: var(--color-surface-container);
+}
+
+.result-banner--infeasible {
+  border-color: var(--color-error);
+}
+
+.objective-grid div {
+  border-left: 3px solid var(--color-primary-container);
+  padding-left: var(--space-sm);
+}
+
+.objective-grid dt {
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-data-sm);
+}
+
+.objective-grid dd {
+  margin: 0;
+  font-family: var(--font-data);
+}
+
+.suggestion-macros {
+  margin-top: var(--space-md);
+}
+
+.suggestion-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.suggestion-item {
+  min-width: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--color-surface-low);
+}
+
+.suggestion-item__select span {
+  display: grid;
+}
+
+.suggestion-item__select input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.success-panel {
+  border-color: var(--color-primary);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .meal-targets fieldset {
@@ -674,7 +799,12 @@ small {
   .recipe-grid,
   .macro-grid,
   .budget-grid,
-  .evidence-grid {
+  .evidence-grid,
+  .suggestion-fields,
+  .tolerance-grid,
+  .suggestion-macros,
+  .objective-grid,
+  .suggestion-items {
     grid-template-columns: 1fr;
   }
 
@@ -714,6 +844,14 @@ small {
   .item-badges {
     grid-column: 2;
     justify-content: flex-start;
+  }
+
+  .recipe-rule {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .recipe-rule strong {
+    grid-column: 1 / -1;
   }
 }
 
