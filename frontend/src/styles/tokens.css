@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+
+  --color-surface: #0f141b;
+  --color-surface-dim: #0f141b;
+  --color-surface-bright: #353941;
+  --color-surface-lowest: #0a0e15;
+  --color-surface-low: #171c23;
+  --color-surface-container: #1b2027;
+  --color-surface-high: #262a32;
+  --color-surface-highest: #31353d;
+  --color-on-surface: #dfe2ed;
+  --color-on-surface-variant: #c0c7d6;
+  --color-outline: #8a919f;
+  --color-outline-variant: #404753;
+  --color-primary: #a6c8ff;
+  --color-on-primary: #00315f;
+  --color-primary-container: #2c91ff;
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+
+  --macro-calories: #ffb68c;
+  --macro-protein: #2c91ff;
+  --macro-carbohydrate: #e5a433;
+  --macro-fat: #8a919f;
+
+  --font-display: "Hanken Grotesk", "Public Sans", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, monospace;
+
+  --text-display-lg: clamp(2rem, 1.45rem + 2.35vw, 3rem);
+  --text-headline-md: 2rem;
+  --text-headline-sm: 1.5rem;
+  --text-body-lg: 1.125rem;
+  --text-body-md: 1rem;
+  --text-data-lg: 1.25rem;
+  --text-data-sm: 0.875rem;
+  --text-label-caps: 0.75rem;
+
+  --radius-sm: 0.25rem;
+  --radius: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --space-xs: 0.25rem;
+  --space-1: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-2: 1rem;
+  --space-md: 1.5rem;
+  --space-4: 2rem;
+  --space-lg: 3rem;
+  --space-xl: 4rem;
+  --gutter: 1.25rem;
+  --page-margin: 1rem;
+
+  --shadow-level-1: 0 1px 0 rgb(255 255 255 / 6%);
+  --shadow-level-2: 0 0 24px rgb(0 0 0 / 15%);
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --page-margin: 2.5rem;
+  }
+}
+

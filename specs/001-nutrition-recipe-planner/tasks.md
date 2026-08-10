@@ -23,19 +23,19 @@ before their corresponding implementation tasks begin.
 **Purpose**: Close requirement-writing gaps, establish the monorepo, lock dependencies, and make all
 later work reproducible.
 
-- [ ] T001 Validate every item in `specs/001-nutrition-recipe-planner/checklists/nutrition.md` against the clarified spec, model, and contracts; link evidence for resolved items, and stop to rerun clarify/plan/tasks/analyze before T002 if any answer changes a requirement
-- [ ] T002 Scaffold the Python 3.13 project, `uv.lock`, and package entry points in `backend/pyproject.toml` and `backend/src/vigor_vine/__init__.py`
-- [ ] T003 [P] Scaffold the React 19.2 TypeScript client and lockfile in `frontend/package.json`, `frontend/pnpm-lock.yaml`, and `frontend/src/main.tsx`
-- [ ] T004 Create the planned backend package, test, migration, frontend feature, deployment, script, and documentation directories listed in `specs/001-nutrition-recipe-planner/plan.md`
-- [ ] T005 [P] Configure Ruff, mypy, pytest, pytest-asyncio, Hypothesis, and coverage defaults in `backend/pyproject.toml`
-- [ ] T006 [P] Configure ESLint, TypeScript, Vitest, Testing Library, axe-core, and Playwright in `frontend/eslint.config.js`, `frontend/tsconfig.json`, `frontend/vite.config.ts`, and `frontend/playwright.config.ts`
-- [ ] T007 [P] Translate `DESIGN.md` colors, typography, spacing, radii, and macro-status semantics into `frontend/src/styles/tokens.css` and `frontend/src/styles/globals.css`
-- [ ] T008 Define validated environment variables, disabled-by-default failed-import diagnostics, retention deadlines, retry schedule, and safe local defaults in `.env.example` and `backend/src/vigor_vine/infrastructure/config.py`
-- [ ] T009 [P] Define healthy PostgreSQL 18 and Redis development services with named volumes in `deploy/compose.yaml`
-- [ ] T010 [P] Add locked backend lint, type, unit, and integration jobs in `.github/workflows/backend.yml`
-- [ ] T011 [P] Add frontend lint, type, unit, build, accessibility, and Playwright jobs in `.github/workflows/frontend.yml`
-- [ ] T012 Record every adopted dependency, pinned major version, source, and license decision in `docs/dependencies-and-licenses.md`
-- [ ] T013 Create cross-platform aggregate verification commands in `scripts/verify.ps1` and `scripts/verify.sh`
+- [X] T001 Validate every item in `specs/001-nutrition-recipe-planner/checklists/nutrition.md` against the clarified spec, model, and contracts; link evidence for resolved items, and stop to rerun clarify/plan/tasks/analyze before T002 if any answer changes a requirement
+- [X] T002 Scaffold the Python 3.13 project, `uv.lock`, and package entry points in `backend/pyproject.toml` and `backend/src/vigor_vine/__init__.py`
+- [X] T003 [P] Scaffold the React 19.2 TypeScript client and lockfile in `frontend/package.json`, `frontend/pnpm-lock.yaml`, and `frontend/src/main.tsx`
+- [X] T004 Create the planned backend package, test, migration, frontend feature, deployment, script, and documentation directories listed in `specs/001-nutrition-recipe-planner/plan.md`
+- [X] T005 [P] Configure Ruff, mypy, pytest, pytest-asyncio, Hypothesis, and coverage defaults in `backend/pyproject.toml`
+- [X] T006 [P] Configure ESLint, TypeScript, Vitest, Testing Library, axe-core, and Playwright in `frontend/eslint.config.js`, `frontend/tsconfig.json`, `frontend/vite.config.ts`, and `frontend/playwright.config.ts`
+- [X] T007 [P] Translate `DESIGN.md` colors, typography, spacing, radii, and macro-status semantics into `frontend/src/styles/tokens.css` and `frontend/src/styles/globals.css`
+- [X] T008 Define validated environment variables, disabled-by-default failed-import diagnostics, retention deadlines, retry schedule, and safe local defaults in `.env.example` and `backend/src/vigor_vine/infrastructure/config.py`
+- [X] T009 [P] Define healthy PostgreSQL 18 and Redis development services with named volumes in `deploy/compose.yaml`
+- [X] T010 [P] Add locked backend lint, type, unit, and integration jobs in `.github/workflows/backend.yml`
+- [X] T011 [P] Add frontend lint, type, unit, build, accessibility, and Playwright jobs in `.github/workflows/frontend.yml`
+- [X] T012 Record every adopted dependency, pinned major version, source, and license decision in `docs/dependencies-and-licenses.md`
+- [X] T013 Create cross-platform aggregate verification commands in `scripts/verify.ps1` and `scripts/verify.sh`
 
 **Checkpoint**: Dependencies lock successfully, repository checks can run, and requirement ambiguities
 that would change implementation are resolved.

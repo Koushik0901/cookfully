@@ -1,0 +1,46 @@
+name: Backend
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: vigor_vine_test
+          POSTGRES_USER: vigor_vine
+          POSTGRES_PASSWORD: vigor_vine
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vigor_vine -d vigor_vine_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      VV_ENVIRONMENT: test
+      VV_DATABASE_URL: postgresql+psycopg://vigor_vine:vigor_vine@localhost:5432/vigor_vine_test
+      VV_REDIS_URL: redis://localhost:6379/0
+      VV_SECRET_KEY: test-only-secret-key-with-at-least-32-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --project backend --locked --all-extras --dev
+      - run: uv run --directory backend ruff format --check .
+      - run: uv run --directory backend ruff check .
+      - run: uv run --directory backend mypy src
+      - run: uv run --directory backend pytest --cov --cov-report=term-missing

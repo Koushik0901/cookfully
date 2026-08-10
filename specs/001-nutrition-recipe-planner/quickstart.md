@@ -53,11 +53,11 @@ Lockfiles are committed. CI and production builds fail rather than silently upda
 ## 4. Initialize Application Data
 
 ```powershell
-uv run --project backend alembic upgrade head
-uv run --project backend vigor-vine bootstrap-owner
-uv run --project backend vigor-vine reference import-fdc --dataset foundation
-uv run --project backend vigor-vine reference import-fdc --dataset sr-legacy
-uv run --project backend vigor-vine reference status
+uv run --directory backend alembic upgrade head
+uv run --directory backend vigor-vine bootstrap-owner
+uv run --directory backend vigor-vine reference import-fdc --dataset foundation
+uv run --directory backend vigor-vine reference import-fdc --dataset sr-legacy
+uv run --directory backend vigor-vine reference status
 ```
 
 The reference status command prints dataset release IDs, record counts, license/attribution, import
@@ -68,15 +68,15 @@ time, and whether each release is active. Re-running an identical import must be
 Use separate terminals:
 
 ```powershell
-uv run --project backend uvicorn vigor_vine.api.main:app --reload --port 8000
+uv run --directory backend uvicorn vigor_vine.api.main:app --reload --port 8000
 ```
 
 ```powershell
-uv run --project backend celery -A vigor_vine.jobs.app worker --loglevel=INFO
+uv run --directory backend celery -A vigor_vine.jobs.app worker --loglevel=INFO
 ```
 
 ```powershell
-uv run --project backend vigor-vine outbox-dispatcher
+uv run --directory backend vigor-vine outbox-dispatcher
 ```
 
 ```powershell
@@ -112,8 +112,8 @@ The browser dev server proxies `/api` to the API; cookies remain same-site in de
 Run the versioned evaluation corpus before planning UI work beyond the correction flow:
 
 ```powershell
-uv run --project backend pytest tests/accuracy -m nutrition_corpus
-uv run --project backend vigor-vine nutrition-report --format markdown --output artifacts/nutrition-report.md
+uv run --directory backend pytest tests/accuracy -m nutrition_corpus
+uv run --directory backend vigor-vine nutrition-report --format markdown --output ../artifacts/nutrition-report.md
 ```
 
 The gate runs all 50 versioned recipes, reports the stable 30-recipe primary constitutional subset and
@@ -134,10 +134,10 @@ is classified as parse, match, conversion, yield, reference-data, or benchmark-e
 ## 8. Run Quality Gates
 
 ```powershell
-uv run --project backend ruff format --check .
-uv run --project backend ruff check .
-uv run --project backend mypy src
-uv run --project backend pytest
+uv run --directory backend ruff format --check .
+uv run --directory backend ruff check .
+uv run --directory backend mypy src
+uv run --directory backend pytest
 pnpm --dir frontend lint
 pnpm --dir frontend typecheck
 pnpm --dir frontend test --run
@@ -169,10 +169,10 @@ and media directories use named volumes. Redis persistence improves recovery but
 ## 10. Backup, Restore, and Portable Export
 
 ```powershell
-uv run --project backend vigor-vine backup create --output artifacts/backups
-uv run --project backend vigor-vine backup verify artifacts/backups/<archive>.zip
-uv run --project backend vigor-vine erasure-ledger verify --ledger deploy/erasure-ledger
-uv run --project backend vigor-vine export create --include-media --output artifacts/exports
+uv run --directory backend vigor-vine backup create --output ../artifacts/backups
+uv run --directory backend vigor-vine backup verify ../artifacts/backups/<archive>.zip
+uv run --directory backend vigor-vine erasure-ledger verify --ledger ../deploy/erasure-ledger
+uv run --directory backend vigor-vine export create --include-media --output ../artifacts/exports
 ```
 
 Restore testing uses a separate empty Compose project and explicit target path; it must never overwrite
@@ -183,8 +183,8 @@ be activated when the ledger is missing, behind, discontinuous, or hash-invalid.
 ```powershell
 $restoreProject = 'vigor-vine-restore-check'
 docker compose -p $restoreProject -f deploy/compose.restore-test.yaml up -d
-uv run --project backend vigor-vine backup restore --target $restoreProject --erasure-ledger deploy/erasure-ledger artifacts/backups/<archive>.zip
-uv run --project backend vigor-vine backup compare --target $restoreProject
+uv run --directory backend vigor-vine backup restore --target $restoreProject --erasure-ledger ../deploy/erasure-ledger ../artifacts/backups/<archive>.zip
+uv run --directory backend vigor-vine backup compare --target $restoreProject
 ```
 
 The restore report must show the backup cursor, verified current cursor, every replayed subject/scope,
@@ -195,7 +195,7 @@ zero resurrected recipe-owned records, intact detached history, and the final in
 After P5 is implemented, create a read-only token first and inspect the server:
 
 ```powershell
-uv run --project backend mcp dev src/vigor_vine/mcp/server.py
+uv run --directory backend mcp dev src/vigor_vine/mcp/server.py
 ```
 
 Verify `get_meal_plan` and the other read tools, then separately create a token with `plans:write` and

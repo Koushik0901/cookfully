@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vigor-vine"
+version = "0.1.0"
+description = "Self-hosted gym-focused recipe and nutrition planner"
+readme = "../README.md"
+requires-python = ">=3.13,<3.14"
+license = { text = "Proprietary" }
+authors = [{ name = "Vigor & Vine" }]
+dependencies = [
+  "alembic>=1.16,<2",
+  "argon2-cffi>=25.1,<26",
+  "celery[redis]>=5.6,<6",
+  "cryptography>=45,<47",
+  "email-validator>=2.2,<3",
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "pint>=0.25,<1",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic>=2.11,<3",
+  "pydantic-settings>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "redis>=6,<7",
+  "sqlalchemy>=2.0,<3",
+  "typer>=0.16,<1",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+nutrition = [
+  "ingredient-parser-nlp>=2.3,<3",
+  "recipe-scrapers>=15,<16",
+]
+suggestions = ["ortools>=9.15,<9.16"]
+mcp = ["mcp>=2,<3"]
+
+[dependency-groups]
+dev = [
+  "coverage[toml]>=7.10,<8",
+  "hypothesis>=6.138,<7",
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+  "testcontainers[postgres,redis]>=4.12,<5",
+  "types-redis>=4.6,<5",
+]
+
+[project.scripts]
+vigor-vine = "vigor_vine.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vigor_vine"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+  "integration: requires PostgreSQL, Redis, or another process boundary",
+  "contract: validates an external interface contract",
+  "nutrition_corpus: runs the versioned nutrition accuracy corpus",
+  "performance: measures documented performance budgets",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["vigor_vine"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "PTH", "RUF"]
+ignore = ["A005"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+packages = ["vigor_vine"]
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "recipe_scrapers.*", "ingredient_parser.*", "testcontainers.*"]
+ignore_missing_imports = true
