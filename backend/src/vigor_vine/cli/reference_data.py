@@ -204,14 +204,20 @@ def import_command(
     path: Path,
     dataset_type: Annotated[str, typer.Option()],
     release_id: Annotated[str, typer.Option()],
-    released_on: Annotated[date, typer.Option()],
+    released_on: Annotated[str, typer.Option(help="Release date in YYYY-MM-DD format.")],
     source_url: Annotated[str, typer.Option()],
 ) -> None:
+    try:
+        parsed_release_date = date.fromisoformat(released_on)
+    except ValueError as exc:
+        raise typer.BadParameter(
+            "Release date must use YYYY-MM-DD.", param_hint="released-on"
+        ) from exc
     dataset = import_release(
         path,
         dataset_type=dataset_type,
         release_id=release_id,
-        released_on=released_on,
+        released_on=parsed_release_date,
         source_url=source_url,
     )
     typer.echo(f"{dataset.id} {dataset.status}")

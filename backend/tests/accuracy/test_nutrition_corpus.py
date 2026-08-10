@@ -6,21 +6,26 @@ from pathlib import Path
 
 import httpx
 import pytest
+from recipe_scrapers import scrape_html
 
 from vigor_vine.benchmark.nutrition_corpus import (
     CorpusObservation,
     MacroObservation,
+    derive_observations,
     evaluate_scope,
+    load_derived_inputs,
     load_manifest,
     nutrient_summary,
     validate_snapshots,
 )
+from vigor_vine.cli.nutrition_report import build_report
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.infrastructure.recipe_importer import RecipeImporter
 from vigor_vine.infrastructure.safe_fetch import SafeFetcher
 
 CORPUS_ROOT = Path(__file__).parents[1] / "fixtures" / "nutrition-corpus"
 MANIFEST = load_manifest(CORPUS_ROOT / "manifest.json")
+DERIVED_INPUTS = load_derived_inputs(CORPUS_ROOT / "derived-inputs.json")
 
 
 async def public_resolver(_: str) -> set[str]:
@@ -110,3 +115,56 @@ def test_source_values_cannot_satisfy_the_ingredient_derived_accuracy_gate() -> 
     assert report.sc003_passed
     assert not report.sc002_passed
     assert report.ingredient_derived_count == 0
+
+
+@pytest.mark.nutrition_corpus
+def test_derived_inputs_align_with_captures_and_exclude_page_reference_macros() -> None:
+    foods = {food.fdc_id for food in DERIVED_INPUTS.foods}
+    derived_cases = {case.case_id: case for case in DERIVED_INPUTS.cases}
+    assert {release.dataset_type for release in DERIVED_INPUTS.reference_releases} == {
+        "foundation",
+        "sr_legacy",
+    }
+    for case in MANIFEST.cases:
+        derived = derived_cases[case.id]
+        html = (CORPUS_ROOT / case.snapshot).read_text(encoding="utf-8")
+        scraper = scrape_html(html, case.canonical_url, supported_only=False)
+        lines = scraper.ingredients()
+        assert [item.position for item in derived.ingredients] == list(range(len(lines)))
+        assert [item.original_text for item in derived.ingredients] == lines
+        assert all(item.assumption for item in derived.ingredients)
+        assert all(
+            item.food_fdc_id is None or item.food_fdc_id in foods for item in derived.ingredients
+        )
+
+
+@pytest.mark.nutrition_corpus
+def test_full_and_primary_accuracy_gates_pass_with_near_zero_reporting() -> None:
+    observations = derive_observations(MANIFEST, DERIVED_INPUTS)
+    full = evaluate_scope(MANIFEST.cases, observations)
+    primary_cases = [case for case in MANIFEST.cases if case.primary]
+    by_id = {item.case_id: item for item in observations}
+    primary = evaluate_scope(primary_cases, [by_id[case.id] for case in primary_cases])
+    for report in (full, primary):
+        assert report.sc001_passed
+        assert report.sc002_passed
+        assert report.sc003_passed
+        assert all(summary.passed for summary in report.nutrients.values())
+        assert report.nutrients["calories_kcal"].near_zero_count == 0
+        assert all(
+            report.nutrients[nutrient].near_zero_count > 0
+            for nutrient in ("protein_g", "carbohydrate_g", "fat_g")
+        )
+    assert full.nutrition_complete_count == 49
+    assert primary.nutrition_complete_count == 29
+
+
+@pytest.mark.nutrition_corpus
+def test_report_includes_full_primary_source_and_complexity_breakdowns() -> None:
+    report = build_report(CORPUS_ROOT)
+    assert set(report["bySourceSite"]) == {case.source_site for case in MANIFEST.cases}
+    assert set(report["byComplexity"]) == {"simple", "moderate", "complex"}
+    for scope in ("full", "primary"):
+        result = report[scope]
+        assert isinstance(result, dict)
+        assert result["sc001Passed"] and result["sc002Passed"] and result["sc003Passed"]

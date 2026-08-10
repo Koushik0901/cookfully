@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from vigor_vine.domain.common import NUTRIENT_SCALE, quantize_decimal
+from vigor_vine.domain.nutrition import IngredientNutrition, MacroValues, rollup_per_serving
+from vigor_vine.domain.units import IngredientMeasure, coverage_ratio
 
 Complexity = Literal["simple", "moderate", "complex"]
 NutrientName = Literal["calories_kcal", "protein_g", "carbohydrate_g", "fat_g"]
@@ -145,6 +148,70 @@ class CorpusObservation(BaseModel):
     ] = Field(default_factory=list)
 
 
+class DerivedMacros(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    calories_kcal: Decimal = Field(ge=0)
+    protein_g: Decimal = Field(ge=0)
+    carbohydrate_g: Decimal = Field(ge=0)
+    fat_g: Decimal = Field(ge=0)
+
+
+class DerivedFood(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    fdc_id: str
+    dataset_type: Literal["foundation", "sr_legacy"]
+    description: str
+    basis_grams: Decimal = Field(gt=0)
+    macros: DerivedMacros
+
+
+class DerivedIngredient(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    position: int = Field(ge=0)
+    original_text: str
+    parsed_food_name: str
+    query: str
+    food_fdc_id: str | None
+    match_score: Decimal | None = Field(default=None, ge=0, le=1)
+    grams: Decimal = Field(ge=0)
+    conversion_method: Literal[
+        "mass", "density", "count_weight", "manual", "optional", "unresolved"
+    ]
+    assumption: str
+    optional: bool
+
+
+class DerivedCase(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    case_id: str
+    yield_text: str
+    ingredients: list[DerivedIngredient]
+
+
+class ReferenceRelease(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    dataset_type: Literal["foundation", "sr_legacy"]
+    release_id: str
+    source_url: str
+    archive_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    license: str
+
+
+class DerivedInputs(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    schema_version: Literal[1]
+    corpus_version: str
+    reference_releases: list[ReferenceRelease]
+    foods: list[DerivedFood]
+    cases: list[DerivedCase]
+
+
 @dataclass(frozen=True, slots=True)
 class NutrientSummary:
     eligible_count: int
@@ -174,6 +241,15 @@ def load_manifest(path: Path) -> CorpusManifest:
     return CorpusManifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
+def load_derived_inputs(path: Path) -> DerivedInputs:
+    inputs = DerivedInputs.model_validate_json(path.read_text(encoding="utf-8"))
+    if len(inputs.cases) != 50 or len({case.case_id for case in inputs.cases}) != 50:
+        raise ValueError("derived inputs must contain one unique entry for every corpus case")
+    if len(inputs.reference_releases) != 2:
+        raise ValueError("derived inputs require Foundation Foods and SR Legacy attribution")
+    return inputs
+
+
 def validate_snapshots(manifest: CorpusManifest, corpus_root: Path) -> None:
     root = corpus_root.resolve()
     for case in manifest.cases:
@@ -189,6 +265,84 @@ def percentage_error(estimate: Decimal, reference: Decimal) -> Decimal:
     if reference <= 0:
         raise ValueError("percentage error requires a positive reference")
     return quantize_decimal(abs(estimate - reference) / reference * 100, NUTRIENT_SCALE)
+
+
+def derive_observations(
+    manifest: CorpusManifest,
+    inputs: DerivedInputs,
+) -> list[CorpusObservation]:
+    if inputs.corpus_version != manifest.corpus_version:
+        raise ValueError("derived inputs and corpus manifest versions do not match")
+    cases = {case.id: case for case in manifest.cases}
+    foods = {food.fdc_id: food for food in inputs.foods}
+    if len(foods) != len(inputs.foods):
+        raise ValueError("derived inputs contain duplicate USDA foods")
+    observations: list[CorpusObservation] = []
+    for derived_case in inputs.cases:
+        case = cases.get(derived_case.case_id)
+        if case is None:
+            raise ValueError(f"unknown derived case: {derived_case.case_id}")
+        contributions: list[IngredientNutrition] = []
+        measures: list[IngredientMeasure] = []
+        classifications: set[str] = set()
+        for ingredient in derived_case.ingredients:
+            food = foods.get(ingredient.food_fdc_id) if ingredient.food_fdc_id else None
+            matched = food is not None and ingredient.conversion_method != "unresolved"
+            measured_grams = ingredient.grams if ingredient.grams > 0 else None
+            measures.append(
+                IngredientMeasure(
+                    measured_grams,
+                    None,
+                    "gram" if measured_grams is not None else None,
+                    ingredient.optional,
+                    matched,
+                )
+            )
+            if food is None and not ingredient.optional:
+                classifications.add("match")
+            if ingredient.conversion_method == "unresolved" and not ingredient.optional:
+                classifications.add("conversion")
+            if ingredient.match_score is not None and ingredient.match_score < Decimal("0.650000"):
+                classifications.add("match")
+            if (
+                food is None
+                or ingredient.conversion_method == "unresolved"
+                or measured_grams is None
+            ):
+                continue
+            contributions.append(
+                IngredientNutrition(
+                    macros=MacroValues(
+                        _scale_food(food.macros.calories_kcal, measured_grams, food.basis_grams),
+                        _scale_food(food.macros.protein_g, measured_grams, food.basis_grams),
+                        _scale_food(food.macros.carbohydrate_g, measured_grams, food.basis_grams),
+                        _scale_food(food.macros.fat_g, measured_grams, food.basis_grams),
+                    ),
+                    matched=True,
+                )
+            )
+        coverage = coverage_ratio(measures).overall
+        estimate = rollup_per_serving(
+            contributions,
+            _yield_quantity(derived_case.yield_text),
+            coverage=coverage,
+        )
+        observations.append(
+            CorpusObservation(
+                case_id=case.id,
+                import_complete=True,
+                macros=MacroObservation(
+                    calories_kcal=estimate.macros.calories_kcal,
+                    protein_g=estimate.macros.protein_g,
+                    carbohydrate_g=estimate.macros.carbohydrate_g,
+                    fat_g=estimate.macros.fat_g,
+                ),
+                coverage=coverage,
+                provenance="ingredient_derived",
+                discrepancy_classifications=sorted(classifications),
+            )
+        )
+    return observations
 
 
 def nutrient_summary(
@@ -318,3 +472,17 @@ def _ratio(numerator: int, denominator: int) -> Decimal:
 
 def _string_or_none(value: Decimal | None) -> str | None:
     return str(value) if value is not None else None
+
+
+def _scale_food(value: Decimal, grams: Decimal, basis_grams: Decimal) -> Decimal:
+    return quantize_decimal(value * grams / basis_grams, NUTRIENT_SCALE)
+
+
+def _yield_quantity(value: str) -> Decimal:
+    match = re.search(r"\d+(?:\.\d+)?", value)
+    if match is None:
+        raise ValueError(f"yield has no numeric quantity: {value}")
+    quantity = Decimal(match.group())
+    if quantity <= 0:
+        raise ValueError(f"yield must be positive: {value}")
+    return quantity

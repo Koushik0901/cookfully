@@ -1,0 +1,1160 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "2026-08-10.1",
+  "referenceReleases": [
+    {
+      "datasetType": "foundation",
+      "releaseId": "2026-04-30",
+      "sourceUrl": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_json_2026-04-30.zip",
+      "archiveSha256": "186e988ec542e913f51ef62b86a47758e8cdd0d1dc3889e7b055581f3c09c77a",
+      "license": "CC0-1.0"
+    },
+    {
+      "datasetType": "sr_legacy",
+      "releaseId": "2018-04",
+      "sourceUrl": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_json_2018-04.zip",
+      "archiveSha256": "0fe8ae486a2c8eb42cb96413f058deb51863a46c8fb8eeb4b1fb45006dd338ef",
+      "license": "CC0-1.0"
+    }
+  ],
+  "full": {
+    "caseCount": 50,
+    "importCompleteCount": 50,
+    "nutritionCompleteCount": 49,
+    "ingredientDerivedCount": 50,
+    "importRate": "1.000000",
+    "nutritionCompleteRate": "0.980000",
+    "sc001Passed": true,
+    "sc002Passed": true,
+    "sc003Passed": true,
+    "nutrients": {
+      "calories_kcal": {
+        "eligibleCount": 50,
+        "nearZeroCount": 0,
+        "medianPercentageError": "17.923171",
+        "medianNearZeroAbsoluteError": null,
+        "maximumNearZeroAbsoluteError": null,
+        "threshold": "20",
+        "passed": true
+      },
+      "protein_g": {
+        "eligibleCount": 41,
+        "nearZeroCount": 9,
+        "medianPercentageError": "9.351875",
+        "medianNearZeroAbsoluteError": "0.278491",
+        "maximumNearZeroAbsoluteError": "0.930742",
+        "threshold": "25",
+        "passed": true
+      },
+      "carbohydrate_g": {
+        "eligibleCount": 43,
+        "nearZeroCount": 7,
+        "medianPercentageError": "23.229545",
+        "medianNearZeroAbsoluteError": "0.408780",
+        "maximumNearZeroAbsoluteError": "2.675719",
+        "threshold": "25",
+        "passed": true
+      },
+      "fat_g": {
+        "eligibleCount": 44,
+        "nearZeroCount": 6,
+        "medianPercentageError": "20.422063",
+        "medianNearZeroAbsoluteError": "0.215345",
+        "maximumNearZeroAbsoluteError": "4.696350",
+        "threshold": "25",
+        "passed": true
+      }
+    }
+  },
+  "primary": {
+    "caseCount": 30,
+    "importCompleteCount": 30,
+    "nutritionCompleteCount": 29,
+    "ingredientDerivedCount": 30,
+    "importRate": "1.000000",
+    "nutritionCompleteRate": "0.966667",
+    "sc001Passed": true,
+    "sc002Passed": true,
+    "sc003Passed": true,
+    "nutrients": {
+      "calories_kcal": {
+        "eligibleCount": 30,
+        "nearZeroCount": 0,
+        "medianPercentageError": "17.351242",
+        "medianNearZeroAbsoluteError": null,
+        "maximumNearZeroAbsoluteError": null,
+        "threshold": "20",
+        "passed": true
+      },
+      "protein_g": {
+        "eligibleCount": 25,
+        "nearZeroCount": 5,
+        "medianPercentageError": "7.057937",
+        "medianNearZeroAbsoluteError": "0.282350",
+        "maximumNearZeroAbsoluteError": "0.480757",
+        "threshold": "25",
+        "passed": true
+      },
+      "carbohydrate_g": {
+        "eligibleCount": 26,
+        "nearZeroCount": 4,
+        "medianPercentageError": "23.185922",
+        "medianNearZeroAbsoluteError": "0.488538",
+        "maximumNearZeroAbsoluteError": "2.675719",
+        "threshold": "25",
+        "passed": true
+      },
+      "fat_g": {
+        "eligibleCount": 25,
+        "nearZeroCount": 5,
+        "medianPercentageError": "19.771130",
+        "medianNearZeroAbsoluteError": "0.212020",
+        "maximumNearZeroAbsoluteError": "4.696350",
+        "threshold": "25",
+        "passed": true
+      }
+    }
+  },
+  "bySourceSite": {
+    "diabetesfoodhub.org": {
+      "caseCount": 15,
+      "importCompleteCount": 15,
+      "nutritionCompleteCount": 15,
+      "ingredientDerivedCount": 15,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "1.000000",
+      "sc001Passed": true,
+      "sc002Passed": true,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "10.057894",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": true
+        },
+        "protein_g": {
+          "eligibleCount": 6,
+          "nearZeroCount": 9,
+          "medianPercentageError": "4.927115",
+          "medianNearZeroAbsoluteError": "0.278491",
+          "maximumNearZeroAbsoluteError": "0.930742",
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "4.803810",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": true
+        },
+        "fat_g": {
+          "eligibleCount": 11,
+          "nearZeroCount": 4,
+          "medianPercentageError": "16.663975",
+          "medianNearZeroAbsoluteError": "0.215345",
+          "maximumNearZeroAbsoluteError": "4.696350",
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    },
+    "www.bbcgoodfood.com": {
+      "caseCount": 15,
+      "importCompleteCount": 15,
+      "nutritionCompleteCount": 14,
+      "ingredientDerivedCount": 15,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "0.933333",
+      "sc001Passed": true,
+      "sc002Passed": false,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "24.149958",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": false
+        },
+        "protein_g": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "9.351875",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "28.081729",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": false
+        },
+        "fat_g": {
+          "eligibleCount": 14,
+          "nearZeroCount": 1,
+          "medianPercentageError": "18.571142",
+          "medianNearZeroAbsoluteError": "0.101060",
+          "maximumNearZeroAbsoluteError": "0.101060",
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    },
+    "www.recipetineats.com": {
+      "caseCount": 10,
+      "importCompleteCount": 10,
+      "nutritionCompleteCount": 10,
+      "ingredientDerivedCount": 10,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "1.000000",
+      "sc001Passed": true,
+      "sc002Passed": false,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 10,
+          "nearZeroCount": 0,
+          "medianPercentageError": "18.281816",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": true
+        },
+        "protein_g": {
+          "eligibleCount": 10,
+          "nearZeroCount": 0,
+          "medianPercentageError": "18.466421",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 7,
+          "nearZeroCount": 3,
+          "medianPercentageError": "31.416261",
+          "medianNearZeroAbsoluteError": "0.783910",
+          "maximumNearZeroAbsoluteError": "2.675719",
+          "threshold": "25",
+          "passed": false
+        },
+        "fat_g": {
+          "eligibleCount": 10,
+          "nearZeroCount": 0,
+          "medianPercentageError": "17.034787",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    },
+    "www.skinnytaste.com": {
+      "caseCount": 10,
+      "importCompleteCount": 10,
+      "nutritionCompleteCount": 10,
+      "ingredientDerivedCount": 10,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "1.000000",
+      "sc001Passed": true,
+      "sc002Passed": false,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 10,
+          "nearZeroCount": 0,
+          "medianPercentageError": "25.372265",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": false
+        },
+        "protein_g": {
+          "eligibleCount": 10,
+          "nearZeroCount": 0,
+          "medianPercentageError": "25.775979",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": false
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 6,
+          "nearZeroCount": 4,
+          "medianPercentageError": "28.562892",
+          "medianNearZeroAbsoluteError": "0.169873",
+          "maximumNearZeroAbsoluteError": "0.548824",
+          "threshold": "25",
+          "passed": false
+        },
+        "fat_g": {
+          "eligibleCount": 9,
+          "nearZeroCount": 1,
+          "medianPercentageError": "46.744500",
+          "medianNearZeroAbsoluteError": "1.254867",
+          "maximumNearZeroAbsoluteError": "1.254867",
+          "threshold": "25",
+          "passed": false
+        }
+      }
+    }
+  },
+  "byComplexity": {
+    "simple": {
+      "caseCount": 15,
+      "importCompleteCount": 15,
+      "nutritionCompleteCount": 14,
+      "ingredientDerivedCount": 15,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "0.933333",
+      "sc001Passed": true,
+      "sc002Passed": true,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "11.170833",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": true
+        },
+        "protein_g": {
+          "eligibleCount": 11,
+          "nearZeroCount": 4,
+          "medianPercentageError": "9.429880",
+          "medianNearZeroAbsoluteError": "0.280421",
+          "maximumNearZeroAbsoluteError": "0.480757",
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 11,
+          "nearZeroCount": 4,
+          "medianPercentageError": "21.823571",
+          "medianNearZeroAbsoluteError": "0.347703",
+          "maximumNearZeroAbsoluteError": "0.783910",
+          "threshold": "25",
+          "passed": true
+        },
+        "fat_g": {
+          "eligibleCount": 10,
+          "nearZeroCount": 5,
+          "medianPercentageError": "16.494286",
+          "medianNearZeroAbsoluteError": "0.218669",
+          "maximumNearZeroAbsoluteError": "4.696350",
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    },
+    "moderate": {
+      "caseCount": 20,
+      "importCompleteCount": 20,
+      "nutritionCompleteCount": 20,
+      "ingredientDerivedCount": 20,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "1.000000",
+      "sc001Passed": true,
+      "sc002Passed": true,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 20,
+          "nearZeroCount": 0,
+          "medianPercentageError": "18.281816",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": true
+        },
+        "protein_g": {
+          "eligibleCount": 16,
+          "nearZeroCount": 4,
+          "medianPercentageError": "8.460339",
+          "medianNearZeroAbsoluteError": "0.304188",
+          "maximumNearZeroAbsoluteError": "0.930742",
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 17,
+          "nearZeroCount": 3,
+          "medianPercentageError": "23.229545",
+          "medianNearZeroAbsoluteError": "0.408780",
+          "maximumNearZeroAbsoluteError": "2.675719",
+          "threshold": "25",
+          "passed": true
+        },
+        "fat_g": {
+          "eligibleCount": 19,
+          "nearZeroCount": 1,
+          "medianPercentageError": "19.771130",
+          "medianNearZeroAbsoluteError": "0.161810",
+          "maximumNearZeroAbsoluteError": "0.161810",
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    },
+    "complex": {
+      "caseCount": 15,
+      "importCompleteCount": 15,
+      "nutritionCompleteCount": 15,
+      "ingredientDerivedCount": 15,
+      "importRate": "1.000000",
+      "nutritionCompleteRate": "1.000000",
+      "sc001Passed": true,
+      "sc002Passed": false,
+      "sc003Passed": true,
+      "nutrients": {
+        "calories_kcal": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "23.120868",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "20",
+          "passed": false
+        },
+        "protein_g": {
+          "eligibleCount": 14,
+          "nearZeroCount": 1,
+          "medianPercentageError": "6.279899",
+          "medianNearZeroAbsoluteError": "0.150239",
+          "maximumNearZeroAbsoluteError": "0.150239",
+          "threshold": "25",
+          "passed": true
+        },
+        "carbohydrate_g": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "28.081729",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": false
+        },
+        "fat_g": {
+          "eligibleCount": 15,
+          "nearZeroCount": 0,
+          "medianPercentageError": "21.511775",
+          "medianNearZeroAbsoluteError": null,
+          "maximumNearZeroAbsoluteError": null,
+          "threshold": "25",
+          "passed": true
+        }
+      }
+    }
+  },
+  "caseObservations": [
+    {
+      "caseId": "NR-001",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "154.199850",
+        "proteinG": "13.515411",
+        "carbohydrateG": "12.451011",
+        "fatG": "5.494298"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-002",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "133.073333",
+        "proteinG": "1.480757",
+        "carbohydrateG": "22.818740",
+        "fatG": "5.196350"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-003",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "75.067000",
+        "proteinG": "3.717650",
+        "carbohydrateG": "14.669460",
+        "fatG": "0.787980"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-004",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "53.297500",
+        "proteinG": "0.278491",
+        "carbohydrateG": "12.624906",
+        "fatG": "0.218669"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-005",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "105.408000",
+        "proteinG": "1.055000",
+        "carbohydrateG": "22.008800",
+        "fatG": "2.644000"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-006",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "153.183969",
+        "proteinG": "2.330438",
+        "carbohydrateG": "24.025810",
+        "fatG": "6.174518"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-007",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "51.024250",
+        "proteinG": "0.722062",
+        "carbohydrateG": "13.059231",
+        "fatG": "0.161810"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-008",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "162.163000",
+        "proteinG": "4.050244",
+        "carbohydrateG": "27.159948",
+        "fatG": "5.887860"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-009",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "87.113428",
+        "proteinG": "6.587733",
+        "carbohydrateG": "8.631681",
+        "fatG": "3.376037"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-010",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "59.042400",
+        "proteinG": "2.069258",
+        "carbohydrateG": "5.550235",
+        "fatG": "3.443509"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-011",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "289.271732",
+        "proteinG": "24.947029",
+        "carbohydrateG": "28.413767",
+        "fatG": "8.845098"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-012",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "289.482194",
+        "proteinG": "18.699733",
+        "carbohydrateG": "27.712915",
+        "fatG": "12.558116"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-013",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "514.417761",
+        "proteinG": "38.497324",
+        "carbohydrateG": "61.994575",
+        "fatG": "14.520477"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-014",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "275.144736",
+        "proteinG": "29.744966",
+        "carbohydrateG": "14.270167",
+        "fatG": "11.153337"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-015",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "155.777438",
+        "proteinG": "2.849761",
+        "carbohydrateG": "22.795341",
+        "fatG": "6.666882"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-016",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "329.504000",
+        "proteinG": "9.345600",
+        "carbohydrateG": "69.033300",
+        "fatG": "0.898940"
+      },
+      "coverage": "0.833333",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "conversion",
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-017",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "203.886396",
+        "proteinG": "4.528506",
+        "carbohydrateG": "32.039331",
+        "fatG": "6.142300"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-018",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "428.292000",
+        "proteinG": "14.503700",
+        "carbohydrateG": "39.256600",
+        "fatG": "25.354500"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-019",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "481.995250",
+        "proteinG": "30.456038",
+        "carbohydrateG": "62.029375",
+        "fatG": "11.977113"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-020",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "652.690500",
+        "proteinG": "32.229750",
+        "carbohydrateG": "101.105750",
+        "fatG": "15.258250"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-021",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "733.875500",
+        "proteinG": "39.613638",
+        "carbohydrateG": "105.523738",
+        "fatG": "18.502900"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-022",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "450.541750",
+        "proteinG": "46.034913",
+        "carbohydrateG": "13.555250",
+        "fatG": "23.358763"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-023",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "818.775500",
+        "proteinG": "41.462400",
+        "carbohydrateG": "59.303000",
+        "fatG": "40.754750"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-024",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "513.450250",
+        "proteinG": "51.635488",
+        "carbohydrateG": "50.898250",
+        "fatG": "11.868913"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-025",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "339.387125",
+        "proteinG": "14.054750",
+        "carbohydrateG": "51.692100",
+        "fatG": "9.184188"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-026",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "449.549700",
+        "proteinG": "44.093750",
+        "carbohydrateG": "44.444360",
+        "fatG": "11.050510"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-027",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "493.849250",
+        "proteinG": "24.934133",
+        "carbohydrateG": "22.602683",
+        "fatG": "36.128005"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-028",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "475.445938",
+        "proteinG": "16.083713",
+        "carbohydrateG": "89.768579",
+        "fatG": "8.712541"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-029",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "682.518000",
+        "proteinG": "30.005425",
+        "carbohydrateG": "66.092125",
+        "fatG": "36.273075"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-030",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "366.242375",
+        "proteinG": "35.607972",
+        "carbohydrateG": "15.796694",
+        "fatG": "17.957857"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-031",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "167.939500",
+        "proteinG": "10.226400",
+        "carbohydrateG": "27.514875",
+        "fatG": "1.597665"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-032",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "180.091831",
+        "proteinG": "10.700101",
+        "carbohydrateG": "30.354253",
+        "fatG": "1.554867"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-033",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "189.277344",
+        "proteinG": "12.004342",
+        "carbohydrateG": "0.853419",
+        "fatG": "14.889411"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-034",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "232.930000",
+        "proteinG": "13.082700",
+        "carbohydrateG": "25.582950",
+        "fatG": "8.988450"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-035",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "107.643927",
+        "proteinG": "14.438124",
+        "carbohydrateG": "5.048824",
+        "fatG": "3.136214"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-036",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "91.108105",
+        "proteinG": "17.954289",
+        "carbohydrateG": "0.398700",
+        "fatG": "1.949528"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-037",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "95.886839",
+        "proteinG": "12.402812",
+        "carbohydrateG": "2.193165",
+        "fatG": "3.879629"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-038",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "546.645903",
+        "proteinG": "33.307241",
+        "carbohydrateG": "40.590664",
+        "fatG": "29.104863"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-039",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "265.183001",
+        "proteinG": "16.149607",
+        "carbohydrateG": "25.713487",
+        "fatG": "11.170625"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-040",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "475.137852",
+        "proteinG": "16.029409",
+        "carbohydrateG": "80.766046",
+        "fatG": "12.558618"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-041",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "419.499250",
+        "proteinG": "28.209340",
+        "carbohydrateG": "2.216090",
+        "fatG": "27.452175"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-042",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "226.750063",
+        "proteinG": "32.741406",
+        "carbohydrateG": "6.675719",
+        "fatG": "7.140469"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-043",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "379.088540",
+        "proteinG": "27.976850",
+        "carbohydrateG": "30.225740",
+        "fatG": "16.454479"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-044",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "324.220625",
+        "proteinG": "31.613968",
+        "carbohydrateG": "11.018875",
+        "fatG": "16.674273"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-045",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "176.867725",
+        "proteinG": "16.095815",
+        "carbohydrateG": "1.591220",
+        "fatG": "11.668743"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-046",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "480.699500",
+        "proteinG": "29.574380",
+        "carbohydrateG": "67.175690",
+        "fatG": "12.120400"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": []
+    },
+    {
+      "caseId": "NR-047",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "715.332243",
+        "proteinG": "49.047902",
+        "carbohydrateG": "56.645457",
+        "fatG": "34.216751"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-048",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "527.892310",
+        "proteinG": "31.884530",
+        "carbohydrateG": "58.812010",
+        "fatG": "17.702439"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-049",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "619.320156",
+        "proteinG": "39.960525",
+        "carbohydrateG": "66.167950",
+        "fatG": "22.820598"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    },
+    {
+      "caseId": "NR-050",
+      "importComplete": true,
+      "macros": {
+        "caloriesKcal": "531.921200",
+        "proteinG": "27.568250",
+        "carbohydrateG": "24.373756",
+        "fatG": "38.746795"
+      },
+      "coverage": "1.000000",
+      "provenance": "ingredient_derived",
+      "discrepancyClassifications": [
+        "match"
+      ]
+    }
+  ]
+}

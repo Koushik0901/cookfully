@@ -1,5 +1,6 @@
 from typer import Typer
 
+from vigor_vine.cli.nutrition_report import app as nutrition_report_app
 from vigor_vine.cli.reference_data import app as reference_data_app
 
 app = Typer(
@@ -8,6 +9,7 @@ app = Typer(
     no_args_is_help=True,
 )
 app.add_typer(reference_data_app)
+app.add_typer(nutrition_report_app)
 
 
 @app.callback()
