@@ -12,7 +12,7 @@
 - Q: What benchmark policy should gate P1? → A: Use a fixed, versioned 50-recipe stratified corpus with a 30-recipe primary release subset and 20 extension/stress cases; require all four core macros plus at least 90% ingredient coverage, and use qualified published references with threshold-aware error calculations.
 - Q: What numeric precision and rounding policy should the product use? → A: Store nutrients and ingredient quantities to six decimal places and servings to three, serialize public decimals as strings, use round-half-up, display calories to 1 kcal and macros to 0.1 g, and aggregate the same display-quantized plan-entry values.
 - Q: What should happen when recipes are archived, restored, or permanently deleted? → A: Archive is reversible and removes a recipe from active use; restore returns it to its prior usable state or marks nutrition stale; confirmed permanent deletion is limited to archived recipes, cancels active jobs, removes recipe-owned data, and preserves detached historical snapshots and provenance.
-- Q: What retention policy should apply to imported content, provider data, diagnostics, and audit history? → A: Discard successful-import HTML after extraction; permit encrypted failed-import HTML for 24 hours only with owner-enabled diagnostics; never retain raw provider requests or responses; retain detailed job diagnostics for 30 days then safe codes and timestamps for one year; retain estimates and corrections until owner erasure; let backup rotation govern residual copies.
+- Q: What retention policy should apply to imported content, provider data, diagnostics, and audit history? → A: Discard successful-import HTML after extraction; permit encrypted failed-import HTML for 24 hours only with owner-enabled diagnostics; never retain raw provider requests or responses; retain detailed job diagnostics for 30 days then safe codes and timestamps for one year; retain estimates and corrections until owner erasure; let backup rotation govern residual copies while an independent content-free erasure ledger prevents restored backups from resurrecting erased data.
 - Q: How should import and nutrition jobs acknowledge, retry, and communicate completion? → A: Persist and acknowledge within one second, discover status by polling every two seconds on visible job screens and every 15 seconds elsewhere, time out attempts after 60 seconds, retry after 5 seconds, 30 seconds, 2 minutes, and 5 minutes for at most five attempts, and reach a visible terminal state within 15 minutes.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -399,7 +399,8 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **SC-003**: All 50 entries in the versioned corpus MUST be captured public recipe pages, and at least
   90% MUST import title, yield, ingredients, and instructions without manual transcription. The result
   MUST also be reported for the stable 30-recipe primary subset and by source site. Stored HTML
-  snapshots and expected fields make the result reproducible when a live page changes.
+  snapshots and expected fields make the result reproducible when a live page changes. These approved,
+  non-user benchmark fixtures are test assets and are not retained runtime successful-import HTML.
 - **SC-004**: In validation fixtures, 100% of active manual corrections survive reprocessing and are
   used consistently in displayed nutrition, plan totals, suggestions, and external reads.
 - **SC-005**: For a seven-day plan containing up to 50 entries, users see updated meal, daily, and
@@ -457,5 +458,6 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - Suggestions choose only from the user's saved, active recipes and do not invent recipes or nutrition
   values. The user selects target tolerances before accepting a result.
 - Initial grocery generation does not subtract pantry stock; pantry-aware deductions belong to P6.
-- Specific frameworks, storage systems, nutrition reference sources, automation providers, and the
-  fork-versus-fresh decision are planning concerns and will be resolved after this specification.
+- Specific frameworks, storage systems, automation providers, and the fork-versus-fresh decision are
+  planning concerns. FR-005 fixes the required reference-dataset families while planning controls their
+  implementation and supported release identifiers.
