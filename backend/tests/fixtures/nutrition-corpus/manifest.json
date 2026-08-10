@@ -1,0 +1,1904 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "2026-08-10.1",
+  "capturedAt": "2026-08-10",
+  "capturePolicy": "Only structured recipe fields required for interoperability testing are retained; advertising, account, tracking, comments, images, and unrelated prose are discarded.",
+  "referencePolicy": "Published per-serving calories, protein, carbohydrate, and fat are independent comparison values and must never be used as ingredient-derived estimates.",
+  "cases": [
+    {
+      "id": "NR-001",
+      "slug": "diabetes-greek-yogurt-vanilla-mousse-blueberries",
+      "url": "https://diabetesfoodhub.org/recipes/greek-yogurt-vanilla-mousse-blueberries",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/greek-yogurt-vanilla-mousse-blueberries",
+      "snapshot": "html/01-diabetes-greek-yogurt-vanilla-mousse-blueberries.html",
+      "sourceHtmlSha256": "9c0fc19d2da97608f3ec7eb9e8ea6b1d2cd5c544030fe21ec636da0ef50cdc98",
+      "snapshotSha256": "f6ff5963d6162ca8a64b83544dd11dc189952d0ec19b483e2c7393df6bd20094",
+      "expectedImport": {
+        "title": "Greek Yogurt Vanilla Mousse with Blueberries",
+        "yieldText": "4 servings",
+        "ingredientCount": 6,
+        "instructionCount": 10
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "140",
+        "proteinG": "13",
+        "carbohydrateG": "13",
+        "fatG": "3.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-002",
+      "slug": "diabetes-banana-pineapple-nice-cream",
+      "url": "https://diabetesfoodhub.org/recipes/banana-pineapple-nice-cream",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegan",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/banana-pineapple-nice-cream",
+      "snapshot": "html/02-diabetes-banana-pineapple-nice-cream.html",
+      "sourceHtmlSha256": "44b9af9872967c6d3ee990ffc86fef1926af15df8c4d4bc2819e23c098812193",
+      "snapshotSha256": "8a55a65b6e03c8657cffe6723afa179539f330856d1266003484f1ca000aa23f",
+      "expectedImport": {
+        "title": "Banana Pineapple \"Nice\" Cream",
+        "yieldText": "6 servings",
+        "ingredientCount": 5,
+        "instructionCount": 12
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "6 servings",
+        "caloriesKcal": "90",
+        "proteinG": "1",
+        "carbohydrateG": "22",
+        "fatG": "0.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-003",
+      "slug": "diabetes-banana-popsicles",
+      "url": "https://diabetesfoodhub.org/recipes/banana-popsicles",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/banana-popsicles",
+      "snapshot": "html/03-diabetes-banana-popsicles.html",
+      "sourceHtmlSha256": "28fe50a5975d5fb8d22602bbe5818cb53cbc055da922cea142cdced50e58c951",
+      "snapshotSha256": "9b99efca3f6b5d6485a263ecfbeff773b2685d54288d430f90344f58ec5b51ed",
+      "expectedImport": {
+        "title": "Banana Popsicles",
+        "yieldText": "4 servings",
+        "ingredientCount": 3,
+        "instructionCount": 5
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "70",
+        "proteinG": "4",
+        "carbohydrateG": "22",
+        "fatG": "1"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-004",
+      "slug": "diabetes-baked-apples",
+      "url": "https://diabetesfoodhub.org/recipes/baked-apples",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "vegan",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/baked-apples",
+      "snapshot": "html/04-diabetes-baked-apples.html",
+      "sourceHtmlSha256": "a62ae563c239c9d11c983a564d74c1169616f7aa8faa115249b31a8cba1a241e",
+      "snapshotSha256": "b45343a5272f30c6dc28a78e2fce428a3ee933217788705f3ec20bc5d6f2070c",
+      "expectedImport": {
+        "title": "Baked Apples",
+        "yieldText": "4 servings",
+        "ingredientCount": 4,
+        "instructionCount": 6
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "60",
+        "proteinG": "0",
+        "carbohydrateG": "23",
+        "fatG": "0"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-005",
+      "slug": "diabetes-honey-and-walnut-stuffed-dates",
+      "url": "https://diabetesfoodhub.org/recipes/honey-and-walnut-stuffed-dates",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "Middle Eastern",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/honey-and-walnut-stuffed-dates",
+      "snapshot": "html/05-diabetes-honey-and-walnut-stuffed-dates.html",
+      "sourceHtmlSha256": "c253c949b30f054b373c1f0c2f49c294c04204dbc41c6c814a822894575051f1",
+      "snapshotSha256": "010a3501d608d9f5b72081261b31876e4b9738de7fdcc73487543dfdbb93ba3c",
+      "expectedImport": {
+        "title": "Honey and Walnut Stuffed Dates",
+        "yieldText": "10 servings",
+        "ingredientCount": 4,
+        "instructionCount": 5
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "10 servings",
+        "caloriesKcal": "110",
+        "proteinG": "1",
+        "carbohydrateG": "21",
+        "fatG": "2.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-006",
+      "slug": "diabetes-roasted-pears-oat-crumble",
+      "url": "https://diabetesfoodhub.org/recipes/roasted-pears-oat-crumble",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/roasted-pears-oat-crumble",
+      "snapshot": "html/06-diabetes-roasted-pears-oat-crumble.html",
+      "sourceHtmlSha256": "0c12b47790fc033ab5578510f7567ec649149e0e2fb8143039192fcbb42aa0b5",
+      "snapshotSha256": "5a97b2b588f94c2c48851c7b8d7ceb2c9cc3d35818ffdda5f42d40a47de88026",
+      "expectedImport": {
+        "title": "Roasted Pears with Oat Crumble",
+        "yieldText": "4 servings",
+        "ingredientCount": 9,
+        "instructionCount": 15
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "160",
+        "proteinG": "2",
+        "carbohydrateG": "26",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-007",
+      "slug": "diabetes-spiced-glazed-oranges",
+      "url": "https://diabetesfoodhub.org/recipes/spiced-glazed-oranges",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "Mediterranean",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/spiced-glazed-oranges",
+      "snapshot": "html/07-diabetes-spiced-glazed-oranges.html",
+      "sourceHtmlSha256": "f4da2664da11002889eecb9d39375909439d501c54356f04589f1bcc33b48a9e",
+      "snapshotSha256": "5bfe400f96f1ce9325f7a919d6bed083ce5e0b417d6bf5b0d49ab9129e36095a",
+      "expectedImport": {
+        "title": "Spiced Glazed Oranges",
+        "yieldText": "4 servings",
+        "ingredientCount": 8,
+        "instructionCount": 12
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "50",
+        "proteinG": "1",
+        "carbohydrateG": "13",
+        "fatG": "0"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-008",
+      "slug": "diabetes-pumpkin-almond-smoothie",
+      "url": "https://diabetesfoodhub.org/recipes/pumpkin-almond-smoothie",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegan",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/pumpkin-almond-smoothie",
+      "snapshot": "html/08-diabetes-pumpkin-almond-smoothie.html",
+      "sourceHtmlSha256": "501dad940ea29ff09673def03f9883953b9e591a4919788db5edac2673d2fd81",
+      "snapshotSha256": "bf751763ae0a0e4924f996e21ede9bf339e8e94924fb1eca1ac01faebe26ee92",
+      "expectedImport": {
+        "title": "Pumpkin Almond Smoothie",
+        "yieldText": "2 servings",
+        "ingredientCount": 9,
+        "instructionCount": 11
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "2 servings",
+        "caloriesKcal": "180",
+        "proteinG": "4",
+        "carbohydrateG": "26",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-009",
+      "slug": "diabetes-frozen-greek-yogurt-bark-strawberries-and-dark-chocolate",
+      "url": "https://diabetesfoodhub.org/recipes/frozen-greek-yogurt-bark-strawberries-and-dark-chocolate",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/frozen-greek-yogurt-bark-strawberries-and-dark-chocolate",
+      "snapshot": "html/09-diabetes-frozen-greek-yogurt-bark-strawberries-and-dark-chocolate.html",
+      "sourceHtmlSha256": "286e93d2426705a172d8952e63f741abc1a08e93119b00428af00eab1c4355c4",
+      "snapshotSha256": "f29c624dcad5e3b70da88c0595a6629d536fae894456840a036bd703cebd7355",
+      "expectedImport": {
+        "title": "Frozen Greek Yogurt Bark with Strawberries and Dark Chocolate",
+        "yieldText": "8 servings",
+        "ingredientCount": 7,
+        "instructionCount": 11
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "8 servings",
+        "caloriesKcal": "90",
+        "proteinG": "7",
+        "carbohydrateG": "11",
+        "fatG": "3.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-010",
+      "slug": "diabetes-lemon-poppyseed-power-balls",
+      "url": "https://diabetesfoodhub.org/recipes/lemon-poppyseed-power-balls",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/lemon-poppyseed-power-balls",
+      "snapshot": "html/10-diabetes-lemon-poppyseed-power-balls.html",
+      "sourceHtmlSha256": "456aea6e1994dd6c3eb153554431514062872fa39f0af78425619601b17654e4",
+      "snapshotSha256": "134bc3a7ed786336e218fc53a7dd9f48bcba5fb0d0300f051b7a8b25e41eb9c4",
+      "expectedImport": {
+        "title": "Lemon Poppyseed Power Balls",
+        "yieldText": "20 servings",
+        "ingredientCount": 9,
+        "instructionCount": 10
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "20 servings",
+        "caloriesKcal": "90",
+        "proteinG": "3",
+        "carbohydrateG": "13",
+        "fatG": "5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-011",
+      "slug": "diabetes-salmon-and-spring-veggie-breakfast-casserole",
+      "url": "https://diabetesfoodhub.org/recipes/salmon-and-spring-veggie-breakfast-casserole",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "pescatarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/salmon-and-spring-veggie-breakfast-casserole",
+      "snapshot": "html/11-diabetes-salmon-and-spring-veggie-breakfast-casserole.html",
+      "sourceHtmlSha256": "ca7f08e2fb2266b256c725318af2cf4b7c3f95661efcdd770a8d5bf414f2a483",
+      "snapshotSha256": "1d51228acb095f678aec44c434faf76d9e6b4aade2de58b3d5d3f37091d6ff7f",
+      "expectedImport": {
+        "title": "Salmon and Spring Veggie Breakfast Casserole",
+        "yieldText": "6 servings",
+        "ingredientCount": 18,
+        "instructionCount": 19
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "6 servings",
+        "caloriesKcal": "270",
+        "proteinG": "25",
+        "carbohydrateG": "29",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-012",
+      "slug": "diabetes-cold-cucumber-soup-and-grilled-shrimp-open-face-sandwich",
+      "url": "https://diabetesfoodhub.org/recipes/cold-cucumber-soup-and-grilled-shrimp-open-face-sandwich",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Mediterranean",
+      "dietary_pattern": "pescatarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/cold-cucumber-soup-and-grilled-shrimp-open-face-sandwich",
+      "snapshot": "html/12-diabetes-cold-cucumber-soup-and-grilled-shrimp-open-face-sandwich.html",
+      "sourceHtmlSha256": "7fa2c351038df04b51148f2bfc29a81ace4cfb791b7b513f4a399a02d3f00821",
+      "snapshotSha256": "adc2a6315c5034ab129978d26c220688b520fed8f62f1b34ed8431f844c6ed88",
+      "expectedImport": {
+        "title": "Cold Cucumber Soup and Grilled Shrimp Open-Face Sandwich",
+        "yieldText": "4 servings",
+        "ingredientCount": 15,
+        "instructionCount": 14
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "370",
+        "proteinG": "31",
+        "carbohydrateG": "29",
+        "fatG": "16"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-013",
+      "slug": "diabetes-chicken-kofta-tabbouleh",
+      "url": "https://diabetesfoodhub.org/recipes/chicken-kofta-tabbouleh",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Middle Eastern",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/chicken-kofta-tabbouleh",
+      "snapshot": "html/13-diabetes-chicken-kofta-tabbouleh.html",
+      "sourceHtmlSha256": "6a007132990e4075e7c7020fc6ee6b6b4ed396745c6370ef71eeccc00493b875",
+      "snapshotSha256": "ad0c64385f6df373942b53e6be22a62960598c314e69601007e2c3fd50ff2515",
+      "expectedImport": {
+        "title": "Chicken Kofta with Tabbouleh",
+        "yieldText": "4 servings",
+        "ingredientCount": 21,
+        "instructionCount": 23
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "390",
+        "proteinG": "36",
+        "carbohydrateG": "35",
+        "fatG": "13"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-014",
+      "slug": "diabetes-chicken-skewers-peanut-sauce",
+      "url": "https://diabetesfoodhub.org/recipes/chicken-skewers-peanut-sauce",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "Southeast Asian",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/chicken-skewers-peanut-sauce",
+      "snapshot": "html/14-diabetes-chicken-skewers-peanut-sauce.html",
+      "sourceHtmlSha256": "e183c32bd8c85d344c6fd11b4a1c8b78f21d280774f603b06d4ee24e7a5bfc58",
+      "snapshotSha256": "7b6d9c5072703b5937afec6ff137c669b7137a16dbdb8debb6c5f148e9c8d0a8",
+      "expectedImport": {
+        "title": "Chicken Skewers with Peanut Sauce",
+        "yieldText": "4 servings",
+        "ingredientCount": 14,
+        "instructionCount": 19
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "250",
+        "proteinG": "29",
+        "carbohydrateG": "11",
+        "fatG": "9"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-015",
+      "slug": "diabetes-apple-squares",
+      "url": "https://diabetesfoodhub.org/recipes/apple-squares",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "diabetesfoodhub.org",
+      "canonicalUrl": "https://diabetesfoodhub.org/recipes/apple-squares",
+      "snapshot": "html/15-diabetes-apple-squares.html",
+      "sourceHtmlSha256": "259538993547ceb82838f5887a3e21a3be41f6978ace06e90904900cf9282a9d",
+      "snapshotSha256": "eed7b2d2689d86e807804be45c33e809835f8461d5c9259f0c227a1d2f5e87e6",
+      "expectedImport": {
+        "title": "Apple Squares",
+        "yieldText": "12 servings",
+        "ingredientCount": 18,
+        "instructionCount": 25
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "12 servings",
+        "caloriesKcal": "120",
+        "proteinG": "3",
+        "carbohydrateG": "22",
+        "fatG": "8"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-016",
+      "slug": "bbc-white-sourdough",
+      "url": "https://www.bbcgoodfood.com/recipes/white-sourdough",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "European",
+      "dietary_pattern": "vegan",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/white-sourdough",
+      "snapshot": "html/16-bbc-white-sourdough.html",
+      "sourceHtmlSha256": "9c09e409fcae5dacd1e1216d45b14eda385127fdc5b5a5f69c46feb3d17c345b",
+      "snapshotSha256": "810505912b52b02cb9c2c2872de9b35def79890f6b33ed3b1b6cf951226c1985",
+      "expectedImport": {
+        "title": "White sourdough",
+        "yieldText": "15 slices",
+        "ingredientCount": 6,
+        "instructionCount": 13
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "15 slices",
+        "caloriesKcal": "171",
+        "proteinG": "6",
+        "carbohydrateG": "35",
+        "fatG": "1"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-017",
+      "slug": "bbc-focaccia",
+      "url": "https://www.bbcgoodfood.com/recipes/focaccia",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "Italian",
+      "dietary_pattern": "vegan",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/focaccia",
+      "snapshot": "html/17-bbc-focaccia.html",
+      "sourceHtmlSha256": "b586ca83adec65560d34794655a6391b5115b035740dcefb586d5a7ad0e8b6b1",
+      "snapshotSha256": "afb189faac20916f405aa2e150b78b55df725d425677462ee794552e814bcb50",
+      "expectedImport": {
+        "title": "Focaccia",
+        "yieldText": "12 servings",
+        "ingredientCount": 6,
+        "instructionCount": 8
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "12 servings",
+        "caloriesKcal": "208",
+        "proteinG": "5",
+        "carbohydrateG": "31",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-018",
+      "slug": "bbc-breakfast-burrito",
+      "url": "https://www.bbcgoodfood.com/recipes/breakfast-burrito",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "Mexican inspired",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/breakfast-burrito",
+      "snapshot": "html/18-bbc-breakfast-burrito.html",
+      "sourceHtmlSha256": "6c399065c3d8e5b88cdcf5536a3ecbdc9b0a941a925a4ca70d5d3fe5ed372a4e",
+      "snapshotSha256": "db85b8c5a2f85f79faf45962a9428b411a75cb2ea79e6346da0e03641090c541",
+      "expectedImport": {
+        "title": "Breakfast burrito",
+        "yieldText": "1 serving",
+        "ingredientCount": 7,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "1 serving",
+        "caloriesKcal": "366",
+        "proteinG": "16",
+        "carbohydrateG": "26",
+        "fatG": "21"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-019",
+      "slug": "bbc-chicken-chorizo-jambalaya",
+      "url": "https://www.bbcgoodfood.com/recipes/chicken-chorizo-jambalaya",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "Cajun inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/chicken-chorizo-jambalaya",
+      "snapshot": "html/19-bbc-chicken-chorizo-jambalaya.html",
+      "sourceHtmlSha256": "36e2136816f2cc8220a1aa3a86436c69ab5334811608e935e9aeaf378bd53c8e",
+      "snapshotSha256": "f02730c52eca737d946ad7700f311e28c6f4db1eb680e4eaf9530af8290b8e6f",
+      "expectedImport": {
+        "title": "Chicken & chorizo jambalaya",
+        "yieldText": "4 servings",
+        "ingredientCount": 10,
+        "instructionCount": 4
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "445",
+        "proteinG": "30",
+        "carbohydrateG": "64",
+        "fatG": "10"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-020",
+      "slug": "bbc-bean-enchiladas",
+      "url": "https://www.bbcgoodfood.com/recipes/bean-enchiladas",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "Mexican inspired",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/bean-enchiladas",
+      "snapshot": "html/20-bbc-bean-enchiladas.html",
+      "sourceHtmlSha256": "bb4942ea30998d4bce04c6702246ac20d9237141e2f811aedb4ca05b393105c9",
+      "snapshotSha256": "0cb61ad42624efad09e8bf5b2d63363229055f3452d11d934fa44bc95a65aad1",
+      "expectedImport": {
+        "title": "Vegetarian enchiladas",
+        "yieldText": "4 servings",
+        "ingredientCount": 9,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "430",
+        "proteinG": "23",
+        "carbohydrateG": "60",
+        "fatG": "13"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-021",
+      "slug": "bbc-crispy-chilli-turkey-noodles",
+      "url": "https://www.bbcgoodfood.com/recipes/crispy-chilli-turkey-noodles",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "East Asian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/crispy-chilli-turkey-noodles",
+      "snapshot": "html/21-bbc-crispy-chilli-turkey-noodles.html",
+      "sourceHtmlSha256": "f65038b043dc053c378404fdcd54c9830b5de3df46d5b0c41c6d7f9c1d334746",
+      "snapshotSha256": "06440c9ca47e2d183b6b5107f0c19d4e03f48fee9bbc9f2e648aac9fcc9348dc",
+      "expectedImport": {
+        "title": "Crispy chilli turkey noodles",
+        "yieldText": "4 servings",
+        "ingredientCount": 12,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "566",
+        "proteinG": "40",
+        "carbohydrateG": "83",
+        "fatG": "8"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-022",
+      "slug": "bbc-chicken-stroganoff",
+      "url": "https://www.bbcgoodfood.com/recipes/chicken-stroganoff",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "Eastern European inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/chicken-stroganoff",
+      "snapshot": "html/22-bbc-chicken-stroganoff.html",
+      "sourceHtmlSha256": "3ed0557cc8db8d408db51db6f0c2cd573abc78200143acc699b303abfbbe203b",
+      "snapshotSha256": "e9690bbd88a16d0b86b6475c753d3d8dfcba75983be1723578ea6e74df67c7d3",
+      "expectedImport": {
+        "title": "Chicken stroganoff",
+        "yieldText": "4 servings",
+        "ingredientCount": 11,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "425",
+        "proteinG": "43",
+        "carbohydrateG": "11",
+        "fatG": "23"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-023",
+      "slug": "bbc-salmon-risotto",
+      "url": "https://www.bbcgoodfood.com/recipes/salmon-risotto",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Italian",
+      "dietary_pattern": "pescatarian",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/salmon-risotto",
+      "snapshot": "html/23-bbc-salmon-risotto.html",
+      "sourceHtmlSha256": "91ec9567206c0f917132867fa0cb899dceea9a7d851330c9e1a3d503a8a43767",
+      "snapshotSha256": "74a524b7b21a94aa9fc9bb2041f30dfcab9760acf1e97367a2b905401e5ff16a",
+      "expectedImport": {
+        "title": "Salmon risotto",
+        "yieldText": "4 servings",
+        "ingredientCount": 11,
+        "instructionCount": 4
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "806",
+        "proteinG": "40",
+        "carbohydrateG": "59",
+        "fatG": "39"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-024",
+      "slug": "bbc-spicy-cajun-chicken-quinoa",
+      "url": "https://www.bbcgoodfood.com/recipes/spicy-cajun-chicken-quinoa",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Cajun inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/spicy-cajun-chicken-quinoa",
+      "snapshot": "html/24-bbc-spicy-cajun-chicken-quinoa.html",
+      "sourceHtmlSha256": "213e0f80e786dab8289c98b3eed3e6b838f54ad99385f9499838e344eb9c4f06",
+      "snapshotSha256": "89cc3d2c195cd7681323cdaeeb144fe9b3dfa0c544374c3ef5ffd97ea909506d",
+      "expectedImport": {
+        "title": "Spicy Cajun chicken quinoa",
+        "yieldText": "4 servings",
+        "ingredientCount": 10,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "386",
+        "proteinG": "47",
+        "carbohydrateG": "35",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-025",
+      "slug": "bbc-chickpea-coriander-burgers",
+      "url": "https://www.bbcgoodfood.com/recipes/chickpea-coriander-burgers",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Global",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/chickpea-coriander-burgers",
+      "snapshot": "html/25-bbc-chickpea-coriander-burgers.html",
+      "sourceHtmlSha256": "a08f80a0acc072f57ff077bb00d4693c62539ae6a5642888805453854f4de8d7",
+      "snapshotSha256": "bd2f4d4cb5cbfab545acafe296a7f865c7972d1ca54d05d8f63e739492bd397a",
+      "expectedImport": {
+        "title": "Chickpea & coriander burgers",
+        "yieldText": "4 servings",
+        "ingredientCount": 10,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "344",
+        "proteinG": "15",
+        "carbohydrateG": "56",
+        "fatG": "8"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-026",
+      "slug": "bbc-mexican-chicken-stew-quinoa-beans",
+      "url": "https://www.bbcgoodfood.com/recipes/mexican-chicken-stew-quinoa-beans",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Mexican inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/mexican-chicken-stew-quinoa-beans",
+      "snapshot": "html/26-bbc-mexican-chicken-stew-quinoa-beans.html",
+      "sourceHtmlSha256": "b0379054b24dfc2e46caed3a745a762bab16f58521f569f28aae9df7c7ea551e",
+      "snapshotSha256": "8ad80a083274fc489c5c54b95fe4df7411ef8da573ac8f89d5d53620ffd5257d",
+      "expectedImport": {
+        "title": "Mexican chicken stew with quinoa & beans",
+        "yieldText": "5 servings",
+        "ingredientCount": 13,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "5 servings",
+        "caloriesKcal": "336",
+        "proteinG": "33.4",
+        "carbohydrateG": "34.7",
+        "fatG": "6"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-027",
+      "slug": "bbc-chicken-satay-curry",
+      "url": "https://www.bbcgoodfood.com/recipes/chicken-satay-curry",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Southeast Asian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/chicken-satay-curry",
+      "snapshot": "html/27-bbc-chicken-satay-curry.html",
+      "sourceHtmlSha256": "5cf66ca9c3127c848df6990a701b297b8e3acea2e1fda5bdf5d0bafc2cf87371",
+      "snapshotSha256": "68fa59c2984cf49bce1ae7d4565538df7cb03eefddfe946b15f3f116ac10e610",
+      "expectedImport": {
+        "title": "Chicken satay curry",
+        "yieldText": "6 servings",
+        "ingredientCount": 19,
+        "instructionCount": 4
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "6 servings",
+        "caloriesKcal": "480",
+        "proteinG": "26",
+        "carbohydrateG": "15",
+        "fatG": "34"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-028",
+      "slug": "bbc-vegan-chickpea-curry-jacket-potato",
+      "url": "https://www.bbcgoodfood.com/recipes/vegan-chickpea-curry-jacket-potato",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "South Asian inspired",
+      "dietary_pattern": "vegan",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/vegan-chickpea-curry-jacket-potato",
+      "snapshot": "html/28-bbc-vegan-chickpea-curry-jacket-potato.html",
+      "sourceHtmlSha256": "89ac3674bf59d16f27fa0de38c07e873071dcdf131852283e1ada30ac7778041",
+      "snapshotSha256": "8421f625fe5d1cbf7cca994a76538596ca007c27a146becb72a70b0047e2a286",
+      "expectedImport": {
+        "title": "Vegan chickpea curry jacket potatoes",
+        "yieldText": "4 servings",
+        "ingredientCount": 14,
+        "instructionCount": 4
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "276",
+        "proteinG": "12",
+        "carbohydrateG": "32",
+        "fatG": "9"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-029",
+      "slug": "bbc-fruity-lamb-tagine",
+      "url": "https://www.bbcgoodfood.com/recipes/fruity-lamb-tagine",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "North African",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/fruity-lamb-tagine",
+      "snapshot": "html/29-bbc-fruity-lamb-tagine.html",
+      "sourceHtmlSha256": "04786e4bb68c845f41ee5a4d81c71e98f13a4738d0bb3941e7bf5e450f98b1be",
+      "snapshotSha256": "80c7772b0b1eec84c798ccbf12e97f51719b888102e2bf34823fb0730cc94efa",
+      "expectedImport": {
+        "title": "Easy lamb tagine",
+        "yieldText": "4 servings",
+        "ingredientCount": 12,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "514",
+        "proteinG": "38",
+        "carbohydrateG": "42",
+        "fatG": "18"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-030",
+      "slug": "bbc-slow-cooker-spaghetti-bolognese",
+      "url": "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "Italian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.bbcgoodfood.com",
+      "canonicalUrl": "https://www.bbcgoodfood.com/recipes/slow-cooker-spaghetti-bolognese",
+      "snapshot": "html/30-bbc-slow-cooker-spaghetti-bolognese.html",
+      "sourceHtmlSha256": "8fb86cea3c88173b7575da84d4d61141a776edd60c9f02d7f72ad771babd89da",
+      "snapshotSha256": "892690e77d2cbdfba743550df08ccba087e2e9f432648fcddb92f4bea466cf54",
+      "expectedImport": {
+        "title": "Slow cooker bolognese",
+        "yieldText": "12 servings",
+        "ingredientCount": 17,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "12 servings",
+        "caloriesKcal": "295",
+        "proteinG": "34",
+        "carbohydrateG": "13",
+        "fatG": "12"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-031",
+      "slug": "skinnytaste-high-protein-bread-oat-sandwich-rolls",
+      "url": "https://www.skinnytaste.com/high-protein-bread-oat-sandwich-rolls/",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/high-protein-bread-oat-sandwich-rolls/",
+      "snapshot": "html/31-skinnytaste-high-protein-bread-oat-sandwich-rolls.html",
+      "sourceHtmlSha256": "bd6b0b49714034c2f7f9936ab7cfbd998897d53b98928b8176b8fa5bf25c6381",
+      "snapshotSha256": "a9fe239c26e8b6389c1689fcc87755b5fbbc616163d0dff7238cff72004969c0",
+      "expectedImport": {
+        "title": "High Protein Bread (Oat Sandwich Rolls)",
+        "yieldText": "4 servings",
+        "ingredientCount": 6,
+        "instructionCount": 10
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "135.5",
+        "proteinG": "10.5",
+        "carbohydrateG": "18",
+        "fatG": "3"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-032",
+      "slug": "skinnytaste-easy-bagel-recipe",
+      "url": "https://www.skinnytaste.com/easy-bagel-recipe/",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/easy-bagel-recipe/",
+      "snapshot": "html/32-skinnytaste-easy-bagel-recipe.html",
+      "sourceHtmlSha256": "0ce23bb5703eefb021641d821b9aebe6e0471defe67cf631f8bd616688ed60a5",
+      "snapshotSha256": "32d8411f3ad94ccd67d252bd234a527ab4ca3e8c92ee54ef3124952208e8b0b4",
+      "expectedImport": {
+        "title": "Easy Bagel Recipe",
+        "yieldText": "4 servings",
+        "ingredientCount": 6,
+        "instructionCount": 12
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "152",
+        "proteinG": "10",
+        "carbohydrateG": "26.5",
+        "fatG": "0.3"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-033",
+      "slug": "skinnytaste-classic-egg-salad",
+      "url": "https://www.skinnytaste.com/classic-egg-salad/",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/classic-egg-salad/",
+      "snapshot": "html/33-skinnytaste-classic-egg-salad.html",
+      "sourceHtmlSha256": "19f5e72c9de7e55de83f22b3a21ad01551b8566358b8a14b4b154e8a4682d111",
+      "snapshotSha256": "10ed968460b41e0dac7b429f0165d5eac59015c65ee357b9ab167463ebc1d371",
+      "expectedImport": {
+        "title": "Egg Salad Recipe",
+        "yieldText": "4 servings",
+        "ingredientCount": 7,
+        "instructionCount": 1
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "185",
+        "proteinG": "9.5",
+        "carbohydrateG": "1",
+        "fatG": "15.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "count-or-unspecified"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-034",
+      "slug": "skinnytaste-egg-tomato-and-scallion-sandwich",
+      "url": "https://www.skinnytaste.com/egg-tomato-and-scallion-sandwich/",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/egg-tomato-and-scallion-sandwich/",
+      "snapshot": "html/34-skinnytaste-egg-tomato-and-scallion-sandwich.html",
+      "sourceHtmlSha256": "3a784c493f508533129efb9ae0e2aef56712702d210dfbdf283067052126c617",
+      "snapshotSha256": "cb0283edd1ecfa7498d4598c86306e9eacc450010ce78558e5669c2a360bfca2",
+      "expectedImport": {
+        "title": "Egg Tomato and Scallion Sandwich",
+        "yieldText": "1 serving",
+        "ingredientCount": 6,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "1 serving",
+        "caloriesKcal": "213",
+        "proteinG": "13.5",
+        "carbohydrateG": "21",
+        "fatG": "9.5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-035",
+      "slug": "skinnytaste-tuna-salad-wraps-25-pts",
+      "url": "https://www.skinnytaste.com/tuna-salad-wraps-25-pts/",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "pescatarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/tuna-salad-wraps-25-pts/",
+      "snapshot": "html/35-skinnytaste-tuna-salad-wraps-25-pts.html",
+      "sourceHtmlSha256": "fe59d3e223a9c64b9d3dfcccdd314abb460794c654bbba898bd55ebbc7924075",
+      "snapshotSha256": "80b8844ee4fe6c4591da08f83147c4f9c0333b385269cf951cfe1ee5eb7148de",
+      "expectedImport": {
+        "title": "Tuna Salad Wraps",
+        "yieldText": "2 servings",
+        "ingredientCount": 7,
+        "instructionCount": 1
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "2 servings",
+        "caloriesKcal": "160",
+        "proteinG": "22",
+        "carbohydrateG": "4.5",
+        "fatG": "6"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-036",
+      "slug": "skinnytaste-garlic-lovers-roast-beef",
+      "url": "https://www.skinnytaste.com/garlic-lovers-roast-beef/",
+      "complexity": "simple",
+      "primary": false,
+      "cuisine": "American",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/garlic-lovers-roast-beef/",
+      "snapshot": "html/36-skinnytaste-garlic-lovers-roast-beef.html",
+      "sourceHtmlSha256": "470664274105f6a40e7bb7389ffd7d239c997cb0b8383962eda3b5d058c450d3",
+      "snapshotSha256": "88f24d282d2b8beadb854b5a8007f24ce85d6b4daa1a090d80ec0d40e322f559",
+      "expectedImport": {
+        "title": "Garlic Lovers Roast Beef",
+        "yieldText": "10 servings",
+        "ingredientCount": 7,
+        "instructionCount": 4
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "10 servings",
+        "caloriesKcal": "142.5",
+        "proteinG": "24",
+        "carbohydrateG": "0.5",
+        "fatG": "4"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-037",
+      "slug": "skinnytaste-weight-watchers-chicken-salad-3-pts",
+      "url": "https://www.skinnytaste.com/weight-watchers-chicken-salad-3-pts/",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/chicken-salad/",
+      "snapshot": "html/37-skinnytaste-weight-watchers-chicken-salad-3-pts.html",
+      "sourceHtmlSha256": "345089ea93db304b803881c3499246c2403192e6e217abee349c94830cf84dad",
+      "snapshotSha256": "9ccc6ac74d4d0ab385d1b9775c91019ae0282074d2f18771d314ac124c258ed9",
+      "expectedImport": {
+        "title": "Chicken Salad Recipe",
+        "yieldText": "6 servings",
+        "ingredientCount": 8,
+        "instructionCount": 2
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "6 servings",
+        "caloriesKcal": "131",
+        "proteinG": "18",
+        "carbohydrateG": "2",
+        "fatG": "5"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-038",
+      "slug": "skinnytaste-bacon-egg-and-avocado-breakfast-sandwich",
+      "url": "https://www.skinnytaste.com/bacon-egg-and-avocado-breakfast-sandwich/",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/bacon-egg-and-avocado-breakfast-sandwich/",
+      "snapshot": "html/38-skinnytaste-bacon-egg-and-avocado-breakfast-sandwich.html",
+      "sourceHtmlSha256": "b8ce441bc6a2178c1c5b1c137b9dc9e3aed7eaee054fad18ae6aa73ce4edf9b4",
+      "snapshotSha256": "8591c2ca1ff1068bf32706c12492609f5a7b2df604a4f5c1df3524b25f4105b8",
+      "expectedImport": {
+        "title": "Bacon Egg and Avocado Bagel Breakfast Sandwich",
+        "yieldText": "4 servings",
+        "ingredientCount": 8,
+        "instructionCount": 5
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "369",
+        "proteinG": "25",
+        "carbohydrateG": "30",
+        "fatG": "16"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight"
+        ]
+      }
+    },
+    {
+      "id": "NR-039",
+      "slug": "skinnytaste-healthy-avocado-egg-salad-and-salmon",
+      "url": "https://www.skinnytaste.com/healthy-avocado-egg-salad-and-salmon/",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "pescatarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/healthy-avocado-egg-salad-and-salmon/",
+      "snapshot": "html/39-skinnytaste-healthy-avocado-egg-salad-and-salmon.html",
+      "sourceHtmlSha256": "149411111b1c8329c9d187ebe315b60a9775c9632eef6282f7b82f50ef5070a3",
+      "snapshotSha256": "673657715b6c6aec1e8fd1177682120f4bc97f9999ba57a3af0b7b5ba0de3410",
+      "expectedImport": {
+        "title": "Healthy Avocado Egg Salad and Salmon Sandwich",
+        "yieldText": "4 servings",
+        "ingredientCount": 12,
+        "instructionCount": 3
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "226",
+        "proteinG": "16.5",
+        "carbohydrateG": "22.5",
+        "fatG": "8"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-040",
+      "slug": "skinnytaste-greek-salad-sandwich",
+      "url": "https://www.skinnytaste.com/greek-salad-sandwich/",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Mediterranean inspired",
+      "dietary_pattern": "vegetarian",
+      "sourceSite": "www.skinnytaste.com",
+      "canonicalUrl": "https://www.skinnytaste.com/greek-salad-sandwich/",
+      "snapshot": "html/40-skinnytaste-greek-salad-sandwich.html",
+      "sourceHtmlSha256": "b1f7b091afa5190723a0573b20e1ee10db8a6a133e553a3fabd64126cf325e50",
+      "snapshotSha256": "f44ab4ef02768d589604acdef62e4279ba97196f14866dd2bfcb8d8510e33b2c",
+      "expectedImport": {
+        "title": "Greek Salad Sandwich",
+        "yieldText": "4 servings",
+        "ingredientCount": 10,
+        "instructionCount": 6
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "291",
+        "proteinG": "8.4",
+        "carbohydrateG": "46",
+        "fatG": "8"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-041",
+      "slug": "recipetineats-french-chicken-au-poivre-sauce",
+      "url": "https://www.recipetineats.com/french-chicken-au-poivre-sauce/",
+      "complexity": "simple",
+      "primary": true,
+      "cuisine": "French",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/french-chicken-au-poivre-sauce/",
+      "snapshot": "html/41-recipetineats-french-chicken-au-poivre-sauce.html",
+      "sourceHtmlSha256": "e5c7f90c10352eb762aad8acf4b7b222c4acbb29afafa8c14dcdf5ea43390911",
+      "snapshotSha256": "193565e678877af9d3b61fd7fd13d6df7ff0a387c7fa3409c723260b54430b87",
+      "expectedImport": {
+        "title": "JB's Chicken au Poivre (Creamy Peppercorn Sauce)",
+        "yieldText": "4 servings",
+        "ingredientCount": 7,
+        "instructionCount": 12
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "442",
+        "proteinG": "35",
+        "carbohydrateG": "3",
+        "fatG": "27"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-042",
+      "slug": "recipetineats-oven-baked-chicken-breast",
+      "url": "https://www.recipetineats.com/oven-baked-chicken-breast/",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "American",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/oven-baked-chicken-breast/",
+      "snapshot": "html/42-recipetineats-oven-baked-chicken-breast.html",
+      "sourceHtmlSha256": "6f303367181cadce232ba55556fb501d8a35ced57ee50f96309c5a234623013f",
+      "snapshotSha256": "49d82640297d31fddf907535e95f2a8850aedf9975444af4d4d61ae61e581e42",
+      "expectedImport": {
+        "title": "Oven Baked Chicken Breast",
+        "yieldText": "4 servings",
+        "ingredientCount": 8,
+        "instructionCount": 8
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "286",
+        "proteinG": "46",
+        "carbohydrateG": "4",
+        "fatG": "7"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-043",
+      "slug": "recipetineats-honey-garlic-chicken",
+      "url": "https://www.recipetineats.com/honey-garlic-chicken/",
+      "complexity": "moderate",
+      "primary": true,
+      "cuisine": "East Asian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/honey-garlic-chicken/",
+      "snapshot": "html/43-recipetineats-honey-garlic-chicken.html",
+      "sourceHtmlSha256": "e6d135e0347a28b036c77260ecbc3950c699e50c9502c457683b5395a7781fe0",
+      "snapshotSha256": "7a81a4d23dfc7b2bea042a89df23dbf6fd11f0427eeddeae21da3861a6c067db",
+      "expectedImport": {
+        "title": "Honey Garlic Chicken Breast",
+        "yieldText": "4 servings",
+        "ingredientCount": 8,
+        "instructionCount": 9
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "323",
+        "proteinG": "28",
+        "carbohydrateG": "23",
+        "fatG": "13"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-044",
+      "slug": "recipetineats-taiwanese-three-cup-chicken",
+      "url": "https://www.recipetineats.com/taiwanese-three-cup-chicken/",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Taiwanese",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/taiwanese-three-cup-chicken/",
+      "snapshot": "html/44-recipetineats-taiwanese-three-cup-chicken.html",
+      "sourceHtmlSha256": "e2c7a039814030de199cbfab4468c4754f1ddec27c742beef788bb65558ea618",
+      "snapshotSha256": "20820969ffb6109e79645a532aa207add6eece918db50c6f90ed07504e511e66",
+      "expectedImport": {
+        "title": "Taiwanese Three Cup Chicken",
+        "yieldText": "4 servings",
+        "ingredientCount": 12,
+        "instructionCount": 7
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "272",
+        "proteinG": "26",
+        "carbohydrateG": "5",
+        "fatG": "16"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion"
+        ]
+      }
+    },
+    {
+      "id": "NR-045",
+      "slug": "recipetineats-charcoal-chicken-shop-chicken-skewers",
+      "url": "https://www.recipetineats.com/charcoal-chicken-shop-chicken-skewers/",
+      "complexity": "moderate",
+      "primary": false,
+      "cuisine": "Middle Eastern inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/charcoal-chicken-shop-chicken-skewers/",
+      "snapshot": "html/45-recipetineats-charcoal-chicken-shop-chicken-skewers.html",
+      "sourceHtmlSha256": "6131a4f85a65f5bbe52334532e463bfc62941946e5ecffaaa19fdf61e1337d4b",
+      "snapshotSha256": "0b09efeaef73289e395902c1fb9acb35b3c3efaeee4689b8e6b629e0474ad38c",
+      "expectedImport": {
+        "title": "Charcoal Chicken Shop Chicken Skewers",
+        "yieldText": "10 skewers",
+        "ingredientCount": 16,
+        "instructionCount": 9
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "10 skewers",
+        "caloriesKcal": "118",
+        "proteinG": "13",
+        "carbohydrateG": "2",
+        "fatG": "6"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-046",
+      "slug": "recipetineats-oven-baked-chicken-and-rice",
+      "url": "https://www.recipetineats.com/oven-baked-chicken-and-rice/",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Mediterranean inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/oven-baked-chicken-and-rice/",
+      "snapshot": "html/46-recipetineats-oven-baked-chicken-and-rice.html",
+      "sourceHtmlSha256": "ff3ad41022b061758971db429934fa22f42e79e23d29e1c532401c2629122c6c",
+      "snapshotSha256": "cfc96c73620828c3cf371589f53b3f8a8ee69e29db702a5b240369b256af35f1",
+      "expectedImport": {
+        "title": "Oven Baked Chicken and Rice",
+        "yieldText": "5 servings",
+        "ingredientCount": 15,
+        "instructionCount": 9
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "5 servings",
+        "caloriesKcal": "574",
+        "proteinG": "28",
+        "carbohydrateG": "47",
+        "fatG": "29"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-047",
+      "slug": "recipetineats-tuscan-chicken-stew",
+      "url": "https://www.recipetineats.com/tuscan-chicken-stew/",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Italian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/tuscan-chicken-stew/",
+      "snapshot": "html/47-recipetineats-tuscan-chicken-stew.html",
+      "sourceHtmlSha256": "19b752b258d3c3628e1b0e39d99161fa261bb0eee825b2143f11ed88a279cd5b",
+      "snapshotSha256": "240e66d8f8a5296a9c4657cbd7676b223896958cf355a3e05d3b2ff821566714",
+      "expectedImport": {
+        "title": "Tuscan Chicken Stew",
+        "yieldText": "4 servings",
+        "ingredientCount": 17,
+        "instructionCount": 10
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "581",
+        "proteinG": "40",
+        "carbohydrateG": "46",
+        "fatG": "26"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-048",
+      "slug": "recipetineats-orange-chicken",
+      "url": "https://www.recipetineats.com/orange-chicken/",
+      "complexity": "complex",
+      "primary": true,
+      "cuisine": "Chinese American",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/orange-chicken/",
+      "snapshot": "html/48-recipetineats-orange-chicken.html",
+      "sourceHtmlSha256": "6f101a7a69accc9dde2a59798d79752a4fe5cf64c8408c5ec72f08c3d9877576",
+      "snapshotSha256": "c593cba6f204df57242f5720086d4e14aef8a08edb889237e38aa6a39e7880f4",
+      "expectedImport": {
+        "title": "Chinese Orange Chicken",
+        "yieldText": "4 servings",
+        "ingredientCount": 20,
+        "instructionCount": 11
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "534",
+        "proteinG": "31",
+        "carbohydrateG": "53",
+        "fatG": "20"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-049",
+      "slug": "recipetineats-chicken-and-sweet-corn-soup-with-noodles",
+      "url": "https://www.recipetineats.com/chicken-and-sweet-corn-soup-with-noodles/",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "Chinese inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/chicken-and-sweet-corn-soup-with-noodles/",
+      "snapshot": "html/49-recipetineats-chicken-and-sweet-corn-soup-with-noodles.html",
+      "sourceHtmlSha256": "f65a6aad2d6197d72a8cb9adf5beef99b77c90447a57773365f0d68624fe66c6",
+      "snapshotSha256": "7d790f45dec81942659039cbc8290e806de170155f7b1250654992f4ce1ead2f",
+      "expectedImport": {
+        "title": "Chicken and Sweet Corn Soup with Pasta",
+        "yieldText": "4 servings",
+        "ingredientCount": 17,
+        "instructionCount": 7
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "4 servings",
+        "caloriesKcal": "488",
+        "proteinG": "34",
+        "carbohydrateG": "49",
+        "fatG": "19"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    },
+    {
+      "id": "NR-050",
+      "slug": "recipetineats-coconut-chicken-curry-quick-easy",
+      "url": "https://www.recipetineats.com/coconut-chicken-curry-quick-easy/",
+      "complexity": "complex",
+      "primary": false,
+      "cuisine": "South Asian inspired",
+      "dietary_pattern": "omnivore",
+      "sourceSite": "www.recipetineats.com",
+      "canonicalUrl": "https://www.recipetineats.com/coconut-chicken-curry-quick-easy/",
+      "snapshot": "html/50-recipetineats-coconut-chicken-curry-quick-easy.html",
+      "sourceHtmlSha256": "4c6de2faca50cdc7fc3e545b26c753457abf21985f1fa66a6137927fbcfd63e8",
+      "snapshotSha256": "6af1d98016203f865b11d35c10152943df958453bf29c41e784fa89360f49c44",
+      "expectedImport": {
+        "title": "Coconut Chicken Curry - quick and easy",
+        "yieldText": "5 servings",
+        "ingredientCount": 17,
+        "instructionCount": 9
+      },
+      "reference": {
+        "basis": "per-serving",
+        "yieldText": "5 servings",
+        "caloriesKcal": "479",
+        "proteinG": "27",
+        "carbohydrateG": "21",
+        "fatG": "34"
+      },
+      "classification": {
+        "unitSystems": [
+          "imperial-or-us-volume",
+          "metric"
+        ],
+        "riskTags": [
+          "ambiguous-quantity",
+          "count-or-package-weight",
+          "density-conversion",
+          "preparation-state"
+        ]
+      }
+    }
+  ]
+}
