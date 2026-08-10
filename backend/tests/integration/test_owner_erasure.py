@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -245,3 +246,20 @@ def test_older_backup_replays_owner_erasure_to_zero_resurrection(
         assert report.resurrected_owner_ids == ()
         _assert_bootstrap_state(target)
         assert not any(path.is_file() for path in target_media.root.rglob("*"))
+    record = ledger.verify()[0]
+    print(
+        "OWNER_ERASURE_EVIDENCE="
+        + json.dumps(
+            {
+                "active": False,
+                "backupCursor": 0,
+                "currentCursor": record.cursor,
+                "replayedRecordIds": [str(record.record_id)],
+                "resurrectedOwnerIds": [],
+                "resurrectedRecipeIds": [],
+                "bootstrapState": True,
+                "restoredMediaFiles": 0,
+            },
+            sort_keys=True,
+        )
+    )

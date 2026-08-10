@@ -383,6 +383,7 @@ class BackupManager:
     @staticmethod
     def _insert_rows(session: Session, rows: dict[str, list[dict[str, object]]]) -> None:
         deferred_recipe_links: list[tuple[UUID, UUID | None, UUID | None]] = []
+        deferred_media_links: list[tuple[UUID, UUID]] = []
         deferred_supersedes: list[tuple[UUID, UUID]] = []
         for table in _tables():
             values = rows.get(table.name, [])
@@ -404,9 +405,21 @@ class BackupManager:
                         (cast(UUID, parsed["id"]), cast(UUID, parsed["supersedes_id"]))
                     )
                     parsed["supersedes_id"] = None
+                if table.name == "media_assets" and parsed.get("recipe_id") is not None:
+                    deferred_media_links.append(
+                        (cast(UUID, parsed["id"]), cast(UUID, parsed["recipe_id"]))
+                    )
+                    parsed["recipe_id"] = None
                 parsed_rows.append(parsed)
             if parsed_rows:
                 session.execute(table.insert(), parsed_rows)
+        media_assets = Base.metadata.tables["media_assets"]
+        for asset_id, owning_recipe_id in deferred_media_links:
+            session.execute(
+                media_assets.update()
+                .where(media_assets.c.id == asset_id)
+                .values(recipe_id=owning_recipe_id)
+            )
         recipes = Base.metadata.tables["recipes"]
         for recipe_id, estimate_id, media_id in deferred_recipe_links:
             session.execute(
