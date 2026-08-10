@@ -166,6 +166,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCurrentJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{jobId}": {
         parameters: {
             query?: never;
@@ -174,6 +190,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/media/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecipeMedia"];
         put?: never;
         post?: never;
         delete?: never;
@@ -573,6 +605,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             kind: string;
+            /** Format: uuid */
+            aggregateId: string;
             /** @enum {string} */
             status: "queued" | "running" | "retry_wait" | "succeeded" | "failed" | "cancelled" | "superseded";
             attempt: number;
@@ -590,6 +624,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             finishedAt?: string | null;
+            pollAfterSeconds: number | null;
+            recoveryActions: ("wait" | "retry" | "reload" | "edit_recipe" | "enter_manual_nutrition")[];
         };
         MealTarget: components["schemas"]["MacroValues"] & {
             mealSlot: string;
@@ -727,12 +763,23 @@ export interface components {
             };
             projectedWeekTotal?: components["schemas"]["PeriodTotal"] | null;
             missedConstraints: string[];
+            unmetConstraintCount?: number | null;
+            objectiveScore?: components["schemas"]["Decimal6"] | null;
+            distanceComponents?: components["schemas"]["SuggestionDistanceComponents"] | null;
             planVersion: number;
             failureCode?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             expiresAt?: string | null;
+        };
+        SuggestionDistanceComponents: {
+            calories: components["schemas"]["Decimal6"];
+            protein: components["schemas"]["Decimal6"];
+            carbohydrates: components["schemas"]["Decimal6"];
+            fat: components["schemas"]["Decimal6"];
+            repetitionOverage: number;
+            missingRequiredRecipes: number;
         };
         SuggestionAcceptance: {
             selectedItemIds: string[];
@@ -1192,6 +1239,30 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getCurrentJob: {
+        parameters: {
+            query: {
+                aggregateType: string;
+                aggregateId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Latest authoritative processing state for the aggregate, including terminal state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
     getJob: {
         parameters: {
             query?: never;
@@ -1210,6 +1281,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Job"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getRecipeMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-authorized transformed recipe image with immutable private caching. */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string;
+                    "image/jpeg": string;
+                    "image/png": string;
                 };
             };
             404: components["responses"]["NotFound"];

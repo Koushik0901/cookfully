@@ -13,9 +13,12 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $output) | Out-Nul
 Push-Location (Join-Path $root "frontend")
 try {
     pnpm exec openapi-typescript $contract --output $output
+    if ($LASTEXITCODE -ne 0) {
+        throw "OpenAPI TypeScript generation failed with exit code $LASTEXITCODE"
+    }
 }
 finally {
     Pop-Location
 }
 
-Write-Output "Generated committed client schema from OpenAPI 0.2.x contract."
+Write-Output "Generated committed client schema from OpenAPI 3.1 contract for API v0.2.x."

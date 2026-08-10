@@ -1189,7 +1189,7 @@ components:
         projectedWeekTotal: { oneOf: [{ $ref: "#/components/schemas/PeriodTotal" }, { type: "null" }] }
         missedConstraints: { type: array, items: { type: string } }
         unmetConstraintCount: { type: [integer, "null"], minimum: 0 }
-        objectiveScore: { oneOf: [{ $ref: "#/components/schemas/DecimalString" }, { type: "null" }] }
+        objectiveScore: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
         distanceComponents:
           oneOf:
             - $ref: "#/components/schemas/SuggestionDistanceComponents"
@@ -1203,10 +1203,10 @@ components:
       additionalProperties: false
       required: [calories, protein, carbohydrates, fat, repetitionOverage, missingRequiredRecipes]
       properties:
-        calories: { $ref: "#/components/schemas/DecimalString" }
-        protein: { $ref: "#/components/schemas/DecimalString" }
-        carbohydrates: { $ref: "#/components/schemas/DecimalString" }
-        fat: { $ref: "#/components/schemas/DecimalString" }
+        calories: { $ref: "#/components/schemas/Decimal6" }
+        protein: { $ref: "#/components/schemas/Decimal6" }
+        carbohydrates: { $ref: "#/components/schemas/Decimal6" }
+        fat: { $ref: "#/components/schemas/Decimal6" }
         repetitionOverage: { type: integer, minimum: 0 }
         missingRequiredRecipes: { type: integer, minimum: 0 }
     SuggestionAcceptance:
