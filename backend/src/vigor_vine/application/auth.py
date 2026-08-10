@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import hmac
 import secrets
 from dataclasses import dataclass
@@ -12,23 +11,15 @@ from argon2.exceptions import VerifyMismatchError
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from vigor_vine.application.access_tokens import ALL_TOKEN_SCOPES as ALL_TOKEN_SCOPES
+from vigor_vine.application.access_tokens import AccessTokenService, token_hash
+from vigor_vine.application.access_tokens import IssuedAccessToken as ManagedAccessToken
 from vigor_vine.domain.common import DomainError, utc_now
-from vigor_vine.infrastructure.models.identity import AccessToken, OwnerAccount, SessionRecord
-
-ALL_TOKEN_SCOPES = frozenset(
-    {
-        "recipes:read",
-        "goals:read",
-        "plans:read",
-        "plans:write",
-        "grocery:read",
-        "grocery:write",
-    }
-)
+from vigor_vine.infrastructure.models.identity import OwnerAccount, SessionRecord
 
 
 def _token_hash(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return token_hash(token)
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +47,7 @@ class AuthService:
         self._session_factory = session_factory
         self._session_ttl = session_ttl
         self._passwords = PasswordHasher()
+        self._access_tokens = AccessTokenService(session_factory)
 
     def bootstrap_owner(self, email: str, password: str, display_name: str) -> OwnerAccount:
         normalized = email.strip().lower()
@@ -142,38 +134,15 @@ class AuthService:
         *,
         expires_at: datetime | None = None,
     ) -> IssuedAccessToken:
-        unknown = scopes - ALL_TOKEN_SCOPES
-        if unknown:
-            raise DomainError("invalid_scope", f"Unknown token scope: {sorted(unknown)[0]}", 422)
-        raw_token = f"vv_{secrets.token_urlsafe(32)}"
-        with self._session_factory.begin() as session:
-            record = AccessToken(
-                owner_id=owner_id,
-                token_hash=_token_hash(raw_token),
-                name=name.strip(),
-                scopes=sorted(scopes),
-                expires_at=expires_at,
-            )
-            session.add(record)
-            session.flush()
-            token_id = record.id
-        return IssuedAccessToken(token_id, raw_token, frozenset(scopes), expires_at)
+        issued: ManagedAccessToken = self._access_tokens.create(
+            owner_id, name, scopes, expires_at=expires_at
+        )
+        return IssuedAccessToken(
+            issued.token.id,
+            issued.secret,
+            frozenset(issued.token.scopes),
+            issued.token.expires_at,
+        )
 
     def authenticate_token(self, token: str, required_scopes: set[str]) -> OwnerAccount:
-        now = utc_now()
-        with self._session_factory.begin() as session:
-            record = session.scalar(
-                select(AccessToken).where(AccessToken.token_hash == _token_hash(token))
-            )
-            if (
-                record is None
-                or record.revoked_at is not None
-                or (record.expires_at is not None and record.expires_at <= now)
-            ):
-                raise DomainError("token_invalid", "Access token is invalid or expired.", 401)
-            if not required_scopes.issubset(set(record.scopes)):
-                raise DomainError(
-                    "insufficient_scope", "Access token lacks the required scope.", 403
-                )
-            record.last_used_at = now
-            return record.owner
+        return self._access_tokens.authenticate(token, required_scopes)

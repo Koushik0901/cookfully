@@ -23,7 +23,27 @@ def require_owner(
 ) -> OwnerAccount:
     authorization = request.headers.get("authorization", "")
     if authorization.lower().startswith("bearer "):
-        return auth.authenticate_token(authorization[7:].strip(), set())
+        raise DomainError(
+            "scope_required",
+            "Bearer tokens are not permitted on an endpoint without a declared scope.",
+            403,
+        )
+    return _authenticate_browser(request, auth)
+
+
+def require_browser_owner(
+    request: Request,
+    auth: Annotated[AuthService, Depends(get_auth_service)],
+) -> OwnerAccount:
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        raise DomainError(
+            "browser_session_required", "This endpoint requires a browser session.", 403
+        )
+    return _authenticate_browser(request, auth)
+
+
+def _authenticate_browser(request: Request, auth: AuthService) -> OwnerAccount:
     session_token = request.cookies.get("vv_session")
     if not session_token:
         raise DomainError("authentication_required", "Authentication is required.", 401)
@@ -41,7 +61,7 @@ def require_scopes(*scopes: str) -> Callable[..., OwnerAccount]:
     ) -> OwnerAccount:
         authorization = request.headers.get("authorization", "")
         if not authorization.lower().startswith("bearer "):
-            return require_owner(request, auth)
+            return _authenticate_browser(request, auth)
         return auth.authenticate_token(authorization[7:].strip(), set(scopes))
 
     return dependency

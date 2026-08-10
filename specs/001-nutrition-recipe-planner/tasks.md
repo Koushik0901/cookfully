@@ -255,8 +255,8 @@ versions, and prove revocation and once-only secret behavior.
 
 ### Implementation for User Story 5
 
-- [ ] T118 [US5] Implement access-token create/list/revoke commands, allowlisted scopes, hashes, expiry, and once-only secret presentation in `backend/src/vigor_vine/application/access_tokens.py`
-- [ ] T119 [US5] Implement canonical OpenAPI 3.1 API v0.2.0 access-token management routes and DTOs in `backend/src/vigor_vine/api/routes/access_tokens.py` and `backend/src/vigor_vine/api/schemas/access_tokens.py`
+- [X] T118 [US5] Implement access-token create/list/revoke commands, allowlisted scopes, hashes, expiry, and once-only secret presentation in `backend/src/vigor_vine/application/access_tokens.py`
+- [X] T119 [US5] Implement canonical OpenAPI 3.1 API v0.2.0 access-token management routes and DTOs in `backend/src/vigor_vine/api/routes/access_tokens.py` and `backend/src/vigor_vine/api/schemas/access_tokens.py`
 - [ ] T120 [US5] Assemble the official MCP SDK server, Streamable HTTP transport, application-service injection, and safe problem mapping in `backend/src/vigor_vine/mcp/server.py`
 - [ ] T121 [P] [US5] Implement `get_current_goals`, `get_meal_plan`, `get_period_totals`, and `find_recipes` with canonical decimal strings in `backend/src/vigor_vine/mcp/read_tools.py`
 - [ ] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/vigor_vine/mcp/write_tools.py`

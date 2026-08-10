@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Path, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_browser_owner
 from vigor_vine.api.routes.recipes import idempotency_key
 from vigor_vine.api.schemas.jobs import JobAcceptedResponse
 from vigor_vine.application.exports import ExportJobService
@@ -46,7 +46,7 @@ def create_portable_export(
     request: Request,
     service: Annotated[ExportJobService, Depends(export_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> JobAcceptedResponse:
     body = payload.model_dump(mode="json", by_alias=True)
@@ -84,7 +84,7 @@ def create_portable_export(
 def download_portable_export(
     job_id: Annotated[UUID, Path(alias="jobId")],
     service: Annotated[ExportJobService, Depends(export_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> FileResponse:
     archive = service.claim_download(owner.id, job_id)
     return FileResponse(

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, status
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_browser_owner
 from vigor_vine.api.routes.recipes import idempotency_key
 from vigor_vine.api.schemas.jobs import JobAcceptedResponse
 from vigor_vine.api.schemas.plans import MealPlanResponse
@@ -43,7 +43,7 @@ def create_suggestion(
     payload: SuggestionRequest,
     service: Annotated[SuggestionService, Depends(suggestion_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> JobAcceptedResponse:
     body = payload.model_dump(mode="json", by_alias=True)
@@ -83,7 +83,7 @@ def create_suggestion(
 def get_suggestion(
     suggestion_id: Annotated[UUID, Path(alias="suggestionId")],
     service: Annotated[SuggestionService, Depends(suggestion_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> SuggestionResultResponse:
     return SuggestionResultResponse.from_read(service.get(suggestion_id, owner.id))
 
@@ -98,7 +98,7 @@ def accept_suggestion(
     payload: SuggestionAcceptanceRequest,
     service: Annotated[SuggestionService, Depends(suggestion_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> MealPlanResponse:
     body = {

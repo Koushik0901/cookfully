@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response, status
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_browser_owner, require_scopes
 from vigor_vine.api.schemas.jobs import JobAcceptedResponse
 from vigor_vine.api.schemas.recipes import (
     ImportRecipeRequest,
@@ -73,7 +73,7 @@ def idempotency_service(request: Request) -> IdempotencyService:
 @router.get("", response_model=RecipePageResponse, response_model_by_alias=True)
 def list_recipes(
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
     cursor: str | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 30,
     query: Annotated[str | None, Query(max_length=200)] = None,
@@ -101,7 +101,7 @@ def create_recipe(
     payload: RecipeWriteRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeResponse:
     mutation = recipes.create(payload.to_write(), trace_id=correlation_id.get())
     return RecipeResponse.from_read(queries.get(mutation.recipe.id))
@@ -117,7 +117,7 @@ def import_recipe(
     payload: ImportRecipeRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> JobAcceptedResponse:
     decision = idempotency.begin(
@@ -156,7 +156,7 @@ def import_recipe(
 def get_recipe(
     recipe_id: Annotated[UUID, Path(alias="recipeId")],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
 ) -> RecipeDetailResponse:
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
@@ -168,7 +168,7 @@ def update_recipe(
     version: Annotated[int, Depends(expected_version)],
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeDetailResponse:
     recipes.update(
         recipe_id,
@@ -184,7 +184,7 @@ def archive_recipe(
     recipe_id: Annotated[UUID, Path(alias="recipeId")],
     version: Annotated[int, Depends(expected_version)],
     recipes: Annotated[RecipeService, Depends(recipe_service)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> Response:
     recipes.archive(recipe_id, expected_version=version)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -201,7 +201,7 @@ def restore_recipe(
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> RecipeDetailResponse:
     decision = idempotency.begin(
@@ -239,7 +239,7 @@ def permanently_delete_recipe(
     version: Annotated[int, Depends(expected_version)],
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> Response:
     decision = idempotency.begin(
@@ -283,7 +283,7 @@ def recalculate_recipe_nutrition(
     payload: RecalculateRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> JobAcceptedResponse:
     decision = idempotency.begin(
@@ -335,7 +335,7 @@ def create_nutrition_correction(
     corrections: Annotated[CorrectionService, Depends(correction_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> ResolvedNutritionResponse:
     decision = idempotency.begin(
@@ -390,7 +390,7 @@ def reset_nutrition_correction(
     corrections: Annotated[CorrectionService, Depends(correction_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> ResolvedNutritionResponse:
     decision = idempotency.begin(

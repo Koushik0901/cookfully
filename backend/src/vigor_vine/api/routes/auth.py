@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 
-from vigor_vine.api.dependencies.auth import get_auth_service, require_owner
+from vigor_vine.api.dependencies.auth import get_auth_service, require_browser_owner
 from vigor_vine.application.auth import AuthService
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.models.identity import OwnerAccount
@@ -49,7 +49,7 @@ def delete_session(
     request: Request,
     response: Response,
     auth: Annotated[AuthService, Depends(get_auth_service)],
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> None:
     session_token = request.cookies.get("vv_session")
     if session_token:

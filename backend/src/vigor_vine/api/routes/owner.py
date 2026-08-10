@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_browser_owner
 from vigor_vine.application.owner_preferences import OwnerPreferenceService
 from vigor_vine.infrastructure.models.identity import OwnerAccount
 
@@ -19,7 +19,9 @@ class OwnerPreferences(BaseModel):
 
 
 @router.get("/preferences", response_model=OwnerPreferences)
-def get_preferences(owner: Annotated[OwnerAccount, Depends(require_owner)]) -> OwnerPreferences:
+def get_preferences(
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> OwnerPreferences:
     return OwnerPreferences(
         timezone=owner.timezone,
         week_starts_on=owner.week_starts_on,
@@ -31,7 +33,7 @@ def get_preferences(owner: Annotated[OwnerAccount, Depends(require_owner)]) -> O
 def update_preferences(
     payload: OwnerPreferences,
     request: Request,
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> OwnerPreferences:
     service: OwnerPreferenceService = request.app.state.owner_preferences
     updated = service.update(

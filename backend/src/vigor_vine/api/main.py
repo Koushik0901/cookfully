@@ -8,6 +8,7 @@ from redis import Redis
 
 from vigor_vine.api.problems import install_problem_handlers
 from vigor_vine.api.routes import (
+    access_tokens,
     auth,
     exports,
     goals,
@@ -20,6 +21,7 @@ from vigor_vine.api.routes import (
     recipes,
     suggestions,
 )
+from vigor_vine.application.access_tokens import AccessTokenService
 from vigor_vine.application.auth import AuthService
 from vigor_vine.application.corrections import CorrectionService
 from vigor_vine.application.exports import ExportJobService
@@ -53,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Owner",
         )
         app.state.auth_service = auth_service
+        app.state.access_tokens = AccessTokenService(sessions)
         app.state.owner_preferences = OwnerPreferenceService(sessions)
         app.state.jobs = JobService(sessions)
         app.state.recipes = RecipeService(
@@ -90,6 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(health.router)
     versioned.include_router(auth.router)
     versioned.include_router(owner.router)
+    versioned.include_router(access_tokens.router)
     versioned.include_router(jobs.router)
     versioned.include_router(recipes.router)
     versioned.include_router(goals.router)

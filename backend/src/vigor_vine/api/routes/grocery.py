@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_scopes
 from vigor_vine.api.routes.recipes import expected_version, idempotency_key
 from vigor_vine.api.schemas.grocery import (
     GroceryItemCreateRequest,
@@ -40,7 +40,7 @@ def idempotency_service(request: Request) -> IdempotencyService:
 def get_grocery_list(
     week_start: Annotated[date, Path(alias="weekStart")],
     service: Annotated[GroceryListService, Depends(grocery_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:read"))],
 ) -> GroceryListResponse:
     return GroceryListResponse.from_read(service.get(owner.id, week_start))
 
@@ -54,7 +54,7 @@ def regenerate_grocery_list(
     week_start: Annotated[date, Path(alias="weekStart")],
     service: Annotated[GroceryListService, Depends(grocery_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> GroceryListResponse:
     decision = idempotency.begin(
@@ -95,7 +95,7 @@ def create_grocery_item(
     payload: GroceryItemCreateRequest,
     service: Annotated[GroceryListService, Depends(grocery_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> GroceryItemResponse:
     request_body = {"weekStart": week_start.isoformat(), **payload.model_dump(mode="json")}
@@ -144,7 +144,7 @@ def update_grocery_item(
     version: Annotated[int, Depends(expected_version)],
     service: Annotated[GroceryListService, Depends(grocery_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> GroceryItemResponse:
     values = payload.to_patch()
@@ -181,7 +181,7 @@ def delete_grocery_item(
     version: Annotated[int, Depends(expected_version)],
     service: Annotated[GroceryListService, Depends(grocery_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> Response:
     decision = idempotency.begin(

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Request, Response, status
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_scopes
 from vigor_vine.api.routes.recipes import expected_version, idempotency_key
 from vigor_vine.api.schemas.plans import (
     MealPlanEntryResponse,
@@ -35,7 +35,7 @@ def idempotency_service(request: Request) -> IdempotencyService:
 def get_meal_plan(
     week_start: Annotated[date, Path(alias="weekStart")],
     service: Annotated[MealPlanService, Depends(plan_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:read"))],
 ) -> MealPlanResponse:
     return MealPlanResponse.from_read(service.get(owner.id, week_start))
 
@@ -51,7 +51,7 @@ def add_meal_plan_entry(
     payload: MealPlanEntryWriteRequest,
     service: Annotated[MealPlanService, Depends(plan_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> MealPlanEntryResponse:
     operation = "meal_plan.entry.add"
@@ -96,7 +96,7 @@ def update_meal_plan_entry(
     version: Annotated[int, Depends(expected_version)],
     service: Annotated[MealPlanService, Depends(plan_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> MealPlanEntryResponse:
     request_body = {
@@ -136,7 +136,7 @@ def delete_meal_plan_entry(
     version: Annotated[int, Depends(expected_version)],
     service: Annotated[MealPlanService, Depends(plan_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
-    owner: Annotated[OwnerAccount, Depends(require_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> Response:
     request_body = {"entryId": str(entry_id), "version": version}

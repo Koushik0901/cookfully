@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Request, Response
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.api.dependencies.auth import require_owner
+from vigor_vine.api.dependencies.auth import require_browser_owner
 from vigor_vine.domain.common import DomainError
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.infrastructure.models.identity import OwnerAccount
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/media", tags=["Recipes"])
 def get_recipe_media(
     asset_id: Annotated[UUID, Path(alias="assetId")],
     request: Request,
-    _: Annotated[OwnerAccount, Depends(require_owner)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> Response:
     sessions: sessionmaker[Session] = request.app.state.sessions
     store: MediaStore = request.app.state.media_store
