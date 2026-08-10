@@ -1,6 +1,7 @@
 from typer import Typer
 
 from vigor_vine.cli.backup import app as backup_app
+from vigor_vine.cli.erasure_ledger import app as erasure_ledger_app
 from vigor_vine.cli.export import app as export_app
 from vigor_vine.cli.nutrition_report import app as nutrition_report_app
 from vigor_vine.cli.owner import app as owner_app
@@ -16,6 +17,7 @@ app.add_typer(nutrition_report_app)
 app.add_typer(backup_app)
 app.add_typer(export_app)
 app.add_typer(owner_app)
+app.add_typer(erasure_ledger_app)
 
 
 @app.callback()

@@ -1,8 +1,8 @@
 # Phase 1 Quickstart: Gym-Focused Recipe & Nutrition Planner
 
-This is the target developer and self-hosted validation workflow. Commands describe the interfaces
-the implementation must provide; they are not expected to run until the corresponding setup tasks are
-complete.
+This is the validated developer and self-hosted workflow. The 2026-08-10 execution record at the end
+distinguishes commands run literally from destructive or operator-supplied-data scenarios exercised
+through isolated automated fixtures.
 
 ## Prerequisites
 
@@ -16,7 +16,9 @@ complete.
 ## 1. Configure
 
 ```powershell
-Copy-Item -LiteralPath '.env.example' -Destination '.env'
+if (-not (Test-Path -LiteralPath '.env')) {
+  Copy-Item -LiteralPath '.env.example' -Destination '.env'
+}
 ```
 
 Set generated local values for:
@@ -54,14 +56,19 @@ Lockfiles are committed. CI and production builds fail rather than silently upda
 
 ```powershell
 uv run --directory backend alembic upgrade head
-uv run --directory backend vigor-vine bootstrap-owner
-uv run --directory backend vigor-vine reference import-fdc --dataset foundation
-uv run --directory backend vigor-vine reference import-fdc --dataset sr-legacy
-uv run --directory backend vigor-vine reference status
+$foundationId = (uv run --directory backend vigor-vine reference-data import C:\path\to\FoodData_Central_foundation_food_json.json --dataset-type foundation --release-id foundation-YYYY-MM --released-on YYYY-MM-DD --source-url https://fdc.nal.usda.gov/fdc-datasets.html).Split()[0]
+$legacyId = (uv run --directory backend vigor-vine reference-data import C:\path\to\FoodData_Central_sr_legacy_food_json.json --dataset-type sr_legacy --release-id sr-legacy-2018-04 --released-on 2018-04-01 --source-url https://fdc.nal.usda.gov/fdc-datasets.html).Split()[0]
+uv run --directory backend vigor-vine reference-data activate $foundationId
+uv run --directory backend vigor-vine reference-data activate $legacyId
+uv run --directory backend vigor-vine reference-data status
 ```
 
-The reference status command prints dataset release IDs, record counts, license/attribution, import
-time, and whether each release is active. Re-running an identical import must be idempotent.
+Replace the paths and Foundation release metadata with the downloaded supported USDA bulk files; do
+not use the placeholder values literally. The first API startup bootstraps the single owner from the
+validated `VV_OWNER_*` settings, so there is intentionally no password-bearing `bootstrap-owner`
+command. The reference status command prints dataset release IDs, record counts,
+license/attribution, import time, and whether each release is active. Re-running an identical import
+must be idempotent.
 
 ## 5. Run Development Processes
 
@@ -76,7 +83,11 @@ uv run --directory backend celery -A vigor_vine.jobs.app worker --loglevel=INFO
 ```
 
 ```powershell
-uv run --directory backend vigor-vine outbox-dispatcher
+uv run --directory backend python -m vigor_vine.jobs.outbox_process
+```
+
+```powershell
+uv run --directory backend python -m vigor_vine.jobs.retention_process
 ```
 
 ```powershell
@@ -87,7 +98,7 @@ Expected local endpoints:
 
 - Web client: `http://localhost:5173`
 - API health: `http://localhost:8000/api/v1/health`
-- OpenAPI document: `http://localhost:8000/openapi.json`
+- OpenAPI document: `http://localhost:8000/api/openapi.json`
 
 The browser dev server proxies `/api` to the API; cookies remain same-site in development.
 
@@ -113,7 +124,7 @@ Run the versioned evaluation corpus before planning UI work beyond the correctio
 
 ```powershell
 uv run --directory backend pytest tests/accuracy -m nutrition_corpus
-uv run --directory backend vigor-vine nutrition-report --format markdown --output ../artifacts/nutrition-report.md
+uv run --directory backend vigor-vine nutrition-corpus run --require-pass --output ../artifacts/nutrition-report.json
 ```
 
 The gate runs all 50 versioned recipes, reports the stable 30-recipe primary constitutional subset and
@@ -174,18 +185,20 @@ stale, and failed states. Color is never the only status cue.
 ```powershell
 docker compose -f deploy/compose.yaml up --build -d
 docker compose -f deploy/compose.yaml ps
-docker compose -f deploy/compose.yaml logs --tail 200 api worker outbox
+docker compose -f deploy/compose.yaml logs --tail 200 api worker outbox retention
 ```
 
-The default composition contains `web`, `api`, `worker`, `outbox`, `postgres`, and `redis`. PostgreSQL
-and media directories use named volumes. Redis persistence improves recovery but is not authoritative.
+The default composition contains `web`, `api`, `worker`, `outbox`, `retention`, `postgres`, and
+`redis`. PostgreSQL and media directories use named volumes. Redis persistence improves recovery but
+is not authoritative.
 
 ## 10. Backup, Restore, and Portable Export
 
 ```powershell
 uv run --directory backend vigor-vine backup create --output ../artifacts/backups
-uv run --directory backend vigor-vine backup verify ../artifacts/backups/<archive>.zip
-uv run --directory backend vigor-vine erasure-ledger verify --ledger ../deploy/erasure-ledger
+$backup = Get-ChildItem -LiteralPath artifacts/backups -Filter '*.zip' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+uv run --directory backend vigor-vine backup verify $backup.FullName
+uv run --directory backend vigor-vine erasure-ledger verify --ledger ./erasure-ledger
 uv run --directory backend vigor-vine export create --include-media --output ../artifacts/exports
 ```
 
@@ -200,21 +213,24 @@ $targetUrl = 'postgresql+psycopg://vigor_vine:restore-check-only@localhost:55432
 docker compose -p $restoreProject -f deploy/compose.restore-test.yaml up -d
 $env:VV_DATABASE_URL = $targetUrl
 uv run --directory backend alembic upgrade head
-uv run --directory backend vigor-vine backup restore --target-database-url $targetUrl --target-media-root ../artifacts/restore-media --erasure-ledger ../deploy/erasure-ledger --staging-root ../artifacts/restore-stage ../artifacts/backups/<archive>.zip
-uv run --directory backend vigor-vine backup compare --target-database-url $targetUrl --erasure-ledger ../deploy/erasure-ledger ../artifacts/backups/<archive>.zip
+uv run --directory backend vigor-vine backup restore --target-database-url $targetUrl --target-media-root ../artifacts/restore-media --erasure-ledger ./erasure-ledger --staging-root ../artifacts/restore-stage $backup.FullName
+uv run --directory backend vigor-vine backup compare --target-database-url $targetUrl --erasure-ledger ./erasure-ledger $backup.FullName
 ```
 
 The restore report must show the backup cursor, verified current cursor, every replayed subject/scope,
 zero resurrected recipe-owned records, intact detached history, and the final inactive/active decision.
 
-Validate full owner erasure only against a disposable restore-test project. Stop its API, worker,
-outbox, and web services; capture the owner UUID; first prove an incorrect confirmation and an
+Validate full owner erasure only against a disposable restore-test project. Stop any API, worker,
+outbox, retention, and web processes connected to the disposable target; capture the owner UUID;
+first prove an incorrect confirmation and an
 unavailable ledger leave all data unchanged; then run the exact confirmed command:
 
 ```powershell
 $ownerId = '<disposable-owner-uuid>'
-docker compose -p $restoreProject -f deploy/compose.restore-test.yaml stop api worker outbox web
-uv run --directory backend vigor-vine owner erase --owner-id $ownerId --confirm "ERASE OWNER $ownerId" --erasure-ledger ../deploy/erasure-ledger
+$env:VV_DATABASE_URL = $targetUrl
+$env:VV_MEDIA_ROOT = '../artifacts/restore-media'
+$env:VV_EXPORT_ROOT = '../artifacts/restore-exports'
+uv run --directory backend vigor-vine owner erase --owner-id $ownerId --confirm "ERASE OWNER $ownerId" --erasure-ledger ./erasure-ledger
 ```
 
 Verify the disposable instance returns to bootstrap state, all owner-controlled database and managed-
@@ -233,3 +249,26 @@ uv run --directory backend mcp dev src/vigor_vine/mcp/server.py
 Verify `get_meal_plan` and the other read tools, then separately create a token with `plans:write` and
 test idempotent add/update/remove operations. MCP and HTTP normalized outputs must match for decimal
 strings, totals, provenance, versions, and failure codes. No general prompt or chat tool may be exposed.
+
+## 12. Execution Record — 2026-08-10
+
+This run used Docker Desktop's Linux x86-64 engine on Windows. No result below substitutes a fixture
+for a real upstream dataset without saying so.
+
+| Area | Result | Deviation or correction |
+| --- | --- | --- |
+| Prerequisites | Git 2.49, Docker 29.6.2, Compose 5.3.1, `uv` 0.10.0, Node 22.17.1, and pnpm 10.17.0 were available. `uv run --directory backend python --version` selected Python 3.13.5. | System `python` was 3.12.9; the locked `uv` environment is the supported runtime. |
+| Configuration and infrastructure | PostgreSQL and Redis reached healthy state and Alembic upgraded through revision `0009_pantry`. | The first Compose invocation correctly failed closed because `.env` was absent. Existing local container secrets were injected without printing them; no secret was committed. |
+| Locked installs | `uv sync --project backend --locked --all-extras` and `pnpm --dir frontend install --frozen-lockfile` passed. | pnpm reported that dependency build scripts were ignored by policy; subsequent client tests and production builds passed. |
+| USDA reference data | The real `reference-data status` command ran. Import idempotency, activation, provenance, and record counts passed in `tests/integration/test_reference_data.py` (2 tests). | No local USDA bulk archive was supplied, so the active development database truthfully reports both supported datasets as missing. The operator-only bulk import commands were validated with isolated USDA-shaped fixtures, not represented as a full FDC installation. |
+| Nutrition benchmark | `pytest tests/accuracy -m nutrition_corpus` passed 7 tests with 5 deselected; `nutrition-corpus run --require-pass` evaluated all 50 cases. | The generated report is `artifacts/nutrition-report.json`: 50/50 imports, 49/50 benchmark-eligible nutrition cases, and all SC-001/SC-002/SC-003 gates pass; the stable primary split is 30 imports and 29 nutrition cases. |
+| Development API | A local Uvicorn process served the API; `/api/v1/health` returned `status=ok`, `/api/openapi.json` reported OpenAPI 3.1.0 and app version 0.2.0, and the web endpoint returned HTTP 200. | An initial probe of `/api/health` returned 404 and confirmed that the documented `/api/v1/health` path is required. The temporary Uvicorn child process was explicitly stopped after validation. |
+| Recipe, job, planning, grocery, export, provider, and MCP scenarios | Contract, integration, MCP E2E, and security suites completed with 75 passing tests after the destructive tests were isolated. They cover manual/import flows, polling/retry/idempotency, active corrections, stale yield, archive/restore/permanent delete, exact snapshots, grocery reconciliation, portable export, provider-disabled behavior, token scopes, and HTTP/MCP parity. | With live services running, 72 tests passed and three owner-erasure tests intentionally failed with `services_running`. After the API, worker, outbox, retention, and one leftover local Uvicorn process were stopped, all four owner-erasure tests passed; the stack was then restored. |
+| Full self-hosted stack | `docker compose -f deploy/compose.yaml up --build -d` built the client and all backend images. `web`, `api`, `worker`, `outbox`, `retention`, `postgres`, and `redis` are running; all services with health checks are healthy. Retention logged a successful first sweep and Celery connected to Redis. | This run exposed empty tuple environment decoding before validation. `NoDecode` plus CSV/empty-string validation fixed `VV_TRUSTED_PROXY_CIDRS` and retry delays; focused format, lint, mypy, and five unit tests pass. Compose inspection commands require the same configured secrets because interpolation deliberately fails closed. |
+| Backup, restore, ledger, and erasure | `erasure-ledger verify --ledger ./erasure-ledger` returned a valid empty chain. The isolated restore/erasure evidence in `artifacts/restore-report.md` covers archive verification, media, exact decimals, detached history, missing/discontinuous-ledger rejection, recipe replay, owner replay, and zero resurrection. | The destructive CLI examples were not run against the active development database. Their underlying commands were exercised against disposable schemas and temporary media/ledger roots, as the quickstart requires. |
+| Quality and UI gates | Focused backend gates above pass; production client build passed during image construction. Accessibility and responsive Playwright evidence is recorded by the dedicated release-gate tasks. | The complete consolidated gate remains owned by T158 and is recorded separately in `artifacts/release-gates.md`; performance is owned by T144. |
+
+Corrections made during execution: replaced nonexistent owner-bootstrap, reference-import,
+nutrition-report, outbox, and ledger commands with their implemented interfaces; corrected the
+OpenAPI and health paths; added the retention process everywhere the lifecycle requires it; made
+archive selection explicit; and required an isolated restore target for destructive validation.

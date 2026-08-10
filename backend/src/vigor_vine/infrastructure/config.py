@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import AnyHttpUrl, EmailStr, Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -27,14 +27,14 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     public_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost:5173")
     api_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost:8000")
-    trusted_proxy_cidrs: tuple[str, ...] = ()
+    trusted_proxy_cidrs: Annotated[tuple[str, ...], NoDecode] = ()
     media_root: Path = Path("media")
     export_root: Path = Path("exports")
     erasure_ledger_root: Path = Path("erasure-ledger")
     failed_import_diagnostics_enabled: bool = False
     failed_import_diagnostic_ttl_seconds: Literal[86_400] = 86_400
     job_attempt_timeout_seconds: Literal[60] = 60
-    job_retry_delays_seconds: tuple[int, int, int, int] = (5, 30, 120, 300)
+    job_retry_delays_seconds: Annotated[tuple[int, int, int, int], NoDecode] = (5, 30, 120, 300)
     job_max_attempts: Literal[5] = 5
     job_terminal_deadline_seconds: Literal[900] = 900
     detailed_diagnostic_retention_days: Literal[30] = 30

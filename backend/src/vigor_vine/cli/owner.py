@@ -26,7 +26,7 @@ def erase(
         typer.Option(help="Independent erasure-ledger root; defaults to VV_ERASURE_LEDGER_ROOT."),
     ] = None,
 ) -> None:
-    """Erase the single-owner namespace while API, worker, and outbox are stopped."""
+    """Erase the owner while API, worker, outbox, and retention are stopped."""
 
     settings = get_settings()
     engine = create_database_engine(settings)

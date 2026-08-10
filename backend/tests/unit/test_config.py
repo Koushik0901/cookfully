@@ -16,10 +16,15 @@ def test_safe_job_policy_defaults_are_fixed() -> None:
     assert settings.retention_sweep_interval_seconds == 21_600
 
 
-def test_retry_delays_parse_from_environment_form() -> None:
-    settings = Settings(job_retry_delays_seconds="5,30,120,300")
+def test_comma_separated_values_parse_from_environment_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("VV_JOB_RETRY_DELAYS_SECONDS", "5,30,120,300")
+    monkeypatch.setenv("VV_TRUSTED_PROXY_CIDRS", "")
+    settings = Settings(_env_file=None)
 
     assert settings.job_retry_delays_seconds == (5, 30, 120, 300)
+    assert settings.trusted_proxy_cidrs == ()
 
 
 def test_production_rejects_development_secrets() -> None:
