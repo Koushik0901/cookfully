@@ -62,10 +62,23 @@ class StructuredAiPort[TInput: BaseModel, TOutput: BaseModel]:
         canonical = json.dumps(minimized, sort_keys=True, separators=(",", ":"))
         request_hash = hashlib.sha256(canonical.encode()).hexdigest()
         cache_key = f"{self.provider_name}:{self.model_name}:{request_hash}:v1"
-        raw = self.provider.complete(
-            schema=self.adapter.json_schema(),
-            minimized_input=minimized,
-        )
+        try:
+            raw = self.provider.complete(
+                schema=self.adapter.json_schema(),
+                minimized_input=minimized,
+            )
+        except DomainError:
+            raise
+        except TimeoutError as exc:
+            raise DomainError(
+                "ai_provider_timeout",
+                "Optional provider timed out; deterministic work was kept.",
+                503,
+            ) from exc
+        except Exception as exc:
+            raise DomainError(
+                "ai_provider_failed", "Optional provider failed; deterministic work was kept.", 503
+            ) from exc
         try:
             parsed = self.adapter.validate_python(raw)
         except ValidationError as exc:
