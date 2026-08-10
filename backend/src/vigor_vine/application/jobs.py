@@ -31,6 +31,7 @@ SAFE_METADATA_RETENTION = timedelta(days=365)
 class JobProgress:
     id: UUID
     kind: str
+    aggregate_id: UUID
     status: str
     attempt: int
     max_attempts: int
@@ -38,6 +39,9 @@ class JobProgress:
     progress_total: int | None
     next_retry_at: datetime | None
     terminal_deadline_at: datetime
+    input_hash: str
+    accepted_at: datetime
+    finished_at: datetime | None
     failure_code: str | None
     failure_message: str | None
 
@@ -363,19 +367,42 @@ class JobService:
             job = session.get(ProcessingJob, job_id)
             if job is None:
                 raise DomainError("job_not_found", "Job was not found.", 404)
-            return JobProgress(
-                id=job.id,
-                kind=job.kind,
-                status=job.status,
-                attempt=job.attempt,
-                max_attempts=job.max_attempts,
-                progress_current=job.progress_current,
-                progress_total=job.progress_total,
-                next_retry_at=job.next_retry_at,
-                terminal_deadline_at=job.terminal_deadline_at,
-                failure_code=job.failure_code,
-                failure_message=job.failure_message,
+            return self._progress(job)
+
+    def latest_for_aggregate(self, aggregate_type: str, aggregate_id: UUID) -> JobProgress | None:
+        with self._session_factory() as session:
+            job = session.scalar(
+                select(ProcessingJob)
+                .where(
+                    ProcessingJob.aggregate_type == aggregate_type,
+                    ProcessingJob.aggregate_id == aggregate_id,
+                )
+                .order_by(ProcessingJob.accepted_at.desc(), ProcessingJob.id.desc())
+                .limit(1)
             )
+            if job is None:
+                return None
+            return self._progress(job)
+
+    @staticmethod
+    def _progress(job: ProcessingJob) -> JobProgress:
+        return JobProgress(
+            id=job.id,
+            kind=job.kind,
+            aggregate_id=job.aggregate_id,
+            status=job.status,
+            attempt=job.attempt,
+            max_attempts=job.max_attempts,
+            progress_current=job.progress_current,
+            progress_total=job.progress_total,
+            next_retry_at=job.next_retry_at,
+            terminal_deadline_at=job.terminal_deadline_at,
+            input_hash=job.input_hash,
+            accepted_at=job.accepted_at,
+            finished_at=job.finished_at,
+            failure_code=job.failure_code,
+            failure_message=job.failure_message,
+        )
 
     @staticmethod
     def _locked(session: Session, job_id: UUID) -> ProcessingJob:

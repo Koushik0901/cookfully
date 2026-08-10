@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from vigor_vine.application.idempotency import IdempotencyService
 from vigor_vine.application.jobs import JobService
 from vigor_vine.domain.common import utc_now
 from vigor_vine.infrastructure.media_store import MediaStore
@@ -30,8 +31,10 @@ def sweep_retention(
             expired_media += 1
     reduced = jobs.reduce_diagnostics(now=checked_at)
     deleted = jobs.delete_safe_metadata(now=checked_at)
+    expired_idempotency = IdempotencyService(session_factory).delete_expired(now=checked_at)
     return {
         "expired_media": expired_media,
         "reduced_jobs": len(reduced),
         "deleted_jobs": len(deleted),
+        "expired_idempotency": expired_idempotency,
     }

@@ -15,6 +15,8 @@ from vigor_vine.domain.common import (
     utc_now,
 )
 from vigor_vine.infrastructure.models.nutrition import NutritionCorrection
+from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe
+from vigor_vine.infrastructure.models.reference_foods import FoodReference
 from vigor_vine.infrastructure.repositories.nutrition import NutritionRepository
 
 DECIMAL_FIELDS = frozenset(
@@ -76,8 +78,26 @@ class CorrectionService:
                 "correction_field_invalid", "Correction field and value do not match.", 422
             )
         with self._session_factory.begin() as session:
+            recipe = session.get(Recipe, recipe_id, with_for_update=True)
+            if recipe is None:
+                raise DomainError("recipe_not_found", "Recipe was not found.", 404)
+            if recipe.status == "archived":
+                raise DomainError(
+                    "recipe_archived", "Restore the recipe before correcting it.", 409
+                )
+            if ingredient_id is not None:
+                ingredient = session.get(Ingredient, ingredient_id)
+                if ingredient is None or ingredient.recipe_id != recipe_id:
+                    raise DomainError(
+                        "ingredient_not_found", "Recipe ingredient was not found.", 404
+                    )
+            if (
+                reference_id_value is not None
+                and session.get(FoodReference, reference_id_value) is None
+            ):
+                raise DomainError("food_reference_not_found", "Food reference was not found.", 404)
             repository = NutritionRepository(session)
-            return repository.activate_correction(
+            correction = repository.activate_correction(
                 NutritionCorrection(
                     recipe_id=recipe_id,
                     ingredient_id=ingredient_id,
@@ -90,8 +110,16 @@ class CorrectionService:
                     created_by=created_by,
                 )
             )
+            recipe.version += 1
+            return correction
 
-    def reset(self, correction_id: UUID, *, now: datetime | None = None) -> None:
+    def reset(
+        self,
+        correction_id: UUID,
+        *,
+        recipe_id: UUID | None = None,
+        now: datetime | None = None,
+    ) -> NutritionCorrection:
         with self._session_factory.begin() as session:
             correction = session.scalar(
                 select(NutritionCorrection)
@@ -100,5 +128,11 @@ class CorrectionService:
             )
             if correction is None:
                 raise DomainError("correction_not_found", "Correction was not found.", 404)
+            if recipe_id is not None and correction.recipe_id != recipe_id:
+                raise DomainError("correction_not_found", "Correction was not found.", 404)
             correction.active = False
             correction.reset_at = now or utc_now()
+            recipe = session.get(Recipe, correction.recipe_id, with_for_update=True)
+            if recipe is not None:
+                recipe.version += 1
+            return correction

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import Select, delete, select
+from sqlalchemy import Select, and_, delete, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from vigor_vine.domain.common import DomainError
@@ -36,6 +36,7 @@ class RecipeRepository:
         nutrition_state: str | None = None,
         include_archived: bool = False,
         limit: int = 50,
+        after: tuple[str, UUID] | None = None,
     ) -> list[Recipe]:
         statement: Select[tuple[Recipe]] = select(Recipe).options(
             selectinload(Recipe.ingredients), selectinload(Recipe.instructions)
@@ -46,7 +47,19 @@ class RecipeRepository:
             statement = statement.where(Recipe.title.ilike(f"%{query.strip()}%"))
         if nutrition_state:
             statement = statement.where(Recipe.nutrition_state == nutrition_state)
-        return list(self.session.scalars(statement.order_by(Recipe.title, Recipe.id).limit(limit)))
+        if after is not None:
+            after_title, after_id = after
+            statement = statement.where(
+                or_(
+                    func.lower(Recipe.title) > after_title,
+                    and_(func.lower(Recipe.title) == after_title, Recipe.id > after_id),
+                )
+            )
+        return list(
+            self.session.scalars(
+                statement.order_by(func.lower(Recipe.title), Recipe.id).limit(limit)
+            )
+        )
 
     def replace_content(
         self,

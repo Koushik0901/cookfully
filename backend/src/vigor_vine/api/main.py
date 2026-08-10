@@ -7,12 +7,18 @@ from fastapi import APIRouter, FastAPI
 from redis import Redis
 
 from vigor_vine.api.problems import install_problem_handlers
-from vigor_vine.api.routes import auth, health, jobs, owner
+from vigor_vine.api.routes import auth, health, jobs, media, owner, recipes
 from vigor_vine.application.auth import AuthService
+from vigor_vine.application.corrections import CorrectionService
+from vigor_vine.application.idempotency import IdempotencyService
 from vigor_vine.application.jobs import JobService
 from vigor_vine.application.owner_preferences import OwnerPreferenceService
+from vigor_vine.application.recipe_queries import RecipeQueryService
+from vigor_vine.application.recipes import RecipeService
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
+from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
+from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.infrastructure.observability import correlation_middleware
 
 
@@ -33,6 +39,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.auth_service = auth_service
         app.state.owner_preferences = OwnerPreferenceService(sessions)
         app.state.jobs = JobService(sessions)
+        app.state.recipes = RecipeService(
+            sessions,
+            ErasureLedger(resolved.erasure_ledger_root),
+            source_instance_id=resolved.instance_id,
+        )
+        app.state.recipe_queries = RecipeQueryService(sessions)
+        app.state.corrections = CorrectionService(sessions)
+        app.state.idempotency = IdempotencyService(sessions)
+        app.state.sessions = sessions
+        app.state.media_store = MediaStore(
+            resolved.media_root, resolved.secret_key.get_secret_value()
+        )
         yield
         redis_client.close()
         engine.dispose()
@@ -53,6 +71,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(auth.router)
     versioned.include_router(owner.router)
     versioned.include_router(jobs.router)
+    versioned.include_router(recipes.router)
+    versioned.include_router(media.router)
     app.include_router(versioned)
     return app
 

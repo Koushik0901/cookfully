@@ -16,7 +16,7 @@ from vigor_vine.domain.recipes import (
 )
 from vigor_vine.infrastructure.erasure_ledger import ErasureLedger, ErasureRecord
 from vigor_vine.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
-from vigor_vine.infrastructure.models.nutrition import NutritionEstimate
+from vigor_vine.infrastructure.models.nutrition import NutritionCorrection, NutritionEstimate
 from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
 from vigor_vine.infrastructure.repositories.recipes import RecipeRepository
 
@@ -250,6 +250,7 @@ class RecipeService:
         *,
         confirmed: bool,
         latest_backup_expiry: datetime,
+        expected_version: int | None = None,
     ) -> ErasureRecord:
         if not confirmed:
             raise DomainError(
@@ -258,6 +259,8 @@ class RecipeService:
         with self._session_factory.begin() as session:
             repository = RecipeRepository(session)
             recipe = repository.get(recipe_id, for_update=True)
+            if expected_version is not None:
+                require_version(expected_version, recipe.version)
             if recipe.status != "archived":
                 raise DomainError(
                     "archive_required",
@@ -274,6 +277,42 @@ class RecipeService:
             )
             repository.permanently_delete(recipe)
             return record
+
+    def recalculate(
+        self,
+        recipe_id: UUID,
+        *,
+        reset_corrections: bool,
+        trace_id: str,
+    ) -> RecipeMutation:
+        with self._session_factory.begin() as session:
+            recipe = RecipeRepository(session).get(recipe_id, for_update=True)
+            if recipe.status == "archived":
+                raise DomainError(
+                    "recipe_archived", "Restore the recipe before recalculating it.", 409
+                )
+            self._supersede_jobs(session, recipe.id)
+            if reset_corrections:
+                session.execute(
+                    update(NutritionCorrection)
+                    .where(
+                        NutritionCorrection.recipe_id == recipe.id,
+                        NutritionCorrection.active.is_(True),
+                    )
+                    .values(active=False, reset_at=utc_now())
+                )
+            recipe.status = "processing"
+            recipe.nutrition_state = "stale"
+            recipe.version += 1
+            job = self._jobs.accept_in_session(
+                session,
+                kind="ingredient_parse",
+                aggregate_type="recipe",
+                aggregate_id=recipe.id,
+                input_hash=recipe.input_hash,
+                trace_id=trace_id,
+            )
+            return RecipeMutation(recipe, job)
 
     @staticmethod
     def _supersede_jobs(session: Session, recipe_id: UUID) -> None:
