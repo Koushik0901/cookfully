@@ -30,10 +30,8 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.CheckConstraint(
-            "week_starts_on BETWEEN 1 AND 7", name="ck_owner_accounts_valid_week_start"
-        ),
-        sa.CheckConstraint("version > 0", name="ck_owner_accounts_positive_version"),
+        sa.CheckConstraint("week_starts_on BETWEEN 1 AND 7", name="valid_week_start"),
+        sa.CheckConstraint("version > 0", name="positive_version"),
     )
     op.create_table(
         "sessions",
@@ -93,7 +91,7 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.CheckConstraint("byte_size > 0", name="ck_media_assets_positive_byte_size"),
+        sa.CheckConstraint("byte_size > 0", name="positive_byte_size"),
     )
     op.create_index("ix_media_assets_recipe_id", "media_assets", ["recipe_id"])
     op.create_index("ix_media_assets_sha256", "media_assets", ["sha256"])

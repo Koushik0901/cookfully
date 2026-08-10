@@ -89,9 +89,9 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 
 ### Tests for User Story 1
 
-- [ ] T035 [P] [US1] Write failing Recipe/Ingredient state, archive-from-state, restore-to-stale, confirmed permanent deletion, detached-history, and stale-input domain tests in `backend/tests/unit/test_recipe_domain.py`
-- [ ] T036 [P] [US1] Write failing ingredient range, optional line, unit/density/count-weight, unmatched-food, and lower-of-mass/count coverage tests in `backend/tests/unit/test_ingredient_processing.py`
-- [ ] T037 [P] [US1] Write failing six-decimal nutrient/quantity, positive three-decimal serving with zero rejection, canonical-string, round-half-up, null/zero, coverage, and correction-precedence tests in `backend/tests/unit/test_nutrition_calculation.py`
+- [X] T035 [P] [US1] Write failing Recipe/Ingredient state, archive-from-state, restore-to-stale, confirmed permanent deletion, detached-history, and stale-input domain tests in `backend/tests/unit/test_recipe_domain.py`
+- [X] T036 [P] [US1] Write failing ingredient range, optional line, unit/density/count-weight, unmatched-food, and lower-of-mass/count coverage tests in `backend/tests/unit/test_ingredient_processing.py`
+- [X] T037 [P] [US1] Write failing six-decimal nutrient/quantity, positive three-decimal serving with zero rejection, canonical-string, round-half-up, null/zero, coverage, and correction-precedence tests in `backend/tests/unit/test_nutrition_calculation.py`
 - [ ] T038 [P] [US1] Write failing OpenAPI 0.2 recipe CRUD/import/archive/restore/permanent-delete/job/recalculate/correction/concurrency, positive-serving, and decimal-string contract tests in `backend/tests/contract/test_recipe_api.py`
 - [ ] T039 [P] [US1] Write failing duplicate-delivery, input/correction/archive change during jobs, one-second acceptance, fixed retries/deadline, diagnostic expiry, and partial-chain integration tests in `backend/tests/integration/test_recipe_jobs.py`
 - [ ] T040 [P] [US1] Create SC-001/SC-002/SC-003 runners for all 50 captured public-page cases and the stable 30-recipe constitutional subset, enforcing 20% calorie and 25% protein/carbohydrate/fat median-error gates plus nutrient-specific near-zero reporting in `backend/tests/accuracy/test_nutrition_corpus.py`
@@ -100,9 +100,9 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 
 ### Implementation for User Story 1
 
-- [ ] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, encrypted expiring diagnostic MediaAsset, and detached-history constraints in `backend/src/vigor_vine/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
-- [ ] T044 [US1] Create ReferenceDataset, FoodReference, and FoodNutrient tables plus search indexes in `backend/src/vigor_vine/infrastructure/models/reference_foods.py` and `backend/migrations/versions/0004_reference_foods.py`
-- [ ] T045 [US1] Create fixed-scale IngredientMatch, NutritionEstimate, and typed NutritionCorrection tables with canonical precision and active-record constraints in `backend/src/vigor_vine/infrastructure/models/nutrition.py` and `backend/migrations/versions/0005_nutrition.py`
+- [X] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, encrypted expiring diagnostic MediaAsset, and detached-history constraints in `backend/src/vigor_vine/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
+- [X] T044 [US1] Create ReferenceDataset, FoodReference, and FoodNutrient tables plus search indexes in `backend/src/vigor_vine/infrastructure/models/reference_foods.py` and `backend/migrations/versions/0004_reference_foods.py`
+- [X] T045 [US1] Create fixed-scale IngredientMatch, NutritionEstimate, and typed NutritionCorrection tables with canonical precision and active-record constraints in `backend/src/vigor_vine/infrastructure/models/nutrition.py` and `backend/migrations/versions/0005_nutrition.py`
 - [ ] T046 [US1] Implement recipe, reference-food, match, estimate, and correction repositories in `backend/src/vigor_vine/infrastructure/repositories/recipes.py` and `backend/src/vigor_vine/infrastructure/repositories/nutrition.py`
 - [ ] T047 [P] [US1] Implement the memory-only HTTP/HTTPS fetcher with DNS/redirect revalidation, private-address blocking, byte/time limits, content-type checks, and no successful-HTML persistence in `backend/src/vigor_vine/infrastructure/safe_fetch.py`
 - [ ] T048 [P] [US1] Implement the `recipe-scrapers` HTML adapter, source nutrition extraction, immediate buffer disposal, and opt-in encrypted failed-import diagnostic handoff in `backend/src/vigor_vine/infrastructure/recipe_importer.py`

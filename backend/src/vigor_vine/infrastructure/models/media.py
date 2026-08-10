@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, String, Text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,7 +14,11 @@ class MediaAsset(TimestampMixin, Base):
     __table_args__ = (CheckConstraint("byte_size > 0", name="positive_byte_size"),)
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
-    recipe_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), index=True)
+    recipe_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("recipes.id", ondelete="CASCADE", use_alter=True),
+        index=True,
+    )
     kind: Mapped[str] = mapped_column(String(40), nullable=False)
     storage_key: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     content_type: Mapped[str] = mapped_column(String(100), nullable=False)

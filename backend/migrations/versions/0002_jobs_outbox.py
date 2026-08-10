@@ -44,17 +44,15 @@ def upgrade() -> None:
         sa.Column(
             "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
-        sa.CheckConstraint(
-            "attempt >= 0 AND attempt <= max_attempts", name="ck_processing_jobs_valid_attempt"
-        ),
-        sa.CheckConstraint("max_attempts > 0", name="ck_processing_jobs_positive_max_attempts"),
+        sa.CheckConstraint("attempt >= 0 AND attempt <= max_attempts", name="valid_attempt"),
+        sa.CheckConstraint("max_attempts > 0", name="positive_max_attempts"),
         sa.CheckConstraint(
             "progress_current IS NULL OR progress_current >= 0",
-            name="ck_processing_jobs_nonnegative_progress_current",
+            name="nonnegative_progress_current",
         ),
         sa.CheckConstraint(
             "progress_total IS NULL OR progress_total >= 0",
-            name="ck_processing_jobs_nonnegative_progress_total",
+            name="nonnegative_progress_total",
         ),
     )
     op.create_index("ix_processing_jobs_aggregate_id", "processing_jobs", ["aggregate_id"])

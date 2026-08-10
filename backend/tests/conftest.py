@@ -18,7 +18,9 @@ def isolated_database_url() -> Iterator[str]:
     schema = f"test_{uuid4().hex}"
     admin_engine = create_engine(base_url)
     with admin_engine.begin() as connection:
+        connection.execute(text('CREATE EXTENSION IF NOT EXISTS "citext"'))
         connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        connection.execute(text(f'CREATE DOMAIN "{schema}".citext AS public.citext'))
     url = make_url(base_url).update_query_dict({"options": f"-csearch_path={schema}"})
     isolated_url = url.render_as_string(hide_password=False)
     schema_engine = create_engine(isolated_url)
