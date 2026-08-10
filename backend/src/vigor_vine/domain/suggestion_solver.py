@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
+from time import monotonic
 from typing import Literal
 from uuid import UUID
 
@@ -227,19 +228,47 @@ def solve_suggestion(problem: SuggestionProblem) -> SuggestionSolution:
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = 0
-    solver.parameters.max_time_in_seconds = problem.time_limit_seconds / 4
+    deadline = monotonic() + problem.time_limit_seconds
     objectives = (
         unmet,
         distance,
         entry_count,
-        sum((index + 1) * selected[index] for index in range(len(selected))),
     )
     for objective in objectives:
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            return _zero_solution()
+        solver.parameters.max_time_in_seconds = remaining
         model.minimize(objective)
         status = solver.solve(model)
-        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        if status != cp_model.OPTIMAL:
             return _zero_solution()
-        model.add(objective == int(solver.objective_value))
+        # Read the exact integer expression value; objective_value is a float and can represent 1
+        # as 0.9999999999999998 for large scaled models, which would freeze an impossible stage.
+        model.add(objective == int(solver.value(objective)))
+
+    # With the entry count fixed, minimizing each selected candidate index in order is the exact
+    # lexicographic recipe-ID tie-break. AddElement lets the rank variables point only at selected
+    # candidates without unsafe exponentially large objective coefficients.
+    optimal_entry_count = int(solver.value(entry_count))
+    selected_ranks: list[cp_model.IntVar] = []
+    tie_break_positions = optimal_entry_count if optimal_entry_count < len(selected) else 0
+    for position in range(tie_break_positions):
+        rank = model.new_int_var(0, len(selected) - 1, f"selected_rank_{position}")
+        model.add_element(rank, selected, 1)
+        if selected_ranks:
+            model.add(selected_ranks[-1] < rank)
+        selected_ranks.append(rank)
+    for rank in selected_ranks:
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            return _zero_solution()
+        solver.parameters.max_time_in_seconds = remaining
+        model.minimize(rank)
+        status = solver.solve(model)
+        if status != cp_model.OPTIMAL:
+            return _zero_solution()
+        model.add(rank == solver.value(rank))
 
     selections = tuple(
         SuggestionSelection(

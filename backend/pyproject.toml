@@ -65,6 +65,7 @@ markers = [
   "integration: requires PostgreSQL, Redis, or another process boundary",
   "contract: validates an external interface contract",
   "nutrition_corpus: runs the versioned nutrition accuracy corpus",
+  "suggestion_corpus: runs deterministic suggestion accuracy and latency evidence",
   "performance: measures documented performance budgets",
 ]
 

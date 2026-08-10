@@ -1,3 +1,4 @@
+from dataclasses import replace
 from decimal import Decimal
 from uuid import UUID
 
@@ -125,3 +126,28 @@ def test_zero_time_limit_returns_explicit_timeout() -> None:
     assert result.status == "timeout"
     assert result.items == ()
     assert result.missed_constraints == ("solver_timeout",)
+
+
+def test_recipe_id_tie_break_is_lexicographic_not_a_rank_sum() -> None:
+    fixed = {
+        "serving_increment": Decimal("1"),
+        "minimum_servings": Decimal("1"),
+        "maximum_servings": Decimal("1"),
+    }
+    configured = SuggestionProblem(
+        candidates=(
+            replace(candidate(1, "100", "0", "0", "0"), **fixed),
+            replace(candidate(2, "75", "25", "0", "0"), **fixed),
+            replace(candidate(3, "25", "75", "0", "0"), **fixed),
+            replace(candidate(4, "0", "100", "0", "0"), **fixed),
+        ),
+        target=SuggestionTarget(Decimal("100"), Decimal("100"), Decimal("0"), Decimal("0")),
+        tolerances=SuggestionTarget(Decimal("0"), Decimal("0"), Decimal("0"), Decimal("0")),
+        max_entries=2,
+        time_limit_seconds=2,
+    )
+
+    result = solve_suggestion(configured)
+
+    assert result.status == "feasible"
+    assert [item.recipe_id for item in result.items] == [UUID(int=1), UUID(int=4)]

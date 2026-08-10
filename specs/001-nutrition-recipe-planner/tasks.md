@@ -231,7 +231,7 @@ decimal plan totals match the preview exactly.
 - [X] T111 [US4] Regenerate and commit exact-decimal suggestion TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T112 [US4] Implement meal/day/week constraint editing, progress, deterministically ranked alternatives, unmet-constraint/objective explanations, projected totals, and accessible planning-aid-not-medical-advice language in `frontend/src/features/suggestions/SuggestionPage.tsx`
 - [X] T113 [US4] Implement selective suggestion acceptance through normal plan mutations with conflict recovery in `frontend/src/features/suggestions/useAcceptSuggestion.ts`
-- [ ] T114 [US4] Add SC-009 feasible/infeasible corpus reporting, exclusion invariants, exact ranking/objective/tie-break evidence, preview/accepted exact-total parity, and under-ten-second solver metrics in `backend/tests/accuracy/test_suggestion_corpus.py`
+- [X] T114 [US4] Add SC-009 feasible/infeasible corpus reporting, exclusion invariants, exact ranking/objective/tie-break evidence, preview/accepted exact-total parity, and under-ten-second solver metrics in `backend/tests/accuracy/test_suggestion_corpus.py`
 
 **Checkpoint**: US4 is independently releasable behind an expansion feature flag and cannot modify
 core nutrition estimates or invent recipes.
