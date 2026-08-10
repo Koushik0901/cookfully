@@ -1,0 +1,871 @@
+openapi: 3.1.0
+info:
+  title: Vigor & Vine API
+  version: 0.1.0
+  description: >-
+    Canonical HTTP contract for recipes, honest nutrition estimates, goals, meal plans,
+    grocery lists, exports, and later goal-aware suggestions. MCP tools compose the same
+    application commands and queries.
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+  - bearerToken: []
+tags:
+  - name: Recipes
+  - name: Nutrition
+  - name: Jobs
+  - name: Goals
+  - name: Meal Plans
+  - name: Grocery
+  - name: Data Ownership
+  - name: Suggestions
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: Process is healthy and required dependencies are reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+  /auth/session:
+    post:
+      operationId: createSession
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "204":
+          description: Session and CSRF cookies set.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      operationId: deleteSession
+      responses:
+        "204":
+          description: Current session revoked.
+
+  /recipes:
+    get:
+      tags: [Recipes]
+      operationId: listRecipes
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: query
+          in: query
+          schema: { type: string, maxLength: 200 }
+        - name: nutritionState
+          in: query
+          schema: { $ref: "#/components/schemas/NutritionState" }
+        - name: includeArchived
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Cursor-paginated recipes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipePage"
+    post:
+      tags: [Recipes]
+      operationId: createRecipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeWrite"
+      responses:
+        "201":
+          description: Recipe created; nutrition processing may be pending.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /recipes/import:
+    post:
+      tags: [Recipes, Jobs]
+      operationId: importRecipe
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri, maxLength: 2048 }
+      responses:
+        "202":
+          description: Import accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}:
+    parameters:
+      - $ref: "#/components/parameters/RecipeId"
+    get:
+      tags: [Recipes, Nutrition]
+      operationId: getRecipe
+      responses:
+        "200":
+          description: Recipe with active resolved nutrition and provenance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Recipes]
+      operationId: updateRecipe
+      parameters:
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeWrite"
+      responses:
+        "200":
+          description: Updated recipe; stale nutrition is identified in the response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetail"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Recipes]
+      operationId: archiveRecipe
+      parameters:
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "204":
+          description: Recipe archived; historical snapshots remain.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}/nutrition/recalculate:
+    post:
+      tags: [Nutrition, Jobs]
+      operationId: recalculateRecipeNutrition
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resetCorrections:
+                  type: boolean
+                  default: false
+                  description: Must be explicitly true to reset active corrections.
+      responses:
+        "202":
+          description: Recalculation accepted; unchanged active corrections remain authoritative.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}/nutrition/corrections:
+    post:
+      tags: [Nutrition]
+      operationId: createNutritionCorrection
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NutritionCorrectionWrite"
+      responses:
+        "201":
+          description: Correction activated and resolved nutrition updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolvedNutrition"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /recipes/{recipeId}/nutrition/corrections/{correctionId}:
+    delete:
+      tags: [Nutrition]
+      operationId: resetNutritionCorrection
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - name: correctionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Correction reset; automatic resolved value is active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolvedNutrition"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Authoritative processing state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /goals/current:
+    get:
+      tags: [Goals]
+      operationId: getCurrentGoal
+      parameters:
+        - name: onDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Goal effective on the requested local date.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGoal"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Goals]
+      operationId: putCurrentGoal
+      parameters:
+        - $ref: "#/components/parameters/IfMatchVersionOptional"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserGoalWrite"
+      responses:
+        "200":
+          description: Goal created or replaced for its effective period.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGoal"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /meal-plans/{weekStart}:
+    get:
+      tags: [Meal Plans]
+      operationId: getMealPlan
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+      responses:
+        "200":
+          description: Seven-day plan, resolved snapshots, totals, and target differences.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlan"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /meal-plans/{weekStart}/entries:
+    post:
+      tags: [Meal Plans]
+      operationId: addMealPlanEntry
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanEntryWrite"
+      responses:
+        "201":
+          description: Entry created with an immutable resolved nutrition snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntry"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /meal-plan-entries/{entryId}:
+    patch:
+      tags: [Meal Plans]
+      operationId: updateMealPlanEntry
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanEntryWrite"
+      responses:
+        "200":
+          description: Entry updated; changed servings create a replacement snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntry"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Meal Plans]
+      operationId: deleteMealPlanEntry
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Entry removed and grocery list marked dirty.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /meal-plans/{weekStart}/grocery-list:
+    get:
+      tags: [Grocery]
+      operationId: getGroceryList
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+      responses:
+        "200":
+          description: Current or dirty grocery list with traceable sources.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroceryList"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [Grocery]
+      operationId: regenerateGroceryList
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: List regenerated and manual/check state reconciled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroceryList"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /grocery-items/{itemId}:
+    patch:
+      tags: [Grocery]
+      operationId: updateGroceryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroceryItemWrite"
+      responses:
+        "200":
+          description: Grocery item updated without changing recipe ingredients.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroceryItem"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /exports:
+    post:
+      tags: [Data Ownership, Jobs]
+      operationId: createPortableExport
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                includeMedia: { type: boolean, default: true }
+      responses:
+        "202":
+          description: Export accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+
+  /suggestions:
+    post:
+      x-release: expansion-p4
+      tags: [Suggestions]
+      operationId: createSuggestion
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestionRequest"
+      responses:
+        "202":
+          description: Deterministic optimization accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: vv_session
+    bearerToken:
+      type: http
+      scheme: bearer
+
+  parameters:
+    RecipeId:
+      name: recipeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    EntryId:
+      name: entryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    WeekStart:
+      name: weekStart
+      in: path
+      required: true
+      schema: { type: string, format: date }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    IfMatchVersion:
+      name: If-Match
+      in: header
+      required: true
+      schema: { type: string, pattern: '^"[0-9]+"$' }
+    IfMatchVersionOptional:
+      name: If-Match
+      in: header
+      required: false
+      schema: { type: string, pattern: '^"[0-9]+"$' }
+
+  responses:
+    BadRequest:
+      description: Request cannot be safely processed.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthorized:
+      description: Authentication failed or is missing.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Resource not found or not visible.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Conflict:
+      description: Stale version, duplicate idempotency key with different input, or invalid transition.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    ValidationError:
+      description: One or more fields are invalid.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Health:
+      type: object
+      required: [status, database, broker]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        database: { type: string, enum: [ok, unavailable] }
+        broker: { type: string, enum: [ok, unavailable] }
+        version: { type: string }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12, maxLength: 1024 }
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            required: [field, code]
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }
+    NutritionState:
+      type: string
+      enum: [pending, source_provided, estimated, partial, failed, stale]
+    NutritionStatus:
+      type: string
+      enum: [source_provided, estimated, partial, manual]
+    MacroValues:
+      type: object
+      required: [caloriesKcal, proteinG, carbohydrateG, fatG]
+      properties:
+        caloriesKcal: { type: [number, "null"], minimum: 0 }
+        proteinG: { type: [number, "null"], minimum: 0 }
+        carbohydrateG: { type: [number, "null"], minimum: 0 }
+        fatG: { type: [number, "null"], minimum: 0 }
+    ResolvedNutrition:
+      allOf:
+        - $ref: "#/components/schemas/MacroValues"
+        - type: object
+          required: [status, basisServings, coverageRatio, provenance, corrections]
+          properties:
+            status: { $ref: "#/components/schemas/NutritionStatus" }
+            basisServings: { type: number, exclusiveMinimum: 0 }
+            coverageRatio: { type: number, minimum: 0, maximum: 1 }
+            provenance:
+              type: array
+              items:
+                type: object
+                required: [kind, label]
+                properties:
+                  kind: { type: string, enum: [source, reference, conversion, parser, provider] }
+                  label: { type: string }
+                  sourceUrl: { type: [string, "null"], format: uri }
+                  version: { type: [string, "null"] }
+            assumptions: { type: array, items: { type: string } }
+            corrections:
+              type: array
+              items: { $ref: "#/components/schemas/NutritionCorrection" }
+    IngredientWrite:
+      type: object
+      required: [originalText]
+      properties:
+        id: { type: [string, "null"], format: uuid }
+        originalText: { type: string, minLength: 1, maxLength: 1000 }
+        quantityMin: { type: [number, "null"], minimum: 0 }
+        quantityMax: { type: [number, "null"], minimum: 0 }
+        unit: { type: [string, "null"], maxLength: 80 }
+        food: { type: [string, "null"], maxLength: 240 }
+        preparation: { type: [string, "null"], maxLength: 240 }
+        optional: { type: boolean, default: false }
+    Ingredient:
+      allOf:
+        - $ref: "#/components/schemas/IngredientWrite"
+        - type: object
+          required: [id, position, parseStatus]
+          properties:
+            id: { type: string, format: uuid }
+            position: { type: integer, minimum: 0 }
+            parseStatus: { type: string, enum: [unparsed, parsed, low_confidence, manual, failed] }
+            matchStatus: { type: string, enum: [candidate, matched, ambiguous, unmatched, manual] }
+            assumptions: { type: array, items: { type: string } }
+    RecipeWrite:
+      type: object
+      additionalProperties: false
+      required: [title, yieldQuantity, ingredients, instructions]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 240 }
+        description: { type: [string, "null"], maxLength: 5000 }
+        sourceUrl: { type: [string, "null"], format: uri, maxLength: 2048 }
+        yieldQuantity: { type: number, exclusiveMinimum: 0 }
+        yieldUnit: { type: string, default: servings, maxLength: 80 }
+        ingredients:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: "#/components/schemas/IngredientWrite" }
+        instructions:
+          type: array
+          maxItems: 500
+          items: { type: string, minLength: 1, maxLength: 5000 }
+    Recipe:
+      type: object
+      required: [id, title, yieldQuantity, yieldUnit, status, nutritionState, version]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        sourceUrl: { type: [string, "null"], format: uri }
+        imageUrl: { type: [string, "null"], format: uri-reference }
+        yieldQuantity: { type: number, exclusiveMinimum: 0 }
+        yieldUnit: { type: string }
+        status: { type: string, enum: [draft, processing, ready, partial, failed, archived] }
+        nutritionState: { $ref: "#/components/schemas/NutritionState" }
+        nutrition: { oneOf: [{ $ref: "#/components/schemas/ResolvedNutrition" }, { type: "null" }] }
+        version: { type: integer, minimum: 1 }
+        updatedAt: { type: string, format: date-time }
+    RecipeDetail:
+      allOf:
+        - $ref: "#/components/schemas/Recipe"
+        - type: object
+          required: [ingredients, instructions]
+          properties:
+            description: { type: [string, "null"] }
+            ingredients: { type: array, items: { $ref: "#/components/schemas/Ingredient" } }
+            instructions: { type: array, items: { type: string } }
+            activeJob: { oneOf: [{ $ref: "#/components/schemas/Job" }, { type: "null" }] }
+    RecipePage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Recipe" } }
+        nextCursor: { type: [string, "null"] }
+    NutritionCorrectionWrite:
+      type: object
+      additionalProperties: false
+      required: [field]
+      properties:
+        ingredientId: { type: [string, "null"], format: uuid }
+        field:
+          type: string
+          enum: [quantity_min, quantity_max, unit, food_name, food_reference, grams, yield_quantity, calories_kcal, protein_g, carbohydrate_g, fat_g]
+        decimalValue: { type: [number, "null"], minimum: 0 }
+        textValue: { type: [string, "null"], maxLength: 500 }
+        referenceIdValue: { type: [string, "null"], format: uuid }
+        reason: { type: [string, "null"], maxLength: 1000 }
+    NutritionCorrection:
+      allOf:
+        - $ref: "#/components/schemas/NutritionCorrectionWrite"
+        - type: object
+          required: [id, active, createdAt]
+          properties:
+            id: { type: string, format: uuid }
+            active: { type: boolean }
+            createdAt: { type: string, format: date-time }
+    JobAccepted:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId: { type: string, format: uuid }
+        resourceId: { type: [string, "null"], format: uuid }
+        status: { type: string, const: queued }
+    Job:
+      type: object
+      required: [id, kind, status, attempt, maxAttempts, inputHash, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string }
+        status: { type: string, enum: [queued, running, retry_wait, succeeded, failed, cancelled, superseded] }
+        attempt: { type: integer, minimum: 0 }
+        maxAttempts: { type: integer, minimum: 1 }
+        inputHash: { type: string }
+        progressCurrent: { type: [integer, "null"], minimum: 0 }
+        progressTotal: { type: [integer, "null"], minimum: 0 }
+        failureCode: { type: [string, "null"] }
+        failureMessage: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        finishedAt: { type: [string, "null"], format: date-time }
+    MealTarget:
+      allOf:
+        - $ref: "#/components/schemas/MacroValues"
+        - type: object
+          required: [mealSlot]
+          properties:
+            mealSlot: { type: string, minLength: 1, maxLength: 80 }
+    UserGoalWrite:
+      allOf:
+        - $ref: "#/components/schemas/MacroValues"
+        - type: object
+          required: [mode, maintenanceKcal, effectiveFrom]
+          properties:
+            mode: { type: string, enum: [cut, maintain, bulk] }
+            maintenanceKcal: { type: number, exclusiveMinimum: 0 }
+            effectiveFrom: { type: string, format: date }
+            effectiveTo: { type: [string, "null"], format: date }
+            mealTargets: { type: array, items: { $ref: "#/components/schemas/MealTarget" } }
+    UserGoal:
+      allOf:
+        - $ref: "#/components/schemas/UserGoalWrite"
+        - type: object
+          required: [id, version]
+          properties:
+            id: { type: string, format: uuid }
+            version: { type: integer, minimum: 1 }
+            macroCalorieDifference: { type: number }
+    MealPlanEntryWrite:
+      type: object
+      additionalProperties: false
+      required: [localDate, mealSlot, recipeId, servings]
+      properties:
+        localDate: { type: string, format: date }
+        mealSlot: { type: string, minLength: 1, maxLength: 80 }
+        recipeId: { type: string, format: uuid }
+        servings: { type: number, exclusiveMinimum: 0, maximum: 100 }
+        position: { type: integer, minimum: 0 }
+        refreshNutrition: { type: boolean, default: false }
+    MealPlanEntry:
+      allOf:
+        - $ref: "#/components/schemas/MealPlanEntryWrite"
+        - type: object
+          required: [id, recipeTitle, nutrition, origin, version]
+          properties:
+            id: { type: string, format: uuid }
+            recipeTitle: { type: string }
+            nutrition: { $ref: "#/components/schemas/ResolvedNutrition" }
+            origin: { type: string, enum: [manual, suggestion, external] }
+            version: { type: integer, minimum: 1 }
+    PeriodTotal:
+      allOf:
+        - $ref: "#/components/schemas/MacroValues"
+        - type: object
+          required: [status, coverageRatio]
+          properties:
+            status: { $ref: "#/components/schemas/NutritionStatus" }
+            coverageRatio: { type: number, minimum: 0, maximum: 1 }
+            targetDifference: { $ref: "#/components/schemas/MacroValues" }
+    MealPlan:
+      type: object
+      required: [id, weekStart, timezone, entries, dayTotals, weekTotal, version]
+      properties:
+        id: { type: string, format: uuid }
+        weekStart: { type: string, format: date }
+        timezone: { type: string }
+        goal: { $ref: "#/components/schemas/UserGoal" }
+        entries: { type: array, items: { $ref: "#/components/schemas/MealPlanEntry" } }
+        dayTotals:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/PeriodTotal" }
+        weekTotal: { $ref: "#/components/schemas/PeriodTotal" }
+        groceryStatus: { type: string, enum: [current, dirty, generating, failed, absent] }
+        version: { type: integer, minimum: 1 }
+    GroceryItemWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 240 }
+        quantity: { type: [number, "null"], minimum: 0 }
+        unit: { type: [string, "null"], maxLength: 80 }
+        checked: { type: boolean }
+        position: { type: integer, minimum: 0 }
+    GroceryItem:
+      allOf:
+        - $ref: "#/components/schemas/GroceryItemWrite"
+        - type: object
+          required: [id, origin, needsReview, sources, version]
+          properties:
+            id: { type: string, format: uuid }
+            origin: { type: string, enum: [generated, manual] }
+            needsReview: { type: boolean }
+            sources:
+              type: array
+              items:
+                type: object
+                required: [mealPlanEntryId, originalText]
+                properties:
+                  mealPlanEntryId: { type: string, format: uuid }
+                  originalText: { type: string }
+                  quantityContribution: { type: [number, "null"] }
+            version: { type: integer, minimum: 1 }
+    GroceryList:
+      type: object
+      required: [id, weekStart, status, items, version]
+      properties:
+        id: { type: string, format: uuid }
+        weekStart: { type: string, format: date }
+        status: { type: string, enum: [current, dirty, generating, failed] }
+        generatedAt: { type: [string, "null"], format: date-time }
+        items: { type: array, items: { $ref: "#/components/schemas/GroceryItem" } }
+        version: { type: integer, minimum: 1 }
+    SuggestionRequest:
+      type: object
+      required: [scope, weekStart, tolerances]
+      properties:
+        scope: { type: string, enum: [meal, day, week] }
+        weekStart: { type: string, format: date }
+        localDate: { type: [string, "null"], format: date }
+        mealSlot: { type: [string, "null"] }
+        tolerances: { $ref: "#/components/schemas/MacroValues" }
+        excludedRecipeIds: { type: array, items: { type: string, format: uuid } }
+        requiredRecipeIds: { type: array, items: { type: string, format: uuid } }
+        maxRecipeRepetitions: { type: integer, minimum: 1, maximum: 21 }
