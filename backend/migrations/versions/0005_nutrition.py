@@ -167,6 +167,7 @@ def upgrade() -> None:
         ["recipe_id", "ingredient_id", "field"],
         unique=True,
         postgresql_where=sa.text("active"),
+        postgresql_nulls_not_distinct=True,
     )
 
 

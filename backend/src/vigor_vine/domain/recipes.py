@@ -67,9 +67,17 @@ class RecipeLifecycle:
         self.recipe = recipe
 
     def archive(self) -> None:
-        if self.recipe.status not in {"draft", "ready", "partial", "failed"}:
+        if self.recipe.status not in {"draft", "processing", "ready", "partial", "failed"}:
             raise DomainError("invalid_archive_state", "This recipe cannot be archived now.", 409)
-        self.recipe.archived_from_status = self.recipe.status
+        prior_status = self.recipe.status
+        if prior_status == "processing":
+            if self.recipe.nutrition_state == "partial":
+                prior_status = "partial"
+            elif self.recipe.nutrition_state in {"source_provided", "estimated"}:
+                prior_status = "ready"
+            else:
+                prior_status = "draft"
+        self.recipe.archived_from_status = prior_status
         self.recipe.status = "archived"
 
     def restore(self, *, current_estimate_input_hash: str | None) -> None:

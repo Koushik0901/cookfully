@@ -58,42 +58,64 @@ class JobService:
     ) -> ProcessingJob:
         accepted_at = now or utc_now()
         with self._session_factory.begin() as session:
-            existing = session.scalar(
-                select(ProcessingJob).where(
-                    ProcessingJob.kind == kind,
-                    ProcessingJob.aggregate_id == aggregate_id,
-                    ProcessingJob.input_hash == input_hash,
-                    ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
-                )
-            )
-            if existing is not None:
-                return existing
-            job = ProcessingJob(
+            return self.accept_in_session(
+                session,
                 kind=kind,
                 aggregate_type=aggregate_type,
                 aggregate_id=aggregate_id,
                 input_hash=input_hash,
                 trace_id=trace_id,
-                status="queued",
-                attempt=0,
-                max_attempts=5,
-                accepted_at=accepted_at,
-                available_at=accepted_at,
-                terminal_deadline_at=accepted_at + TERMINAL_DEADLINE,
+                now=accepted_at,
             )
-            session.add(job)
-            session.flush()
-            session.add(
-                OutboxEvent(
-                    event_type="processing_job.accepted.v1",
-                    aggregate_id=job.id,
-                    payload_version=1,
-                    payload=self._envelope(job),
-                    created_at=accepted_at,
-                    publish_attempts=0,
-                )
+
+    def accept_in_session(
+        self,
+        session: Session,
+        *,
+        kind: str,
+        aggregate_type: str,
+        aggregate_id: UUID,
+        input_hash: str,
+        trace_id: str,
+        now: datetime | None = None,
+    ) -> ProcessingJob:
+        accepted_at = now or utc_now()
+        existing = session.scalar(
+            select(ProcessingJob).where(
+                ProcessingJob.kind == kind,
+                ProcessingJob.aggregate_id == aggregate_id,
+                ProcessingJob.input_hash == input_hash,
+                ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
             )
-            return job
+        )
+        if existing is not None:
+            return existing
+        job = ProcessingJob(
+            kind=kind,
+            aggregate_type=aggregate_type,
+            aggregate_id=aggregate_id,
+            input_hash=input_hash,
+            trace_id=trace_id,
+            status="queued",
+            attempt=0,
+            max_attempts=5,
+            accepted_at=accepted_at,
+            available_at=accepted_at,
+            terminal_deadline_at=accepted_at + TERMINAL_DEADLINE,
+        )
+        session.add(job)
+        session.flush()
+        session.add(
+            OutboxEvent(
+                event_type="processing_job.accepted.v1",
+                aggregate_id=job.id,
+                payload_version=1,
+                payload=self._envelope(job),
+                created_at=accepted_at,
+                publish_attempts=0,
+            )
+        )
+        return job
 
     def claim(
         self,

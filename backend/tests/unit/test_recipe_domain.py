@@ -48,11 +48,16 @@ def test_permanent_delete_requires_archived_confirmation_and_detaches_history() 
     assert result.supersede_active_jobs is True
 
 
-def test_invalid_state_transition_and_hash_are_deterministic() -> None:
+def test_processing_recipe_archives_to_a_safe_prior_state_and_hash_is_deterministic() -> None:
     recipe = sample_recipe()
     assert recipe.input_hash() == sample_recipe().input_hash()
     recipe.ingredients = (IngredientInput("200 g chicken", Decimal("201"), "gram", "chicken"),)
     assert recipe.input_hash() != sample_recipe().input_hash()
     recipe.status = "processing"
+    recipe.nutrition_state = "pending"
+    RecipeLifecycle(recipe).archive()
+    assert recipe.status == "archived"
+    assert recipe.archived_from_status == "draft"
+
     with pytest.raises(DomainError, match="cannot be archived"):
         RecipeLifecycle(recipe).archive()

@@ -116,6 +116,7 @@ class NutritionCorrection(TimestampMixin, Base):
             "field",
             unique=True,
             postgresql_where=text("active"),
+            postgresql_nulls_not_distinct=True,
         ),
     )
 
