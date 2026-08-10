@@ -55,10 +55,10 @@ and the application shell required by every story.
 - [ ] T017 Create owner timezone/week-start preferences, session, hashed access-token, and encrypted expiring media-asset persistence models in `backend/src/vigor_vine/infrastructure/models/identity.py` and `backend/src/vigor_vine/infrastructure/models/media.py`
 - [ ] T018 [P] Write failing authentication, CSRF, session-expiry, token-hash/scope, owner timezone/week-start, and once-only-token tests in `backend/tests/integration/test_auth.py`
 - [ ] T019 Implement Argon2id owner bootstrap, revocable sessions, CSRF enforcement, scoped token services, and owner preference commands in `backend/src/vigor_vine/application/auth.py` and `backend/src/vigor_vine/application/owner_preferences.py`
-- [ ] T020 Implement login/logout, owner preference, and canonical access-token management routes in `backend/src/vigor_vine/api/routes/auth.py`, `backend/src/vigor_vine/api/routes/owner.py`, and `backend/src/vigor_vine/api/routes/access_tokens.py`
+- [ ] T020 Implement login/logout and owner preference routes plus hashed scoped-bearer authentication middleware in `backend/src/vigor_vine/api/routes/auth.py`, `backend/src/vigor_vine/api/routes/owner.py`, and `backend/src/vigor_vine/api/dependencies/auth.py`
 - [ ] T021 [P] Define RFC 9457-style safe problem responses and field-error mapping in `backend/src/vigor_vine/api/problems.py`
 - [ ] T022 [P] Add request/job correlation IDs, raw-provider and personal-data redaction, retention-safe logging, and health metrics in `backend/src/vigor_vine/infrastructure/observability.py`
-- [ ] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/vigor_vine/infrastructure/media_store.py`
+- [ ] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/vigor_vine/infrastructure/media_store.py`; implement the independent content-free hash-chained erasure ledger, continuity verification, and rotation-plus-30-day retention in `backend/src/vigor_vine/infrastructure/erasure_ledger.py`
 - [ ] T024 Create ProcessingJob fields for accepted/next-retry/terminal-deadline/diagnostic-retention timestamps plus OutboxEvent models and indexes in `backend/src/vigor_vine/infrastructure/models/jobs.py` and `backend/migrations/versions/0002_jobs_outbox.py`
 - [ ] T025 [P] Write failing job transition, duplicate-delivery, stale-input, 60-second timeout, fixed 5s/30s/2m/5m retry, five-attempt, 15-minute deadline, retention, and outbox recovery tests in `backend/tests/integration/test_job_lifecycle.py`
 - [ ] T026 Implement the authoritative job repository, fixed retry/terminal policy, progress DTO, and retention-reduction policy in `backend/src/vigor_vine/application/jobs.py`
@@ -91,10 +91,10 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 
 - [ ] T035 [P] [US1] Write failing Recipe/Ingredient state, archive-from-state, restore-to-stale, confirmed permanent deletion, detached-history, and stale-input domain tests in `backend/tests/unit/test_recipe_domain.py`
 - [ ] T036 [P] [US1] Write failing ingredient range, optional line, unit/density/count-weight, unmatched-food, and lower-of-mass/count coverage tests in `backend/tests/unit/test_ingredient_processing.py`
-- [ ] T037 [P] [US1] Write failing six-decimal nutrient/quantity, three-decimal serving, canonical-string, round-half-up, null/zero, coverage, and correction-precedence tests in `backend/tests/unit/test_nutrition_calculation.py`
-- [ ] T038 [P] [US1] Write failing OpenAPI 0.2 recipe CRUD/import/archive/restore/permanent-delete/job/recalculate/correction/concurrency and decimal-string contract tests in `backend/tests/contract/test_recipe_api.py`
+- [ ] T037 [P] [US1] Write failing six-decimal nutrient/quantity, positive three-decimal serving with zero rejection, canonical-string, round-half-up, null/zero, coverage, and correction-precedence tests in `backend/tests/unit/test_nutrition_calculation.py`
+- [ ] T038 [P] [US1] Write failing OpenAPI 0.2 recipe CRUD/import/archive/restore/permanent-delete/job/recalculate/correction/concurrency, positive-serving, and decimal-string contract tests in `backend/tests/contract/test_recipe_api.py`
 - [ ] T039 [P] [US1] Write failing duplicate-delivery, input/correction/archive change during jobs, one-second acceptance, fixed retries/deadline, diagnostic expiry, and partial-chain integration tests in `backend/tests/integration/test_recipe_jobs.py`
-- [ ] T040 [P] [US1] Create SC-001/SC-002/SC-003 runners for the stratified 50-recipe corpus and stable 30-recipe constitutional subset in `backend/tests/accuracy/test_nutrition_corpus.py`
+- [ ] T040 [P] [US1] Create SC-001/SC-002/SC-003 runners for all 50 captured public-page cases and the stable 30-recipe constitutional subset, enforcing 20% calorie and 25% protein/carbohydrate/fat median-error gates plus nutrient-specific near-zero reporting in `backend/tests/accuracy/test_nutrition_corpus.py`
 - [ ] T041 [P] [US1] Write failing accessible recipe card/editor, two-second polling, reload recovery, retry timing, provenance, correction, archive/restore, and deletion-confirmation tests in `frontend/src/features/recipes/__tests__/`
 - [ ] T042 [P] [US1] Write failing manual-create, URL-import, correction, bounded retry, reload, stale-yield, archive/restore, and permanent-delete-with-history journeys in `frontend/e2e/recipes.spec.ts`
 
@@ -109,7 +109,7 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 - [ ] T049 [P] [US1] Implement remote recipe-image validation, hashing, transformation limits, and media persistence in `backend/src/vigor_vine/infrastructure/recipe_images.py`
 - [ ] T050 [P] [US1] Implement deterministic `ingredient-parser-nlp` mapping to six-decimal quantities while preserving original text, confidence, parser name, and parser version in `backend/src/vigor_vine/infrastructure/ingredient_parser.py`
 - [ ] T051 [P] [US1] Implement six-decimal canonical units, ranges, Pint conversions, count weights, explicit density assumptions, and unsafe-conversion rejection in `backend/src/vigor_vine/domain/units.py`
-- [ ] T052 [P] [US1] Implement idempotent Foundation Foods and SR Legacy bulk import, release activation, attribution, and status commands in `backend/src/vigor_vine/cli/reference_data.py`
+- [ ] T052 [P] [US1] Implement idempotent required Foundation Foods and SR Legacy bulk import, explicit release activation, release/date/license attribution, 90-day review status, no-dataset degraded-state reporting, and stale-on-explicit-reprocess behavior in `backend/src/vigor_vine/cli/reference_data.py`
 - [ ] T053 [US1] Implement normalized alias search, deterministic candidate ranking, ambiguity thresholds, manual matches, release provenance, and lower-of-mass/count coverage inputs in `backend/src/vigor_vine/application/food_matching.py`
 - [ ] T054 [P] [US1] Define disabled-by-default structured AI ports with schema validation, data minimization, raw-request/response non-retention, safe hashes/errors, and cache keys in `backend/src/vigor_vine/application/ai_provider.py`
 - [ ] T055 [US1] Implement exact ingredient contribution, lower-of-mass/count coverage, six-decimal rollup, three-decimal serving normalization, provenance, and immutable estimate creation in `backend/src/vigor_vine/domain/nutrition.py`
@@ -122,8 +122,8 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 - [ ] T062 [P] [US1] Implement the searchable recipe library, nutrition-state filters, archive/restore view, and responsive RecipeCard with exact decimal display in `frontend/src/features/recipes/RecipeLibraryPage.tsx` and `frontend/src/features/recipes/RecipeCard.tsx`
 - [ ] T063 [P] [US1] Implement exact-decimal recipe editing, original/structured ingredient review, URL import, validation, two-second polling, 15-second background polling, and pending-job feedback in `frontend/src/features/recipes/RecipeEditorPage.tsx` and `frontend/src/features/recipes/RecipeImportDialog.tsx`
 - [ ] T064 [US1] Implement provenance/assumption disclosure, progress/retry/deadline states, reload recovery, correction/reset, stale-yield, archive/restore, and permanent-delete confirmation in `frontend/src/features/recipes/RecipeDetailPage.tsx` and `frontend/src/features/recipes/NutritionPanel.tsx`
-- [ ] T065 [US1] Assemble and version the approved 50-recipe HTML/reference corpus with 15 simple/20 moderate/15 complex cases, a stable 30-recipe primary subset, expected import fields, classifications, and accuracy reports in `backend/tests/fixtures/nutrition-corpus/` and `backend/src/vigor_vine/cli/nutrition_report.py`
-- [ ] T066 [US1] Document reference eligibility, threshold-aware error formulas, lower-of-mass/count coverage, exact decimal/rounding, correction precedence, 30+20 corpus metrics, and limitations in `docs/nutrition-methodology.md`
+- [ ] T065 [US1] Assemble and version the approved 50 captured public-page HTML/reference cases with 15 simple/20 moderate/15 complex cases, a stable 30-recipe primary subset, source-site stratification, expected import fields, classifications, and accuracy reports in `backend/tests/fixtures/nutrition-corpus/` and `backend/src/vigor_vine/cli/nutrition_report.py`
+- [ ] T066 [US1] Document reference eligibility, 20% calorie and 25% protein/carbohydrate/fat thresholds, nutrient-specific near-zero floors and absolute-error reporting, lower-of-mass/count coverage, exact decimal/rounding, correction precedence, 30+20 corpus metrics, and limitations in `docs/nutrition-methodology.md`
 
 **Checkpoint**: US1 passes SC-001 through SC-004 plus SC-013/SC-014 and the 50-recipe P1 accuracy/import
 gate. Major UI polish and later stories remain blocked if thresholds fail without a classified plan.
@@ -141,9 +141,9 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 
 ### Tests for User Story 2
 
-- [ ] T067 [P] [US2] Write failing goal validation, effective-date overlap, macro-calorie difference, meal-target, owner timezone/week-start, and daylight-saving boundary tests in `backend/tests/unit/test_goals.py`
+- [ ] T067 [P] [US2] Write failing required non-null daily calorie/protein/carbohydrate/fat goal validation, effective-date overlap, macro-calorie difference, nullable meal-target, owner timezone/week-start, and daylight-saving boundary tests in `backend/tests/unit/test_goals.py`
 - [ ] T068 [P] [US2] Write failing three-decimal serving, round-half-up display snapshot, exact decimal-string meal/day/week totals, signed differences, reliability, and explicit-refresh tests in `backend/tests/unit/test_meal_plan_totals.py`
-- [ ] T069 [P] [US2] Write failing owner-preference, goal, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
+- [ ] T069 [P] [US2] Write failing owner-preference, required non-null daily-goal, optional meal-target, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
 - [ ] T070 [P] [US2] Write failing recipe-edit/delete-versus-detached-history, display-quantized snapshot, and 50-entry performance integration tests in `backend/tests/integration/test_meal_plan_snapshots.py`
 - [ ] T071 [P] [US2] Write failing target form, week calendar, day tabs, budget bars, status cues, and keyboard interaction tests in `frontend/src/features/plans/__tests__/`
 - [ ] T072 [P] [US2] Write failing goal creation, seven-day planning, serving adjustment, copy/move, and snapshot-refresh journeys in `frontend/e2e/meal-planning.spec.ts`
@@ -181,9 +181,9 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 
 - [ ] T085 [P] [US3] Write failing six-decimal property tests for serving scaling, normalized identities, compatible-unit aggregation, unsafe separation, and source contributions in `backend/tests/unit/test_grocery_aggregation.py`
 - [ ] T086 [P] [US3] Write failing reconciliation tests for checked items, manual names/quantities, removed sources, stable ordering, and review flags in `backend/tests/unit/test_grocery_reconciliation.py`
-- [ ] T087 [P] [US3] Write failing grocery generation/regeneration, manual item create/update/delete, decimal-string, concurrency, and problem-response contract tests in `backend/tests/contract/test_grocery_api.py`
+- [ ] T087 [P] [US3] Write failing grocery generation/regeneration, manual item create requiring a non-empty display name, partial update/delete, decimal-string, concurrency, and problem-response contract tests in `backend/tests/contract/test_grocery_api.py`
 - [ ] T088 [P] [US3] Write failing portable manifest, six/three/display-decimal NDJSON, erased-recipe omission/detached-history, archive traversal, checksum, staging, and merge-policy tests in `backend/tests/contract/test_export_format.py`
-- [ ] T089 [P] [US3] Write failing full backup/restore entity, correction, snapshot, manual-state, media-checksum, retention exclusion, and post-backup-erasure tests in `backend/tests/integration/test_backup_restore.py`
+- [ ] T089 [P] [US3] Write failing full backup/restore entity, correction, snapshot, manual-state, media-checksum, retention exclusion, ledger cursor/hash continuity, post-backup erasure replay, zero-resurrection, and missing/discontinuous-ledger fail-closed tests in `backend/tests/integration/test_backup_restore.py`
 - [ ] T090 [P] [US3] Write failing grocery traceability, edit/check, dirty-state, regeneration, and mobile shopping journeys in `frontend/e2e/grocery-list.spec.ts`
 
 ### Implementation for User Story 3
@@ -196,9 +196,9 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 - [ ] T096 [US3] Regenerate and commit exact-decimal grocery TypeScript bindings in `frontend/src/app/api/generated/`
 - [ ] T097 [US3] Implement grouped shopping view, source disclosure, check/edit/add/remove controls, dirty/regenerating states, and narrow-mobile layout in `frontend/src/features/grocery/GroceryListPage.tsx`
 - [ ] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/vigor_vine/application/exports.py` and `backend/src/vigor_vine/jobs/export.py`
-- [ ] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare plus post-backup-erasure reporting in `backend/src/vigor_vine/cli/backup.py`
+- [ ] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/vigor_vine/cli/backup.py`
 - [ ] T100 [US3] Implement export job creation/status API and secure one-time archive download in `backend/src/vigor_vine/api/routes/exports.py`
-- [ ] T101 [US3] Document Docker volumes, scheduled rotation, erased-record persistence, post-backup erasure replay, portable exports, staged restore, and disaster-recovery validation in `docs/backup-restore.md`
+- [ ] T101 [US3] Document Docker volumes, independent erasure-ledger replication and protection, scheduled backup rotation, ledger rotation-plus-30-day retention, fail-closed replay-gated staged restore, portable exports, and disaster-recovery validation in `docs/backup-restore.md`
 
 **Checkpoint**: P1-P3 form the core release and pass SC-001 through SC-008, SC-011, and applicable
 SC-012 checks before any expansion release is enabled by default.
@@ -314,15 +314,15 @@ documentation, and scope discipline across the selected release boundary.
 - [ ] T143 [P] Complete SSRF, redirect rebinding, diagnostic encryption/expiry, raw-provider non-retention, archive traversal, CSRF, token-scope, secret-redaction, and dependency vulnerability coverage in `backend/tests/security/`
 - [ ] T144 [P] Profile 10,000-recipe reads/search, 50-entry plan mutations, under-one-second job acknowledgement, polling load, grocery generation, and suggestion limits and record p95 budgets in `docs/performance.md`
 - [ ] T145 [P] Complete keyboard, focus, contrast, reduced-motion, polling/status announcements, destructive confirmation, screen-reader, desktop, and 390x844 overflow checks in `frontend/e2e/accessibility.spec.ts` and `frontend/e2e/responsive.spec.ts`
-- [ ] T146 Run a clean-instance exact-decimal backup/export/restore comparison including media, detached history, excluded diagnostics, and post-backup erasure evidence in `artifacts/restore-report.md`
-- [ ] T147 [P] Complete production Compose, TLS/reverse-proxy, trusted-header, retention scheduling, diagnostic encryption, backup rotation, upgrade, volume, and health guidance in `docs/self-hosting.md`
+- [ ] T146 Run a clean-instance exact-decimal backup/export/restore comparison including media, detached history, excluded diagnostics, backup/current ledger cursors, verified replayed erasures, zero resurrection, and fail-closed evidence in `artifacts/restore-report.md`
+- [ ] T147 [P] Complete production Compose, TLS/reverse-proxy, trusted-header, retention scheduling, diagnostic encryption, independently preserved erasure-ledger volume/replication, backup rotation, upgrade, volume, and health guidance in `docs/self-hosting.md`
 - [ ] T148 [P] Generate the software bill of materials, verify pinned licenses against `research.md`, and document update policy in `artifacts/sbom.json` and `docs/dependencies-and-licenses.md`
 - [ ] T149 [P] Document fixed job timeout/retry/deadline behavior, polling, failure codes, queue/broker/database recovery, 24h/30d/1y retention, correlation IDs, and operator diagnostics in `docs/operations-runbook.md`
 - [ ] T150 Execute every command and scenario in `specs/001-nutrition-recipe-planner/quickstart.md` and record deviations or corrections in that file
 - [ ] T151 Close all applicable items in `specs/001-nutrition-recipe-planner/checklists/requirements.md` and `specs/001-nutrition-recipe-planner/checklists/nutrition.md` with links to final evidence
 - [ ] T152 Audit routes, UI, dependencies, and documentation for prohibited chatbot, photo recognition, social, subscription-only, and unapproved multi-user scope and record the result in `artifacts/scope-audit.md`
-- [ ] T153 Conduct the SC-008 first-time-user study with representative participants, measure unaided recipe capture/nutrition review/planning impact completion within five minutes, and record anonymized results in `artifacts/usability-report.md`
-- [ ] T154 Run the complete backend/frontend format, lint, type, unit, integration, contract, retention, 50-recipe accuracy/import, performance, build, Playwright, and Docker smoke gates through `scripts/verify.ps1` and archive results in `artifacts/release-gates.md`
+- [ ] T153 Conduct the SC-008 study with at least 20 product-naive participants, including at least five novice and five experienced gym-focused meal planners plus at least eight narrow-mobile and eight desktop completions; require every unaided step within five minutes, apply ceiling-based 90% pass rounding, and record exclusions and anonymized evidence in `artifacts/usability-report.md`
+- [ ] T154 Run the complete backend/frontend format, lint, type, unit, integration, contract, retention, erasure-ledger restore, 50-public-page recipe accuracy/import, performance, build, Playwright, and Docker smoke gates through `scripts/verify.ps1` and archive results in `artifacts/release-gates.md`
 
 ---
 
