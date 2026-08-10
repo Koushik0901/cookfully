@@ -105,7 +105,7 @@ export function NutritionPanel({
             <dl className="micronutrient-grid">
               {MICRONUTRIENTS.map(([key, label]) => {
                 const nutrient = nutrition.micronutrients?.[key];
-                return <div className="micronutrient" key={key}><dt>{label}</dt><dd className="data-value">{nutrient?.value == null ? "Unavailable" : `${nutrient.value} ${nutrient.unit}`}{nutrient?.explicitZero ? " · source-reported zero" : ""}</dd><small>{nutrient ? `${Math.round(Number(nutrient.coverageRatio) * 100)}% coverage · ${nutrient.source} · USDA ${nutrient.usdaNutrientId} · ${nutrient.mappingVersion}` : "No micronutrient evidence returned"}</small></div>;
+                return <div className="micronutrient" key={key}><dt>{label}</dt><dd><span className="data-value">{nutrient?.value == null ? "Unavailable" : `${nutrient.value} ${nutrient.unit}`}{nutrient?.explicitZero ? " · source-reported zero" : ""}</span><small>{nutrient ? `${Math.round(Number(nutrient.coverageRatio) * 100)}% coverage · ${nutrient.source} · USDA ${nutrient.usdaNutrientId} · ${nutrient.mappingVersion}` : "No micronutrient evidence returned"}</small></dd></div>;
               })}
             </dl>
           </section>
