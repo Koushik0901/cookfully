@@ -141,8 +141,8 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 
 ### Tests for User Story 2
 
-- [ ] T067 [P] [US2] Write failing required non-null daily calorie/protein/carbohydrate/fat goal validation, effective-date overlap, macro-calorie difference, nullable meal-target, owner timezone/week-start, and daylight-saving boundary tests in `backend/tests/unit/test_goals.py`
-- [ ] T068 [P] [US2] Write failing three-decimal serving, round-half-up display snapshot, exact decimal-string meal/day/week totals, signed differences, reliability, and explicit-refresh tests in `backend/tests/unit/test_meal_plan_totals.py`
+- [X] T067 [P] [US2] Write failing required non-null daily calorie/protein/carbohydrate/fat goal validation, effective-date overlap, macro-calorie difference, nullable meal-target, owner timezone/week-start, and daylight-saving boundary tests in `backend/tests/unit/test_goals.py`
+- [X] T068 [P] [US2] Write failing three-decimal serving, round-half-up display snapshot, exact decimal-string meal/day/week totals, signed differences, reliability, and explicit-refresh tests in `backend/tests/unit/test_meal_plan_totals.py`
 - [ ] T069 [P] [US2] Write failing owner-preference, required non-null daily-goal, optional meal-target, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
 - [ ] T070 [P] [US2] Write failing recipe-edit/delete-versus-detached-history, display-quantized snapshot, and 50-entry performance integration tests in `backend/tests/integration/test_meal_plan_snapshots.py`
 - [ ] T071 [P] [US2] Write failing target form, week calendar, day tabs, budget bars, status cues, and keyboard interaction tests in `frontend/src/features/plans/__tests__/`
@@ -151,9 +151,9 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 ### Implementation for User Story 2
 
 - [ ] T073 [US2] Create fixed-scale UserGoal, MealTarget, MealPlan, three-decimal MealPlanEntry, display-quantized MealNutritionSnapshot tables, detached recipe links, and non-overlap constraints in `backend/src/vigor_vine/infrastructure/models/plans.py` and `backend/migrations/versions/0006_goals_plans.py`
-- [ ] T074 [P] [US2] Implement goal effective-date, owner timezone/week-start, target/tolerance, and exact macro-derived-calorie policies in `backend/src/vigor_vine/domain/goals.py`
-- [ ] T075 [P] [US2] Implement immutable whole-kcal/0.1g round-half-up snapshots, three-decimal servings, explicit refresh, detached recipe provenance, and least-reliable propagation in `backend/src/vigor_vine/domain/meal_snapshots.py`
-- [ ] T076 [US2] Implement canonical decimal-string meal/day/week aggregation and signed target differences by summing display-quantized entries in `backend/src/vigor_vine/domain/plan_totals.py`
+- [X] T074 [P] [US2] Implement goal effective-date, owner timezone/week-start, target/tolerance, and exact macro-derived-calorie policies in `backend/src/vigor_vine/domain/goals.py`
+- [X] T075 [P] [US2] Implement immutable whole-kcal/0.1g round-half-up snapshots, three-decimal servings, explicit refresh, detached recipe provenance, and least-reliable propagation in `backend/src/vigor_vine/domain/meal_snapshots.py`
+- [X] T076 [US2] Implement canonical decimal-string meal/day/week aggregation and signed target differences by summing display-quantized entries in `backend/src/vigor_vine/domain/plan_totals.py`
 - [ ] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/vigor_vine/application/meal_plans.py`
 - [ ] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/goals.py`, `backend/src/vigor_vine/api/routes/meal_plans.py`, and `backend/src/vigor_vine/api/schemas/plans.py`
 - [ ] T079 [US2] Regenerate and commit exact-decimal goal/plan/owner-preference TypeScript bindings in `frontend/src/app/api/generated/`
