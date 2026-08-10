@@ -45,9 +45,16 @@ services:
       VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
       VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
       VV_REDIS_URL: redis://redis:6379/0
+      VV_PUBLIC_BASE_URL: ${VV_PUBLIC_BASE_URL:-http://localhost:8080}
+      VV_API_BASE_URL: ${VV_API_BASE_URL:-http://localhost:8080}
+      VV_TRUSTED_PROXY_CIDRS: ${VV_TRUSTED_PROXY_CIDRS:-}
+      VV_COOKIE_SECURE: ${VV_COOKIE_SECURE:-false}
       VV_MEDIA_ROOT: /data/media
       VV_EXPORT_ROOT: /data/exports
       VV_ERASURE_LEDGER_ROOT: /data/erasure-ledger
+      VV_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${VV_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
+      VV_RETENTION_SWEEP_INTERVAL_SECONDS: ${VV_RETENTION_SWEEP_INTERVAL_SECONDS:-21600}
+      VV_BACKUP_RETENTION_DAYS: ${VV_BACKUP_RETENTION_DAYS:-30}
       VV_RUN_MIGRATIONS: "true"
     depends_on:
       postgres:
@@ -96,6 +103,28 @@ services:
         condition: service_healthy
     volumes:
       - erasure-ledger-data:/data/erasure-ledger
+    restart: unless-stopped
+
+  retention:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    command: ["python", "-m", "vigor_vine.jobs.retention_process"]
+    environment:
+      <<: *backend-environment
+      VV_RUN_MIGRATIONS: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - media-data:/data/media
+      - erasure-ledger-data:/data/erasure-ledger
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,pathlib,time; p=pathlib.Path('/tmp/vigor-vine-retention-heartbeat'); limit=2*int(os.environ['VV_RETENTION_SWEEP_INTERVAL_SECONDS']); raise SystemExit(0 if p.exists() and time.time()-int(p.read_text()) < limit else 1)"]
+      interval: 5m
+      timeout: 5s
+      retries: 3
+      start_period: 1m
     restart: unless-stopped
 
   web:

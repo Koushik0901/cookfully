@@ -1,9 +1,10 @@
 from functools import lru_cache
+from ipaddress import ip_network
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, EmailStr, SecretStr, field_validator
+from pydantic import AnyHttpUrl, EmailStr, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,6 +39,7 @@ class Settings(BaseSettings):
     job_terminal_deadline_seconds: Literal[900] = 900
     detailed_diagnostic_retention_days: Literal[30] = 30
     safe_job_metadata_retention_days: Literal[365] = 365
+    retention_sweep_interval_seconds: Annotated[int, Field(ge=300, le=21_600)] = 21_600
     backup_retention_days: int = 30
     cookie_secure: bool = False
 
@@ -55,6 +57,13 @@ class Settings(BaseSettings):
             return tuple(item.strip() for item in value.split(",") if item.strip())
         return value
 
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def validate_trusted_proxies(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        for item in value:
+            ip_network(item, strict=False)
+        return value
+
     def model_post_init(self, __context: object) -> None:
         if self.environment == "production":
             if len(self.secret_key.get_secret_value()) < 32:
@@ -65,6 +74,12 @@ class Settings(BaseSettings):
                 raise ValueError("VV_INSTANCE_ID must be unique and stable in production")
             if not self.cookie_secure:
                 raise ValueError("VV_COOKIE_SECURE must be true in production")
+            if self.public_base_url.scheme != "https" or self.api_base_url.scheme != "https":
+                raise ValueError(
+                    "VV_PUBLIC_BASE_URL and VV_API_BASE_URL must use HTTPS in production"
+                )
+            if not self.trusted_proxy_cidrs:
+                raise ValueError("VV_TRUSTED_PROXY_CIDRS must name the production reverse proxy")
 
 
 @lru_cache

@@ -42,7 +42,7 @@ def _unlock(connection: Connection, *, shared: bool) -> None:
 
 @contextmanager
 def runtime_service_lease(engine: Engine, ledger_root: Path) -> Iterator[None]:
-    """Hold a shared lease for an active API, worker, or outbox process."""
+    """Hold a shared lease for an active API, worker, outbox, or retention process."""
 
     ensure_activation_allowed(ledger_root)
     with engine.connect() as connection:
@@ -65,7 +65,7 @@ def offline_maintenance_lease(engine: Engine) -> Iterator[None]:
         if not _try_lock(connection, shared=False):
             raise DomainError(
                 "services_running",
-                "Stop the API, worker, and outbox services before owner erasure.",
+                "Stop the API, worker, outbox, and retention services before owner erasure.",
                 409,
             )
         try:

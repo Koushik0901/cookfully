@@ -66,14 +66,15 @@ erasure-ledger volume is replicated separately and is never overwritten by resto
 `docs/backup-restore.md`; a missing, behind, or discontinuous ledger is a hard activation failure.
 
 Before upgrade: create and verify a backup, capture the current ledger head, read release notes, stop
-web/API/worker/outbox, apply migrations once, restart PostgreSQL/Redis dependencies, then API,
-outbox/worker, and web. Verify health, migration head, a manual read, a queued job, and media access.
+web/API/worker/outbox/retention, apply migrations once, restart PostgreSQL/Redis dependencies, then API,
+outbox/worker/retention, and web. Verify health, migration head, a manual read, a queued job, media
+access, and the retention heartbeat.
 Rollback application images only when the schema remains compatible; otherwise restore into a clean
 target and prove ledger replay.
 
 ## Offline owner erasure
 
-Follow `docs/owner-erasure.md`. Stop web, API, worker, and outbox while leaving PostgreSQL reachable.
+Follow `docs/owner-erasure.md`. Stop web, API, worker, outbox, and retention while leaving PostgreSQL reachable.
 The command requires the exact owner UUID/confirmation, an exclusive advisory lease, appendable
 independent ledger, and live media/export mounts. `services_running`, ledger preflight failure, or bad
 confirmation changes nothing. `owner_erasure_incomplete` means the ledger is already durable: keep

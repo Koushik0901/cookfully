@@ -15,11 +15,11 @@ ledger is current, continuous, writable, and replicated. The database must remai
 every process that can read or mutate application state:
 
 ```powershell
-docker compose -f deploy/compose.yaml stop web api worker outbox
+docker compose -f deploy/compose.yaml stop web api worker outbox retention
 ```
 
-Do not stop PostgreSQL until the command finishes. The API, Celery worker, and outbox dispatcher hold
-a shared PostgreSQL advisory lease while active; the erasure command requires the exclusive lease and
+Do not stop PostgreSQL until the command finishes. The API, Celery worker, outbox dispatcher, and
+retention scheduler hold a shared PostgreSQL advisory lease while active; the erasure command requires the exclusive lease and
 fails with `services_running` if any remains. A durable
 `owner-erasure-maintenance.json` marker beside the independent ledger blocks later service startup
 after a ledger-durable partial failure.
