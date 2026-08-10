@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "Create the product specification from nutrition-recipe-app-spec.md"
 
+## Clarifications
+
+### Session 2026-08-09
+
+- Q: What benchmark policy should gate P1? → A: Use a fixed, versioned 50-recipe stratified corpus with a 30-recipe primary release subset and 20 extension/stress cases; require all four core macros plus at least 90% ingredient coverage, and use qualified published references with threshold-aware error calculations.
+- Q: What numeric precision and rounding policy should the product use? → A: Store nutrients and ingredient quantities to six decimal places and servings to three, serialize public decimals as strings, use round-half-up, display calories to 1 kcal and macros to 0.1 g, and aggregate the same display-quantized plan-entry values.
+- Q: What should happen when recipes are archived, restored, or permanently deleted? → A: Archive is reversible and removes a recipe from active use; restore returns it to its prior usable state or marks nutrition stale; confirmed permanent deletion is limited to archived recipes, cancels active jobs, removes recipe-owned data, and preserves detached historical snapshots and provenance.
+- Q: What retention policy should apply to imported content, provider data, diagnostics, and audit history? → A: Discard successful-import HTML after extraction; permit encrypted failed-import HTML for 24 hours only with owner-enabled diagnostics; never retain raw provider requests or responses; retain detailed job diagnostics for 30 days then safe codes and timestamps for one year; retain estimates and corrections until owner erasure; let backup rotation govern residual copies.
+- Q: How should import and nutrition jobs acknowledge, retry, and communicate completion? → A: Persist and acknowledge within one second, discover status by polling every two seconds on visible job screens and every 15 seconds elsewhere, time out attempts after 60 seconds, retry after 5 seconds, 30 seconds, 2 minutes, and 5 minutes for at most five attempts, and reach a visible terminal state within 15 minutes.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Capture Recipes With Actionable Nutrition (Priority: P1)
@@ -32,7 +42,11 @@ result or a specific, recoverable processing state.
 4. **Given** an incorrect automated value, **When** the user replaces it manually, **Then** the
    correction is labeled, retained, and used in every downstream total until the user resets it.
 5. **Given** incomplete or failed processing, **When** the user views the recipe, **Then** the recipe
-   remains editable and the missing or uncertain result is explained with a recovery action.
+   remains editable and the missing or uncertain result, progress or retry timing, safe failure code,
+   and explicit retry action are shown; reloading the application resumes status discovery.
+6. **Given** an archived recipe, **When** the user restores or permanently deletes it, **Then** restore
+   returns it to its prior usable state or a visible stale state, while confirmed deletion removes the
+   recipe without changing historical plan totals or grocery provenance.
 
 ---
 
@@ -175,13 +189,15 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - A target profile contains impossible, contradictory, zero, or negative values.
 - A plan crosses a daylight-saving or timezone boundary, or the user's preferred first day of week
   changes.
-- Deleting or editing a recipe that is already used by a past or current plan could change historical
-  totals.
+- Archiving a recipe while processing is active, restoring it after its inputs or reference release
+  changed, or permanently deleting a recipe referenced by current or historical plans.
 - Grocery items have equivalent names with compatible units, equivalent names with incompatible
   units, or distinct foods with deceptively similar names.
 - The recipe library is too small or nutritionally unsuitable to satisfy suggestion constraints.
 - An external tool repeats a write request, submits stale data, or attempts an unsupported action.
 - Backup, export, or restore occurs while nutrition processing or plan changes are in progress.
+- Retention cleanup runs while a failed import is being inspected, owner erasure occurs while backups
+  still contain an older snapshot, or diagnostic mode is disabled before its 24-hour expiry.
 
 ## Constitution Alignment *(mandatory)*
 
@@ -211,15 +227,25 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 
 #### Core Product Scope (P1-P3)
 
-- **FR-001**: Users MUST be able to create, view, edit, archive, restore, and delete recipes manually.
+- **FR-001**: Users MUST be able to create, view, edit, archive, restore, and permanently delete recipes
+  manually. Archive MUST be reversible and remove the recipe from normal search, new planning, and
+  suggestions. Restore MUST return the recipe to its prior usable state when its active estimate still
+  matches its inputs, otherwise it MUST expose a stale state and recovery action. Permanent deletion
+  MUST require explicit confirmation and an archived recipe, cancel or supersede active jobs, remove
+  recipe-owned ingredients, estimates, corrections, and unshared media, and detach rather than alter
+  immutable historical plan snapshots and grocery provenance.
 - **FR-002**: Users MUST be able to import a recipe from a public web address and review the captured
   title, image, yield, ingredients, and instructions before or after saving.
 - **FR-003**: The system MUST preserve each original ingredient line and an editable structured
-  interpretation containing, when present, quantity, unit, and food identity.
+  interpretation containing, when present, quantity, unit, and food identity. Stored ingredient
+  quantities MUST use fixed-decimal values with six fractional places.
 - **FR-004**: Every active recipe MUST reach either a per-serving calorie, protein, carbohydrate, and
   fat result or an explicit partial or failed state with a recovery action.
 - **FR-005**: Nutrition values MUST distinguish source-provided, estimated, and manually corrected
-  data and retain their source, serving basis, assumptions, and last calculation time.
+  data and retain their source, serving basis, assumptions, and last calculation time. Stored nutrient
+  values MUST use fixed decimals with six fractional places, stored servings MUST use three fractional
+  places, and public API/export decimal values MUST serialize as decimal strings rather than binary
+  floating-point numbers.
 - **FR-006**: Users MUST be able to review and correct ingredient matches, quantities, unit
   conversions, serving yield, and final nutrition values.
 - **FR-007**: Manual corrections MUST take precedence in recipe displays, plan totals, suggestions,
@@ -227,7 +253,9 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-008**: Reprocessing MUST NOT overwrite a manual correction or duplicate a previously completed
   result for unchanged recipe inputs.
 - **FR-009**: Changing a recipe yield or ingredient MUST clearly identify which calculated values are
-  stale and require recalculation without silently changing historical plan entries.
+  stale and require recalculation without silently changing historical plan entries. Restoring a
+  recipe after nutrition-relevant inputs or reference data have changed MUST apply the same stale-state
+  rule.
 - **FR-010**: Users MUST be able to record maintenance energy, a daily calorie target, and daily
   protein, carbohydrate, and fat targets for cutting, bulking, or maintaining.
 - **FR-011**: Users MUST be able to define optional targets for individual meal slots without losing
@@ -236,8 +264,13 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   slots across a weekly plan.
 - **FR-013**: The system MUST display calorie and macro totals and differences from target for each
   meal, day, and week, with visible indication when totals include estimated or incomplete data.
+  Round-half-up MUST be used throughout. Plan entries MUST be quantized to whole kilocalories and
+  0.1-gram macros before aggregation, and totals and target differences MUST aggregate those same
+  quantized values so every displayed sum is exact and transport-independent.
 - **FR-014**: Historical plan entries MUST preserve the nutrition basis used at the time or clearly
-  notify the user before recalculation changes historical totals.
+  notify the user before recalculation changes historical totals. Archive, restore, or permanent
+  deletion of the referenced recipe MUST NOT mutate those immutable snapshots; permanent deletion
+  retains detached recipe-title and grocery-source text required to interpret the history.
 - **FR-015**: Users MUST be able to generate a grocery list from the current weekly plan and regenerate
   it after plan changes.
 - **FR-016**: Grocery generation MUST scale ingredients by planned servings, combine only safely
@@ -283,6 +316,23 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 - **FR-034**: The product MUST NOT add social, community, or broad multi-user administration features
   without a separately approved scope change.
 - **FR-035**: Nutrition estimates MUST be presented as planning aids rather than medical advice.
+- **FR-036**: Successful-import HTML MUST exist only for the active extraction and be discarded when
+  extraction ends. Failed-import HTML MAY be retained only when the owner has enabled diagnostics; it
+  MUST be encrypted at rest and deleted within 24 hours. Raw AI/provider requests and responses MUST
+  NOT be retained; normalized structured outputs, provenance, input/output hashes, and safe error codes
+  MAY be retained. Detailed job diagnostics MUST be deleted or reduced after 30 days to safe codes and
+  timestamps retained for no more than one year. Estimates and correction audit history MUST remain
+  until explicit owner erasure. Backup documentation MUST disclose that erased records can remain in
+  operator-controlled backups until the configured rotation expires.
+- **FR-037**: Recipe save and import requests that require background work MUST persist the recipe and
+  authoritative job and acknowledge within one second rather than wait for nutrition completion.
+  Relevant visible screens MUST poll authoritative status every two seconds; other active application
+  screens MUST poll every 15 seconds, and reload MUST resume discovery from the stored job. Every
+  attempt MUST time out after 60 seconds. Automatic retries MUST wait 5 seconds, 30 seconds, 2 minutes,
+  and 5 minutes between successive attempts, stop after at most five attempts, and reach `succeeded`,
+  `failed`, `cancelled`, or `superseded` within 15 minutes of initial acceptance. Status responses MUST
+  expose progress when measurable, next retry time, and a safe failure code. Terminal failure MUST
+  preserve recipe editing and manual nutrition entry and provide an explicit retry action.
 
 ### Key Entities
 
@@ -314,19 +364,30 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
 
 ### Measurable Outcomes
 
-- **SC-001**: At least 90% of a representative set of 20-30 recipes produce complete per-serving
-  calories and macros without manual data entry after the recipe itself is captured.
-- **SC-002**: Against recipes with trusted published nutrition, the representative evaluation has a
-  median absolute calorie error no greater than 20% and a median absolute protein error no greater
-  than 25%, with every discrepancy traceable to visible inputs or assumptions.
-- **SC-003**: At least 90% of representative supported public recipe pages import title, yield,
-  ingredients, and instructions without manual transcription.
+- **SC-001**: At least 90% of a fixed, versioned 50-recipe corpus produce complete per-serving
+  calories, protein, carbohydrates, and fat without manual nutrition entry after capture. The corpus
+  contains 15 simple, 20 moderate, and 15 complex recipes across multiple cuisines, dietary patterns,
+  metric and imperial units, source sites, ambiguous foods, and conversion risks. A result is complete
+  only when all four core macros are non-null and ingredient coverage is at least 90%. A stable
+  30-recipe primary release subset satisfies the constitution's representative-recipe gate; the other
+  20 recipes are extension and stress cases, and the reported product result covers all 50.
+- **SC-002**: Against corpus references that publish an unambiguous yield and per-serving calories,
+  protein, carbohydrates, and fat, the evaluation has a median absolute percentage calorie error no
+  greater than 20% and protein error no greater than 25%, with every discrepancy traceable to visible
+  inputs or assumptions. Percentage error is `abs(estimate - reference) / reference * 100`; calorie
+  references below 50 kcal and protein references below 5 g are excluded from percentage summaries
+  and reported separately as absolute error so near-zero values cannot distort the result.
+- **SC-003**: At least 90% of the supported public-page cases in the versioned 50-recipe corpus import
+  title, yield, ingredients, and instructions without manual transcription. Stored HTML snapshots and
+  expected fields make the result reproducible when a live page changes.
 - **SC-004**: In validation fixtures, 100% of active manual corrections survive reprocessing and are
   used consistently in displayed nutrition, plan totals, suggestions, and external reads.
 - **SC-005**: For a seven-day plan containing up to 50 entries, users see updated meal, daily, and
   weekly totals within two seconds of changing an entry or serving count.
-- **SC-006**: In calculation fixtures, 100% of meal, day, and week calorie and macro totals match the
-  sum of their displayed serving-level values after rounding rules are applied.
+- **SC-006**: In calculation fixtures, 100% of meal, day, and week calorie and macro totals and target
+  differences exactly match the sum of their displayed serving-level values after round-half-up
+  quantization to 1 kcal and 0.1 g. The same fixtures MUST produce identical decimal strings through
+  the visual application, HTTP API, MCP tools, exports, and background-job results.
 - **SC-007**: In grocery fixtures, 100% of safely compatible repeated ingredients are aggregated to the
   expected quantity and 100% of incompatible or ambiguous quantities remain separate.
 - **SC-008**: At least 90% of first-time usability-test participants can import or create a recipe,
@@ -341,6 +402,14 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   corrections, goals, plan entries, and grocery manual state intact.
 - **SC-012**: Across desktop and narrow-mobile acceptance checks, all primary journeys are operable by
   keyboard, have no horizontal page overflow, and communicate status without color as the only cue.
+- **SC-013**: Automated retention and redaction fixtures show that 100% of successful-import HTML is
+  absent after extraction, diagnostic HTML expires within 24 hours, detailed diagnostics are reduced
+  after 30 days, safe codes and timestamps expire within one year, and no stored record or default log
+  contains a raw provider request or response.
+- **SC-014**: On reference hardware, 100% of background recipe save/import acceptance fixtures return
+  a persisted recipe and job within one second; job-state integration fixtures enforce the specified
+  attempt timeout, retry schedule, five-attempt maximum, and 15-minute terminal deadline; visible UI
+  fixtures surface terminal state within one foreground polling interval and resume after reload.
 
 ## Assumptions
 
