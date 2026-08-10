@@ -175,6 +175,78 @@ small {
   gap: var(--space-md);
 }
 
+.one-time-secret,
+.token-card,
+.scope-picker {
+  min-width: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--color-surface-low);
+}
+
+.one-time-secret {
+  display: grid;
+  gap: var(--space-md);
+  border-color: var(--color-primary);
+}
+
+.token-secret {
+  overflow-wrap: anywhere;
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-data);
+}
+
+.scope-picker,
+.token-list,
+.token-metadata {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.scope-picker legend {
+  padding-inline: var(--space-xs);
+  font-weight: 700;
+}
+
+.scope-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+  padding-block: var(--space-xs);
+}
+
+.scope-option > span,
+.token-metadata div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.scope-option code,
+.token-metadata dd {
+  overflow-wrap: anywhere;
+}
+
+.token-metadata {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.token-metadata dt {
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-label-caps);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.token-metadata dd {
+  margin: 0;
+}
+
 .settings-section,
 .meal-slot,
 .macro-summary,
@@ -833,7 +905,8 @@ small {
   }
 
   .grocery-items,
-  .grocery-edit {
+  .grocery-edit,
+  .token-metadata {
     grid-template-columns: 1fr;
   }
 

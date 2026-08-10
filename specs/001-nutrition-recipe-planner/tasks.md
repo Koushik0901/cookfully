@@ -262,9 +262,9 @@ versions, and prove revocation and once-only secret behavior.
 - [X] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/vigor_vine/mcp/write_tools.py`
 - [X] T123 [P] [US5] Implement nutrition-methodology and export-schema resources with no prompt templates in `backend/src/vigor_vine/mcp/resources.py`
 - [X] T124 [US5] Add scoped authentication, revocation checks, rate limits, audit origin, correlation IDs, and HTTP deployment wiring in `backend/src/vigor_vine/mcp/security.py` and `backend/src/vigor_vine/api/main.py`
-- [ ] T125 [US5] Regenerate and commit access-token TypeScript bindings in `frontend/src/app/api/generated/`
-- [ ] T126 [US5] Implement access-token scope selection, once-only copy, active-token list, and revocation UI in `frontend/src/features/settings/AgentAccessPage.tsx`
-- [ ] T127 [US5] Document HTTP token management, MCP connection/scopes, `get_meal_plan`, decimal-string contracts, idempotency, planning-aid-not-medical-advice limitations, and Inspector validation in `docs/agent-integration.md`
+- [X] T125 [US5] Regenerate and commit access-token TypeScript bindings in `frontend/src/app/api/generated/`
+- [X] T126 [US5] Implement access-token scope selection, once-only copy, active-token list, and revocation UI in `frontend/src/features/settings/AgentAccessPage.tsx`
+- [X] T127 [US5] Document HTTP token management, MCP connection/scopes, `get_meal_plan`, decimal-string contracts, idempotency, planning-aid-not-medical-advice limitations, and Inspector validation in `docs/agent-integration.md`
 
 **Checkpoint**: US5 passes SC-010 with no business logic in the MCP transport and no general chat or
 prompt surface.
