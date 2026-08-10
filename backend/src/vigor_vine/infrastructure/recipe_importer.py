@@ -25,6 +25,12 @@ class ImportedRecipe:
     source_nutrition: dict[str, str]
 
 
+class RecipeImportError(DomainError):
+    def __init__(self, code: str, diagnostic: StoredMedia | None) -> None:
+        super().__init__(code, "The page could not be interpreted as a recipe.", 422)
+        self.diagnostic = diagnostic
+
+
 class RecipeImporter:
     def __init__(
         self,
@@ -77,7 +83,7 @@ class RecipeImporter:
                     diagnostics_enabled=True,
                 )
             code = "recipe_parse_failed_with_diagnostic" if diagnostic else "recipe_parse_failed"
-            raise DomainError(code, "The page could not be interpreted as a recipe.", 422) from exc
+            raise RecipeImportError(code, diagnostic) from exc
         finally:
             buffer[:] = b"\0" * len(buffer)
             buffer.clear()

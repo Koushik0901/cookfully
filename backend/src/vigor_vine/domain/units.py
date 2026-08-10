@@ -2,22 +2,29 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
+
+from pint import UnitRegistry
 
 from vigor_vine.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal
 
-MASS_TO_GRAMS = {
-    "milligram": Decimal("0.001"),
-    "gram": Decimal("1"),
-    "kilogram": Decimal("1000"),
-    "ounce": Decimal("28.349523125"),
-    "pound": Decimal("453.59237"),
+UNIT_REGISTRY: UnitRegistry[Any] = UnitRegistry()
+UNIT_REGISTRY.define("vigor_teaspoon = 5 * milliliter")
+UNIT_REGISTRY.define("vigor_tablespoon = 15 * milliliter")
+UNIT_REGISTRY.define("vigor_cup = 240 * milliliter")
+MASS_UNITS = {
+    "milligram": "milligram",
+    "gram": "gram",
+    "kilogram": "kilogram",
+    "ounce": "ounce",
+    "pound": "pound",
 }
-VOLUME_TO_MILLILITERS = {
-    "milliliter": Decimal("1"),
-    "liter": Decimal("1000"),
-    "teaspoon": Decimal("5"),
-    "tablespoon": Decimal("15"),
-    "cup": Decimal("240"),
+VOLUME_UNITS = {
+    "milliliter": "milliliter",
+    "liter": "liter",
+    "teaspoon": "vigor_teaspoon",
+    "tablespoon": "vigor_tablespoon",
+    "cup": "vigor_cup",
 }
 
 
@@ -64,18 +71,18 @@ def to_grams(
     if measure.minimum is None or measure.unit_code is None:
         raise DomainError("quantity_unavailable", "Ingredient quantity and unit are required.", 422)
     maximum = measure.maximum or measure.minimum
-    if measure.unit_code in MASS_TO_GRAMS:
-        factor = MASS_TO_GRAMS[measure.unit_code]
+    if measure.unit_code in MASS_UNITS:
+        factor = _pint_factor(MASS_UNITS[measure.unit_code], "gram")
         method = "mass"
         assumption = None
-    elif measure.unit_code in VOLUME_TO_MILLILITERS:
+    elif measure.unit_code in VOLUME_UNITS:
         if density_g_per_ml is None or density_g_per_ml <= 0:
             raise DomainError(
                 "density_required",
                 "A positive density assumption is required for this conversion.",
                 422,
             )
-        factor = VOLUME_TO_MILLILITERS[measure.unit_code] * density_g_per_ml
+        factor = _pint_factor(VOLUME_UNITS[measure.unit_code], "milliliter") * density_g_per_ml
         method = "density"
         assumption = f"density {density_g_per_ml} g/mL"
     elif measure.unit_code == "item":
@@ -98,6 +105,11 @@ def to_grams(
         method,
         assumption,
     )
+
+
+def _pint_factor(source: str, target: str) -> Decimal:
+    magnitude = UNIT_REGISTRY.Quantity(1, source).to(target).magnitude
+    return Decimal(str(magnitude))
 
 
 def coverage_ratio(ingredients: list[IngredientMeasure]) -> Coverage:

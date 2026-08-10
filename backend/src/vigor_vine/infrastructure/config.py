@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
 from pydantic import AnyHttpUrl, EmailStr, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +18,7 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["development", "test", "production"] = "development"
+    instance_id: UUID = UUID("00000000-0000-7000-8000-000000000001")
     secret_key: SecretStr = SecretStr("development-only-change-before-production")
     owner_email: EmailStr = "owner@example.com"
     owner_bootstrap_password: SecretStr = SecretStr("development-only")
@@ -57,6 +59,8 @@ class Settings(BaseSettings):
                 raise ValueError("VV_SECRET_KEY must contain at least 32 characters in production")
             if self.owner_bootstrap_password.get_secret_value() == "development-only":
                 raise ValueError("VV_OWNER_BOOTSTRAP_PASSWORD must be changed in production")
+            if self.instance_id == UUID("00000000-0000-7000-8000-000000000001"):
+                raise ValueError("VV_INSTANCE_ID must be unique and stable in production")
             if not self.cookie_secure:
                 raise ValueError("VV_COOKIE_SECURE must be true in production")
 

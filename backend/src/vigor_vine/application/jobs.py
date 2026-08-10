@@ -163,13 +163,39 @@ class JobService:
     def succeed(self, job_id: UUID, *, now: datetime | None = None) -> ProcessingJob:
         finished_at = now or utc_now()
         with self._session_factory.begin() as session:
-            job = self._locked(session, job_id)
-            if job.status in TERMINAL_JOB_STATUSES:
-                return job
-            if job.status != "running":
-                raise DomainError("job_not_running", "Job is not running.", 409)
-            self._terminal(job, "succeeded", finished_at)
+            job, _ = self.succeed_in_session(session, job_id, now=finished_at)
             return job
+
+    def succeed_in_session(
+        self,
+        session: Session,
+        job_id: UUID,
+        *,
+        now: datetime | None = None,
+        next_kind: str | None = None,
+        next_input_hash: str | None = None,
+    ) -> tuple[ProcessingJob, ProcessingJob | None]:
+        """Commit a result and its next durable step in the caller's transaction."""
+
+        finished_at = now or utc_now()
+        job = self._locked(session, job_id)
+        if job.status in TERMINAL_JOB_STATUSES:
+            return job, None
+        if job.status != "running":
+            raise DomainError("job_not_running", "Job is not running.", 409)
+        self._terminal(job, "succeeded", finished_at)
+        next_job = None
+        if next_kind is not None:
+            next_job = self.accept_in_session(
+                session,
+                kind=next_kind,
+                aggregate_type=job.aggregate_type,
+                aggregate_id=job.aggregate_id,
+                input_hash=next_input_hash or job.input_hash,
+                trace_id=job.trace_id,
+                now=finished_at,
+            )
+        return job, next_job
 
     def fail_attempt(
         self,
@@ -182,30 +208,58 @@ class JobService:
     ) -> ProcessingJob:
         failed_at = now or utc_now()
         with self._session_factory.begin() as session:
-            job = self._locked(session, job_id)
-            if job.status in TERMINAL_JOB_STATUSES:
-                return job
-            if job.status != "running":
-                raise DomainError("job_not_running", "Job is not running.", 409)
-            next_retry = (
-                failed_at + RETRY_DELAYS[job.attempt - 1]
-                if job.attempt <= len(RETRY_DELAYS)
-                else None
+            return self.fail_attempt_in_session(
+                session,
+                job_id,
+                failure_code,
+                retryable=retryable,
+                now=failed_at,
+                safe_message=safe_message,
             )
-            if (
-                not retryable
-                or job.attempt >= job.max_attempts
-                or next_retry is None
-                or next_retry >= job.terminal_deadline_at
-            ):
-                self._terminal(job, "failed", failed_at, failure_code, safe_message)
-                return job
-            job.status = "retry_wait"
-            job.failure_code = failure_code
-            job.failure_message = safe_message
-            job.next_retry_at = next_retry
-            job.available_at = next_retry
+
+    def fail_attempt_in_session(
+        self,
+        session: Session,
+        job_id: UUID,
+        failure_code: str,
+        *,
+        retryable: bool,
+        now: datetime | None = None,
+        safe_message: str | None = None,
+    ) -> ProcessingJob:
+        failed_at = now or utc_now()
+        job = self._locked(session, job_id)
+        if job.status in TERMINAL_JOB_STATUSES:
             return job
+        if job.status != "running":
+            raise DomainError("job_not_running", "Job is not running.", 409)
+        next_retry = (
+            failed_at + RETRY_DELAYS[job.attempt - 1] if job.attempt <= len(RETRY_DELAYS) else None
+        )
+        if (
+            not retryable
+            or job.attempt >= job.max_attempts
+            or next_retry is None
+            or next_retry >= job.terminal_deadline_at
+        ):
+            self._terminal(job, "failed", failed_at, failure_code, safe_message)
+            return job
+        job.status = "retry_wait"
+        job.failure_code = failure_code
+        job.failure_message = safe_message
+        job.next_retry_at = next_retry
+        job.available_at = next_retry
+        return job
+
+    def supersede_in_session(
+        self, session: Session, job_id: UUID, *, now: datetime | None = None
+    ) -> ProcessingJob:
+        superseded_at = now or utc_now()
+        job = self._locked(session, job_id)
+        if job.status in TERMINAL_JOB_STATUSES:
+            return job
+        self._terminal(job, "superseded", superseded_at)
+        return job
 
     def release_due_retries(self, *, now: datetime | None = None) -> list[UUID]:
         checked_at = now or utc_now()
@@ -220,6 +274,16 @@ class JobService:
             for job in jobs:
                 job.status = "queued"
                 job.available_at = checked_at
+                session.add(
+                    OutboxEvent(
+                        event_type="processing_job.retry_due.v1",
+                        aggregate_id=job.id,
+                        payload_version=1,
+                        payload=self._envelope(job),
+                        created_at=checked_at,
+                        publish_attempts=0,
+                    )
+                )
             return [job.id for job in jobs]
 
     def reconcile_deadlines(self, *, now: datetime | None = None) -> list[UUID]:
@@ -253,6 +317,16 @@ class JobService:
                 job.available_at = checked_at
                 job.failure_code = "worker_stalled"
                 job.failure_message = None
+                session.add(
+                    OutboxEvent(
+                        event_type="processing_job.recovered.v1",
+                        aggregate_id=job.id,
+                        payload_version=1,
+                        payload=self._envelope(job),
+                        created_at=checked_at,
+                        publish_attempts=0,
+                    )
+                )
             return [job.id for job in jobs]
 
     def reduce_diagnostics(self, *, now: datetime | None = None) -> list[UUID]:

@@ -7,6 +7,9 @@ from vigor_vine.domain.units import IngredientMeasure, coverage_ratio, to_grams
 
 
 def test_ranges_density_count_weights_and_unsafe_conversions() -> None:
+    pint_mass = to_grams(IngredientMeasure(Decimal("1"), None, "ounce"))
+    assert pint_mass.minimum == Decimal("28.349523")
+
     ranged = IngredientMeasure(Decimal("1"), Decimal("2"), "cup", optional=False)
     converted = to_grams(ranged, density_g_per_ml=Decimal("0.96"))
     assert converted.minimum == Decimal("230.400000")

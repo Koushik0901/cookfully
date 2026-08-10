@@ -18,6 +18,7 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
     broker_transport_options={"visibility_timeout": 900},
     result_backend=None,
+    imports=("vigor_vine.jobs.recipe_pipeline",),
 )
 celery_app.autodiscover_tasks(["vigor_vine.jobs"])
 

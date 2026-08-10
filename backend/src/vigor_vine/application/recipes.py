@@ -55,6 +55,28 @@ class RecipeMutation:
     job: ProcessingJob | None
 
 
+def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
+    draft = RecipeDraft(
+        id=recipe_id,
+        title=write.title,
+        yield_quantity=write.yield_quantity,
+        ingredients=tuple(
+            IngredientInput(
+                item.original_text,
+                item.quantity_min,
+                item.unit_code,
+                item.food_name,
+                item.optional,
+            )
+            for item in write.ingredients
+        ),
+        instructions=write.instructions,
+        status="draft",
+        nutrition_state="pending",
+    )
+    return draft.input_hash()
+
+
 class RecipeService:
     def __init__(
         self,
@@ -71,7 +93,7 @@ class RecipeService:
     def create(self, write: RecipeWrite, *, trace_id: str) -> RecipeMutation:
         self._validate(write)
         recipe_id = uuid7()
-        input_hash = self._input_hash(recipe_id, write)
+        input_hash = recipe_input_hash(recipe_id, write)
         with self._session_factory.begin() as session:
             recipe = Recipe(
                 id=recipe_id,
@@ -110,7 +132,7 @@ class RecipeService:
             source_url=url,
         )
         recipe_id = uuid7()
-        input_hash = self._input_hash(recipe_id, write)
+        input_hash = recipe_input_hash(recipe_id, write)
         with self._session_factory.begin() as session:
             recipe = Recipe(
                 id=recipe_id,
@@ -157,7 +179,7 @@ class RecipeService:
             recipe.yield_unit = write.yield_unit
             recipe.prep_minutes = write.prep_minutes
             recipe.cook_minutes = write.cook_minutes
-            recipe.input_hash = self._input_hash(recipe_id, write)
+            recipe.input_hash = recipe_input_hash(recipe_id, write)
             recipe.nutrition_state = "stale"
             recipe.status = "processing"
             recipe.version += 1
@@ -277,28 +299,6 @@ class RecipeService:
             raise DomainError("time_invalid", "Preparation time cannot be negative.", 422)
         if write.cook_minutes is not None and write.cook_minutes < 0:
             raise DomainError("time_invalid", "Cooking time cannot be negative.", 422)
-
-    @staticmethod
-    def _input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
-        draft = RecipeDraft(
-            id=recipe_id,
-            title=write.title,
-            yield_quantity=write.yield_quantity,
-            ingredients=tuple(
-                IngredientInput(
-                    item.original_text,
-                    item.quantity_min,
-                    item.unit_code,
-                    item.food_name,
-                    item.optional,
-                )
-                for item in write.ingredients
-            ),
-            instructions=write.instructions,
-            status="draft",
-            nutrition_state="pending",
-        )
-        return draft.input_hash()
 
     @staticmethod
     def _ingredients(recipe_id: UUID, values: tuple[IngredientWrite, ...]) -> list[Ingredient]:

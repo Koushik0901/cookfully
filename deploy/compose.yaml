@@ -39,6 +39,7 @@ services:
       dockerfile: deploy/docker/backend.Dockerfile
     environment: &backend-environment
       VV_ENVIRONMENT: ${VV_ENVIRONMENT:-development}
+      VV_INSTANCE_ID: ${VV_INSTANCE_ID:-00000000-0000-7000-8000-000000000001}
       VV_SECRET_KEY: ${VV_SECRET_KEY:?Set VV_SECRET_KEY in .env}
       VV_OWNER_EMAIL: ${VV_OWNER_EMAIL:-owner@example.com}
       VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
