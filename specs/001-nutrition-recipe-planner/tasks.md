@@ -311,7 +311,7 @@ unless pantry subtraction is explicitly enabled.
 manual operation, full-owner erasure, recoverability, documentation, and scope discipline across the
 selected release boundary.
 
-- [ ] T142 Verify the implementation-generated OpenAPI 3.1 document for API v0.2.0, decimal-string schemas, lifecycle/token/suggestion routes, planning-aid descriptions, and MCP tools against `specs/001-nutrition-recipe-planner/contracts/` and fail CI on drift in `backend/tests/contract/test_openapi_compatibility.py`
+- [X] T142 Verify the implementation-generated OpenAPI 3.1 document for API v0.2.0, decimal-string schemas, lifecycle/token/suggestion routes, planning-aid descriptions, and MCP tools against `specs/001-nutrition-recipe-planner/contracts/` and fail CI on drift in `backend/tests/contract/test_openapi_compatibility.py`
 - [ ] T143 [P] Complete SSRF, redirect rebinding, diagnostic encryption/expiry, raw-provider non-retention, archive traversal, CSRF, token-scope, secret-redaction, and dependency vulnerability coverage in `backend/tests/security/`
 - [ ] T144 [P] On the Linux x86-64 4-vCPU/8-GiB/SSD colocated reference profile, seed the documented dataset, warm each path with 10 unmeasured requests, profile 10,000-recipe reads/search, 50-entry plan mutations, under-one-second job acknowledgement, polling load, grocery generation, and suggestion limits for three runs of at least 100 measured requests, and record p50/p95/max plus budgets in `docs/performance.md`
 - [ ] T145 [P] Complete keyboard, focus, contrast, reduced-motion, polling/status announcements, destructive confirmation, screen-reader, desktop, and 390x844 overflow checks in `frontend/e2e/accessibility.spec.ts` and `frontend/e2e/responsive.spec.ts`

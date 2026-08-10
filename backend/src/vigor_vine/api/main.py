@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
+from fastapi.routing import APIRoute
 from mcp.server.transport_security import TransportSecuritySettings
 from redis import Redis
 
@@ -52,6 +53,57 @@ from vigor_vine.mcp.security import (
 )
 from vigor_vine.mcp.server import build_mcp_server
 from vigor_vine.mcp.write_tools import WriteTools
+
+# Operation IDs are a public compatibility surface used by generated clients. Keep this
+# endpoint-name mapping aligned with contracts/openapi.yaml; the contract drift test enforces it.
+_OPERATION_IDS = {
+    "health": "getHealth",
+    "create_session": "createSession",
+    "delete_session": "deleteSession",
+    "get_preferences": "getOwnerPreferences",
+    "update_preferences": "putOwnerPreferences",
+    "get_current_job": "getCurrentJob",
+    "get_job": "getJob",
+    "list_recipes": "listRecipes",
+    "create_recipe": "createRecipe",
+    "import_recipe": "importRecipe",
+    "get_recipe": "getRecipe",
+    "update_recipe": "updateRecipe",
+    "archive_recipe": "archiveRecipe",
+    "restore_recipe": "restoreRecipe",
+    "permanently_delete_recipe": "permanentlyDeleteRecipe",
+    "recalculate_recipe_nutrition": "recalculateRecipeNutrition",
+    "create_nutrition_correction": "createNutritionCorrection",
+    "reset_nutrition_correction": "resetNutritionCorrection",
+    "get_current_goal": "getCurrentGoal",
+    "put_current_goal": "putCurrentGoal",
+    "get_meal_plan": "getMealPlan",
+    "add_meal_plan_entry": "addMealPlanEntry",
+    "update_meal_plan_entry": "updateMealPlanEntry",
+    "delete_meal_plan_entry": "deleteMealPlanEntry",
+    "get_grocery_list": "getGroceryList",
+    "regenerate_grocery_list": "regenerateGroceryList",
+    "create_grocery_item": "createGroceryItem",
+    "update_grocery_item": "updateGroceryItem",
+    "delete_grocery_item": "deleteGroceryItem",
+    "apply_pantry_deductions": "applyPantryDeductions",
+    "reverse_pantry_deduction": "reversePantryDeduction",
+    "list_pantry_items": "listPantryItems",
+    "create_pantry_item": "createPantryItem",
+    "update_pantry_item": "updatePantryItem",
+    "delete_pantry_item": "deletePantryItem",
+    "find_makeable_recipes": "findMakeableRecipes",
+    "create_portable_export": "createPortableExport",
+    "download_portable_export": "downloadPortableExport",
+    "create_suggestion": "createSuggestion",
+    "get_suggestion": "getSuggestion",
+    "accept_suggestion": "acceptSuggestion",
+    "get_recipe_media": "getRecipeMedia",
+}
+
+
+def _contract_operation_id(route: APIRoute) -> str:
+    return _OPERATION_IDS.get(route.name, route.name)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -130,6 +182,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Vigor & Vine API",
         version="0.2.0",
+        description=(
+            "Canonical API for recipes, honest nutrition estimates, goals, meal plans, "
+            "grocery lists, exports, agent access, and goal-aware suggestions. Public decimal "
+            "values are canonical strings. Estimated nutrition and suggestion projections are "
+            "planning aids, not medical advice."
+        ),
         lifespan=lifespan,
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
@@ -138,7 +196,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.redis = redis_client
     app.middleware("http")(correlation_middleware)
     install_problem_handlers(app)
-    versioned = APIRouter(prefix="/api/v1")
+    versioned = APIRouter(
+        prefix="/api/v1",
+        generate_unique_id_function=_contract_operation_id,
+    )
     versioned.include_router(health.router)
     versioned.include_router(auth.router)
     versioned.include_router(owner.router)
