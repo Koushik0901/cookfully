@@ -49,5 +49,10 @@
     "vite": "^8.1.0",
     "vitest": "^4.1.10"
   },
+  "pnpm": {
+    "overrides": {
+      "js-yaml": ">=4.3.1 <5"
+    }
+  },
   "packageManager": "pnpm@10.17.0"
 }

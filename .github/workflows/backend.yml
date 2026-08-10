@@ -43,4 +43,6 @@ jobs:
       - run: uv run --directory backend ruff format --check .
       - run: uv run --directory backend ruff check .
       - run: uv run --directory backend mypy src
+      - run: uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file /tmp/vigor-vine-requirements.txt
+      - run: uvx pip-audit -r /tmp/vigor-vine-requirements.txt --strict
       - run: uv run --directory backend pytest --cov --cov-report=term-missing

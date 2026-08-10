@@ -22,10 +22,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend audit --audit-level high
       - run: pnpm --dir frontend lint
       - run: pnpm --dir frontend typecheck
       - run: pnpm --dir frontend test --run
       - run: pnpm --dir frontend build
       - run: pnpm --dir frontend exec playwright install --with-deps chromium
       - run: pnpm --dir frontend exec playwright test
-
