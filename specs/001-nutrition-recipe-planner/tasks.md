@@ -216,7 +216,7 @@ decimal plan totals match the preview exactly.
 
 ### Tests for User Story 4
 
-- [ ] T102 [P] [US4] Write failing CP-SAT scaling, inviolable exclusion/availability/positive-serving constraints, feasible tolerance, fewest-unmet-constraint ranking, normalized 4/3/1/1/2/5 weighted distance, fewer-entry and ordered-recipe-ID tie-break, timeout, determinism, and infeasibility tests in `backend/tests/unit/test_suggestion_solver.py`
+- [X] T102 [P] [US4] Write failing CP-SAT scaling, inviolable exclusion/availability/positive-serving constraints, feasible tolerance, fewest-unmet-constraint ranking, normalized 4/3/1/1/2/5 weighted distance, fewer-entry and ordered-recipe-ID tie-break, timeout, determinism, and infeasibility tests in `backend/tests/unit/test_suggestion_solver.py`
 - [ ] T103 [P] [US4] Write failing OpenAPI 3.1 API v0.2.0 suggestion create/status/result, exact-decimal objective components/preview, partial acceptance, stale-plan, expiry, and parity contract tests in `backend/tests/contract/test_suggestions_api.py`
 - [ ] T104 [P] [US4] Write failing constraint form, feasible/infeasible explanation, preview, and acceptance component tests in `frontend/src/features/suggestions/__tests__/`
 - [ ] T105 [P] [US4] Write failing daily/weekly suggestion and accepted-total parity journeys in `frontend/e2e/suggestions.spec.ts`
@@ -224,7 +224,7 @@ decimal plan totals match the preview exactly.
 ### Implementation for User Story 4
 
 - [ ] T106 [US4] Create SuggestionRun and SuggestionItem tables with exact target/projected snapshots, plan version, expiry, and lifecycle states in `backend/src/vigor_vine/infrastructure/models/suggestions.py` and `backend/migrations/versions/0008_suggestions.py`
-- [ ] T107 [US4] Implement canonical-decimal-to-scaled-integer OR-Tools CP-SAT variables; inviolable exclusion/availability/positive-serving constraints; feasible tolerances; deterministic infeasible ranking by fewest unmet constraints, normalized 4/3/1/1/2/5 distance, fewer entries, and ordered recipe IDs; time limit; and exact explainable result mapping in `backend/src/vigor_vine/domain/suggestion_solver.py`
+- [X] T107 [US4] Implement canonical-decimal-to-scaled-integer OR-Tools CP-SAT variables; inviolable exclusion/availability/positive-serving constraints; feasible tolerances; deterministic infeasible ranking by fewest unmet constraints, normalized 4/3/1/1/2/5 distance, fewer entries, and ordered recipe IDs; time limit; and exact explainable result mapping in `backend/src/vigor_vine/domain/suggestion_solver.py`
 - [ ] T108 [US4] Implement suggestion validation, candidate preparation, exact target snapshots, infeasibility reasons, expiry, preview parity, and selective acceptance commands in `backend/src/vigor_vine/application/suggestions.py`
 - [ ] T109 [US4] Implement idempotent suggestion execution using shared fixed retry/deadline policy and stale-plan rejection in `backend/src/vigor_vine/jobs/suggestions.py`
 - [ ] T110 [US4] Implement OpenAPI 3.1 API v0.2.0 suggestion create/status/result/accept routes, canonical decimal-string DTOs, unmet-constraint count, objective score/components, and deterministic ranking disclosure in `backend/src/vigor_vine/api/routes/suggestions.py` and `backend/src/vigor_vine/api/schemas/suggestions.py`
