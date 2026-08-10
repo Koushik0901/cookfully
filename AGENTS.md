@@ -64,4 +64,13 @@ pnpm --dir frontend exec playwright test
   processing boundary, nutrition-first model, OpenAPI contracts, and phased P1-P6 delivery.
 
 <!-- MANUAL ADDITIONS START -->
+- Treat Mealie, Tandoor Recipes, and Immich as recurring comparison points for relevant product,
+  architecture, security, data-lifecycle, background-processing, and UI decisions. Inspect current
+  official code or documentation rather than relying on reputation or memory.
+- Record material comparisons in `docs/inspiration-review.md`: the problem being solved, the observed
+  pattern, its benefits and liabilities, whether Vigor & Vine adopts/adapts/rejects it, and why the
+  decision fits this project's narrower nutrition-first requirements.
+- Do not presume either this repository or an inspiration project has the best design. Challenge both
+  sets of assumptions, account for their different scale/persona/history, and validate adopted patterns
+  through this project's contracts and tests.
 <!-- MANUAL ADDITIONS END -->
