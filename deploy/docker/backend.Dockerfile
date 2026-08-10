@@ -23,3 +23,12 @@ USER vigor
 WORKDIR /app/backend
 ENTRYPOINT ["backend-entrypoint"]
 CMD ["uvicorn", "vigor_vine.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM runtime AS test
+USER root
+RUN uv sync --directory /app/backend --locked --all-extras \
+    && chown -R vigor:vigor /app
+USER vigor
+ENTRYPOINT []
+
+FROM runtime AS production

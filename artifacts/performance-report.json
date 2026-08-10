@@ -1,0 +1,195 @@
+{
+  "profile": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "cpuAffinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cpuCount": 4,
+    "memoryKiB": 7977076,
+    "storageClass": "ssd",
+    "containerized": true
+  },
+  "dataset": {
+    "recipes": 10000,
+    "planEntries": 50,
+    "warmupsPerRun": 10,
+    "observationsPerRun": 100,
+    "runs": 3
+  },
+  "budgetsMs": {
+    "recipeLibraryRead": 500.0,
+    "recipeSearch": 500.0,
+    "planMutation50Entries": 500.0,
+    "jobAcknowledgement": 1000.0,
+    "jobPolling": 500.0,
+    "groceryGeneration50Entries": 500.0,
+    "suggestionSolve": 10000.0
+  },
+  "paths": {
+    "recipeLibraryRead": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 64.597,
+        "p95Ms": 79.124,
+        "maxMs": 94.587
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 67.394,
+        "p95Ms": 75.811,
+        "maxMs": 100.17
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 66.84,
+        "p95Ms": 72.343,
+        "maxMs": 87.592
+      }
+    ],
+    "recipeSearch": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 36.91,
+        "p95Ms": 45.309,
+        "maxMs": 50.607
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 37.473,
+        "p95Ms": 42.51,
+        "maxMs": 55.864
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 37.013,
+        "p95Ms": 42.906,
+        "maxMs": 71.512
+      }
+    ],
+    "planMutation50Entries": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 42.37,
+        "p95Ms": 49.386,
+        "maxMs": 66.045
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 42.016,
+        "p95Ms": 52.062,
+        "maxMs": 176.266
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 42.243,
+        "p95Ms": 47.171,
+        "maxMs": 62.092
+      }
+    ],
+    "jobAcknowledgement": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 19.116,
+        "p95Ms": 22.964,
+        "maxMs": 24.922
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 18.4,
+        "p95Ms": 23.558,
+        "maxMs": 33.534
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 17.684,
+        "p95Ms": 25.668,
+        "maxMs": 36.491
+      }
+    ],
+    "jobPolling": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 8.592,
+        "p95Ms": 9.689,
+        "maxMs": 22.445
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 8.252,
+        "p95Ms": 10.717,
+        "maxMs": 39.416
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 8.369,
+        "p95Ms": 10.387,
+        "maxMs": 19.297
+      }
+    ],
+    "groceryGeneration50Entries": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 46.109,
+        "p95Ms": 51.267,
+        "maxMs": 176.366
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 40.534,
+        "p95Ms": 47.112,
+        "maxMs": 177.368
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 43.215,
+        "p95Ms": 48.899,
+        "maxMs": 123.333
+      }
+    ],
+    "suggestionSolve": [
+      {
+        "run": 1,
+        "observations": 100,
+        "p50Ms": 21.056,
+        "p95Ms": 26.323,
+        "maxMs": 29.219
+      },
+      {
+        "run": 2,
+        "observations": 100,
+        "p50Ms": 21.106,
+        "p95Ms": 24.637,
+        "maxMs": 28.279
+      },
+      {
+        "run": 3,
+        "observations": 100,
+        "p50Ms": 21.742,
+        "p95Ms": 24.474,
+        "maxMs": 27.873
+      }
+    ]
+  }
+}

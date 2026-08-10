@@ -138,3 +138,28 @@ This is not asserted to be universally better. It adds a database lock, independ
 operator ceremony, and recovery states that smaller installations must understand. Reconsider it if
 future evidence shows the ledger cannot be operated reliably, but do not weaken zero-resurrection
 without changing the product's explicit privacy guarantee.
+
+## P10 reference performance — 2026-08-10
+
+### Sources inspected
+
+- [Mealie maintained repository](https://github.com/mealie-recipes/mealie) and self-hosting feature documentation
+- [Tandoor Recipes maintained repository](https://github.com/TandoorRecipes/recipes) and shopping documentation
+- [Immich maintained repository](https://github.com/immich-app/immich) and backup/worker-oriented operator documentation
+
+### Objective comparison
+
+The three projects demonstrate that recipe libraries, editable shopping workflows, and asynchronous
+media or data processing can operate in self-hosted container deployments. They differ materially in
+user model, asset volume, query shape, nutrition arithmetic, and background workload. No maintained
+source reviewed here publishes an apples-to-apples 10,000-recipe, 50-plan-entry benchmark on the local
+4-vCPU/8-GiB profile. Absence of such a report is not evidence that they are slow, and the local pass is
+not evidence that its architecture is generally superior.
+
+### Local decision
+
+Use their deployed shapes as workload prompts, then measure the actual local contract. T144 therefore
+profiles HTTP reads/search, optimistic plan writes, persisted job acknowledgement and polling, grocery
+reconciliation, and solver execution independently. Keep raw three-run results and maximums, disclose
+the measurement boundary, and rerun before raising scale or concurrency. Evidence and limitations are
+in `docs/performance.md` and `artifacts/performance-report.json`.

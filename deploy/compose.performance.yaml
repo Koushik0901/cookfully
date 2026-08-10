@@ -1,0 +1,51 @@
+services:
+  postgres:
+    cpuset: "0-3"
+
+  redis:
+    cpuset: "0-3"
+
+  api:
+    cpuset: "0-3"
+
+  worker:
+    cpuset: "0-3"
+
+  outbox:
+    cpuset: "0-3"
+
+  retention:
+    cpuset: "0-3"
+
+  benchmark:
+    profiles: ["performance"]
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: test
+    cpuset: "0-3"
+    environment:
+      VV_ENVIRONMENT: test
+      VV_SECRET_KEY: ${VV_SECRET_KEY:?Set VV_SECRET_KEY in .env}
+      VV_OWNER_EMAIL: performance@example.com
+      VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
+      VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
+      VV_REDIS_URL: redis://redis:6379/0
+      VV_MEDIA_ROOT: /tmp/vigor-vine-performance/media
+      VV_EXPORT_ROOT: /tmp/vigor-vine-performance/exports
+      VV_ERASURE_LEDGER_ROOT: /tmp/vigor-vine-performance/ledger
+      VV_REFERENCE_PROFILE: "1"
+      VV_REFERENCE_STORAGE: ssd
+      VV_PERFORMANCE_REPORT: /app/artifacts/performance-report.json
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    volumes:
+      - ../artifacts:/app/artifacts
+    command:
+      - pytest
+      - tests/performance/test_reference_profile.py
+      - -q
+      - -s
