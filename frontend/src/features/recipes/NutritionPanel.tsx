@@ -36,7 +36,9 @@ export function NutritionPanel({
   const [decimalValue, setDecimalValue] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
-  const displayedNutritionState = nutrition?.status === "manual" ? "manual" : nutritionState;
+  const displayedNutritionState = ["stale", "pending", "failed"].includes(nutritionState)
+    ? nutritionState
+    : nutrition?.status === "manual" ? "manual" : nutritionState;
 
   async function submit(event: FormEvent) {
     event.preventDefault();

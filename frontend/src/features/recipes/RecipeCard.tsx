@@ -13,7 +13,9 @@ export function RecipeCard({
   onRestore: (id: string, version: number) => void;
 }) {
   const nutrition = recipe.nutrition;
-  const displayedNutritionState = nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
+  const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
+    ? recipe.nutritionState
+    : nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
   return (
     <article className="recipe-card">
       <Link className="recipe-card__media" to={`/app/recipes/${recipe.id}`} aria-label={`Open ${recipe.title}`}>

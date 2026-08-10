@@ -138,6 +138,15 @@ describe("recipe UI", () => {
     expect(screen.getByText("manual", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
+  it("keeps stale lifecycle warnings ahead of manual provenance on recipe cards", () => {
+    render(
+      <MemoryRouter>
+        <RecipeCard recipe={{ ...recipe, nutritionState: "stale", nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("stale", { selector: ".recipe-card__state" })).toBeVisible();
+  });
+
   it("validates exact decimals and preserves original ingredient text in the editor", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
@@ -204,7 +213,7 @@ describe("recipe UI", () => {
       const call = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
       expect(new Headers(call?.[1]?.headers).get("x-csrf-token")).toBe("test-csrf-token");
       expect(new Headers(call?.[1]?.headers).get("idempotency-key")).toBeTruthy();
-      expect(screen.getByText("manual", { selector: ".nutrition-state" })).toBeVisible();
+      expect(screen.getByText("stale", { selector: ".nutrition-state" })).toBeVisible();
       expect(screen.getByText(/nutrition is stale because/i)).toBeVisible();
     });
     await user.click(screen.getByRole("button", { name: /reset protein_g correction/i }));
