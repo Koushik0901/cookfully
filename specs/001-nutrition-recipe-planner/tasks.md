@@ -182,8 +182,8 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 - [X] T085 [P] [US3] Write failing six-decimal property tests for serving scaling, normalized identities, compatible-unit aggregation, unsafe separation, and source contributions in `backend/tests/unit/test_grocery_aggregation.py`
 - [X] T086 [P] [US3] Write failing reconciliation tests for checked items, manual names/quantities, removed sources, stable ordering, and review flags in `backend/tests/unit/test_grocery_reconciliation.py`
 - [X] T087 [P] [US3] Write failing grocery generation/regeneration, manual item create requiring a non-empty display name, partial update/delete, decimal-string, concurrency, and problem-response contract tests in `backend/tests/contract/test_grocery_api.py`
-- [ ] T088 [P] [US3] Write failing portable manifest, six/three/display-decimal NDJSON, erased-recipe omission/detached-history, archive traversal, checksum, staging, and merge-policy tests in `backend/tests/contract/test_export_format.py`
-- [ ] T089 [P] [US3] Write failing full backup/restore entity, correction, snapshot, manual-state, media-checksum, retention exclusion, ledger cursor/hash continuity, post-backup erasure replay, zero-resurrection, and missing/discontinuous-ledger fail-closed tests in `backend/tests/integration/test_backup_restore.py`
+- [X] T088 [P] [US3] Write failing portable manifest, six/three/display-decimal NDJSON, erased-recipe omission/detached-history, archive traversal, checksum, staging, and merge-policy tests in `backend/tests/contract/test_export_format.py`
+- [X] T089 [P] [US3] Write failing full backup/restore entity, correction, snapshot, manual-state, media-checksum, retention exclusion, ledger cursor/hash continuity, post-backup erasure replay, zero-resurrection, and missing/discontinuous-ledger fail-closed tests in `backend/tests/integration/test_backup_restore.py`
 - [X] T090 [P] [US3] Write failing grocery traceability, edit/check, dirty-state, regeneration, and mobile shopping journeys in `frontend/e2e/grocery-list.spec.ts`
 
 ### Implementation for User Story 3
@@ -195,10 +195,10 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 - [X] T095 [US3] Implement grocery generation plus manual item create/update/delete routes and canonical decimal-string DTOs matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/grocery.py` and `backend/src/vigor_vine/api/schemas/grocery.py`
 - [X] T096 [US3] Regenerate and commit exact-decimal grocery TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T097 [US3] Implement grouped shopping view, source disclosure, check/edit/add/remove controls, dirty/regenerating states, and narrow-mobile layout in `frontend/src/features/grocery/GroceryListPage.tsx`
-- [ ] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/vigor_vine/application/exports.py` and `backend/src/vigor_vine/jobs/export.py`
-- [ ] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/vigor_vine/cli/backup.py`
-- [ ] T100 [US3] Implement export job creation/status API and secure one-time archive download in `backend/src/vigor_vine/api/routes/exports.py`
-- [ ] T101 [US3] Document Docker volumes, independent erasure-ledger replication and protection, scheduled backup rotation, ledger rotation-plus-30-day retention, fail-closed replay-gated staged restore, portable exports, and disaster-recovery validation in `docs/backup-restore.md`
+- [X] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/vigor_vine/application/exports.py` and `backend/src/vigor_vine/jobs/export.py`
+- [X] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/vigor_vine/cli/backup.py`
+- [X] T100 [US3] Implement export job creation/status API and secure one-time archive download in `backend/src/vigor_vine/api/routes/exports.py`
+- [X] T101 [US3] Document Docker volumes, independent erasure-ledger replication and protection, scheduled backup rotation, ledger rotation-plus-30-day retention, fail-closed replay-gated staged restore, portable exports, and disaster-recovery validation in `docs/backup-restore.md`
 
 **Checkpoint**: P1-P3 form the core release and pass SC-001 through SC-008, SC-011, and applicable
 SC-012 checks before any expansion release is enabled by default.

@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     api_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost:8000")
     trusted_proxy_cidrs: tuple[str, ...] = ()
     media_root: Path = Path("media")
+    export_root: Path = Path("exports")
     erasure_ledger_root: Path = Path("erasure-ledger")
     failed_import_diagnostics_enabled: bool = False
     failed_import_diagnostic_ttl_seconds: Literal[86_400] = 86_400

@@ -4,7 +4,9 @@ from uuid import UUID
 from vigor_vine.application.jobs import JobService
 from vigor_vine.infrastructure.config import get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
+from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.jobs.app import celery_app
+from vigor_vine.jobs.export import run_export_job
 
 
 @celery_app.task(name="vigor_vine.process_job", ignore_result=True)  # type: ignore[untyped-decorator]
@@ -23,9 +25,19 @@ def process_job(envelope: dict[str, Any]) -> None:
     }
     if set(envelope) != allowed or envelope.get("schemaVersion") != 1:
         return
-    engine = create_database_engine(get_settings())
+    settings = get_settings()
+    engine = create_database_engine(settings)
     try:
-        jobs = JobService(create_session_factory(engine))
+        sessions = create_session_factory(engine)
+        if envelope["kind"] == "portable_export":
+            run_export_job(
+                sessions,
+                MediaStore(settings.media_root, settings.secret_key.get_secret_value()),
+                settings.export_root,
+                UUID(str(envelope["jobId"])),
+            )
+            return
+        jobs = JobService(sessions)
         job = jobs.claim(
             UUID(str(envelope["jobId"])), current_input_hash=str(envelope["inputHash"])
         )

@@ -46,6 +46,7 @@ services:
       VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
       VV_REDIS_URL: redis://redis:6379/0
       VV_MEDIA_ROOT: /data/media
+      VV_EXPORT_ROOT: /data/exports
       VV_ERASURE_LEDGER_ROOT: /data/erasure-ledger
       VV_RUN_MIGRATIONS: "true"
     depends_on:
@@ -55,6 +56,7 @@ services:
         condition: service_healthy
     volumes:
       - media-data:/data/media
+      - export-data:/data/exports
       - erasure-ledger-data:/data/erasure-ledger
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
@@ -77,6 +79,7 @@ services:
         condition: service_healthy
     volumes:
       - media-data:/data/media
+      - export-data:/data/exports
       - erasure-ledger-data:/data/erasure-ledger
     restart: unless-stopped
 
@@ -113,4 +116,5 @@ volumes:
   postgres-data:
   redis-data:
   media-data:
+  export-data:
   erasure-ledger-data:

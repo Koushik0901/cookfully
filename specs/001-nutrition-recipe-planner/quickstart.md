@@ -196,9 +196,12 @@ be activated when the ledger is missing, behind, discontinuous, or hash-invalid.
 
 ```powershell
 $restoreProject = 'vigor-vine-restore-check'
+$targetUrl = 'postgresql+psycopg://vigor_vine:restore-check-only@localhost:55432/vigor_vine_restore'
 docker compose -p $restoreProject -f deploy/compose.restore-test.yaml up -d
-uv run --directory backend vigor-vine backup restore --target $restoreProject --erasure-ledger ../deploy/erasure-ledger ../artifacts/backups/<archive>.zip
-uv run --directory backend vigor-vine backup compare --target $restoreProject
+$env:VV_DATABASE_URL = $targetUrl
+uv run --directory backend alembic upgrade head
+uv run --directory backend vigor-vine backup restore --target-database-url $targetUrl --target-media-root ../artifacts/restore-media --erasure-ledger ../deploy/erasure-ledger --staging-root ../artifacts/restore-stage ../artifacts/backups/<archive>.zip
+uv run --directory backend vigor-vine backup compare --target-database-url $targetUrl --erasure-ledger ../deploy/erasure-ledger ../artifacts/backups/<archive>.zip
 ```
 
 The restore report must show the backup cursor, verified current cursor, every replayed subject/scope,

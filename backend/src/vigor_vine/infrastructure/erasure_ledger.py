@@ -82,6 +82,23 @@ class ErasureLedger:
                 expected_cursor += 1
         return records
 
+    def head(self) -> tuple[int, str]:
+        records = self.verify()
+        if records:
+            return records[-1].cursor, records[-1].record_hash
+        return self._checkpoint()
+
+    def anchor(self, cursor: int) -> str:
+        checkpoint_cursor, checkpoint_hash = self._checkpoint()
+        if cursor == checkpoint_cursor:
+            return checkpoint_hash
+        if cursor < checkpoint_cursor:
+            raise ValueError("erasure ledger no longer retains the requested anchor")
+        for record in self.verify():
+            if record.cursor == cursor:
+                return record.record_hash
+        raise ValueError("erasure ledger does not contain the requested anchor")
+
     def rotate(self, *, now: datetime | None = None) -> Path | None:
         """Seal the active segment after verifying the complete retained chain."""
 

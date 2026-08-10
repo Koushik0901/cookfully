@@ -620,6 +620,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobAccepted"
 
+  /exports/{jobId}/download:
+    get:
+      tags: [Data Ownership, Jobs]
+      operationId: downloadPortableExport
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: One-time portable export archive download.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "410":
+          description: The one-time download has already been consumed.
+
   /access-tokens:
     get:
       tags: [Agent Access]
