@@ -299,6 +299,79 @@ small {
   color: var(--color-primary);
 }
 
+.manual-item,
+.grocery-group,
+.grocery-item {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--color-surface-low);
+}
+
+.grocery-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.grocery-item__heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.grocery-item--checked h3,
+.grocery-item--checked .grocery-item__heading .data-value {
+  color: var(--color-on-surface-variant);
+  text-decoration: line-through;
+}
+
+.grocery-check input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.grocery-edit {
+  display: grid;
+  grid-template-columns: minmax(10rem, 2fr) minmax(7rem, 1fr) minmax(7rem, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: end;
+}
+
+.item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.review-badge {
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-1);
+  color: var(--color-error);
+  font-size: var(--text-data-sm);
+}
+
+.source-list {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0 0;
+  list-style: none;
+}
+
+.source-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--color-outline-variant);
+  padding-top: var(--space-xs);
+}
+
 .recipe-form {
   width: min(100%, 50rem);
   border: 1px solid var(--color-outline-variant);
@@ -627,6 +700,20 @@ small {
   .add-entry {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .grocery-items,
+  .grocery-edit {
+    grid-template-columns: 1fr;
+  }
+
+  .grocery-item__heading {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .item-badges {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 }
 

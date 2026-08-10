@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { Button, EmptyState } from "../components";
 import { GoalSettingsPage } from "../features/goals/GoalSettingsPage";
+import { GroceryListPage } from "../features/grocery/GroceryListPage";
 import { WeeklyPlannerPage } from "../features/plans/WeeklyPlannerPage";
 import { RecipeDetailPage } from "../features/recipes/RecipeDetailPage";
 import { RecipeEditorPage } from "../features/recipes/RecipeEditorPage";
@@ -26,7 +27,7 @@ function LandingPage() {
 function PlannerShell() {
   return (
     <>
-      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes">Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/goals">Goals</a></nav>
+      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes">Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/grocery">Grocery</a><a href="/app/goals">Goals</a></nav>
       <Routes>
         <Route index element={<Navigate to="recipes" replace />} />
         <Route path="recipes" element={<RecipeLibraryPage />} />
@@ -35,6 +36,7 @@ function PlannerShell() {
         <Route path="recipes/:recipeId/edit" element={<RecipeEditorPage />} />
         <Route path="plan" element={<WeeklyPlannerPage />} />
         <Route path="goals" element={<GoalSettingsPage />} />
+        <Route path="grocery" element={<GroceryListPage />} />
         <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
       </Routes>
     </>
