@@ -150,7 +150,6 @@ and changes the recipe input hash.
 | `license` | text | Required, e.g. `CC0-1.0` |
 | `status` | enum | `available`, `importing`, `ready`, `active`, `failed`, `superseded` |
 | `checked_at`, `activated_at`, `superseded_at` | timestamp nullable | Lifecycle evidence |
-| `active` | boolean | Only one active release per provider/type; activation is explicit |
 
 P1 automated matching requires one active Foundation Foods release and one active SR Legacy release.
 Supported-release status is reviewed at least every 90 days. Import is idempotent and a newly ready
@@ -457,6 +456,11 @@ queued -> running -> succeeded
 queued|retry_wait -> cancelled
 queued|running|retry_wait -> superseded   (input hash changed)
 
+ReferenceDataset:
+available -> importing -> ready -> active
+                     \-> failed -> importing
+active -> superseded                       (explicit activation of another ready release)
+
 GroceryList:
 current -> dirty -> generating -> current
                             \-> failed -> dirty
@@ -496,6 +500,7 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
   normalized name.
 - Unique ordered positions inside recipe instructions, ingredients, meal slots, and grocery lists.
 - Partial unique indexes for active IngredientMatch and active NutritionCorrection scope+field.
+- Partial unique index allowing only one `active` ReferenceDataset status per provider/type.
 - Job index on `(status, available_at)` and uniqueness for active kind+aggregate+input hash.
 - Outbox index on unpublished creation order.
 - Erasure ledger unique cursor/record ID plus continuous hash-chain validation.
