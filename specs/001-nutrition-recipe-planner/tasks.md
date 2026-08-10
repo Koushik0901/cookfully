@@ -100,7 +100,7 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 
 ### Implementation for User Story 1
 
-- [ ] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, the recipe-to-foundational-MediaAsset association, and detached-history constraints in `backend/src/vigor_vine/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
+- [X] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, the recipe-to-foundational-MediaAsset association, and detached-history constraints in `backend/src/vigor_vine/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
 - [X] T044 [US1] Create ReferenceDataset, FoodReference, and FoodNutrient tables plus search indexes in `backend/src/vigor_vine/infrastructure/models/reference_foods.py` and `backend/migrations/versions/0004_reference_foods.py`
 - [X] T045 [US1] Create fixed-scale IngredientMatch, NutritionEstimate, and typed NutritionCorrection tables with canonical precision and active-record constraints in `backend/src/vigor_vine/infrastructure/models/nutrition.py` and `backend/migrations/versions/0005_nutrition.py`
 - [X] T046 [US1] Implement recipe, reference-food, match, estimate, and correction repositories in `backend/src/vigor_vine/infrastructure/repositories/recipes.py` and `backend/src/vigor_vine/infrastructure/repositories/nutrition.py`
@@ -114,7 +114,7 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 - [X] T054 [P] [US1] Define disabled-by-default structured AI ports with schema validation, data minimization, raw-request/response non-retention, safe hashes/errors, and cache keys in `backend/src/vigor_vine/application/ai_provider.py`
 - [X] T055 [US1] Implement exact ingredient contribution, lower-of-mass/count coverage, six-decimal rollup, three-decimal serving normalization, provenance, and immutable estimate creation in `backend/src/vigor_vine/domain/nutrition.py`
 - [X] T056 [US1] Implement fixed-scale typed correction activation/reset and resolved-value precedence across parse, match, conversion, yield, and nutrient fields in `backend/src/vigor_vine/application/corrections.py`
-- [ ] T057 [US1] Implement create/update/archive/restore/confirmed-permanent-delete commands, active-job supersession, detached-history retention, stale-state detection, and current-input hashing in `backend/src/vigor_vine/application/recipes.py`
+- [X] T057 [US1] Implement create/update/archive/restore/confirmed-permanent-delete commands, active-job supersession, detached-history retention, stale-state detection, and current-input hashing in `backend/src/vigor_vine/application/recipes.py`
 - [X] T058 [US1] Implement the import → parse → match → rollup chain with one-second acceptance, 60-second attempts, fixed retry/deadline enforcement, terminal partial/failed mapping, retention hooks, and idempotent activation in `backend/src/vigor_vine/jobs/recipe_pipeline.py`
 - [X] T059 [US1] Implement OpenAPI 3.1 API v0.2.0 recipe/archive/restore/permanent-delete/import/recalculate/correction routes and canonical decimal-string DTOs in `backend/src/vigor_vine/api/routes/recipes.py` and `backend/src/vigor_vine/api/schemas/recipes.py`
 - [X] T060 [US1] Implement authoritative polling DTOs with progress, next retry, terminal deadline, safe failure/recovery actions, and reload discovery in `backend/src/vigor_vine/api/routes/jobs.py`
@@ -143,20 +143,20 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 
 - [X] T067 [P] [US2] Write failing required non-null daily calorie/protein/carbohydrate/fat goal validation, effective-date overlap, macro-calorie difference, nullable meal-target, owner timezone/week-start, and daylight-saving boundary tests in `backend/tests/unit/test_goals.py`
 - [X] T068 [P] [US2] Write failing three-decimal serving, round-half-up display snapshot, exact decimal-string meal/day/week totals, signed differences, reliability, and explicit-refresh tests in `backend/tests/unit/test_meal_plan_totals.py`
-- [ ] T069 [P] [US2] Write failing owner-preference, required non-null daily-goal, optional meal-target, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
-- [ ] T070 [P] [US2] Write failing recipe-edit/delete-versus-detached-history, display-quantized snapshot, and 50-entry performance integration tests in `backend/tests/integration/test_meal_plan_snapshots.py`
+- [X] T069 [P] [US2] Write failing owner-preference, required non-null daily-goal, optional meal-target, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
+- [X] T070 [P] [US2] Write failing recipe-edit/delete-versus-detached-history, display-quantized snapshot, and 50-entry performance integration tests in `backend/tests/integration/test_meal_plan_snapshots.py`
 - [ ] T071 [P] [US2] Write failing target form, week calendar, day tabs, budget bars, status cues, and keyboard interaction tests in `frontend/src/features/plans/__tests__/`
 - [ ] T072 [P] [US2] Write failing goal creation, seven-day planning, serving adjustment, copy/move, and snapshot-refresh journeys in `frontend/e2e/meal-planning.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T073 [US2] Create fixed-scale UserGoal, MealTarget, MealPlan, three-decimal MealPlanEntry, display-quantized MealNutritionSnapshot tables, detached recipe links, and non-overlap constraints in `backend/src/vigor_vine/infrastructure/models/plans.py` and `backend/migrations/versions/0006_goals_plans.py`
+- [X] T073 [US2] Create fixed-scale UserGoal, MealTarget, MealPlan, three-decimal MealPlanEntry, display-quantized MealNutritionSnapshot tables, detached recipe links, and non-overlap constraints in `backend/src/vigor_vine/infrastructure/models/plans.py` and `backend/migrations/versions/0006_goals_plans.py`
 - [X] T074 [P] [US2] Implement goal effective-date, owner timezone/week-start, target/tolerance, and exact macro-derived-calorie policies in `backend/src/vigor_vine/domain/goals.py`
 - [X] T075 [P] [US2] Implement immutable whole-kcal/0.1g round-half-up snapshots, three-decimal servings, explicit refresh, detached recipe provenance, and least-reliable propagation in `backend/src/vigor_vine/domain/meal_snapshots.py`
 - [X] T076 [US2] Implement canonical decimal-string meal/day/week aggregation and signed target differences by summing display-quantized entries in `backend/src/vigor_vine/domain/plan_totals.py`
-- [ ] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/vigor_vine/application/meal_plans.py`
-- [ ] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/goals.py`, `backend/src/vigor_vine/api/routes/meal_plans.py`, and `backend/src/vigor_vine/api/schemas/plans.py`
-- [ ] T079 [US2] Regenerate and commit exact-decimal goal/plan/owner-preference TypeScript bindings in `frontend/src/app/api/generated/`
+- [X] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/vigor_vine/application/meal_plans.py`
+- [X] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/goals.py`, `backend/src/vigor_vine/api/routes/meal_plans.py`, and `backend/src/vigor_vine/api/schemas/plans.py`
+- [X] T079 [US2] Regenerate and commit exact-decimal goal/plan/owner-preference TypeScript bindings in `frontend/src/app/api/generated/`
 - [ ] T080 [P] [US2] Implement maintenance/target mode, daily macros, effective dates, optional meal targets, timezone, and week-start editing in `frontend/src/features/goals/GoalSettingsPage.tsx`
 - [ ] T081 [P] [US2] Implement timezone/week-start-aware responsive week/day navigation, meal slots, recipe selection, and entry ordering in `frontend/src/features/plans/WeeklyPlannerPage.tsx` and `frontend/src/features/plans/DayTabs.tsx`
 - [ ] T082 [P] [US2] Implement accessible exact-decimal macro rings, budget bars, numeric typography, reliability badges, and non-color state labels in `frontend/src/features/plans/MacroSummary.tsx`

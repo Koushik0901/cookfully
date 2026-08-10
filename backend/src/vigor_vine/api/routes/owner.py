@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from vigor_vine.api.dependencies.auth import require_owner
 from vigor_vine.application.owner_preferences import OwnerPreferenceService
@@ -11,8 +11,10 @@ router = APIRouter(prefix="/owner", tags=["Owner"])
 
 
 class OwnerPreferences(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     timezone: str
-    week_starts_on: int = Field(ge=1, le=7)
+    week_starts_on: int = Field(alias="weekStartsOn", ge=1, le=7)
     version: int = Field(ge=1)
 
 

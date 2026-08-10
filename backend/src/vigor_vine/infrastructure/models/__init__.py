@@ -8,6 +8,13 @@ from vigor_vine.infrastructure.models.nutrition import (
     NutritionCorrection,
     NutritionEstimate,
 )
+from vigor_vine.infrastructure.models.plans import (
+    MealNutritionSnapshot,
+    MealPlan,
+    MealPlanEntry,
+    MealTarget,
+    UserGoal,
+)
 from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
 from vigor_vine.infrastructure.models.reference_foods import (
     FoodNutrient,
@@ -23,6 +30,10 @@ __all__ = [
     "IdempotencyRecord",
     "Ingredient",
     "IngredientMatch",
+    "MealNutritionSnapshot",
+    "MealPlan",
+    "MealPlanEntry",
+    "MealTarget",
     "MediaAsset",
     "NutritionCorrection",
     "NutritionEstimate",
@@ -33,4 +44,5 @@ __all__ = [
     "RecipeInstruction",
     "ReferenceDataset",
     "SessionRecord",
+    "UserGoal",
 ]

@@ -27,7 +27,7 @@ def test_health_login_csrf_preferences_and_problem_contract(isolated_database_ur
 
         rejected = client.put(
             "/api/v1/owner/preferences",
-            json={"timezone": "America/Vancouver", "week_starts_on": 1, "version": 1},
+            json={"timezone": "America/Vancouver", "weekStartsOn": 1, "version": 1},
         )
         assert rejected.status_code == 403
         assert rejected.headers["content-type"].startswith("application/problem+json")
@@ -36,11 +36,11 @@ def test_health_login_csrf_preferences_and_problem_contract(isolated_database_ur
         accepted = client.put(
             "/api/v1/owner/preferences",
             headers={"x-csrf-token": login.cookies["vv_csrf"]},
-            json={"timezone": "America/Vancouver", "week_starts_on": 7, "version": 1},
+            json={"timezone": "America/Vancouver", "weekStartsOn": 7, "version": 1},
         )
         assert accepted.status_code == 200
         assert accepted.json() == {
             "timezone": "America/Vancouver",
-            "week_starts_on": 7,
+            "weekStartsOn": 7,
             "version": 2,
         }

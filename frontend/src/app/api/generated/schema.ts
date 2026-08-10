@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOwnerPreferences"];
+        put: operations["putOwnerPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes": {
         parameters: {
             query?: never;
@@ -440,6 +456,11 @@ export interface components {
             email: string;
             password: string;
         };
+        OwnerPreferences: {
+            timezone: string;
+            weekStartsOn: number;
+            version: number;
+        };
         Problem: {
             /** Format: uri-reference */
             type: string;
@@ -644,7 +665,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             version: number;
-            macroCalorieDifference?: components["schemas"]["SignedDecimal6"];
+            macroCalorieDifference?: components["schemas"]["SignedDecimal6"] | null;
         };
         MealPlanEntryWrite: {
             /** Format: date */
@@ -657,10 +678,19 @@ export interface components {
             /** @default false */
             refreshNutrition: boolean;
         };
-        MealPlanEntry: components["schemas"]["MealPlanEntryWrite"] & {
+        MealPlanEntry: {
             /** Format: uuid */
             id: string;
+            /** Format: date */
+            localDate: string;
+            mealSlot: string;
+            /** Format: uuid */
+            recipeId: string | null;
             recipeTitle: string;
+            servings: components["schemas"]["ServingDecimal"];
+            position: number;
+            /** @default false */
+            refreshNutrition: boolean;
             nutrition: components["schemas"]["NutritionSnapshot"];
             /** @enum {string} */
             origin: "manual" | "suggestion" | "external";
@@ -932,6 +962,52 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    getOwnerPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner calendar preferences used for local plan dates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerPreferences"];
+                };
+            };
+        };
+    };
+    putOwnerPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerPreferences"];
+            };
+        };
+        responses: {
+            /** @description Updated owner calendar preferences. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerPreferences"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
         };
     };
     listRecipes: {

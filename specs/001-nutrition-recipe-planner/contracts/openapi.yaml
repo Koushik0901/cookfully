@@ -57,6 +57,38 @@ paths:
         "204":
           description: Current session revoked.
 
+  /owner/preferences:
+    get:
+      tags: [Goals]
+      operationId: getOwnerPreferences
+      responses:
+        "200":
+          description: Owner calendar preferences used for local plan dates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerPreferences"
+    put:
+      tags: [Goals]
+      operationId: putOwnerPreferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerPreferences"
+      responses:
+        "200":
+          description: Updated owner calendar preferences.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerPreferences"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /recipes:
     get:
       tags: [Recipes]
@@ -791,6 +823,14 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 12, maxLength: 1024 }
+    OwnerPreferences:
+      type: object
+      additionalProperties: false
+      required: [timezone, weekStartsOn, version]
+      properties:
+        timezone: { type: string, minLength: 1, maxLength: 100 }
+        weekStartsOn: { type: integer, minimum: 1, maximum: 7 }
+        version: { type: integer, minimum: 1 }
     Problem:
       type: object
       required: [type, title, status, code]
@@ -1053,7 +1093,7 @@ components:
           properties:
             id: { type: string, format: uuid }
             version: { type: integer, minimum: 1 }
-            macroCalorieDifference: { $ref: "#/components/schemas/SignedDecimal6" }
+            macroCalorieDifference: { oneOf: [{ $ref: "#/components/schemas/SignedDecimal6" }, { type: "null" }] }
     MealPlanEntryWrite:
       type: object
       additionalProperties: false
@@ -1066,16 +1106,21 @@ components:
         position: { type: integer, minimum: 0 }
         refreshNutrition: { type: boolean, default: false }
     MealPlanEntry:
-      allOf:
-        - $ref: "#/components/schemas/MealPlanEntryWrite"
-        - type: object
-          required: [id, recipeTitle, nutrition, origin, version]
-          properties:
-            id: { type: string, format: uuid }
-            recipeTitle: { type: string }
-            nutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
-            origin: { type: string, enum: [manual, suggestion, external] }
-            version: { type: integer, minimum: 1 }
+      type: object
+      additionalProperties: false
+      required: [id, localDate, mealSlot, recipeId, recipeTitle, servings, position, refreshNutrition, nutrition, origin, version]
+      properties:
+        id: { type: string, format: uuid }
+        localDate: { type: string, format: date }
+        mealSlot: { type: string, minLength: 1, maxLength: 80 }
+        recipeId: { type: [string, "null"], format: uuid }
+        recipeTitle: { type: string }
+        servings: { $ref: "#/components/schemas/ServingDecimal" }
+        position: { type: integer, minimum: 0 }
+        refreshNutrition: { type: boolean, default: false }
+        nutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
+        origin: { type: string, enum: [manual, suggestion, external] }
+        version: { type: integer, minimum: 1 }
     NutritionSnapshot:
       allOf:
         - $ref: "#/components/schemas/DisplayMacroValues"
