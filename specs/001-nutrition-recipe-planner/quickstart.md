@@ -171,19 +171,24 @@ and media directories use named volumes. Redis persistence improves recovery but
 ```powershell
 uv run --project backend vigor-vine backup create --output artifacts/backups
 uv run --project backend vigor-vine backup verify artifacts/backups/<archive>.zip
+uv run --project backend vigor-vine erasure-ledger verify --ledger deploy/erasure-ledger
 uv run --project backend vigor-vine export create --include-media --output artifacts/exports
 ```
 
 Restore testing uses a separate empty Compose project and explicit target path; it must never overwrite
-the active development database by default. If the archive predates owner erasure, the operator must
-reapply recorded post-backup erasures before returning the restored instance to service.
+the active development database or independent erasure-ledger volume by default. The backup manifest
+cursor and hash must verify against the current ledger. Restore replays every later erasure and cannot
+be activated when the ledger is missing, behind, discontinuous, or hash-invalid.
 
 ```powershell
 $restoreProject = 'vigor-vine-restore-check'
 docker compose -p $restoreProject -f deploy/compose.restore-test.yaml up -d
-uv run --project backend vigor-vine backup restore --target $restoreProject artifacts/backups/<archive>.zip
+uv run --project backend vigor-vine backup restore --target $restoreProject --erasure-ledger deploy/erasure-ledger artifacts/backups/<archive>.zip
 uv run --project backend vigor-vine backup compare --target $restoreProject
 ```
+
+The restore report must show the backup cursor, verified current cursor, every replayed subject/scope,
+zero resurrected recipe-owned records, intact detached history, and the final inactive/active decision.
 
 ## 11. MCP Expansion Validation (P5)
 

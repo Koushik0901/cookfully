@@ -133,10 +133,14 @@ reviewable.
 
 ## 7. Nutrition Reference and Matching
 
-**Decision**: Import versioned USDA Foundation Foods and SR Legacy bulk datasets into PostgreSQL for
-local matching. Offer an opt-in FoodData Central API fallback for branded foods and cache selected
-records locally with source release metadata. Rank candidates deterministically by normalized name,
-aliases, data type, and preparation; send only ambiguous candidate lists—not personal goals or full
+**Decision**: Require versioned USDA Foundation Foods and SR Legacy bulk datasets for P1 automated
+local matching. Expose release identifiers, dates, attribution, license, and installation state;
+review supported releases at least every 90 days; and require explicit operator import and activation.
+Activation never silently rewrites existing estimates. If either required dataset is missing,
+automated reference matching is visibly unavailable while source-provided and manual nutrition remain
+usable. Offer an opt-in FoodData Central API fallback for branded foods and cache selected records
+locally with source release metadata. Rank candidates deterministically by normalized name, aliases,
+data type, and preparation; send only ambiguous candidate lists—not personal goals or full
 libraries—to an optional AI disambiguator.
 
 **Rationale**: The official [FoodData Central API guide](https://fdc.nal.usda.gov/api-guide/) exposes
@@ -239,9 +243,11 @@ small compared with the impact of exposing nutrition history, imports, and mutat
 
 **Decision**: Require domain unit/property tests, PostgreSQL/Redis integration tests, OpenAPI and MCP
 contract tests, worker redelivery/idempotency tests, frontend component/accessibility tests, and
-Playwright critical-journey tests. Version a 50-recipe corpus with captured HTML, trusted nutrition,
-expected parse/match classifications, and measured error reports. Maintain a stable 30-recipe primary
-subset for the constitutional gate and 20 additional extension/stress cases.
+Playwright critical-journey tests. Version 50 captured public recipe pages with trusted nutrition,
+expected import fields, expected parse/match classifications, and measured error reports. Maintain a
+stable 30-recipe primary subset for the constitutional gate and 20 additional extension/stress cases.
+Gate median absolute percentage error at 20% for calories and 25% for protein, carbohydrates, and fat,
+using the nutrient-specific near-zero floors and absolute-error reporting defined by SC-002.
 
 **Rationale**: The hardest failures cross parser, reference match, unit conversion, yield, correction,
 and aggregation boundaries. Layered fixtures locate the error instead of reporting only a final macro
@@ -259,9 +265,12 @@ disappearing from the completeness gate.
 ## 14. Backup and Export
 
 **Decision**: Provide two distinct artifacts: a disaster-recovery backup containing database dump,
-media, manifest, versions, and checksums; and a documented portable JSON/ZIP export containing domain
-records and media references. Restore stages into a temporary namespace, validates checksums and schema
-compatibility, then swaps or imports transactionally.
+media, manifest, versions, checksums, and an erasure-ledger cursor; and a documented portable JSON/ZIP
+export containing domain records and media references. Store the content-free, hash-chained erasure
+ledger on an independently preserved volume, replicate it with the backup set, and never overwrite it
+during restore. Restore stages into a temporary namespace, validates checksums, schema compatibility,
+and ledger continuity, replays every erasure after the backup cursor, then swaps or imports
+transactionally.
 
 **Rationale**: A raw database dump is reliable for restoring the app but not portable; a domain export
 is portable but should not replace a tested operational backup.
@@ -291,7 +300,11 @@ shown per entry makes meal/day/week totals and target differences exactly reprod
 **Decision**: Archive is reversible and removes recipes from active discovery. Restore reactivates the
 prior usable state when the input hash still matches, otherwise returns `stale`. Permanent deletion
 requires an archived recipe plus confirmation, supersedes active jobs, deletes recipe-owned records,
-and detaches immutable historical plan and grocery provenance.
+detaches immutable historical plan and grocery provenance, and appends a content-free monotonic
+erasure record. Each record carries the stable erased subject identifier, scope, timestamp, previous
+record hash, and cursor. Restore must fail closed if the current independent ledger is missing or
+discontinuous and must replay all records newer than the backup cursor before activation. A record is
+retained until all backups predating it have rotated out plus 30 days.
 
 **Rationale**: This provides owner erasure without rewriting historical nutrition totals or obscuring
 what a past grocery item represented.
@@ -300,6 +313,8 @@ what a past grocery item represented.
 
 - **Prohibit deletion after planning use**: preserves history but fails the owner's data-control goal.
 - **Cascade through history**: makes earlier totals and shopping records misleading or incomplete.
+- **Rely on backup rotation alone**: cannot prevent an operator from restoring an older backup before
+  its expiry and unintentionally resurrecting erased recipe-owned data.
 
 ## 17. Retention and Provider Privacy
 

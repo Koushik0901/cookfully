@@ -3,7 +3,8 @@
 ## Two Artifacts
 
 1. **Disaster-recovery backup**: operator-facing archive with PostgreSQL dump, media, manifest,
-   checksums, application/schema versions, and restore instructions.
+   checksums, application/schema versions, the current erasure-ledger cursor/hash, and restore
+   instructions.
 2. **Portable export**: user-facing ZIP with versioned JSON documents and media files. It is stable
    across application internals and suitable for migration or independent inspection.
 
@@ -61,6 +62,19 @@ Permanently deleted recipes are absent. Historical MealPlanEntry snapshots and G
 remain with a null recipe link so exports preserve the meaning of prior plans without recreating erased
 recipe ingredients, estimates, corrections, or media.
 
+## Independent Erasure Ledger
+
+The content-free erasure ledger is stored on a dedicated volume that application backup restore cannot
+overwrite. It is replicated to the same off-host destination as the backup set under a separate
+artifact name. It contains only monotonic cursor, record ID, erased subject type and UUID, erasure
+scope, UTC timestamp, source instance ID, previous hash, record hash, and retain-until timestamp. It
+contains no recipe title, ingredient, nutrition value, email, provider payload, or other user content.
+
+Every disaster-recovery backup manifest includes `erasureLedgerCursor`, `erasureLedgerHash`, and
+`backupCreatedAt`. The ledger is append-only and hash-chained. Records remain until every backup with
+an earlier cursor has expired under configured rotation plus 30 days. A restore may read the ledger
+but cannot truncate, replace, or roll it back.
+
 ## Import and Restore Rules
 
 - Validate archive traversal, file allowlist, uncompressed size, record limits, manifest checksums,
@@ -72,5 +86,10 @@ recipe ingredients, estimates, corrections, or media.
 - A failed validation or import leaves existing data unchanged and records a safe diagnostic report.
 - Restore verification must cover every core entity, active correction, meal snapshot, grocery manual
   state, and media checksum.
-- Operator restore guidance MUST disclose that a backup can predate an owner erasure and require the
-  operator to reapply documented post-backup erasures before returning the instance to service.
+- Before a staged disaster-recovery restore may become active, it MUST load the independently
+  preserved current erasure ledger, verify an unbroken cursor/hash chain from the manifest cursor,
+  idempotently replay every later recipe- or owner-scope erasure, and produce a replay report.
+- A ledger that is missing, behind the backup cursor, discontinuous, or hash-invalid MUST fail restore
+  activation closed with a safe recovery error. Operator acknowledgement cannot bypass this gate.
+- Restore comparison MUST prove that zero erased recipe-owned records were resurrected while detached
+  historical nutrition snapshots and grocery source text remain intact.

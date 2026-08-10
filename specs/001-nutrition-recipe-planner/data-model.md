@@ -18,7 +18,8 @@
 - `created_at`, `updated_at`, and actor/origin metadata are present on mutable records. Secrets and raw
   provider prompts are never audit fields.
 - Archive is reversible and required before permanent recipe deletion. Permanent deletion is an
-  explicit data-erasure workflow that detaches preserved historical snapshots and grocery source text.
+  explicit data-erasure workflow that detaches preserved historical snapshots and grocery source text
+  and appends a content-free record to an independently preserved erasure ledger.
 
 ## Core Identity and Access
 
@@ -147,7 +148,16 @@ and changes the recipe input hash.
 | `released_on`, `imported_at` | date/timestamp | Required |
 | `source_url` | URL | Required |
 | `license` | text | Required, e.g. `CC0-1.0` |
-| `active` | boolean | Only one active release per provider/type |
+| `status` | enum | `available`, `importing`, `ready`, `active`, `failed`, `superseded` |
+| `checked_at`, `activated_at`, `superseded_at` | timestamp nullable | Lifecycle evidence |
+| `active` | boolean | Only one active release per provider/type; activation is explicit |
+
+P1 automated matching requires one active Foundation Foods release and one active SR Legacy release.
+Supported-release status is reviewed at least every 90 days. Import is idempotent and a newly ready
+release remains inactive until an operator activates it. Activation does not mutate existing estimates;
+recipes are marked stale only when explicitly reprocessed against a different release. If either
+required dataset is absent, automated matching is unavailable but source-provided and manual nutrition
+remain valid paths. Every estimate records the exact release identifiers it used.
 
 ### FoodReference
 
@@ -268,6 +278,33 @@ Unique active-job constraint: one nonterminal job per `(kind, aggregate_id, inpu
 | `payload` | JSON | IDs, input hash, and tracing only; no recipe body/secrets |
 | `created_at`, `published_at` | timestamp | Published nullable |
 | `publish_attempts` | integer | Non-negative |
+
+## Independent Erasure Ledger
+
+### ErasureRecord
+
+ErasureRecord is an append-only, content-free recovery entity stored on a volume that a database/media
+restore cannot replace. It is replicated to the same off-host destination as the backup set but has an
+independent lifecycle and restore path.
+
+| Field | Type | Rules |
+|---|---|---|
+| `cursor` | unsigned bigint | Primary key; strictly monotonic with no gaps |
+| `record_id` | UUIDv7 | Unique |
+| `subject_type` | enum | `recipe` or `owner` |
+| `subject_id` | UUID | Stable erased aggregate identifier; contains no title, email, or content |
+| `scope` | enum | `recipe_owned` or `owner_owned` |
+| `erased_at` | timestamp | Required UTC instant |
+| `source_instance_id` | UUID | Identifies the instance that accepted the erasure |
+| `previous_hash` | text | Hash of the prior record; genesis uses the documented zero hash |
+| `record_hash` | text | Hash of canonical fields plus `previous_hash`; continuity protected |
+| `retain_until` | timestamp | At least latest configured expiry of every older backup plus 30 days |
+
+Each disaster-recovery backup manifest records `erasure_ledger_cursor` and `erasure_ledger_hash`.
+Staged restore loads the independently preserved current ledger, verifies every cursor and hash from
+the backup position forward, applies idempotent subject-scope erasure commands, and refuses activation
+if the ledger is missing, discontinuous, or behind the manifest cursor. Ledger cleanup may remove a
+record only after every backup with an earlier cursor has expired plus the 30-day safety margin.
 
 ## Goals and Meal Planning
 
@@ -409,8 +446,8 @@ draft -> processing -> ready
                   \-> failed
 ready|partial|failed -> processing        (explicit retry/recalculate)
 draft|ready|partial|failed -> archived    (store archived_from_status; supersede active jobs)
-archived -> archived_from_status          (input hash still current)
-archived -> archived_from_status          (recipe restored; nutrition_state becomes stale when basis changed)
+archived -> archived_from_status          (restore; retain current nutrition when basis matches,
+                                           otherwise set nutrition_state to stale)
 archived -> permanently deleted           (confirmed erasure; detach history)
 
 ProcessingJob:
@@ -461,6 +498,7 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
 - Partial unique indexes for active IngredientMatch and active NutritionCorrection scope+field.
 - Job index on `(status, available_at)` and uniqueness for active kind+aggregate+input hash.
 - Outbox index on unpublished creation order.
+- Erasure ledger unique cursor/record ID plus continuous hash-chain validation.
 - UserGoal exclusion constraint preventing overlapping effective date ranges.
 - Unique MealPlan owner+week start and GroceryList meal plan.
 - MealPlanEntry indexes on plan+date+slot and Recipe references.
@@ -484,4 +522,7 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
 - Reset corrections and superseded estimates remain auditable and exportable until explicit owner data
   erasure.
 - Disaster-recovery backups may retain erased records only until the operator-configured rotation
-  expires; restore guidance requires reapplying post-backup erasures when applicable.
+  expires. The independent content-free erasure ledger records each permanent recipe/owner erasure,
+  survives application restore, and is retained until every older backup expires plus 30 days.
+- Staged restore must verify the backup ledger cursor, replay all later erasures idempotently, and
+  remain inactive if ledger continuity cannot be proven.
