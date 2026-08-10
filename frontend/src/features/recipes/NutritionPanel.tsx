@@ -36,6 +36,7 @@ export function NutritionPanel({
   const [decimalValue, setDecimalValue] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  const displayedNutritionState = nutrition?.status === "manual" ? "manual" : nutritionState;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -56,7 +57,7 @@ export function NutritionPanel({
           <p className="eyebrow">Resolved nutrition</p>
           <h2 id="nutrition-heading">Nutrition and evidence</h2>
         </div>
-        <span className={`nutrition-state nutrition-state--${nutritionState}`}>{nutritionState.replace("_", " ")}</span>
+        <span className={`nutrition-state nutrition-state--${displayedNutritionState}`}>{displayedNutritionState.replace("_", " ")}</span>
       </div>
 
       <p className="advisory">Estimated nutrition is a planning aid, not medical advice. Verify values when clinical precision matters.</p>

@@ -176,7 +176,7 @@ describe("recipe UI", () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       if (String(input).includes("/nutrition/corrections") && init?.method === "POST") {
-        return response(recipe.nutrition);
+        return response({ ...recipe.nutrition, status: "manual" });
       }
       if (String(input).includes("/nutrition/corrections/") && init?.method === "DELETE") {
         return response({ ...recipe.nutrition, corrections: [] });
@@ -194,6 +194,7 @@ describe("recipe UI", () => {
       const call = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
       expect(new Headers(call?.[1]?.headers).get("x-csrf-token")).toBe("test-csrf-token");
       expect(new Headers(call?.[1]?.headers).get("idempotency-key")).toBeTruthy();
+      expect(screen.getByText("manual", { selector: ".nutrition-state" })).toBeVisible();
     });
     await user.click(screen.getByRole("button", { name: /reset protein_g correction/i }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
