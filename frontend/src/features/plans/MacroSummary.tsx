@@ -19,6 +19,14 @@ const MICRONUTRIENTS = [
   ["vitaminB12Ug", "Vitamin B12"],
 ] as const;
 
+function formatTargetDifference(value: string | null | undefined, unit: string) {
+  if (value == null) return "No difference available";
+  const unsigned = value.replace(/^[+-]/, "");
+  if (/^0(?:\.0+)?$/.test(unsigned)) return "Target met";
+  if (value.startsWith("-")) return `${unsigned} ${unit} remaining`;
+  return `${unsigned} ${unit} over target`;
+}
+
 export function MacroSummary({ total, target, label }: { total?: PeriodTotal; target: UserGoal; label: string }) {
   return (
     <section className="macro-summary" aria-label={label}>
@@ -29,7 +37,7 @@ export function MacroSummary({ total, target, label }: { total?: PeriodTotal; ta
           const targetValue = target[field];
           const percentage = Math.min(100, Math.max(0, Number(consumed) / Number(targetValue || 1) * 100));
           const difference = total?.targetDifference?.[field];
-          return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Number(consumed)} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{difference != null ? `${difference} ${unit} remaining` : "No difference available"}</small></div>;
+          return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Number(consumed)} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{formatTargetDifference(difference, unit)}</small></div>;
         })}
       </div>
       <details className="plan-micronutrients">

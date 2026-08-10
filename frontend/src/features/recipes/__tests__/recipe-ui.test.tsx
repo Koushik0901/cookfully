@@ -159,6 +159,10 @@ describe("recipe UI", () => {
     renderRoute(<RecipeDetailPage />);
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
+    expect(screen.getByText("Basis: 2.500 servings · Coverage: 88%")).toBeVisible();
+    await userEvent.click(screen.getByText(/what the nutrition status means/i));
+    expect(screen.getByText(/calculated from matched ingredients/i)).toBeVisible();
+    expect(screen.getByText(/percentage of quantified ingredients/i)).toBeVisible();
     expect(screen.getByText("USDA Foundation Foods")).toBeVisible();
     expect(screen.getByText("8.5 g")).toBeVisible();
     expect(screen.getByText(/0 mg · source-reported zero/i)).toBeVisible();

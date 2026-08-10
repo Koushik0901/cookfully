@@ -26,6 +26,7 @@ try {
     Invoke-Checked 'Backend lint' { uv run --directory backend ruff check . }
     Invoke-Checked 'Backend typing' { uv run --directory backend mypy src }
     Invoke-Checked 'SBOM and license policy' { uv run --directory backend python ../scripts/generate-sbom.py --verify-only }
+    Invoke-Checked 'SC-008 independent-agent proxy evidence' { uv run --directory backend vigor-vine usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass }
     Invoke-Checked 'Export audited production requirements' { uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file $requirements }
     Invoke-Checked 'Backend vulnerability audit' { uvx pip-audit -r $requirements --strict }
 

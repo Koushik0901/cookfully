@@ -146,11 +146,18 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByText("752 / 2200.000000 kcal")).toBeVisible();
     expect(screen.getByText("60.1 / 180.000000 g")).toBeVisible();
     expect(screen.getByText(/estimated · 95% coverage/i)).toBeVisible();
-    expect(screen.getByText("-119.9 g remaining")).toBeVisible();
+    expect(screen.getByText("119.9 g remaining")).toBeVisible();
     expect(screen.getAllByRole("progressbar")).toHaveLength(4);
     await user.click(screen.getByText("Micronutrient planning view"));
     expect(screen.getByText("12.5 g")).toBeVisible();
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
+  });
+
+  it("labels signed target differences without reversing their meaning", () => {
+    render(<MacroSummary total={{ ...total, targetDifference: { ...total.targetDifference, caloriesKcal: "25.500000", proteinG: "0.000000" } }} target={goal} label="Signed differences" />);
+    expect(screen.getByText("25.500000 kcal over target")).toBeVisible();
+    expect(screen.getByText("Target met")).toBeVisible();
+    expect(screen.getByText("129.9 g remaining")).toBeVisible();
   });
 
   it("renders week/day navigation, meal slots, entry controls, and optimistic mutations", async () => {

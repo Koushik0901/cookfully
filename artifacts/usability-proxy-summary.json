@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "method": "independent-agent-cognitive-walkthrough-v1",
+  "roundId": "SC008-PROXY-ROUND-01",
+  "totalEvaluations": 0,
+  "novicePersonas": 0,
+  "experiencedPersonas": 0,
+  "narrowMobileEvaluations": 0,
+  "desktopEvaluations": 0,
+  "requiredPasses": 0,
+  "actualPasses": 0,
+  "passed": false,
+  "failures": [
+    "evaluation_sample",
+    "novice_persona_quota",
+    "experienced_persona_quota",
+    "narrow_mobile_quota",
+    "desktop_quota"
+  ]
+}

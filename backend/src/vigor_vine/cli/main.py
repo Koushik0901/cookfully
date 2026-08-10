@@ -6,6 +6,7 @@ from vigor_vine.cli.export import app as export_app
 from vigor_vine.cli.nutrition_report import app as nutrition_report_app
 from vigor_vine.cli.owner import app as owner_app
 from vigor_vine.cli.reference_data import app as reference_data_app
+from vigor_vine.cli.usability_study import app as usability_study_app
 
 app = Typer(
     name="vigor-vine",
@@ -18,6 +19,7 @@ app.add_typer(backup_app)
 app.add_typer(export_app)
 app.add_typer(owner_app)
 app.add_typer(erasure_ledger_app)
+app.add_typer(usability_study_app)
 
 
 @app.callback()

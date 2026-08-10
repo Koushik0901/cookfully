@@ -14,6 +14,7 @@ def test_backup_export_and_ledger_operator_commands_are_registered(tmp_path: Pat
     assert "backup" in root.stdout
     assert "export" in root.stdout
     assert "erasure-ledger" in root.stdout
+    assert "usability-study" in root.stdout
 
     backup = runner.invoke(app, ["backup", "--help"])
     assert backup.exit_code == 0

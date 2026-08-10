@@ -61,6 +61,19 @@ export function NutritionPanel({
 
       <p className="advisory">Estimated nutrition is a planning aid, not medical advice. Verify values when clinical precision matters.</p>
 
+      <details className="nutrition-state-guide">
+        <summary>What the nutrition status means</summary>
+        <dl>
+          <div><dt>Estimated</dt><dd>Calculated from matched ingredients and recorded assumptions.</dd></div>
+          <div><dt>Partial</dt><dd>Some ingredients, quantities, or reference nutrients could not be resolved.</dd></div>
+          <div><dt>Source provided</dt><dd>Published by the recipe source rather than calculated ingredient by ingredient.</dd></div>
+          <div><dt>Manual</dt><dd>Entered or corrected by you; provenance and prior values remain recorded.</dd></div>
+          <div><dt>Stale</dt><dd>The recipe changed after calculation; recalculate before relying on it.</dd></div>
+          <div><dt>Pending or failed</dt><dd>Calculation is still running or needs the recovery action shown below.</dd></div>
+        </dl>
+        <p className="muted">Coverage is the percentage of quantified ingredients contributing evidence. Lower coverage means more of the recipe is unresolved; unavailable values are not treated as zero.</p>
+      </details>
+
       {job ? (
         <div className="job-panel" aria-label="Nutrition processing status">
           <div className="section-heading">
@@ -98,7 +111,7 @@ export function NutritionPanel({
             <div className="macro macro--carbs"><dt>Carbohydrate</dt><dd>{nutrition.carbohydrateG ?? "—"}<span> g</span></dd></div>
             <div className="macro macro--fat"><dt>Fat</dt><dd>{nutrition.fatG ?? "—"}<span> g</span></dd></div>
           </dl>
-          <p className="data-value">Basis: {nutrition.basisServings} servings · Coverage: {nutrition.coverageRatio}</p>
+          <p className="data-value">Basis: {nutrition.basisServings} servings · Coverage: {Math.round(Number(nutrition.coverageRatio) * 100)}%</p>
 
           <section className="micronutrient-panel" aria-labelledby="micronutrient-heading">
             <div><h3 id="micronutrient-heading">Micronutrients</h3><p className="muted">Missing reference values stay unavailable; they are never displayed as zero.</p></div>

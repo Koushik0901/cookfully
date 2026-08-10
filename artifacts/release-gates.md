@@ -2,10 +2,15 @@
 
 ## Decision
 
-**Automatable gate status: PASS. Overall release status: BLOCKED by the unevaluated SC-008 real-user
-study (T157).** T158 remains unchecked because the task contract says it must be last; every command
-inside its automated verification scope passed and is recorded here. This distinction prevents a
-successful automated suite from being misrepresented as evidence from real participants.
+**Previous automatable gate status: PASS. Current release status: pending the amended SC-008
+independent-agent proxy (T157) and final rerun (T158).** The project has no external participant pool,
+so the private-release criterion now uses transparent simulated cognitive-walkthrough evidence. It is
+not represented as evidence from real participants; human validation is deferred to public beta.
+
+After this automated run, `scripts/verify.ps1` and `scripts/verify.sh` were strengthened to require a
+machine-validated SC-008 artifact. Following the feasibility amendment, they require the independent-
+agent proxy artifact and intentionally exit nonzero when its sample, quotas, or pass threshold fail.
+The automated results below remain the last full application run; T158 will rerun them after T157.
 
 ## Run identity
 
@@ -77,13 +82,15 @@ and profile metadata are preserved in the JSON artifact.
 - Docker's Linux VM exposes virtual disks whose rotational flags do not identify the physical medium;
   SSD evidence comes from the host's healthy Samsung NVMe device, as documented in
   [`docs/performance.md`](../docs/performance.md).
-- The real-person usability study has zero collected participants. Its protocol and empty evidence
-  tables are in [`usability-report.md`](usability-report.md). No automated or agent-driven session can
-  satisfy T157.
+- The independent-agent proxy tests discoverability and semantic consistency, not real human timing,
+  comprehension, motor behavior, or population validity. The genuine human study remains explicitly
+  unevaluated and is deferred to public beta, as documented in
+  [`usability-report.md`](usability-report.md).
 
 ## Remaining release action
 
-Recruit and run at least 20 eligible product-naive participants using the committed SC-008 protocol.
-If all quotas and the ceiling-based 90% rule pass, complete T157, rerun this exact script if code or
-dependencies changed, then mark T158 last. If the study fails, fix the observed product problems and
-repeat with a new predefined study round rather than reclassifying failures as exclusions.
+Run 20 fresh-context persona agents against the corrected implementation. If all quotas and the
+ceiling-based 90% rule pass, complete T157, rerun this exact script, and mark T158 last. If the proxy
+fails, fix the observed product problems and repeat with a new round rather than reclassifying
+failures. Conduct the separate real-human protocol when a future public beta makes recruitment
+practical.

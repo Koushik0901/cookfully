@@ -14,6 +14,7 @@ uv run --directory backend ruff format --check .
 uv run --directory backend ruff check .
 uv run --directory backend mypy src
 uv run --directory backend python ../scripts/generate-sbom.py --verify-only
+uv run --directory backend vigor-vine usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
 uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file "$requirements"
 uvx pip-audit -r "$requirements" --strict
 

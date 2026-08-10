@@ -52,5 +52,6 @@
   closes reproducible latency criteria; the [restore report](../../../artifacts/restore-report.md),
   [scope audit](../../../artifacts/scope-audit.md), and
   [nutrition report](../../../artifacts/nutrition-report.json) close lifecycle, scope, and nutrition
-  evidence respectively. SC-008 participant execution is not part of this specification-quality
-  checklist and remains tracked separately as T157.
+  evidence respectively. SC-008 execution is not part of this specification-quality checklist and
+  remains tracked separately as T157: independent-agent proxy evidence gates the private release,
+  while the genuine human study remains explicitly deferred to public beta.

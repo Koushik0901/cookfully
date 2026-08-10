@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "roundId": "SC008-ROUND-01",
+  "totalRecords": 0,
+  "excludedRecords": 0,
+  "eligibleParticipants": 0,
+  "noviceParticipants": 0,
+  "experiencedParticipants": 0,
+  "narrowMobileSessions": 0,
+  "desktopSessions": 0,
+  "requiredPasses": 0,
+  "actualPasses": 0,
+  "passed": false,
+  "failures": [
+    "eligible_sample",
+    "novice_quota",
+    "experienced_quota",
+    "narrow_mobile_quota",
+    "desktop_quota"
+  ]
+}
