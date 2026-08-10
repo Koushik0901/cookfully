@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
+from mcp.server.transport_security import TransportSecuritySettings
 from redis import Redis
 
 from vigor_vine.api.problems import install_problem_handlers
@@ -38,6 +39,15 @@ from vigor_vine.infrastructure.database import create_database_engine, create_se
 from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.infrastructure.observability import correlation_middleware
+from vigor_vine.mcp.read_tools import ReadTools
+from vigor_vine.mcp.resources import McpResources
+from vigor_vine.mcp.security import (
+    McpAuthenticationMiddleware,
+    McpSecurity,
+    RedisTokenRateLimiter,
+)
+from vigor_vine.mcp.server import build_mcp_server
+from vigor_vine.mcp.write_tools import WriteTools
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -45,6 +55,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     engine = create_database_engine(resolved)
     sessions = create_session_factory(engine)
     redis_client = Redis.from_url(resolved.redis_url, decode_responses=True)
+    access_token_service = AccessTokenService(sessions)
+    goal_service = GoalService(sessions)
+    meal_plan_service = MealPlanService(sessions)
+    grocery_list_service = GroceryListService(sessions)
+    idempotency_service = IdempotencyService(sessions)
+    recipe_query_service = RecipeQueryService(sessions)
+    mcp_security = McpSecurity(
+        access_token_service,
+        RedisTokenRateLimiter(redis_client),
+    )
+    mcp_server = build_mcp_server(
+        ReadTools(goal_service, meal_plan_service, recipe_query_service),
+        WriteTools(meal_plan_service, grocery_list_service, idempotency_service),
+        McpResources(),
+        mcp_security,
+    )
+    mcp_http = mcp_server.streamable_http_app(
+        streamable_http_path="/",
+        json_response=True,
+        stateless_http=True,
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=[
+                str(resolved.api_base_url.host),
+                f"{resolved.api_base_url.host}:*",
+                *(["testserver"] if resolved.environment == "test" else []),
+            ],
+            allowed_origins=[str(resolved.public_base_url).rstrip("/")],
+        ),
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -55,7 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Owner",
         )
         app.state.auth_service = auth_service
-        app.state.access_tokens = AccessTokenService(sessions)
+        app.state.access_tokens = access_token_service
         app.state.owner_preferences = OwnerPreferenceService(sessions)
         app.state.jobs = JobService(sessions)
         app.state.recipes = RecipeService(
@@ -63,20 +102,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ErasureLedger(resolved.erasure_ledger_root),
             source_instance_id=resolved.instance_id,
         )
-        app.state.recipe_queries = RecipeQueryService(sessions)
+        app.state.recipe_queries = recipe_query_service
         app.state.corrections = CorrectionService(sessions)
-        app.state.idempotency = IdempotencyService(sessions)
-        app.state.goals = GoalService(sessions)
-        app.state.meal_plans = MealPlanService(sessions)
-        app.state.grocery_lists = GroceryListService(sessions)
+        app.state.idempotency = idempotency_service
+        app.state.goals = goal_service
+        app.state.meal_plans = meal_plan_service
+        app.state.grocery_lists = grocery_list_service
         app.state.suggestions = SuggestionService(sessions)
         app.state.sessions = sessions
         media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
         app.state.media_store = media_store
         app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
-        yield
-        redis_client.close()
-        engine.dispose()
+        try:
+            async with mcp_http.router.lifespan_context(mcp_http):
+                yield
+        finally:
+            redis_client.close()
+            engine.dispose()
 
     app = FastAPI(
         title="Vigor & Vine API",
@@ -103,6 +145,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(suggestions.router)
     versioned.include_router(media.router)
     app.include_router(versioned)
+    app.mount("/mcp", McpAuthenticationMiddleware(mcp_http, mcp_security), name="mcp")
     return app
 
 

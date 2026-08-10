@@ -105,6 +105,12 @@ class MealPlanEntryRead:
 
 
 @dataclass(frozen=True, slots=True)
+class MealPlanEntryContext:
+    week_start: date
+    entry: MealPlanEntryRead
+
+
+@dataclass(frozen=True, slots=True)
 class MealPlanRead:
     id: UUID
     week_start: date
@@ -260,7 +266,24 @@ class MealPlanService:
         with self._session_factory() as session:
             return self._read(MealPlanRepository(session).get_week(owner_id, week_start))
 
-    def add(self, owner_id: UUID, week_start: date, value: MealPlanEntryWrite) -> MealPlanEntryRead:
+    def get_entry(self, owner_id: UUID, entry_id: UUID) -> MealPlanEntryContext:
+        with self._session_factory() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id)
+            return MealPlanEntryContext(
+                entry.meal_plan.week_start,
+                self._entry_read(entry, entry.nutrition_snapshot),
+            )
+
+    def add(
+        self,
+        owner_id: UUID,
+        week_start: date,
+        value: MealPlanEntryWrite,
+        *,
+        origin: str = "manual",
+    ) -> MealPlanEntryRead:
+        if origin not in {"manual", "suggestion", "external"}:
+            raise DomainError("plan_origin_invalid", "Meal-plan origin is invalid.", 422)
         source = self._source(value.recipe_id)
         nutrition = create_snapshot(source, value.servings)
         with self._session_factory.begin() as session:
@@ -304,7 +327,7 @@ class MealPlanService:
                 recipe_title_snapshot=source.recipe_title,
                 servings=nutrition.basis_servings,
                 nutrition_snapshot_id=snapshot.id,
-                origin="manual",
+                origin=origin,
                 version=1,
             )
             session.add(entry)

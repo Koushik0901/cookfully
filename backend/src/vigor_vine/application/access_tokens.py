@@ -45,6 +45,13 @@ class IssuedAccessToken:
     secret: str
 
 
+@dataclass(frozen=True, slots=True)
+class AccessTokenPrincipal:
+    token_id: UUID
+    owner: OwnerAccount
+    scopes: frozenset[str]
+
+
 class AccessTokenService:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
@@ -118,6 +125,9 @@ class AccessTokenService:
             return self._to_read(record)
 
     def authenticate(self, token: str, required_scopes: set[str]) -> OwnerAccount:
+        return self.authenticate_principal(token, required_scopes).owner
+
+    def authenticate_principal(self, token: str, required_scopes: set[str]) -> AccessTokenPrincipal:
         if not token:
             raise DomainError("token_invalid", "Access token is invalid or expired.", 401)
         unknown = required_scopes - ALL_TOKEN_SCOPES
@@ -139,7 +149,7 @@ class AccessTokenService:
                     "insufficient_scope", "Access token lacks the required scope.", 403
                 )
             record.last_used_at = now
-            return record.owner
+            return AccessTokenPrincipal(record.id, record.owner, frozenset(record.scopes))
 
     @staticmethod
     def _to_read(record: AccessToken) -> AccessTokenRead:

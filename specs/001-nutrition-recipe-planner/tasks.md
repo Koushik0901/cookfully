@@ -249,19 +249,19 @@ versions, and prove revocation and once-only secret behavior.
 
 ### Tests for User Story 5
 
-- [ ] T115 [P] [US5] Write failing HTTP/MCP parity tests for every tool/resource including `get_meal_plan`, canonical decimal strings, display snapshots, and corrections in `backend/tests/contract/test_mcp_parity.py`
-- [ ] T116 [P] [US5] Write failing OpenAPI access-token create/list/revoke, once-only secret, token-scope, revocation, rate-limit, idempotency, stale-version, and redaction tests in `backend/tests/integration/test_mcp_security.py`
-- [ ] T117 [P] [US5] Write failing MCP Inspector meal-plan read/write, reload, and exact cross-UI consistency journeys in `backend/tests/e2e/test_mcp_server.py`
+- [X] T115 [P] [US5] Write failing HTTP/MCP parity tests for every tool/resource including `get_meal_plan`, canonical decimal strings, display snapshots, and corrections in `backend/tests/contract/test_mcp_parity.py`
+- [X] T116 [P] [US5] Write failing OpenAPI access-token create/list/revoke, once-only secret, token-scope, revocation, rate-limit, idempotency, stale-version, and redaction tests in `backend/tests/integration/test_mcp_security.py`
+- [X] T117 [P] [US5] Write failing MCP Inspector meal-plan read/write, reload, and exact cross-UI consistency journeys in `backend/tests/e2e/test_mcp_server.py`
 
 ### Implementation for User Story 5
 
 - [X] T118 [US5] Implement access-token create/list/revoke commands, allowlisted scopes, hashes, expiry, and once-only secret presentation in `backend/src/vigor_vine/application/access_tokens.py`
 - [X] T119 [US5] Implement canonical OpenAPI 3.1 API v0.2.0 access-token management routes and DTOs in `backend/src/vigor_vine/api/routes/access_tokens.py` and `backend/src/vigor_vine/api/schemas/access_tokens.py`
-- [ ] T120 [US5] Assemble the official MCP SDK server, Streamable HTTP transport, application-service injection, and safe problem mapping in `backend/src/vigor_vine/mcp/server.py`
-- [ ] T121 [P] [US5] Implement `get_current_goals`, `get_meal_plan`, `get_period_totals`, and `find_recipes` with canonical decimal strings in `backend/src/vigor_vine/mcp/read_tools.py`
-- [ ] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/vigor_vine/mcp/write_tools.py`
-- [ ] T123 [P] [US5] Implement nutrition-methodology and export-schema resources with no prompt templates in `backend/src/vigor_vine/mcp/resources.py`
-- [ ] T124 [US5] Add scoped authentication, revocation checks, rate limits, audit origin, correlation IDs, and HTTP deployment wiring in `backend/src/vigor_vine/mcp/security.py` and `backend/src/vigor_vine/api/main.py`
+- [X] T120 [US5] Assemble the official MCP SDK server, Streamable HTTP transport, application-service injection, and safe problem mapping in `backend/src/vigor_vine/mcp/server.py`
+- [X] T121 [P] [US5] Implement `get_current_goals`, `get_meal_plan`, `get_period_totals`, and `find_recipes` with canonical decimal strings in `backend/src/vigor_vine/mcp/read_tools.py`
+- [X] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/vigor_vine/mcp/write_tools.py`
+- [X] T123 [P] [US5] Implement nutrition-methodology and export-schema resources with no prompt templates in `backend/src/vigor_vine/mcp/resources.py`
+- [X] T124 [US5] Add scoped authentication, revocation checks, rate limits, audit origin, correlation IDs, and HTTP deployment wiring in `backend/src/vigor_vine/mcp/security.py` and `backend/src/vigor_vine/api/main.py`
 - [ ] T125 [US5] Regenerate and commit access-token TypeScript bindings in `frontend/src/app/api/generated/`
 - [ ] T126 [US5] Implement access-token scope selection, once-only copy, active-token list, and revocation UI in `frontend/src/features/settings/AgentAccessPage.tsx`
 - [ ] T127 [US5] Document HTTP token management, MCP connection/scopes, `get_meal_plan`, decimal-string contracts, idempotency, planning-aid-not-medical-advice limitations, and Inspector validation in `docs/agent-integration.md`
