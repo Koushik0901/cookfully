@@ -30,7 +30,11 @@ from vigor_vine.infrastructure.observability import correlation_id
 router = APIRouter(prefix="/recipes", tags=["Recipes"])
 
 
-def expected_version(if_match: Annotated[str, Header(alias="If-Match")]) -> int:
+def expected_version(
+    if_match: Annotated[str | None, Header(alias="If-Match")] = None,
+) -> int:
+    if if_match is None:
+        raise DomainError("if_match_required", "If-Match is required.", 428)
     match = re.fullmatch(r'"([1-9][0-9]*)"', if_match)
     if match is None:
         raise DomainError("if_match_invalid", "If-Match must contain a quoted version.", 422)

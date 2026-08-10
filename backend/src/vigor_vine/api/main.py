@@ -7,9 +7,20 @@ from fastapi import APIRouter, FastAPI
 from redis import Redis
 
 from vigor_vine.api.problems import install_problem_handlers
-from vigor_vine.api.routes import auth, goals, health, jobs, meal_plans, media, owner, recipes
+from vigor_vine.api.routes import (
+    auth,
+    goals,
+    grocery,
+    health,
+    jobs,
+    meal_plans,
+    media,
+    owner,
+    recipes,
+)
 from vigor_vine.application.auth import AuthService
 from vigor_vine.application.corrections import CorrectionService
+from vigor_vine.application.grocery_lists import GroceryListService
 from vigor_vine.application.idempotency import IdempotencyService
 from vigor_vine.application.jobs import JobService
 from vigor_vine.application.meal_plans import GoalService, MealPlanService
@@ -50,6 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.idempotency = IdempotencyService(sessions)
         app.state.goals = GoalService(sessions)
         app.state.meal_plans = MealPlanService(sessions)
+        app.state.grocery_lists = GroceryListService(sessions)
         app.state.sessions = sessions
         app.state.media_store = MediaStore(
             resolved.media_root, resolved.secret_key.get_secret_value()
@@ -77,6 +89,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(recipes.router)
     versioned.include_router(goals.router)
     versioned.include_router(meal_plans.router)
+    versioned.include_router(grocery.router)
     versioned.include_router(media.router)
     app.include_router(versioned)
     return app

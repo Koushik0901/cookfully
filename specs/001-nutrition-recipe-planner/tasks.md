@@ -181,19 +181,19 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 
 - [X] T085 [P] [US3] Write failing six-decimal property tests for serving scaling, normalized identities, compatible-unit aggregation, unsafe separation, and source contributions in `backend/tests/unit/test_grocery_aggregation.py`
 - [X] T086 [P] [US3] Write failing reconciliation tests for checked items, manual names/quantities, removed sources, stable ordering, and review flags in `backend/tests/unit/test_grocery_reconciliation.py`
-- [ ] T087 [P] [US3] Write failing grocery generation/regeneration, manual item create requiring a non-empty display name, partial update/delete, decimal-string, concurrency, and problem-response contract tests in `backend/tests/contract/test_grocery_api.py`
+- [X] T087 [P] [US3] Write failing grocery generation/regeneration, manual item create requiring a non-empty display name, partial update/delete, decimal-string, concurrency, and problem-response contract tests in `backend/tests/contract/test_grocery_api.py`
 - [ ] T088 [P] [US3] Write failing portable manifest, six/three/display-decimal NDJSON, erased-recipe omission/detached-history, archive traversal, checksum, staging, and merge-policy tests in `backend/tests/contract/test_export_format.py`
 - [ ] T089 [P] [US3] Write failing full backup/restore entity, correction, snapshot, manual-state, media-checksum, retention exclusion, ledger cursor/hash continuity, post-backup erasure replay, zero-resurrection, and missing/discontinuous-ledger fail-closed tests in `backend/tests/integration/test_backup_restore.py`
 - [ ] T090 [P] [US3] Write failing grocery traceability, edit/check, dirty-state, regeneration, and mobile shopping journeys in `frontend/e2e/grocery-list.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T091 [US3] Create GroceryList, six-decimal GroceryItem, detached GroceryItemSource tables, origin/lifecycle fields, and version/index constraints in `backend/src/vigor_vine/infrastructure/models/grocery.py` and `backend/migrations/versions/0007_grocery.py`
+- [X] T091 [US3] Create GroceryList, six-decimal GroceryItem, detached GroceryItemSource tables, origin/lifecycle fields, and version/index constraints in `backend/src/vigor_vine/infrastructure/models/grocery.py` and `backend/migrations/versions/0007_grocery.py`
 - [X] T092 [US3] Implement six-decimal ingredient scaling, canonical aggregation keys, dimensional compatibility, and detached source-contribution calculation in `backend/src/vigor_vine/domain/grocery.py`
 - [X] T093 [US3] Implement proposed-list reconciliation that preserves manual/check state and marks material conflicts for review in `backend/src/vigor_vine/application/grocery_reconciliation.py`
-- [ ] T094 [US3] Implement grocery list generation, dirty-state tracking, regeneration, and item-edit commands in `backend/src/vigor_vine/application/grocery_lists.py`
-- [ ] T095 [US3] Implement grocery generation plus manual item create/update/delete routes and canonical decimal-string DTOs matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/grocery.py` and `backend/src/vigor_vine/api/schemas/grocery.py`
-- [ ] T096 [US3] Regenerate and commit exact-decimal grocery TypeScript bindings in `frontend/src/app/api/generated/`
+- [X] T094 [US3] Implement grocery list generation, dirty-state tracking, regeneration, and item-edit commands in `backend/src/vigor_vine/application/grocery_lists.py`
+- [X] T095 [US3] Implement grocery generation plus manual item create/update/delete routes and canonical decimal-string DTOs matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/grocery.py` and `backend/src/vigor_vine/api/schemas/grocery.py`
+- [X] T096 [US3] Regenerate and commit exact-decimal grocery TypeScript bindings in `frontend/src/app/api/generated/`
 - [ ] T097 [US3] Implement grouped shopping view, source disclosure, check/edit/add/remove controls, dirty/regenerating states, and narrow-mobile layout in `frontend/src/features/grocery/GroceryListPage.tsx`
 - [ ] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/vigor_vine/application/exports.py` and `backend/src/vigor_vine/jobs/export.py`
 - [ ] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/vigor_vine/cli/backup.py`

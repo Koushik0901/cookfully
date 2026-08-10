@@ -1,4 +1,5 @@
 from vigor_vine.infrastructure.models.base import Base
+from vigor_vine.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
 from vigor_vine.infrastructure.models.idempotency import IdempotencyRecord
 from vigor_vine.infrastructure.models.identity import AccessToken, OwnerAccount, SessionRecord
 from vigor_vine.infrastructure.models.jobs import OutboxEvent, ProcessingJob
@@ -27,6 +28,9 @@ __all__ = [
     "Base",
     "FoodNutrient",
     "FoodReference",
+    "GroceryItem",
+    "GroceryItemSource",
+    "GroceryList",
     "IdempotencyRecord",
     "Ingredient",
     "IngredientMatch",

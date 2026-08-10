@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -22,6 +23,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from vigor_vine.domain.common import uuid7
 from vigor_vine.infrastructure.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from vigor_vine.infrastructure.models.grocery import GroceryList
 
 
 class UserGoal(TimestampMixin, Base):
@@ -126,6 +130,9 @@ class MealPlan(TimestampMixin, Base):
             MealPlanEntry.meal_slot,
             MealPlanEntry.position,
         ),
+    )
+    grocery_list: Mapped[GroceryList | None] = relationship(
+        back_populates="meal_plan", cascade="all, delete-orphan", uselist=False
     )
 
 

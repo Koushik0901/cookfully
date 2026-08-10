@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from vigor_vine.application.grocery_lists import GroceryListService
 from vigor_vine.application.recipe_queries import RecipeQueryService
 from vigor_vine.domain.common import DomainError, require_version
 from vigor_vine.domain.goals import (
@@ -111,6 +112,7 @@ class MealPlanRead:
     goal: GoalRead
     entries: tuple[MealPlanEntryRead, ...]
     totals: PlanTotals
+    grocery_status: str
     version: int
 
 
@@ -307,6 +309,7 @@ class MealPlanService:
             )
             session.add(entry)
             plan.version += 1
+            GroceryListService.mark_dirty(session, plan.id)
             session.flush()
             return self._entry_read(entry, snapshot)
 
@@ -355,6 +358,7 @@ class MealPlanService:
             entry.servings = create_snapshot(source, value.servings).basis_servings
             entry.version += 1
             entry.meal_plan.version += 1
+            GroceryListService.mark_dirty(session, entry.meal_plan_id)
             session.flush()
             return self._entry_read(entry, snapshot)
 
@@ -363,6 +367,7 @@ class MealPlanService:
             entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
             require_version(expected_version, entry.version)
             entry.meal_plan.version += 1
+            GroceryListService.mark_dirty(session, entry.meal_plan_id)
             session.execute(delete(MealPlanEntry).where(MealPlanEntry.id == entry.id))
 
     def _source(self, recipe_id: UUID) -> SnapshotSource:
@@ -520,5 +525,6 @@ class MealPlanService:
             GoalService._read(plan.goal),
             entries,
             totals,
+            plan.grocery_list.status if plan.grocery_list is not None else "absent",
             plan.version,
         )

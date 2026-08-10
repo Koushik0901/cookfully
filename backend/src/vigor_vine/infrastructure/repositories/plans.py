@@ -71,6 +71,7 @@ class MealPlanRepository:
             .options(
                 selectinload(MealPlan.goal).selectinload(UserGoal.meal_targets),
                 selectinload(MealPlan.entries).selectinload(MealPlanEntry.nutrition_snapshot),
+                selectinload(MealPlan.grocery_list),
             )
         )
         if for_update:
@@ -87,6 +88,7 @@ class MealPlanRepository:
             .options(
                 selectinload(MealPlan.goal).selectinload(UserGoal.meal_targets),
                 selectinload(MealPlan.entries).selectinload(MealPlanEntry.nutrition_snapshot),
+                selectinload(MealPlan.grocery_list),
             )
         )
 

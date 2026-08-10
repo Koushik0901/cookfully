@@ -262,6 +262,6 @@ class MealPlanResponse(ApiModel):
                 for day, total in value.totals.day_totals.items()
             },
             week_total=PeriodTotalResponse.from_total(value.totals.week_total),
-            grocery_status="absent",
+            grocery_status=value.grocery_status,
             version=value.version,
         )
