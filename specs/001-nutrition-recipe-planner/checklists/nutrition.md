@@ -169,3 +169,29 @@ recovery requirements are complete, clear, consistent, measurable, and ready for
 - Add findings inline and link the exact artifact section that resolves each item.
 - A checked item means the requirement is ready to implement; it does not mean implementation behavior
   has been tested.
+
+### Final Implementation Evidence
+
+- **Provenance, estimates, corrections, and staleness (CHK001–CHK016)**:
+  [`test_recipe_api.py`](../../../backend/tests/contract/test_recipe_api.py),
+  [`test_recipe_jobs.py`](../../../backend/tests/integration/test_recipe_jobs.py), and
+  [`test_nutrition_services.py`](../../../backend/tests/unit/test_nutrition_services.py) exercise
+  response provenance, mutually exclusive states, active-correction precedence, reset/reprocessing,
+  stale input hashes, and explicit recovery.
+- **Accuracy and timing (CHK017–CHK021)**: the generated
+  [50-recipe nutrition report](../../../artifacts/nutrition-report.json),
+  [`test_nutrition_corpus.py`](../../../backend/tests/accuracy/test_nutrition_corpus.py), and the
+  [reference performance report](../../../docs/performance.md) record the primary/extension split,
+  all-four-macro gates, near-zero handling, durable acknowledgement, polling, and retry deadlines.
+- **Primary, alternate, failure, and concurrency paths (CHK022–CHK030)**:
+  [`test_provider_degraded_workflows.py`](../../../backend/tests/integration/test_provider_degraded_workflows.py),
+  [`test_job_lifecycle.py`](../../../backend/tests/integration/test_job_lifecycle.py),
+  [`test_meal_plan_snapshots.py`](../../../backend/tests/integration/test_meal_plan_snapshots.py), and
+  the [restore report](../../../artifacts/restore-report.md) cover provider-free completion,
+  supersession/retry, immutable exact snapshots, portable export, and replay-gated restore.
+- **Privacy, retention, accessibility, and dependencies (CHK031–CHK035)**:
+  [`test_security_controls.py`](../../../backend/tests/security/test_security_controls.py),
+  [`test_common_media_ledger.py`](../../../backend/tests/unit/test_common_media_ledger.py),
+  [`accessibility.spec.ts`](../../../frontend/e2e/accessibility.spec.ts), the
+  [dependency/SBOM policy](../../../docs/dependencies-and-licenses.md), and the
+  [executed quickstart](../quickstart.md#12-execution-record--2026-08-10) provide the final evidence.

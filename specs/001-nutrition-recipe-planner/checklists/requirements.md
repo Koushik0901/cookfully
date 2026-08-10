@@ -47,3 +47,10 @@
   planning so this specification remains focused on user-visible behavior and constraints.
 - Validation iteration 2 resolved the post-task analysis findings through the 2026-08-10 clarification
   session, plan/research/model propagation, contract updates, and dependency-ordered task coverage.
+- Final implementation evidence: the [executed quickstart](../quickstart.md#12-execution-record--2026-08-10)
+  records scenario results and deviations; the [performance profile](../../../docs/performance.md)
+  closes reproducible latency criteria; the [restore report](../../../artifacts/restore-report.md),
+  [scope audit](../../../artifacts/scope-audit.md), and
+  [nutrition report](../../../artifacts/nutrition-report.json) close lifecycle, scope, and nutrition
+  evidence respectively. SC-008 participant execution is not part of this specification-quality
+  checklist and remains tracked separately as T157.
