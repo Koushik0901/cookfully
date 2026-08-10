@@ -245,7 +245,13 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   data and retain their source, serving basis, assumptions, and last calculation time. Stored nutrient
   values MUST use fixed decimals with six fractional places, stored servings MUST use three fractional
   places, and public API/export decimal values MUST serialize as decimal strings rather than binary
-  floating-point numbers.
+  floating-point numbers. Before the P1 release, supported USDA FoodData Central Foundation Foods and
+  SR Legacy releases MUST both be installed and active for automated reference matching. The product
+  MUST expose each active release identifier, release date, source, attribution, and license; provide
+  an operator-driven check, import, and explicit activation workflow; and document a review cadence of
+  at least once every 90 days. A different release MUST NOT activate silently or rewrite existing
+  estimates. When a required dataset is absent, automated reference matching MUST be visibly
+  unavailable while source-provided nutrition, manual nutrition, and recipe editing remain usable.
 - **FR-006**: Users MUST be able to review and correct ingredient matches, quantities, unit
   conversions, serving yield, and final nutrition values.
 - **FR-007**: Manual corrections MUST take precedence in recipe displays, plan totals, suggestions,
@@ -323,7 +329,14 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   MAY be retained. Detailed job diagnostics MUST be deleted or reduced after 30 days to safe codes and
   timestamps retained for no more than one year. Estimates and correction audit history MUST remain
   until explicit owner erasure. Backup documentation MUST disclose that erased records can remain in
-  operator-controlled backups until the configured rotation expires.
+  operator-controlled backups until the configured rotation expires. Every permanent recipe deletion
+  and owner-erasure operation MUST append a content-free erasure record containing only the erased
+  entity type, stable identifier or non-reversible identifier digest, erasure scope, timestamp, and
+  monotonic ledger cursor. The ledger MUST be stored independently from restorable application
+  backups. Each backup MUST record its ledger cursor, and a staged restore MUST require the current
+  ledger, replay every later erasure before validation, and refuse activation when ledger continuity
+  cannot be proven. An erasure record MUST remain until all backups predating its erasure have expired
+  under configured rotation plus a 30-day safety margin, then MUST be deleted automatically.
 - **FR-037**: Recipe save and import requests that require background work MUST persist the recipe and
   authoritative job and acknowledge within one second rather than wait for nutrition completion.
   Relevant visible screens MUST poll authoritative status every two seconds; other active application
@@ -353,6 +366,9 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   state.
 - **Grocery Item**: An ingredient quantity or free-form item with normalized identity, unit, source
   recipes, aggregation or pantry deductions, and checked state.
+- **Erasure Record**: A content-free, monotonic record of a permanent recipe deletion or owner-erasure
+  scope, containing only the identifiers and timing needed to prevent an older backup from restoring
+  erased data.
 - **Suggestion Request**: A meal, day, or week target, remaining budget, tolerances, exclusions, and
   variety rules supplied by the user.
 - **Suggestion Result**: Candidate meal-plan entries, projected totals, satisfied and missed
@@ -372,14 +388,18 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   30-recipe primary release subset satisfies the constitution's representative-recipe gate; the other
   20 recipes are extension and stress cases, and the reported product result covers all 50.
 - **SC-002**: Against corpus references that publish an unambiguous yield and per-serving calories,
-  protein, carbohydrates, and fat, the evaluation has a median absolute percentage calorie error no
-  greater than 20% and protein error no greater than 25%, with every discrepancy traceable to visible
-  inputs or assumptions. Percentage error is `abs(estimate - reference) / reference * 100`; calorie
-  references below 50 kcal and protein references below 5 g are excluded from percentage summaries
-  and reported separately as absolute error so near-zero values cannot distort the result.
-- **SC-003**: At least 90% of the supported public-page cases in the versioned 50-recipe corpus import
-  title, yield, ingredients, and instructions without manual transcription. Stored HTML snapshots and
-  expected fields make the result reproducible when a live page changes.
+  protein, carbohydrates, and fat, the evaluation has median absolute percentage errors no greater
+  than 20% for calories and 25% for each of protein, carbohydrates, and fat, with every discrepancy
+  traceable to visible inputs or assumptions. For each nutrient, percentage error is
+  `abs(estimate - reference) / reference * 100` and the reported result is the median across every
+  eligible corpus recipe. References below 50 kcal, 5 g protein, 5 g carbohydrate, or 2 g fat are
+  excluded only from that nutrient's percentage summary and reported separately as median and maximum
+  absolute error so near-zero values cannot distort the result. Yield normalization occurs before
+  eligibility and error calculation; no unexplained outlier may be removed.
+- **SC-003**: All 50 entries in the versioned corpus MUST be captured public recipe pages, and at least
+  90% MUST import title, yield, ingredients, and instructions without manual transcription. The result
+  MUST also be reported for the stable 30-recipe primary subset and by source site. Stored HTML
+  snapshots and expected fields make the result reproducible when a live page changes.
 - **SC-004**: In validation fixtures, 100% of active manual corrections survive reprocessing and are
   used consistently in displayed nutrition, plan totals, suggestions, and external reads.
 - **SC-005**: For a seven-day plan containing up to 50 entries, users see updated meal, daily, and
@@ -390,16 +410,24 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   the visual application, HTTP API, MCP tools, exports, and background-job results.
 - **SC-007**: In grocery fixtures, 100% of safely compatible repeated ingredients are aggregated to the
   expected quantity and 100% of incompatible or ambiguous quantities remain separate.
-- **SC-008**: At least 90% of first-time usability-test participants can import or create a recipe,
-  review its nutrition status, add it to a day, and identify the target impact in under five minutes
-  without assistance.
+- **SC-008**: In a study of at least 20 eligible participants who have never used the product, at least
+  90% can import or create a recipe, review its nutrition status, add it to a day, and identify the
+  target impact in under five minutes without assistance. The sample MUST include at least five novice
+  gym-focused meal planners, five experienced gym-focused meal planners, eight participants completing
+  the journey at the narrow-mobile acceptance viewport, and eight completing it on desktop; categories
+  MAY overlap. A participant passes only by completing every step within five minutes without hints.
+  For samples larger than 20, the required pass count is `ceiling(0.90 * eligible participants)`;
+  exclusions and anonymized timing evidence MUST be reported before calculating the rate.
 - **SC-009**: For feasible suggestion fixtures, at least 90% of generated plans meet all selected
   calorie, macro, exclusion, and repetition tolerances; all infeasible fixtures identify at least one
   blocking constraint rather than claiming success.
 - **SC-010**: In consistency tests, 100% of supported external reads and writes produce the same
   validated state and totals visible in the application, including manual-correction precedence.
-- **SC-011**: A backup containing every core entity can be restored with 100% of recipes, active
-  corrections, goals, plan entries, and grocery manual state intact.
+- **SC-011**: A backup containing every core entity can be restored with 100% of non-erased recipes,
+  active corrections, goals, plan entries, and grocery manual state intact. When the current erasure
+  ledger contains records newer than the backup cursor, 100% of those erasures are replayed before the
+  restored instance can become active, zero erased recipe-owned records are resurrected, and a missing
+  or discontinuous ledger prevents activation with a documented recovery error.
 - **SC-012**: Across desktop and narrow-mobile acceptance checks, all primary journeys are operable by
   keyboard, have no horizontal page overflow, and communicate status without color as the only cue.
 - **SC-013**: Automated retention and redaction fixtures show that 100% of successful-import HTML is
