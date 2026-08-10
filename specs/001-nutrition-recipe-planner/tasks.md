@@ -282,11 +282,11 @@ complete, true-zero, and unavailable micronutrient states.
 
 ### Contract and Tests for User Story 6
 
-- [ ] T128 [US6] Extend the OpenAPI 3.1 API v0.2.0 canonical decimal-string contract with pantry CRUD/search/deduction and exactly dietary-fiber-g, sodium/potassium/calcium/iron/magnesium/vitamin-C-mg, and vitamin-D/vitamin-B12-µg schemas in `specs/001-nutrition-recipe-planner/contracts/openapi.yaml`
-- [ ] T129 [P] [US6] Write failing six-decimal pantry quantity, unit conversion, match confidence, and reversible-deduction tests in `backend/tests/unit/test_pantry.py`
-- [ ] T130 [P] [US6] Write failing fully/partially makeable ranking and missing-ingredient tests in `backend/tests/unit/test_pantry_search.py`
-- [ ] T131 [P] [US6] Write failing six-decimal tests for the nine canonical P6 micronutrients covering fixed units, versioned USDA mapping, null-versus-explicit-zero, provenance, lower-of-mass/count coverage, and rollup in `backend/tests/unit/test_micronutrients.py`
-- [ ] T132 [P] [US6] Write failing exact-decimal pantry/search/deduction contract and responsive frontend journey tests in `backend/tests/contract/test_pantry_api.py` and `frontend/e2e/pantry.spec.ts`
+- [X] T128 [US6] Extend the OpenAPI 3.1 API v0.2.0 canonical decimal-string contract with pantry CRUD/search/deduction and exactly dietary-fiber-g, sodium/potassium/calcium/iron/magnesium/vitamin-C-mg, and vitamin-D/vitamin-B12-µg schemas in `specs/001-nutrition-recipe-planner/contracts/openapi.yaml`
+- [X] T129 [P] [US6] Write failing six-decimal pantry quantity, unit conversion, match confidence, and reversible-deduction tests in `backend/tests/unit/test_pantry.py`
+- [X] T130 [P] [US6] Write failing fully/partially makeable ranking and missing-ingredient tests in `backend/tests/unit/test_pantry_search.py`
+- [X] T131 [P] [US6] Write failing six-decimal tests for the nine canonical P6 micronutrients covering fixed units, versioned USDA mapping, null-versus-explicit-zero, provenance, lower-of-mass/count coverage, and rollup in `backend/tests/unit/test_micronutrients.py`
+- [X] T132 [P] [US6] Write failing exact-decimal pantry/search/deduction contract and responsive frontend journey tests in `backend/tests/contract/test_pantry_api.py` and `frontend/e2e/pantry.spec.ts`
 
 ### Implementation for User Story 6
 

@@ -22,6 +22,7 @@ tags:
   - name: Data Ownership
   - name: Agent Access
   - name: Suggestions
+  - name: Pantry
 
 paths:
   /health:
@@ -599,6 +600,147 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /pantry-items:
+    get:
+      x-release: expansion-p6
+      tags: [Pantry]
+      operationId: listPantryItems
+      responses:
+        "200":
+          description: Pantry inventory with exact quantities and reviewable matches.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PantryItem" }
+    post:
+      x-release: expansion-p6
+      tags: [Pantry]
+      operationId: createPantryItem
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PantryItemWrite" }
+      responses:
+        "201":
+          description: Pantry item created; ambiguous matches remain reviewable.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PantryItem" }
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /pantry-items/{itemId}:
+    patch:
+      x-release: expansion-p6
+      tags: [Pantry]
+      operationId: updatePantryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PantryItemWrite" }
+      responses:
+        "200":
+          description: Quantity or manual food-reference match updated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PantryItem" }
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      x-release: expansion-p6
+      tags: [Pantry]
+      operationId: deletePantryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Pantry item removed when no applied deduction depends on it.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /pantry/recipe-matches:
+    get:
+      x-release: expansion-p6
+      tags: [Pantry]
+      operationId: findMakeableRecipes
+      parameters:
+        - name: query
+          in: query
+          schema: { type: [string, "null"], maxLength: 200 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+      responses:
+        "200":
+          description: Fully makeable recipes first, then partial matches with missing ingredients.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PantryRecipeMatch" }
+
+  /meal-plans/{weekStart}/grocery-list/pantry-deductions:
+    post:
+      x-release: expansion-p6
+      tags: [Pantry, Grocery]
+      operationId: applyPantryDeductions
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PantryDeductionApply" }
+      responses:
+        "200":
+          description: Only exact safe matches deducted; every result remains visible and reversible.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PantryDeduction" }
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /pantry-deductions/{deductionId}:
+    delete:
+      x-release: expansion-p6
+      tags: [Pantry, Grocery]
+      operationId: reversePantryDeduction
+      parameters:
+        - name: deductionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Deducted pantry and grocery quantities restored exactly.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PantryDeduction" }
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /exports:
     post:
       tags: [Data Ownership, Jobs]
@@ -940,11 +1082,37 @@ components:
         proteinG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
         carbohydrateG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
         fatG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
+    MicronutrientValue:
+      type: object
+      additionalProperties: false
+      required: [value, unit, explicitZero, coverageRatio, source, mappingVersion, usdaNutrientId]
+      properties:
+        value: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        unit: { type: string, enum: [g, mg, ug] }
+        explicitZero: { type: boolean }
+        coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
+        source: { type: string, enum: [reference, source, manual, unavailable] }
+        mappingVersion: { type: string, minLength: 1 }
+        usdaNutrientId: { type: integer, minimum: 1 }
+    Micronutrients:
+      type: object
+      additionalProperties: false
+      required: [dietaryFiberG, sodiumMg, potassiumMg, calciumMg, ironMg, magnesiumMg, vitaminCMg, vitaminDUg, vitaminB12Ug]
+      properties:
+        dietaryFiberG: { $ref: "#/components/schemas/MicronutrientValue" }
+        sodiumMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        potassiumMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        calciumMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        ironMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        magnesiumMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        vitaminCMg: { $ref: "#/components/schemas/MicronutrientValue" }
+        vitaminDUg: { $ref: "#/components/schemas/MicronutrientValue" }
+        vitaminB12Ug: { $ref: "#/components/schemas/MicronutrientValue" }
     ResolvedNutrition:
       allOf:
         - $ref: "#/components/schemas/MacroValues"
         - type: object
-          required: [status, basisServings, coverageRatio, provenance, corrections]
+          required: [status, basisServings, coverageRatio, provenance, corrections, micronutrients]
           properties:
             status: { $ref: "#/components/schemas/NutritionStatus" }
             basisServings: { $ref: "#/components/schemas/ServingDecimal" }
@@ -963,6 +1131,7 @@ components:
             corrections:
               type: array
               items: { $ref: "#/components/schemas/NutritionCorrection" }
+            micronutrients: { $ref: "#/components/schemas/Micronutrients" }
     IngredientWrite:
       type: object
       required: [originalText]
@@ -1147,19 +1316,21 @@ components:
       allOf:
         - $ref: "#/components/schemas/DisplayMacroValues"
         - type: object
-          required: [basisServings, status, coverageRatio]
+          required: [basisServings, status, coverageRatio, micronutrients]
           properties:
             basisServings: { $ref: "#/components/schemas/ServingDecimal" }
             status: { $ref: "#/components/schemas/NutritionStatus" }
             coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
+            micronutrients: { $ref: "#/components/schemas/Micronutrients" }
     PeriodTotal:
       allOf:
         - $ref: "#/components/schemas/DisplayMacroValues"
         - type: object
-          required: [status, coverageRatio]
+          required: [status, coverageRatio, micronutrients]
           properties:
             status: { $ref: "#/components/schemas/NutritionStatus" }
             coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
+            micronutrients: { $ref: "#/components/schemas/Micronutrients" }
             targetDifference: { $ref: "#/components/schemas/SignedDisplayMacroValues" }
     MealPlan:
       type: object
@@ -1218,6 +1389,63 @@ components:
         status: { type: string, enum: [current, dirty, generating, failed] }
         generatedAt: { type: [string, "null"], format: date-time }
         items: { type: array, items: { $ref: "#/components/schemas/GroceryItem" } }
+        version: { type: integer, minimum: 1 }
+    PantryItemWrite:
+      type: object
+      additionalProperties: false
+      required: [displayName, quantity, unit]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 240 }
+        quantity: { $ref: "#/components/schemas/Decimal6" }
+        unit: { type: string, minLength: 1, maxLength: 80 }
+        foodReferenceId: { type: [string, "null"], format: uuid }
+    PantryItem:
+      allOf:
+        - $ref: "#/components/schemas/PantryItemWrite"
+        - type: object
+          required: [id, normalizedFoodName, matchStatus, matchConfidence, version]
+          properties:
+            id: { type: string, format: uuid }
+            normalizedFoodName: { type: string }
+            matchStatus: { type: string, enum: [unmatched, proposed, matched, manual] }
+            matchConfidence: { oneOf: [{ $ref: "#/components/schemas/RatioDecimal" }, { type: "null" }] }
+            version: { type: integer, minimum: 1 }
+    PantryRecipeMatch:
+      type: object
+      additionalProperties: false
+      required: [recipeId, recipeTitle, availability, coverageRatio, missingIngredients]
+      properties:
+        recipeId: { type: string, format: uuid }
+        recipeTitle: { type: string }
+        availability: { type: string, enum: [full, partial, none] }
+        coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
+        missingIngredients: { type: array, items: { type: string } }
+    PantryDeductionApply:
+      type: object
+      additionalProperties: false
+      required: [expectedGroceryListVersion]
+      properties:
+        expectedGroceryListVersion: { type: integer, minimum: 1 }
+        groceryItemIds:
+          type: array
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    PantryDeduction:
+      type: object
+      additionalProperties: false
+      required: [id, pantryItemId, groceryItemId, pantryQuantity, pantryUnit, groceryQuantity, groceryUnit, assumption, status, version]
+      properties:
+        id: { type: string, format: uuid }
+        pantryItemId: { type: string, format: uuid }
+        groceryItemId: { type: string, format: uuid }
+        pantryQuantity: { $ref: "#/components/schemas/Decimal6" }
+        pantryUnit: { type: string }
+        groceryQuantity: { $ref: "#/components/schemas/Decimal6" }
+        groceryUnit: { type: string }
+        assumption: { type: string }
+        status: { type: string, enum: [applied, reversed] }
+        appliedAt: { type: string, format: date-time }
+        reversedAt: { type: [string, "null"], format: date-time }
         version: { type: integer, minimum: 1 }
     SuggestionRequest:
       type: object

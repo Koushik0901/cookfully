@@ -342,6 +342,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pantry-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPantryItems"];
+        put?: never;
+        post: operations["createPantryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pantry-items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deletePantryItem"];
+        options?: never;
+        head?: never;
+        patch: operations["updatePantryItem"];
+        trace?: never;
+    };
+    "/pantry/recipe-matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findMakeableRecipes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{weekStart}/grocery-list/pantry-deductions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["applyPantryDeductions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pantry-deductions/{deductionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["reversePantryDeduction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exports": {
         parameters: {
             query?: never;
@@ -534,6 +614,28 @@ export interface components {
             carbohydrateG: components["schemas"]["SignedDisplayMacro"] | null;
             fatG: components["schemas"]["SignedDisplayMacro"] | null;
         };
+        MicronutrientValue: {
+            value: components["schemas"]["Decimal6"] | null;
+            /** @enum {string} */
+            unit: "g" | "mg" | "ug";
+            explicitZero: boolean;
+            coverageRatio: components["schemas"]["RatioDecimal"];
+            /** @enum {string} */
+            source: "reference" | "source" | "manual" | "unavailable";
+            mappingVersion: string;
+            usdaNutrientId: number;
+        };
+        Micronutrients: {
+            dietaryFiberG: components["schemas"]["MicronutrientValue"];
+            sodiumMg: components["schemas"]["MicronutrientValue"];
+            potassiumMg: components["schemas"]["MicronutrientValue"];
+            calciumMg: components["schemas"]["MicronutrientValue"];
+            ironMg: components["schemas"]["MicronutrientValue"];
+            magnesiumMg: components["schemas"]["MicronutrientValue"];
+            vitaminCMg: components["schemas"]["MicronutrientValue"];
+            vitaminDUg: components["schemas"]["MicronutrientValue"];
+            vitaminB12Ug: components["schemas"]["MicronutrientValue"];
+        };
         ResolvedNutrition: components["schemas"]["MacroValues"] & {
             status: components["schemas"]["NutritionStatus"];
             basisServings: components["schemas"]["ServingDecimal"];
@@ -548,6 +650,7 @@ export interface components {
             }[];
             assumptions?: string[];
             corrections: components["schemas"]["NutritionCorrection"][];
+            micronutrients: components["schemas"]["Micronutrients"];
         };
         IngredientWrite: {
             /** Format: uuid */
@@ -716,10 +819,12 @@ export interface components {
             basisServings: components["schemas"]["ServingDecimal"];
             status: components["schemas"]["NutritionStatus"];
             coverageRatio: components["schemas"]["RatioDecimal"];
+            micronutrients: components["schemas"]["Micronutrients"];
         };
         PeriodTotal: components["schemas"]["DisplayMacroValues"] & {
             status: components["schemas"]["NutritionStatus"];
             coverageRatio: components["schemas"]["RatioDecimal"];
+            micronutrients: components["schemas"]["Micronutrients"];
             targetDifference?: components["schemas"]["SignedDisplayMacroValues"];
         };
         MealPlan: {
@@ -770,6 +875,55 @@ export interface components {
             /** Format: date-time */
             generatedAt?: string | null;
             items: components["schemas"]["GroceryItem"][];
+            version: number;
+        };
+        PantryItemWrite: {
+            displayName: string;
+            quantity: components["schemas"]["Decimal6"];
+            unit: string;
+            /** Format: uuid */
+            foodReferenceId?: string | null;
+        };
+        PantryItem: components["schemas"]["PantryItemWrite"] & {
+            /** Format: uuid */
+            id: string;
+            normalizedFoodName: string;
+            /** @enum {string} */
+            matchStatus: "unmatched" | "proposed" | "matched" | "manual";
+            matchConfidence: components["schemas"]["RatioDecimal"] | null;
+            version: number;
+        };
+        PantryRecipeMatch: {
+            /** Format: uuid */
+            recipeId: string;
+            recipeTitle: string;
+            /** @enum {string} */
+            availability: "full" | "partial" | "none";
+            coverageRatio: components["schemas"]["RatioDecimal"];
+            missingIngredients: string[];
+        };
+        PantryDeductionApply: {
+            expectedGroceryListVersion: number;
+            groceryItemIds?: string[];
+        };
+        PantryDeduction: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            pantryItemId: string;
+            /** Format: uuid */
+            groceryItemId: string;
+            pantryQuantity: components["schemas"]["Decimal6"];
+            pantryUnit: string;
+            groceryQuantity: components["schemas"]["Decimal6"];
+            groceryUnit: string;
+            assumption: string;
+            /** @enum {string} */
+            status: "applied" | "reversed";
+            /** Format: date-time */
+            appliedAt?: string;
+            /** Format: date-time */
+            reversedAt?: string | null;
             version: number;
         };
         SuggestionRequest: {
@@ -1694,6 +1848,185 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GroceryItem"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listPantryItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pantry inventory with exact quantities and reviewable matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryItem"][];
+                };
+            };
+        };
+    };
+    createPantryItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PantryItemWrite"];
+            };
+        };
+        responses: {
+            /** @description Pantry item created; ambiguous matches remain reviewable. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryItem"];
+                };
+            };
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    deletePantryItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pantry item removed when no applied deduction depends on it. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updatePantryItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PantryItemWrite"];
+            };
+        };
+        responses: {
+            /** @description Quantity or manual food-reference match updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryItem"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    findMakeableRecipes: {
+        parameters: {
+            query?: {
+                query?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fully makeable recipes first, then partial matches with missing ingredients. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryRecipeMatch"][];
+                };
+            };
+        };
+    };
+    applyPantryDeductions: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                weekStart: components["parameters"]["WeekStart"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PantryDeductionApply"];
+            };
+        };
+        responses: {
+            /** @description Only exact safe matches deducted; every result remains visible and reversible. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryDeduction"][];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    reversePantryDeduction: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                deductionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deducted pantry and grocery quantities restored exactly. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PantryDeduction"];
                 };
             };
             409: components["responses"]["Conflict"];
