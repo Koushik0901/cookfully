@@ -17,6 +17,7 @@ build/
 coverage/
 playwright-report/
 test-results/
+*.tsbuildinfo
 *.log
 
 # Local configuration and runtime data

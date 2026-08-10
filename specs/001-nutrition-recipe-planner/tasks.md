@@ -49,27 +49,27 @@ and the application shell required by every story.
 
 **⚠️ CRITICAL**: No user-story implementation begins until this phase passes its tests.
 
-- [ ] T014 Create UUIDv7, UTC/local-date, `numeric(20,6)` nutrient/quantity, `numeric(12,3)` serving, canonical decimal-string, round-half-up, optimistic-version, and domain-error primitives in `backend/src/vigor_vine/domain/common.py`
-- [ ] T015 Implement SQLAlchemy engine/session factories and the transaction-scoped unit-of-work port in `backend/src/vigor_vine/infrastructure/database.py` and `backend/src/vigor_vine/application/unit_of_work.py`
-- [ ] T016 Initialize Alembic metadata, naming conventions, and PostgreSQL extension setup in `backend/alembic.ini`, `backend/migrations/env.py`, and `backend/migrations/versions/0001_foundation.py`
-- [ ] T017 Create owner timezone/week-start preferences, session, hashed access-token, and encrypted expiring media-asset persistence models in `backend/src/vigor_vine/infrastructure/models/identity.py` and `backend/src/vigor_vine/infrastructure/models/media.py`
-- [ ] T018 [P] Write failing authentication, CSRF, session-expiry, token-hash/scope, owner timezone/week-start, and once-only-token tests in `backend/tests/integration/test_auth.py`
-- [ ] T019 Implement Argon2id owner bootstrap, revocable sessions, CSRF enforcement, scoped token services, and owner preference commands in `backend/src/vigor_vine/application/auth.py` and `backend/src/vigor_vine/application/owner_preferences.py`
-- [ ] T020 Implement login/logout and owner preference routes plus hashed scoped-bearer authentication middleware in `backend/src/vigor_vine/api/routes/auth.py`, `backend/src/vigor_vine/api/routes/owner.py`, and `backend/src/vigor_vine/api/dependencies/auth.py`
-- [ ] T021 [P] Define RFC 9457-style safe problem responses and field-error mapping in `backend/src/vigor_vine/api/problems.py`
-- [ ] T022 [P] Add request/job correlation IDs, raw-provider and personal-data redaction, retention-safe logging, and health metrics in `backend/src/vigor_vine/infrastructure/observability.py`
-- [ ] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/vigor_vine/infrastructure/media_store.py`; implement the independent content-free hash-chained erasure ledger, continuity verification, and rotation-plus-30-day retention in `backend/src/vigor_vine/infrastructure/erasure_ledger.py`
-- [ ] T024 Create ProcessingJob fields for accepted/next-retry/terminal-deadline/diagnostic-retention timestamps plus OutboxEvent models and indexes in `backend/src/vigor_vine/infrastructure/models/jobs.py` and `backend/migrations/versions/0002_jobs_outbox.py`
-- [ ] T025 [P] Write failing job transition, duplicate-delivery, stale-input, 60-second timeout, fixed 5s/30s/2m/5m retry, five-attempt, 15-minute deadline, retention, and outbox recovery tests in `backend/tests/integration/test_job_lifecycle.py`
-- [ ] T026 Implement the authoritative job repository, fixed retry/terminal policy, progress DTO, and retention-reduction policy in `backend/src/vigor_vine/application/jobs.py`
-- [ ] T027 [P] Configure the Celery 5.6 app with 60-second task limits, Redis broker options, task redaction, and worker health signal in `backend/src/vigor_vine/jobs/app.py`
-- [ ] T028 Implement transactional outbox dispatch, the fixed clarified retry schedule, heartbeat/deadline reconciliation, stalled-job recovery, and 24h/30d/1y retention sweeps in `backend/src/vigor_vine/jobs/outbox.py`, `backend/src/vigor_vine/jobs/reconciler.py`, and `backend/src/vigor_vine/jobs/retention.py`
-- [ ] T029 Add one-second acceptance, worker-death, broker-outage, retry/deadline, reload polling, and retention contract coverage from `contracts/background-jobs.md` in `backend/tests/contract/test_background_job_contract.py`
-- [ ] T030 Assemble FastAPI lifespan, authentication, problem middleware, health route, and versioned router in `backend/src/vigor_vine/api/main.py`
-- [ ] T031 Configure OpenAPI 0.2 compatibility checks, canonical decimal-string TypeScript adapters, and committed-client generation in `scripts/generate-api-client.ps1` and `frontend/src/app/api/generated/`
-- [ ] T032 [P] Create the React router, authentication boundary, TanStack Query provider, and global error boundary in `frontend/src/app/App.tsx` and `frontend/src/app/providers.tsx`
-- [ ] T033 [P] Create accessible shared controls for exact-decimal inputs, buttons, fields, destructive confirmations, dialogs, polling status badges, skeletons, empty states, and error recovery in `frontend/src/components/`
-- [ ] T034 Build API, worker, outbox, and web images and complete service health/dependency wiring in `deploy/docker/` and `deploy/compose.yaml`
+- [X] T014 Create UUIDv7, UTC/local-date, `numeric(20,6)` nutrient/quantity, `numeric(12,3)` serving, canonical decimal-string, round-half-up, optimistic-version, and domain-error primitives in `backend/src/vigor_vine/domain/common.py`
+- [X] T015 Implement SQLAlchemy engine/session factories and the transaction-scoped unit-of-work port in `backend/src/vigor_vine/infrastructure/database.py` and `backend/src/vigor_vine/application/unit_of_work.py`
+- [X] T016 Initialize Alembic metadata, naming conventions, and PostgreSQL extension setup in `backend/alembic.ini`, `backend/migrations/env.py`, and `backend/migrations/versions/0001_foundation.py`
+- [X] T017 Create owner timezone/week-start preferences, session, hashed access-token, and encrypted expiring media-asset persistence models in `backend/src/vigor_vine/infrastructure/models/identity.py` and `backend/src/vigor_vine/infrastructure/models/media.py`
+- [X] T018 [P] Write failing authentication, CSRF, session-expiry, token-hash/scope, owner timezone/week-start, and once-only-token tests in `backend/tests/integration/test_auth.py`
+- [X] T019 Implement Argon2id owner bootstrap, revocable sessions, CSRF enforcement, scoped token services, and owner preference commands in `backend/src/vigor_vine/application/auth.py` and `backend/src/vigor_vine/application/owner_preferences.py`
+- [X] T020 Implement login/logout and owner preference routes plus hashed scoped-bearer authentication middleware in `backend/src/vigor_vine/api/routes/auth.py`, `backend/src/vigor_vine/api/routes/owner.py`, and `backend/src/vigor_vine/api/dependencies/auth.py`
+- [X] T021 [P] Define RFC 9457-style safe problem responses and field-error mapping in `backend/src/vigor_vine/api/problems.py`
+- [X] T022 [P] Add request/job correlation IDs, raw-provider and personal-data redaction, retention-safe logging, and health metrics in `backend/src/vigor_vine/infrastructure/observability.py`
+- [X] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/vigor_vine/infrastructure/media_store.py`; implement the independent content-free hash-chained erasure ledger, continuity verification, and rotation-plus-30-day retention in `backend/src/vigor_vine/infrastructure/erasure_ledger.py`
+- [X] T024 Create ProcessingJob fields for accepted/next-retry/terminal-deadline/diagnostic-retention timestamps plus OutboxEvent models and indexes in `backend/src/vigor_vine/infrastructure/models/jobs.py` and `backend/migrations/versions/0002_jobs_outbox.py`
+- [X] T025 [P] Write failing job transition, duplicate-delivery, stale-input, 60-second timeout, fixed 5s/30s/2m/5m retry, five-attempt, 15-minute deadline, retention, and outbox recovery tests in `backend/tests/integration/test_job_lifecycle.py`
+- [X] T026 Implement the authoritative job repository, fixed retry/terminal policy, progress DTO, and retention-reduction policy in `backend/src/vigor_vine/application/jobs.py`
+- [X] T027 [P] Configure the Celery 5.6 app with 60-second task limits, Redis broker options, task redaction, and worker health signal in `backend/src/vigor_vine/jobs/app.py`
+- [X] T028 Implement transactional outbox dispatch, the fixed clarified retry schedule, heartbeat/deadline reconciliation, stalled-job recovery, and 24h/30d/1y retention sweeps in `backend/src/vigor_vine/jobs/outbox.py`, `backend/src/vigor_vine/jobs/reconciler.py`, and `backend/src/vigor_vine/jobs/retention.py`
+- [X] T029 Add one-second acceptance, worker-death, broker-outage, retry/deadline, reload polling, and retention contract coverage from `contracts/background-jobs.md` in `backend/tests/contract/test_background_job_contract.py`
+- [X] T030 Assemble FastAPI lifespan, authentication, problem middleware, health route, and versioned router in `backend/src/vigor_vine/api/main.py`
+- [X] T031 Configure OpenAPI 0.2 compatibility checks, canonical decimal-string TypeScript adapters, and committed-client generation in `scripts/generate-api-client.ps1` and `frontend/src/app/api/generated/`
+- [X] T032 [P] Create the React router, authentication boundary, TanStack Query provider, and global error boundary in `frontend/src/app/App.tsx` and `frontend/src/app/providers.tsx`
+- [X] T033 [P] Create accessible shared controls for exact-decimal inputs, buttons, fields, destructive confirmations, dialogs, polling status badges, skeletons, empty states, and error recovery in `frontend/src/components/`
+- [X] T034 Build API, worker, outbox, and web images and complete service health/dependency wiring in `deploy/docker/` and `deploy/compose.yaml`
 
 **Checkpoint**: Authentication, errors, health, media storage, job/outbox redelivery, containers, and
 the frontend shell work independently of recipe features.

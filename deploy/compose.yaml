@@ -33,6 +33,83 @@ services:
       retries: 12
     restart: unless-stopped
 
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    environment: &backend-environment
+      VV_ENVIRONMENT: ${VV_ENVIRONMENT:-development}
+      VV_SECRET_KEY: ${VV_SECRET_KEY:?Set VV_SECRET_KEY in .env}
+      VV_OWNER_EMAIL: ${VV_OWNER_EMAIL:-owner@example.com}
+      VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
+      VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
+      VV_REDIS_URL: redis://redis:6379/0
+      VV_MEDIA_ROOT: /data/media
+      VV_ERASURE_LEDGER_ROOT: /data/erasure-ledger
+      VV_RUN_MIGRATIONS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media-data:/data/media
+      - erasure-ledger-data:/data/erasure-ledger
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    command: ["celery", "-A", "vigor_vine.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    environment:
+      <<: *backend-environment
+      VV_RUN_MIGRATIONS: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - media-data:/data/media
+      - erasure-ledger-data:/data/erasure-ledger
+    restart: unless-stopped
+
+  outbox:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    command: ["python", "-m", "vigor_vine.jobs.outbox_process"]
+    environment:
+      <<: *backend-environment
+      VV_RUN_MIGRATIONS: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web.Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:
+  media-data:
+  erasure-ledger-data:
