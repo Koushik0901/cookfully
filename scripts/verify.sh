@@ -33,8 +33,12 @@ pnpm --dir frontend exec openapi-typescript ../specs/001-nutrition-recipe-planne
 git diff --exit-code -- frontend/src/app/api/generated/schema.ts
 
 docker compose -f "$base_compose" config --quiet
-docker compose -f "$base_compose" -f "$production_compose" config --quiet
-docker compose -f "$base_compose" -f "$production_compose" build
+VV_COOKIE_SECURE=true VV_PUBLIC_BASE_URL=https://planner.example.test \
+  VV_API_BASE_URL=https://planner.example.test VV_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
+  docker compose -f "$base_compose" -f "$production_compose" config --quiet
+VV_COOKIE_SECURE=true VV_PUBLIC_BASE_URL=https://planner.example.test \
+  VV_API_BASE_URL=https://planner.example.test VV_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
+  docker compose -f "$base_compose" -f "$production_compose" build
 docker compose -f "$base_compose" -f "$performance_compose" --profile performance up --build -d postgres redis api worker outbox retention web
 docker compose -f "$base_compose" -f "$performance_compose" --profile performance build benchmark
 VV_PERFORMANCE_REPORT_CONTAINER=/app/artifacts/performance-release-report.json \

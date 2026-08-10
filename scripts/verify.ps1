@@ -45,8 +45,24 @@ try {
     Invoke-Checked 'Generated OpenAPI client drift' { git diff --exit-code -- $generatedClient }
 
     Invoke-Checked 'Development Compose validation' { docker compose -f $baseCompose config --quiet }
-    Invoke-Checked 'Production Compose validation' { docker compose -f $baseCompose -f $productionCompose config --quiet }
-    Invoke-Checked 'Production image build' { docker compose -f $baseCompose -f $productionCompose build }
+    $developmentCookieSecure = $env:VV_COOKIE_SECURE
+    $developmentPublicBaseUrl = $env:VV_PUBLIC_BASE_URL
+    $developmentApiBaseUrl = $env:VV_API_BASE_URL
+    $developmentTrustedProxies = $env:VV_TRUSTED_PROXY_CIDRS
+    try {
+        $env:VV_COOKIE_SECURE = 'true'
+        $env:VV_PUBLIC_BASE_URL = 'https://planner.example.test'
+        $env:VV_API_BASE_URL = 'https://planner.example.test'
+        $env:VV_TRUSTED_PROXY_CIDRS = '172.31.250.10/32'
+        Invoke-Checked 'Production Compose validation' { docker compose -f $baseCompose -f $productionCompose config --quiet }
+        Invoke-Checked 'Production image build' { docker compose -f $baseCompose -f $productionCompose build }
+    }
+    finally {
+        $env:VV_COOKIE_SECURE = $developmentCookieSecure
+        $env:VV_PUBLIC_BASE_URL = $developmentPublicBaseUrl
+        $env:VV_API_BASE_URL = $developmentApiBaseUrl
+        $env:VV_TRUSTED_PROXY_CIDRS = $developmentTrustedProxies
+    }
     Invoke-Checked 'Self-hosted stack start' { docker compose -f $baseCompose -f $performanceCompose --profile performance up --build -d postgres redis api worker outbox retention web }
 
     $env:VV_PERFORMANCE_REPORT_CONTAINER = '/app/artifacts/performance-release-report.json'
