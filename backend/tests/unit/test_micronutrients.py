@@ -27,7 +27,10 @@ def test_manifest_has_exactly_nine_canonical_fields_units_and_versioned_usda_ids
     assert tuple(USDA_MICRONUTRIENT_MANIFEST) == MICRONUTRIENT_KEYS
     assert {entry.unit for entry in USDA_MICRONUTRIENT_MANIFEST.values()} == {"g", "mg", "ug"}
     assert all(entry.fdc_nutrient_id > 0 for entry in USDA_MICRONUTRIENT_MANIFEST.values())
-    assert all(entry.mapping_version.startswith("usda-fdc-") for entry in USDA_MICRONUTRIENT_MANIFEST.values())
+    assert all(
+        entry.mapping_version.startswith("usda-fdc-")
+        for entry in USDA_MICRONUTRIENT_MANIFEST.values()
+    )
 
 
 def test_missing_is_null_but_explicit_source_zero_is_preserved_with_provenance() -> None:
@@ -80,7 +83,14 @@ def test_rollup_is_six_decimal_per_serving_and_propagates_provenance() -> None:
                 resolved=True,
             ),
             MicronutrientContribution(
-                {"calcium_mg": SourceMicronutrient(Decimal("30"), source="USDA", source_release="2026-04")},
+                {
+                    "calcium_mg": SourceMicronutrient(
+                        Decimal("30"), source="USDA", source_release="2026-04"
+                    ),
+                    "vitamin_c_mg": SourceMicronutrient(
+                        Decimal("0"), source="USDA", source_release="2026-04", explicit=True
+                    ),
+                },
                 mass_grams=Decimal("50"),
                 resolved=True,
             ),

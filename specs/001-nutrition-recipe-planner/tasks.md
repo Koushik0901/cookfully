@@ -290,12 +290,12 @@ complete, true-zero, and unavailable micronutrient states.
 
 ### Implementation for User Story 6
 
-- [ ] T133 [US6] Create six-decimal PantryItem and PantryDeduction tables with match and reversible-state constraints in `backend/src/vigor_vine/infrastructure/models/pantry.py` and `backend/migrations/versions/0009_pantry.py`
-- [ ] T134 [P] [US6] Extend reference import and six-decimal typed nutrition records with a versioned USDA mapping manifest for dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C plus unavailable-versus-explicit-zero handling in `backend/src/vigor_vine/cli/reference_data.py` and `backend/src/vigor_vine/domain/nutrition.py`
-- [ ] T135 [P] [US6] Implement six-decimal pantry normalization, matching, quantity conversion, and manual correction in `backend/src/vigor_vine/application/pantry.py`
-- [ ] T136 [P] [US6] Implement fully/partially makeable recipe scoring and explicit missing-ingredient results in `backend/src/vigor_vine/application/pantry_search.py`
-- [ ] T137 [US6] Implement visible, safe, reversible pantry deductions through grocery reconciliation in `backend/src/vigor_vine/application/pantry_deductions.py`
-- [ ] T138 [US6] Implement pantry CRUD/search/deduction routes and canonical decimal-string DTOs matching the amended contract in `backend/src/vigor_vine/api/routes/pantry.py` and `backend/src/vigor_vine/api/schemas/pantry.py`
+- [X] T133 [US6] Create six-decimal PantryItem and PantryDeduction tables with match and reversible-state constraints in `backend/src/vigor_vine/infrastructure/models/pantry.py` and `backend/migrations/versions/0009_pantry.py`
+- [X] T134 [P] [US6] Extend reference import and six-decimal typed nutrition records with a versioned USDA mapping manifest for dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C plus unavailable-versus-explicit-zero handling in `backend/src/vigor_vine/cli/reference_data.py` and `backend/src/vigor_vine/domain/nutrition.py`
+- [X] T135 [P] [US6] Implement six-decimal pantry normalization, matching, quantity conversion, and manual correction in `backend/src/vigor_vine/application/pantry.py`
+- [X] T136 [P] [US6] Implement fully/partially makeable recipe scoring and explicit missing-ingredient results in `backend/src/vigor_vine/application/pantry_search.py`
+- [X] T137 [US6] Implement visible, safe, reversible pantry deductions through grocery reconciliation in `backend/src/vigor_vine/application/pantry_deductions.py`
+- [X] T138 [US6] Implement pantry CRUD/search/deduction routes and canonical decimal-string DTOs matching the amended contract in `backend/src/vigor_vine/api/routes/pantry.py` and `backend/src/vigor_vine/api/schemas/pantry.py`
 - [ ] T139 [US6] Regenerate and commit exact-decimal pantry/micronutrient TypeScript bindings in `frontend/src/app/api/generated/`
 - [ ] T140 [P] [US6] Implement pantry inventory, match review, quantity editing, and makeable-recipe search in `frontend/src/features/pantry/PantryPage.tsx`
 - [ ] T141 [P] [US6] Add provenance-aware panels for the nine canonical P6 micronutrients, unavailable-versus-explicit-zero states, canonical units, and accessible planning-aid-not-medical-advice language to `frontend/src/features/recipes/NutritionPanel.tsx` and `frontend/src/features/plans/MacroSummary.tsx`

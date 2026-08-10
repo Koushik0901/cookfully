@@ -21,7 +21,9 @@ def test_fully_then_partially_makeable_recipes_are_ranked_with_missing_items() -
             "full",
             "Chicken rice",
             (
-                PantrySearchIngredient("chicken breast", "400 g chicken breast", Decimal("400"), "g"),
+                PantrySearchIngredient(
+                    "chicken breast", "400 g chicken breast", Decimal("400"), "g"
+                ),
                 PantrySearchIngredient("rice", "200 g rice", Decimal("200"), "g"),
             ),
         ),
@@ -29,7 +31,9 @@ def test_fully_then_partially_makeable_recipes_are_ranked_with_missing_items() -
             "partial",
             "Chicken salad",
             (
-                PantrySearchIngredient("chicken breast", "300 g chicken breast", Decimal("300"), "g"),
+                PantrySearchIngredient(
+                    "chicken breast", "300 g chicken breast", Decimal("300"), "g"
+                ),
                 PantrySearchIngredient("lettuce", "1 lettuce", Decimal("1"), "count"),
             ),
         ),

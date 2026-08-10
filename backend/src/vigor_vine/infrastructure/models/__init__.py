@@ -9,6 +9,7 @@ from vigor_vine.infrastructure.models.nutrition import (
     NutritionCorrection,
     NutritionEstimate,
 )
+from vigor_vine.infrastructure.models.pantry import PantryDeduction, PantryItem
 from vigor_vine.infrastructure.models.plans import (
     MealNutritionSnapshot,
     MealPlan,
@@ -44,6 +45,8 @@ __all__ = [
     "NutritionEstimate",
     "OutboxEvent",
     "OwnerAccount",
+    "PantryDeduction",
+    "PantryItem",
     "ProcessingJob",
     "Recipe",
     "RecipeInstruction",

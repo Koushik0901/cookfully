@@ -62,7 +62,12 @@ def test_pantry_openapi_and_exact_decimal_crud(isolated_database_url: str, tmp_p
         item = created.json()
         changed = client.patch(
             f"/api/v1/pantry-items/{item['id']}",
-            json={"quantity": "0.333333", "unit": "kg"},
+            json={
+                "displayName": item["displayName"],
+                "quantity": "0.333333",
+                "unit": "kg",
+                "foodReferenceId": None,
+            },
             headers={
                 **headers,
                 "If-Match": f'"{item["version"]}"',
@@ -74,7 +79,12 @@ def test_pantry_openapi_and_exact_decimal_crud(isolated_database_url: str, tmp_p
 
         stale = client.patch(
             f"/api/v1/pantry-items/{item['id']}",
-            json={"quantity": "0.5"},
+            json={
+                "displayName": item["displayName"],
+                "quantity": "0.5",
+                "unit": "kg",
+                "foodReferenceId": None,
+            },
             headers={
                 **headers,
                 "If-Match": f'"{item["version"]}"',

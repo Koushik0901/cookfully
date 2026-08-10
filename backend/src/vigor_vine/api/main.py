@@ -19,6 +19,7 @@ from vigor_vine.api.routes import (
     meal_plans,
     media,
     owner,
+    pantry,
     recipes,
     suggestions,
 )
@@ -31,6 +32,9 @@ from vigor_vine.application.idempotency import IdempotencyService
 from vigor_vine.application.jobs import JobService
 from vigor_vine.application.meal_plans import GoalService, MealPlanService
 from vigor_vine.application.owner_preferences import OwnerPreferenceService
+from vigor_vine.application.pantry import PantryService
+from vigor_vine.application.pantry_deductions import PantryDeductionService
+from vigor_vine.application.pantry_search import PantrySearchService
 from vigor_vine.application.recipe_queries import RecipeQueryService
 from vigor_vine.application.recipes import RecipeService
 from vigor_vine.application.suggestions import SuggestionService
@@ -108,6 +112,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.goals = goal_service
         app.state.meal_plans = meal_plan_service
         app.state.grocery_lists = grocery_list_service
+        app.state.pantry = PantryService(sessions)
+        app.state.pantry_search = PantrySearchService(sessions)
+        app.state.pantry_deductions = PantryDeductionService(sessions)
         app.state.suggestions = SuggestionService(sessions)
         app.state.sessions = sessions
         media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
@@ -141,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(goals.router)
     versioned.include_router(meal_plans.router)
     versioned.include_router(grocery.router)
+    versioned.include_router(pantry.router)
     versioned.include_router(exports.router)
     versioned.include_router(suggestions.router)
     versioned.include_router(media.router)

@@ -32,7 +32,7 @@ async function mockPantryApi(page: Page) {
       return route.fulfill({ status: 201, json: pantry.at(-1) });
     }
     if (path === "/api/v1/pantry/recipe-matches") {
-      return route.fulfill({ json: [{ recipeId: "00000000-0000-4000-8000-000000000603", title: "Chicken rice", makeability: "partial", coverageRatio: "0.5", missingIngredients: ["400 g chicken breast"] }] });
+      return route.fulfill({ json: [{ recipeId: "00000000-0000-4000-8000-000000000603", recipeTitle: "Chicken rice", availability: "partial", coverageRatio: "0.5", missingIngredients: ["400 g chicken breast"] }] });
     }
     return route.fulfill({ status: 404, json: { code: "not_found", title: "Not found" } });
   });

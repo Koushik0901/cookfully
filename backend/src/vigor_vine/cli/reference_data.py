@@ -14,6 +14,7 @@ import typer
 from sqlalchemy import select, update
 
 from vigor_vine.domain.common import DomainError, quantize_decimal, uuid7
+from vigor_vine.domain.nutrition import usda_micronutrient_mapping
 from vigor_vine.infrastructure.config import get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
 from vigor_vine.infrastructure.models.reference_foods import (
@@ -115,16 +116,22 @@ def import_release(
                     if code is None:
                         continue
                     amount = item.get("amount")
+                    mapping = usda_micronutrient_mapping(code)
                     session.add(
                         FoodNutrient(
                             food_reference_id=food.id,
                             nutrient_code=str(code),
+                            canonical_key=mapping.key if mapping is not None else None,
+                            mapping_version=(
+                                mapping.mapping_version if mapping is not None else None
+                            ),
                             amount=(
                                 quantize_decimal(str(amount), Decimal("0.000001"))
                                 if amount is not None
                                 else None
                             ),
                             unit=str(nutrient.get("unitName", "")).casefold(),
+                            explicit_zero=amount is not None and Decimal(str(amount)) == 0,
                             derivation=str(item.get("foodNutrientDerivation", "")) or None,
                         )
                     )

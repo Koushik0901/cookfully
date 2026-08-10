@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Numeric, String, Text, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -83,7 +83,10 @@ class FoodNutrient(Base):
         primary_key=True,
     )
     nutrient_code: Mapped[str] = mapped_column(String(80), primary_key=True)
+    canonical_key: Mapped[str | None] = mapped_column(String(40), index=True)
+    mapping_version: Mapped[str | None] = mapped_column(String(80))
     amount: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    explicit_zero: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     derivation: Mapped[str | None] = mapped_column(Text)
     food: Mapped[FoodReference] = relationship(back_populates="nutrients")

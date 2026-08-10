@@ -51,3 +51,44 @@ Adapt the strongest parts rather than copy one implementation:
 Evidence is defined by `specs/001-nutrition-recipe-planner/contracts/mcp-tools.md` and tasks
 T115–T127. This decision should be reconsidered if the product becomes broadly multi-user, because
 resource ownership and delegated administration would then need a richer authorization model.
+
+## P6 pantry matching and reversible grocery deductions — 2026-08-10
+
+### Sources inspected
+
+- [Mealie shopping-list documentation](https://docs.mealie.io/documentation/getting-started/features/)
+  and its maintained repository food/unit model
+- [Tandoor shopping documentation](https://docs.tandoor.dev/features/shopping/) and its maintained
+  repository food/unit merge and rename behavior
+- [Immich stable trash restore contract](https://api.immich.app/endpoints/trash/restoreTrash) and
+  [trash settings](https://docs.immich.app/administration/system-settings/)
+
+### Objective comparison
+
+Mealie and Tandoor both validate the usefulness of linking recipes or meal plans to editable shopping
+lists and of maintaining reusable food/unit identities. Those patterns reduce repeated entry and make
+manual reconciliation understandable. Neither maintained feature description establishes a
+nutrition-grade pantry ledger with exact remaining quantities, safe dimensional conversion, or
+reversible subtraction. Treating their shopping behavior as proof for automatic pantry deductions
+would therefore overstate the available evidence. Their flexible user-defined units are valuable for
+recipe capture, but unsafe as an automatic conversion basis when density or package size is unknown.
+
+Immich is not a food-domain reference, so its asset model should not be copied into pantry storage.
+Its explicit trash/restore lifecycle does provide useful contrary evidence to irreversible convenience
+actions: reversible state is operationally valuable, but it also requires clear state boundaries and
+can fail when underlying state changes independently.
+
+### Local decision
+
+Adapt the editable identity and explicit restore ideas while keeping stricter arithmetic boundaries:
+
+- normalize names for discovery but retain the user's display text;
+- auto-match only exact unambiguous food identities; expose fuzzy matches for review;
+- convert only within mass, volume, or count dimensions, never by an assumed density or package size;
+- consume pantry quantities only through an explicit grocery deduction command;
+- persist both sides of every six-decimal conversion and refuse reversal after intervening edits;
+- keep unmatched, proposed, partial, and missing states visible instead of treating them as zero.
+
+The first evidence is in tasks T128–T138 and their pantry/micronutrient unit and API contract tests.
+This decision should be revisited if a future barcode/package model supplies trustworthy package
+quantities or if the reference projects add a well-tested pantry ledger with stronger guarantees.
