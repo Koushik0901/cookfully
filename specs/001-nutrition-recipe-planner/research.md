@@ -239,12 +239,17 @@ small compared with the impact of exposing nutrition history, imports, and mutat
 
 **Decision**: Require domain unit/property tests, PostgreSQL/Redis integration tests, OpenAPI and MCP
 contract tests, worker redelivery/idempotency tests, frontend component/accessibility tests, and
-Playwright critical-journey tests. Version a 20-30 recipe corpus with captured HTML, trusted nutrition,
-expected parse/match classifications, and measured error reports.
+Playwright critical-journey tests. Version a 50-recipe corpus with captured HTML, trusted nutrition,
+expected parse/match classifications, and measured error reports. Maintain a stable 30-recipe primary
+subset for the constitutional gate and 20 additional extension/stress cases.
 
 **Rationale**: The hardest failures cross parser, reference match, unit conversion, yield, correction,
 and aggregation boundaries. Layered fixtures locate the error instead of reporting only a final macro
 difference.
+
+Coverage is the lower of quantified matched-mass coverage and resolved non-optional ingredient-count
+coverage; a missing denominator yields zero. This prevents unquantified or unmatched ingredients from
+disappearing from the completeness gate.
 
 **Alternatives considered**:
 
@@ -265,3 +270,81 @@ is portable but should not replace a tested operational backup.
 
 - **Database dump only**: omits portability and can omit media if operators misunderstand volumes.
 - **JSON export only**: slower and less exact for full disaster recovery.
+
+## 15. Exact Decimal and Rounding Boundary
+
+**Decision**: Use PostgreSQL fixed decimals with six fractional places for nutrients and ingredient
+quantities and three for servings. Pydantic/OpenAPI/MCP/export schemas expose canonical decimal strings.
+Use round-half-up and quantize plan-entry calories to 1 kcal and macros to 0.1 g before aggregation.
+
+**Rationale**: Decimal strings avoid JavaScript/binary-float drift, while aggregating the same values
+shown per entry makes meal/day/week totals and target differences exactly reproducible.
+
+**Alternatives considered**:
+
+- **JSON numbers plus UI formatting**: simpler clients but transport and runtime rounding can drift.
+- **Aggregate raw values and round only totals**: mathematically precise but displayed entries may not
+  add to the displayed total, contradicting SC-006.
+
+## 16. Recipe Lifecycle and Erasure
+
+**Decision**: Archive is reversible and removes recipes from active discovery. Restore reactivates the
+prior usable state when the input hash still matches, otherwise returns `stale`. Permanent deletion
+requires an archived recipe plus confirmation, supersedes active jobs, deletes recipe-owned records,
+and detaches immutable historical plan and grocery provenance.
+
+**Rationale**: This provides owner erasure without rewriting historical nutrition totals or obscuring
+what a past grocery item represented.
+
+**Alternatives considered**:
+
+- **Prohibit deletion after planning use**: preserves history but fails the owner's data-control goal.
+- **Cascade through history**: makes earlier totals and shopping records misleading or incomplete.
+
+## 17. Retention and Provider Privacy
+
+**Decision**: Discard successful-import HTML immediately after extraction. Permit encrypted failed-
+import HTML for at most 24 hours only when the owner enables diagnostics. Never persist raw provider
+requests/responses. Reduce detailed job diagnostics after 30 days and delete safe codes/timestamps
+after one year. Keep estimates and corrections until explicit erasure; document backup rotation lag.
+
+**Rationale**: The policy retains reproducible normalized provenance and bounded operational evidence
+without building a repository of recipe-page bodies, prompts, or personal provider payloads.
+
+**Alternatives considered**:
+
+- **Seven-day raw payload retention**: easier debugging but materially expands private-data exposure.
+- **Operator-only configuration with no defaults**: creates unsafe and untestable deployments.
+
+## 18. Polling and Bounded Retry Semantics
+
+**Decision**: Acknowledge persisted recipe/job creation within one second. Poll every two seconds on a
+visible job screen and every 15 seconds elsewhere. Time out attempts at 60 seconds; retry after 5
+seconds, 30 seconds, 2 minutes, and 5 minutes; allow at most five attempts and a 15-minute terminal
+deadline from initial acceptance.
+
+**Rationale**: Authoritative PostgreSQL polling survives reloads and proxy configurations without the
+operational complexity of an event-streaming channel. The fixed schedule is testable and leaves time
+inside the terminal deadline for every attempt.
+
+**Alternatives considered**:
+
+- **Server-sent events with polling fallback**: better live progress but adds a second transport and
+  proxy/connection lifecycle before it provides necessary product value.
+- **Manual refresh or synchronous processing**: poor recovery and violates the asynchronous boundary.
+
+## 19. Complete Contract Before Code Generation
+
+**Decision**: The Phase 1 canonical contract includes recipe restore/permanent deletion, manual grocery
+item create/delete, access-token management, suggestion status/result/acceptance, and an MCP meal-plan
+read tool before implementation or generated-client tasks begin.
+
+**Rationale**: Contract-first ordering prevents transport behavior from being invented during route
+implementation and resolves the constitution-level gaps identified by `/speckit.analyze`.
+
+**Alternatives considered**:
+
+- **Reconcile at release-gate time**: allows backend, frontend, and MCP semantics to drift for most of
+  implementation.
+- **Document only the initial create endpoints**: leaves required lifecycle and acceptance flows
+  untestable.

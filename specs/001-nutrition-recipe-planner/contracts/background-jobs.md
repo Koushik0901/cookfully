@@ -56,11 +56,15 @@ queued|running|retry_wait -> superseded
 - Retryable failures include timeouts, rate limits, broker interruptions, and provider 5xx responses.
   Invalid input, blocked URLs, schema-invalid provider output after bounded attempts, and missing
   authoritative records are terminal.
-- Retries use bounded exponential backoff with jitter. Default maximum is five attempts; job-specific
-  changes require configuration and tests.
+- Each attempt has a 60-second execution timeout. Retryable failures become available after fixed
+  delays of 5 seconds, 30 seconds, 2 minutes, and 5 minutes. The maximum is five attempts, and every
+  job reaches `succeeded`, `failed`, `cancelled`, or `superseded` no later than 15 minutes after its
+  initial `accepted_at`; the terminal deadline wins over a later retry time.
 - `failure_code` is stable and safe for UI/API use. Internal stack traces stay in protected logs.
 - A heartbeat/reconciler returns stalled `running` jobs to `queued` only when their handler is proven
   idempotent.
+- Recipe save/import acknowledges only after the recipe, ProcessingJob, and OutboxEvent commit and
+  MUST return within one second on reference hardware; it never waits for parsing or nutrition.
 
 ## Progress and Chaining
 
@@ -80,6 +84,16 @@ Every log and metric includes `job_id`, `kind`, `aggregate_id`, `attempt`, `trac
 outcome. Metrics count queue delay, run duration, retry count, stale/superseded results, failure codes,
 and reconciliation actions. Logs MUST NOT include raw page bodies, prompts, secrets, or personal goals.
 
+The authoritative status response includes `progressCurrent`, `progressTotal`, `nextRetryAt`,
+`terminalDeadlineAt`, and safe failure fields. The visual client polls every two seconds while the
+related job screen is visible and every 15 seconds elsewhere; a reload resumes polling by stored job
+ID. Polling stops at a terminal state.
+
+Successful-import HTML is discarded after extraction. Owner-enabled failed-import diagnostic HTML is
+encrypted and expires within 24 hours. Raw provider requests/responses are never stored. Detailed job
+diagnostics reduce to safe codes and timestamps after 30 days, and those remaining fields are deleted
+after one year.
+
 ## Contract Tests
 
 - Duplicate delivery produces one active result.
@@ -88,3 +102,8 @@ and reconciliation actions. Logs MUST NOT include raw page bodies, prompts, secr
 - Broker outage leaves an unpublished outbox event that is later dispatched.
 - Retry exhaustion produces a stable failure code and recoverable user action.
 - Manual corrections survive every job kind unless an explicit reset command preceded the job.
+- Acceptance stays under one second, the fixed retry schedule and five-attempt ceiling are enforced,
+  and no job remains nonterminal after its 15-minute deadline.
+- Polling resumes after reload and surfaces terminal state within one foreground polling interval.
+- Retention sweeps enforce the 24-hour, 30-day, and one-year boundaries without deleting authoritative
+  recipe, estimate, or correction records.

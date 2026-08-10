@@ -8,7 +8,8 @@
    across application internals and suitable for migration or independent inspection.
 
 Neither artifact includes password hashes, sessions, API/MCP token hashes, encryption keys, provider
-credentials, raw prompts, or expired job payloads.
+credentials, raw prompts/responses, failed-import diagnostic HTML, detailed job diagnostics, or expired
+job payloads.
 
 ## Portable ZIP Layout
 
@@ -51,8 +52,14 @@ unknown optional files.
 ```
 
 Every NDJSON record includes `schemaVersion`, stable ID, created/updated timestamps, and the public
-domain fields defined in `data-model.md`. Decimal values serialize as JSON strings to preserve exact
-precision. Dates and timestamps use ISO 8601. Null means unavailable; numeric zero remains zero.
+domain fields defined in `data-model.md`. Nutrients and ingredient quantities serialize as canonical
+decimal strings with at most six fractional places; servings use at most three; plan snapshot calories
+use whole-kilocalorie strings and macros use one-decimal strings. Dates and timestamps use ISO 8601.
+Null means unavailable; decimal string `"0"` or `"0.0"` remains a true zero.
+
+Permanently deleted recipes are absent. Historical MealPlanEntry snapshots and GroceryItem source text
+remain with a null recipe link so exports preserve the meaning of prior plans without recreating erased
+recipe ingredients, estimates, corrections, or media.
 
 ## Import and Restore Rules
 
@@ -65,3 +72,5 @@ precision. Dates and timestamps use ISO 8601. Null means unavailable; numeric ze
 - A failed validation or import leaves existing data unchanged and records a safe diagnostic report.
 - Restore verification must cover every core entity, active correction, meal snapshot, grocery manual
   state, and media checksum.
+- Operator restore guidance MUST disclose that a backup can predate an owner erasure and require the
+  operator to reapply documented post-backup erasures before returning the instance to service.

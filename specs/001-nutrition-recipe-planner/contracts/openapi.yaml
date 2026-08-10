@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
   title: Vigor & Vine API
-  version: 0.1.0
+  version: 0.2.0
   description: >-
     Canonical HTTP contract for recipes, honest nutrition estimates, goals, meal plans,
-    grocery lists, exports, and later goal-aware suggestions. MCP tools compose the same
-    application commands and queries.
+    grocery lists, exports, agent access, and later goal-aware suggestions. Public decimal
+    values are canonical strings. MCP tools compose the same application commands and queries.
 servers:
   - url: /api/v1
 security:
@@ -19,6 +19,7 @@ tags:
   - name: Meal Plans
   - name: Grocery
   - name: Data Ownership
+  - name: Agent Access
   - name: Suggestions
 
 paths:
@@ -169,6 +170,48 @@ paths:
       responses:
         "204":
           description: Recipe archived; historical snapshots remain.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}/restore:
+    post:
+      tags: [Recipes, Nutrition]
+      operationId: restoreRecipe
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Recipe restored to its prior usable state or with stale nutrition and a recovery action.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetail"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}/permanent:
+    delete:
+      tags: [Recipes, Data Ownership]
+      operationId: permanentlyDeleteRecipe
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirmation]
+              properties:
+                confirmation: { type: string, const: permanently-delete }
+      responses:
+        "204":
+          description: Archived recipe permanently deleted; historical snapshots and grocery provenance remain detached.
         "409":
           $ref: "#/components/responses/Conflict"
 
@@ -436,6 +479,44 @@ paths:
                 $ref: "#/components/schemas/GroceryItem"
         "409":
           $ref: "#/components/responses/Conflict"
+    delete:
+      tags: [Grocery]
+      operationId: deleteGroceryItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Manual or generated grocery item removed without changing recipe definitions.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /meal-plans/{weekStart}/grocery-list/items:
+    post:
+      tags: [Grocery]
+      operationId: createGroceryItem
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroceryItemWrite"
+      responses:
+        "201":
+          description: Manual grocery item created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroceryItem"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /exports:
     post:
@@ -458,6 +539,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobAccepted"
 
+  /access-tokens:
+    get:
+      tags: [Agent Access]
+      operationId: listAccessTokens
+      responses:
+        "200":
+          description: Token metadata; raw token secrets are never returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AccessToken" }
+    post:
+      tags: [Agent Access]
+      operationId: createAccessToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessTokenWrite" }
+      responses:
+        "201":
+          description: Token created; secret is returned exactly once.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessTokenCreated" }
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /access-tokens/{tokenId}:
+    delete:
+      tags: [Agent Access]
+      operationId: revokeAccessToken
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Token revoked immediately.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /suggestions:
     post:
       x-release: expansion-p4
@@ -478,6 +604,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobAccepted"
+
+  /suggestions/{suggestionId}:
+    get:
+      x-release: expansion-p4
+      tags: [Suggestions]
+      operationId: getSuggestion
+      parameters:
+        - name: suggestionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Suggestion progress or terminal feasible/infeasible result with projected totals.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuggestionResult" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /suggestions/{suggestionId}/accept:
+    post:
+      x-release: expansion-p4
+      tags: [Suggestions, Meal Plans]
+      operationId: acceptSuggestion
+      parameters:
+        - name: suggestionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuggestionAcceptance" }
+      responses:
+        "200":
+          description: Selected suggestion items accepted through normal plan mutations; totals equal the preview.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlan" }
+        "409":
+          $ref: "#/components/responses/Conflict"
 
 components:
   securitySchemes:
@@ -591,6 +761,36 @@ components:
               field: { type: string }
               code: { type: string }
               message: { type: string }
+    Decimal6:
+      type: string
+      description: Canonical non-negative fixed decimal with at most six fractional places and no exponent.
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$'
+    SignedDecimal6:
+      type: string
+      description: Canonical signed fixed decimal with at most six fractional places and no exponent.
+      pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]{1,6})?$'
+    ServingDecimal:
+      type: string
+      description: Positive serving quantity with at most three fractional places.
+      pattern: '^(0\.[0-9]{1,3}|[1-9][0-9]*(\.[0-9]{1,3})?)$'
+    RatioDecimal:
+      type: string
+      description: Canonical fixed decimal from zero through one.
+      pattern: '^(0(\.[0-9]{1,6})?|1(\.0{1,6})?)$'
+    DisplayCalories:
+      type: string
+      description: Round-half-up whole-kilocalorie display value.
+      pattern: '^(0|[1-9][0-9]*)$'
+    SignedDisplayCalories:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]*)$'
+    DisplayMacro:
+      type: string
+      description: Round-half-up macro display value with exactly one fractional place.
+      pattern: '^(0|[1-9][0-9]*)\.[0-9]$'
+    SignedDisplayMacro:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]*)\.[0-9]$'
     NutritionState:
       type: string
       enum: [pending, source_provided, estimated, partial, failed, stale]
@@ -601,10 +801,26 @@ components:
       type: object
       required: [caloriesKcal, proteinG, carbohydrateG, fatG]
       properties:
-        caloriesKcal: { type: [number, "null"], minimum: 0 }
-        proteinG: { type: [number, "null"], minimum: 0 }
-        carbohydrateG: { type: [number, "null"], minimum: 0 }
-        fatG: { type: [number, "null"], minimum: 0 }
+        caloriesKcal: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        proteinG: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        carbohydrateG: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        fatG: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+    DisplayMacroValues:
+      type: object
+      required: [caloriesKcal, proteinG, carbohydrateG, fatG]
+      properties:
+        caloriesKcal: { oneOf: [{ $ref: "#/components/schemas/DisplayCalories" }, { type: "null" }] }
+        proteinG: { oneOf: [{ $ref: "#/components/schemas/DisplayMacro" }, { type: "null" }] }
+        carbohydrateG: { oneOf: [{ $ref: "#/components/schemas/DisplayMacro" }, { type: "null" }] }
+        fatG: { oneOf: [{ $ref: "#/components/schemas/DisplayMacro" }, { type: "null" }] }
+    SignedDisplayMacroValues:
+      type: object
+      required: [caloriesKcal, proteinG, carbohydrateG, fatG]
+      properties:
+        caloriesKcal: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayCalories" }, { type: "null" }] }
+        proteinG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
+        carbohydrateG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
+        fatG: { oneOf: [{ $ref: "#/components/schemas/SignedDisplayMacro" }, { type: "null" }] }
     ResolvedNutrition:
       allOf:
         - $ref: "#/components/schemas/MacroValues"
@@ -612,8 +828,8 @@ components:
           required: [status, basisServings, coverageRatio, provenance, corrections]
           properties:
             status: { $ref: "#/components/schemas/NutritionStatus" }
-            basisServings: { type: number, exclusiveMinimum: 0 }
-            coverageRatio: { type: number, minimum: 0, maximum: 1 }
+            basisServings: { $ref: "#/components/schemas/ServingDecimal" }
+            coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
             provenance:
               type: array
               items:
@@ -634,8 +850,8 @@ components:
       properties:
         id: { type: [string, "null"], format: uuid }
         originalText: { type: string, minLength: 1, maxLength: 1000 }
-        quantityMin: { type: [number, "null"], minimum: 0 }
-        quantityMax: { type: [number, "null"], minimum: 0 }
+        quantityMin: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        quantityMax: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
         unit: { type: [string, "null"], maxLength: 80 }
         food: { type: [string, "null"], maxLength: 240 }
         preparation: { type: [string, "null"], maxLength: 240 }
@@ -659,7 +875,7 @@ components:
         title: { type: string, minLength: 1, maxLength: 240 }
         description: { type: [string, "null"], maxLength: 5000 }
         sourceUrl: { type: [string, "null"], format: uri, maxLength: 2048 }
-        yieldQuantity: { type: number, exclusiveMinimum: 0 }
+        yieldQuantity: { $ref: "#/components/schemas/ServingDecimal" }
         yieldUnit: { type: string, default: servings, maxLength: 80 }
         ingredients:
           type: array
@@ -678,9 +894,10 @@ components:
         title: { type: string }
         sourceUrl: { type: [string, "null"], format: uri }
         imageUrl: { type: [string, "null"], format: uri-reference }
-        yieldQuantity: { type: number, exclusiveMinimum: 0 }
+        yieldQuantity: { $ref: "#/components/schemas/ServingDecimal" }
         yieldUnit: { type: string }
         status: { type: string, enum: [draft, processing, ready, partial, failed, archived] }
+        archivedFromStatus: { type: [string, "null"], enum: [draft, ready, partial, failed, null] }
         nutritionState: { $ref: "#/components/schemas/NutritionState" }
         nutrition: { oneOf: [{ $ref: "#/components/schemas/ResolvedNutrition" }, { type: "null" }] }
         version: { type: integer, minimum: 1 }
@@ -710,7 +927,7 @@ components:
         field:
           type: string
           enum: [quantity_min, quantity_max, unit, food_name, food_reference, grams, yield_quantity, calories_kcal, protein_g, carbohydrate_g, fat_g]
-        decimalValue: { type: [number, "null"], minimum: 0 }
+        decimalValue: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
         textValue: { type: [string, "null"], maxLength: 500 }
         referenceIdValue: { type: [string, "null"], format: uuid }
         reason: { type: [string, "null"], maxLength: 1000 }
@@ -732,7 +949,7 @@ components:
         status: { type: string, const: queued }
     Job:
       type: object
-      required: [id, kind, status, attempt, maxAttempts, inputHash, createdAt]
+      required: [id, kind, status, attempt, maxAttempts, inputHash, terminalDeadlineAt, createdAt]
       properties:
         id: { type: string, format: uuid }
         kind: { type: string }
@@ -742,6 +959,8 @@ components:
         inputHash: { type: string }
         progressCurrent: { type: [integer, "null"], minimum: 0 }
         progressTotal: { type: [integer, "null"], minimum: 0 }
+        nextRetryAt: { type: [string, "null"], format: date-time }
+        terminalDeadlineAt: { type: string, format: date-time }
         failureCode: { type: [string, "null"] }
         failureMessage: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
@@ -760,7 +979,7 @@ components:
           required: [mode, maintenanceKcal, effectiveFrom]
           properties:
             mode: { type: string, enum: [cut, maintain, bulk] }
-            maintenanceKcal: { type: number, exclusiveMinimum: 0 }
+            maintenanceKcal: { $ref: "#/components/schemas/Decimal6" }
             effectiveFrom: { type: string, format: date }
             effectiveTo: { type: [string, "null"], format: date }
             mealTargets: { type: array, items: { $ref: "#/components/schemas/MealTarget" } }
@@ -772,7 +991,7 @@ components:
           properties:
             id: { type: string, format: uuid }
             version: { type: integer, minimum: 1 }
-            macroCalorieDifference: { type: number }
+            macroCalorieDifference: { $ref: "#/components/schemas/SignedDecimal6" }
     MealPlanEntryWrite:
       type: object
       additionalProperties: false
@@ -781,7 +1000,7 @@ components:
         localDate: { type: string, format: date }
         mealSlot: { type: string, minLength: 1, maxLength: 80 }
         recipeId: { type: string, format: uuid }
-        servings: { type: number, exclusiveMinimum: 0, maximum: 100 }
+        servings: { $ref: "#/components/schemas/ServingDecimal" }
         position: { type: integer, minimum: 0 }
         refreshNutrition: { type: boolean, default: false }
     MealPlanEntry:
@@ -792,18 +1011,27 @@ components:
           properties:
             id: { type: string, format: uuid }
             recipeTitle: { type: string }
-            nutrition: { $ref: "#/components/schemas/ResolvedNutrition" }
+            nutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
             origin: { type: string, enum: [manual, suggestion, external] }
             version: { type: integer, minimum: 1 }
+    NutritionSnapshot:
+      allOf:
+        - $ref: "#/components/schemas/DisplayMacroValues"
+        - type: object
+          required: [basisServings, status, coverageRatio]
+          properties:
+            basisServings: { $ref: "#/components/schemas/ServingDecimal" }
+            status: { $ref: "#/components/schemas/NutritionStatus" }
+            coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
     PeriodTotal:
       allOf:
-        - $ref: "#/components/schemas/MacroValues"
+        - $ref: "#/components/schemas/DisplayMacroValues"
         - type: object
           required: [status, coverageRatio]
           properties:
             status: { $ref: "#/components/schemas/NutritionStatus" }
-            coverageRatio: { type: number, minimum: 0, maximum: 1 }
-            targetDifference: { $ref: "#/components/schemas/MacroValues" }
+            coverageRatio: { $ref: "#/components/schemas/RatioDecimal" }
+            targetDifference: { $ref: "#/components/schemas/SignedDisplayMacroValues" }
     MealPlan:
       type: object
       required: [id, weekStart, timezone, entries, dayTotals, weekTotal, version]
@@ -824,7 +1052,7 @@ components:
       additionalProperties: false
       properties:
         displayName: { type: string, minLength: 1, maxLength: 240 }
-        quantity: { type: [number, "null"], minimum: 0 }
+        quantity: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
         unit: { type: [string, "null"], maxLength: 80 }
         checked: { type: boolean }
         position: { type: integer, minimum: 0 }
@@ -845,7 +1073,7 @@ components:
                 properties:
                   mealPlanEntryId: { type: string, format: uuid }
                   originalText: { type: string }
-                  quantityContribution: { type: [number, "null"] }
+                  quantityContribution: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
             version: { type: integer, minimum: 1 }
     GroceryList:
       type: object
@@ -869,3 +1097,78 @@ components:
         excludedRecipeIds: { type: array, items: { type: string, format: uuid } }
         requiredRecipeIds: { type: array, items: { type: string, format: uuid } }
         maxRecipeRepetitions: { type: integer, minimum: 1, maximum: 21 }
+    SuggestionItem:
+      type: object
+      required: [id, recipeId, recipeTitle, localDate, mealSlot, servings, projectedNutrition]
+      properties:
+        id: { type: string, format: uuid }
+        recipeId: { type: string, format: uuid }
+        recipeTitle: { type: string }
+        localDate: { type: string, format: date }
+        mealSlot: { type: string }
+        servings: { $ref: "#/components/schemas/ServingDecimal" }
+        projectedNutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
+    SuggestionResult:
+      type: object
+      required: [id, status, request, items, missedConstraints, planVersion, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [queued, running, feasible, infeasible, failed, expired] }
+        request: { $ref: "#/components/schemas/SuggestionRequest" }
+        items: { type: array, items: { $ref: "#/components/schemas/SuggestionItem" } }
+        projectedDayTotals:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/PeriodTotal" }
+        projectedWeekTotal: { oneOf: [{ $ref: "#/components/schemas/PeriodTotal" }, { type: "null" }] }
+        missedConstraints: { type: array, items: { type: string } }
+        planVersion: { type: integer, minimum: 1 }
+        failureCode: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+    SuggestionAcceptance:
+      type: object
+      additionalProperties: false
+      required: [selectedItemIds, expectedPlanVersion]
+      properties:
+        selectedItemIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        expectedPlanVersion: { type: integer, minimum: 1 }
+    AccessTokenWrite:
+      type: object
+      additionalProperties: false
+      required: [name, scopes]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        scopes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [recipes:read, goals:read, plans:read, plans:write, grocery:read, grocery:write]
+        expiresAt: { type: [string, "null"], format: date-time }
+    AccessToken:
+      type: object
+      required: [id, name, scopes, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        scopes: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+        lastUsedAt: { type: [string, "null"], format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+    AccessTokenCreated:
+      allOf:
+        - $ref: "#/components/schemas/AccessToken"
+        - type: object
+          required: [secret]
+          properties:
+            secret:
+              type: string
+              minLength: 32
+              x-sensitive: true
+              description: Returned exactly once and never stored in recoverable form.

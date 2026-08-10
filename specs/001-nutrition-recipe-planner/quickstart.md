@@ -27,6 +27,7 @@ Set generated local values for:
 - PostgreSQL credentials
 - Redis URL
 - Public/base URL and trusted proxy settings
+- Failed-import diagnostic capture disabled by default
 
 Optional provider keys remain unset for the deterministic baseline. Secrets must not be committed or
 placed in frontend-prefixed environment variables.
@@ -95,12 +96,18 @@ The browser dev server proxies `/api` to the API; cookies remain same-site in de
 1. Sign in with the bootstrap owner.
 2. Create a manual recipe with an ingredient range, an item without quantity, and a volume measure.
 3. Import a representative public recipe URL.
-4. Confirm the save/import returns immediately with a pending job state.
-5. Observe parsing, matching, conversion assumptions, coverage, and final per-serving macros.
+4. Confirm save/import commits a recipe and job within one second, then observe two-second foreground
+   polling and status recovery after a page reload.
+5. Observe parsing, matching, conversion assumptions, coverage, canonical decimal strings, and final
+   per-serving macros.
 6. Correct one match and one macro value; rerun processing and verify both corrections remain active.
 7. Change recipe yield and confirm nutrition becomes stale rather than silently changing.
 8. Stop Redis during an import, restart it, and verify the outbox/reconciler eventually dispatches one
    idempotent job.
+9. Force retryable failures and verify 60-second attempt limits, retry delays of 5 seconds, 30 seconds,
+   2 minutes, and 5 minutes, a five-attempt maximum, and a terminal state by 15 minutes.
+10. Archive and restore a recipe, then permanently delete it from archive and verify historical plan
+    snapshots and grocery source text remain while recipe-owned records disappear.
 
 Run the versioned evaluation corpus before planning UI work beyond the correction flow:
 
@@ -109,14 +116,16 @@ uv run --project backend pytest tests/accuracy -m nutrition_corpus
 uv run --project backend vigor-vine nutrition-report --format markdown --output artifacts/nutrition-report.md
 ```
 
-The gate passes only when SC-001 and SC-002 thresholds are met and every miss is classified as parse,
-match, conversion, yield, or reference-data error.
+The gate runs all 50 versioned recipes, reports the stable 30-recipe primary constitutional subset and
+20 extension/stress cases separately, and passes only when SC-001/SC-002 thresholds are met. Every miss
+is classified as parse, match, conversion, yield, reference-data, or benchmark-eligibility error.
 
 ## 7. Validate Planning and Grocery Behavior
 
 1. Create a goal with daily calories/macros and one optional meal target.
 2. Add known recipe servings across seven days and compare displayed totals with hand-calculated
-   fixtures.
+   round-half-up fixtures. Verify HTTP, MCP, and UI use decimal strings and that displayed entries sum
+   exactly to displayed totals and target differences.
 3. Edit a recipe estimate and verify existing plan snapshots do not change until explicitly refreshed.
 4. Generate a grocery list containing repeated compatible units and ambiguous incompatible units.
 5. Check and manually edit items, change the plan, regenerate, and verify manual/check state is
@@ -138,7 +147,9 @@ pnpm --dir frontend exec playwright test
 
 Contract validation must also confirm that the implementation-generated OpenAPI document is compatible
 with `specs/001-nutrition-recipe-planner/contracts/openapi.yaml` and that the generated TypeScript
-client has no uncommitted changes.
+client has no uncommitted changes. Retention-clock tests verify successful HTML is absent after
+extraction, opt-in encrypted failed-import HTML expires within 24 hours, detailed diagnostics reduce
+after 30 days, and safe job metadata expires after one year.
 
 UI acceptance covers desktop and 390x844 viewports, keyboard-only navigation, visible focus, readable
 contrast, no page-level horizontal overflow, and explicit loading, empty, partial, estimated, manual,
@@ -164,7 +175,8 @@ uv run --project backend vigor-vine export create --include-media --output artif
 ```
 
 Restore testing uses a separate empty Compose project and explicit target path; it must never overwrite
-the active development database by default.
+the active development database by default. If the archive predates owner erasure, the operator must
+reapply recorded post-backup erasures before returning the restored instance to service.
 
 ```powershell
 $restoreProject = 'vigor-vine-restore-check'
@@ -181,6 +193,6 @@ After P5 is implemented, create a read-only token first and inspect the server:
 uv run --project backend mcp dev src/vigor_vine/mcp/server.py
 ```
 
-Verify read tools, then separately create a token with `plans:write` and test idempotent add/update/
-remove operations. MCP and HTTP normalized outputs must match for totals, provenance, versions, and
-failure codes. No general prompt or chat tool may be exposed.
+Verify `get_meal_plan` and the other read tools, then separately create a token with `plans:write` and
+test idempotent add/update/remove operations. MCP and HTTP normalized outputs must match for decimal
+strings, totals, provenance, versions, and failure codes. No general prompt or chat tool may be exposed.

@@ -7,6 +7,9 @@ calls the same application commands/queries as `/api/v1`; it does not query tabl
 nutrition calculations. Tool results use the same identifiers, decimal rounding, provenance labels,
 nutrition states, conflict versions, and failure codes as OpenAPI responses.
 
+All nutrient, quantity, serving, total, tolerance, and target-difference decimals are the same
+canonical strings defined by OpenAPI; MCP results never convert them to binary floating-point values.
+
 ## Tools
 
 ### `get_current_goals`
@@ -22,6 +25,14 @@ nutrition states, conflict versions, and failure codes as OpenAPI responses.
 - **Input**: `week_start`; optional `local_date` and `meal_slot`
 - **Output**: selected meal/day/week totals, targets, differences, nutrition state, coverage ratio,
   and contributing entry IDs
+- **Errors**: `plan_not_found`, `invalid_week_boundary`
+
+### `get_meal_plan`
+
+- **Scope**: `plans:read`
+- **Input**: `week_start`
+- **Output**: the complete seven-day plan with dated entries, immutable display-quantized nutrition
+  snapshots, origin, versions, day/week totals, target differences, and grocery-list status
 - **Errors**: `plan_not_found`, `invalid_week_boundary`
 
 ### `find_recipes`
@@ -84,6 +95,8 @@ The server exposes no prompt templates and no general chat tool.
 - Mutating tools require idempotency keys and optimistic versions where a record already exists.
 - Tool descriptions MUST state that nutrition values are planning estimates, not medical advice.
 - Tool output MUST distinguish null/unavailable from numeric zero.
+- Tool output MUST preserve canonical decimal strings and the HTTP contract's round-half-up snapshot
+  and aggregation behavior.
 - Errors MUST be structured and MUST NOT expose stack traces, SQL, secrets, raw provider payloads, or
   unrelated personal data.
 - Rate limits are per token and stricter for search and mutations than local browser reads.

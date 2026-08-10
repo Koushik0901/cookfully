@@ -6,8 +6,10 @@ Auto-generated from feature plans and corrected for the repository layout. Last 
 
 - Python 3.13 for the API, worker, CLI, and MCP adapter
 - TypeScript 5.x on Node.js 22 LTS for the React 19.2 + Vite 8.1 client
-- FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, psycopg 3, Celery 5.6, Redis, and PostgreSQL 18
+- FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, psycopg 3, Celery 5.6, Redis, HTTPX, and PostgreSQL 18
 - `recipe-scrapers`, `ingredient-parser-nlp`, Pint, USDA FoodData Central, and OR-Tools 9.15 (P4)
+- PostgreSQL-authoritative jobs, Redis delivery/coordination, and filesystem/object-compatible media,
+  encrypted diagnostic, and export storage
 
 ## Project Structure
 
@@ -49,6 +51,9 @@ pnpm --dir frontend exec playwright test
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+
+- 001-nutrition-recipe-planner: propagated exact-decimal contracts, the 50-recipe benchmark,
+  recipe erasure, bounded retention, polling/retry deadlines, and complete API/MCP lifecycle surfaces.
 
 - 001-nutrition-recipe-planner: selected the fresh FastAPI/React architecture, PostgreSQL/Redis/Celery
   processing boundary, nutrition-first model, OpenAPI contracts, and phased P1-P6 delivery.

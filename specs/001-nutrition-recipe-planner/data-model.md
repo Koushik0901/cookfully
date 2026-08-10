@@ -8,15 +8,17 @@
 - Primary identifiers are UUIDv7 values. Public contracts expose them as strings.
 - Timestamps are stored as timezone-aware UTC instants; user-local dates and week boundaries are
   stored separately where calendar meaning matters.
-- Nutrition and quantity values use fixed-precision decimals. Database constraints reject NaN,
-  infinity, and negative values unless a field explicitly represents a signed difference.
+- Nutrient and ingredient-quantity values use `numeric(20,6)`; servings use `numeric(12,3)`.
+  Database constraints reject negative values unless a field explicitly represents a signed
+  difference. Public decimal strings are rendered canonically without exponent notation.
 - Every mutable aggregate has an integer `version` used for optimistic concurrency.
 - Core nutrition facts, statuses, serving bases, and relationships use typed columns. JSON is limited
-  to raw provider payloads, non-authoritative source metadata, and audit details.
+  to normalized structured provider output, non-authoritative source metadata, and safe audit details;
+  raw provider requests and responses are never stored.
 - `created_at`, `updated_at`, and actor/origin metadata are present on mutable records. Secrets and raw
   provider prompts are never audit fields.
-- Archive is preferred over hard deletion for recipes used by plans. Hard deletion is limited to
-  unreferenced drafts or explicit data-erasure workflows.
+- Archive is reversible and required before permanent recipe deletion. Permanent deletion is an
+  explicit data-erasure workflow that detaches preserved historical snapshots and grocery source text.
 
 ## Core Identity and Access
 
@@ -78,6 +80,7 @@ social profiles.
 | `image_asset_id` | UUID nullable | FK to MediaAsset |
 | `input_hash` | text | Hash of nutrition-relevant recipe inputs |
 | `archived_at` | timestamp nullable | Required only for `archived` |
+| `archived_from_status` | enum nullable | Prior `draft`, `ready`, `partial`, or `failed` state used by restore |
 | `version` | integer | Optimistic concurrency |
 
 Relationships: one Recipe has ordered RecipeInstructions and Ingredients, many NutritionEstimates and
@@ -100,7 +103,7 @@ NutritionCorrections, optional MediaAssets, and may be referenced by MealPlanEnt
 | `recipe_id` | UUID | FK to Recipe |
 | `position` | integer | Zero-based, unique within recipe |
 | `original_text` | text | Immutable capture of the displayed/imported line |
-| `quantity_min`, `quantity_max` | decimal nullable | Non-negative; max >= min |
+| `quantity_min`, `quantity_max` | numeric(20,6) nullable | Non-negative; max >= min |
 | `unit_code` | text nullable | Canonical unit when resolved |
 | `unit_text` | text nullable | Original/custom unit display |
 | `food_name` | text nullable | Editable normalized name |
@@ -122,12 +125,14 @@ and changes the recipe input hash.
 |---|---|---|
 | `id` | UUIDv7 | Primary key |
 | `recipe_id` | UUID nullable | FK to Recipe |
-| `kind` | enum | `recipe_image`, `export_archive` |
+| `kind` | enum | `recipe_image`, `failed_import_diagnostic`, `export_archive` |
 | `storage_key` | text | Relative key only; unique |
 | `content_type` | text | Allowlisted |
 | `byte_size` | bigint | Positive and within configured limit |
 | `sha256` | text | Integrity and deduplication |
 | `source_url` | URL nullable | Attribution only; never used as a filesystem path |
+| `encrypted` | boolean | Required true for `failed_import_diagnostic` |
+| `expires_at` | timestamp nullable | Required and no later than creation + 24 hours for diagnostics |
 
 ## Reference Nutrition and Matching
 
@@ -195,10 +200,10 @@ and changes the recipe input hash.
 | `id` | UUIDv7 | Primary key |
 | `recipe_id` | UUID | FK to Recipe |
 | `status` | enum | `source_provided`, `estimated`, `partial`, `failed`, `superseded` |
-| `basis_servings` | decimal | Greater than zero |
-| `calories_kcal`, `protein_g`, `carbohydrate_g`, `fat_g` | decimal nullable | Per serving; non-negative |
-| `fiber_g`, `sodium_mg`, other typed expansion nutrients | decimal nullable | Null means unavailable |
-| `coverage_ratio` | decimal | 0 through 1 by ingredient mass/known contribution |
+| `basis_servings` | numeric(12,3) | Greater than zero |
+| `calories_kcal`, `protein_g`, `carbohydrate_g`, `fat_g` | numeric(20,6) nullable | Per serving; non-negative |
+| `fiber_g`, `sodium_mg`, other typed expansion nutrients | numeric(20,6) nullable | Null means unavailable |
+| `coverage_ratio` | numeric(7,6) | 0 through 1; lower of quantified-mass and non-optional-count coverage |
 | `source_label`, `source_url` | text/URL nullable | Required for source-provided data |
 | `assumptions_summary` | text nullable | User-visible |
 | `input_hash` | text | Recipe inputs used |
@@ -217,7 +222,7 @@ An estimate is immutable after activation. Reprocessing creates a new record and
 | `recipe_id` | UUID | FK to Recipe |
 | `ingredient_id` | UUID nullable | Set for ingredient-scoped corrections |
 | `field` | enum | Explicit allowlist: parsed quantity/unit/name, match, grams, yield, or nutrient field |
-| `decimal_value` | decimal nullable | Used for numeric corrections |
+| `decimal_value` | numeric(20,6) nullable | Used for numeric corrections; serving corrections enforce three places |
 | `text_value` | text nullable | Used for name/unit/reasoned corrections |
 | `reference_id_value` | UUID nullable | Used for reference-food correction |
 | `reason` | text nullable | User note |
@@ -242,10 +247,15 @@ automatic results and before every rollup, snapshot, suggestion, export, API rea
 | `attempt`, `max_attempts` | integer | 0 <= attempt <= max |
 | `progress_current`, `progress_total` | integer nullable | Non-negative |
 | `failure_code`, `failure_message` | text nullable | Safe/user-presentable; no secrets |
-| `available_at`, `started_at`, `heartbeat_at`, `finished_at` | timestamp nullable | State-dependent |
+| `accepted_at`, `available_at`, `started_at`, `heartbeat_at`, `finished_at` | timestamp nullable | State-dependent |
+| `next_retry_at` | timestamp nullable | Required for `retry_wait`; fixed clarified schedule |
+| `terminal_deadline_at` | timestamp | `accepted_at + 15 minutes` |
+| `diagnostic_reduce_at`, `safe_metadata_delete_at` | timestamp | 30 days and one year after terminal state |
 | `celery_task_id` | text nullable | Diagnostic only; not source of truth |
 
-Unique active-job constraint: one nonterminal job per `(kind, aggregate_id, input_hash)`.
+Unique active-job constraint: one nonterminal job per `(kind, aggregate_id, input_hash)`. Default
+`max_attempts` is five. Each handler has a 60-second execution limit; retry attempts become available
+5 seconds, 30 seconds, 2 minutes, and 5 minutes after the preceding retryable failure.
 
 ### OutboxEvent
 
@@ -309,7 +319,7 @@ a defined rounding tolerance; it does not silently rewrite user targets.
 | `position` | integer | Unique per date+slot |
 | `recipe_id` | UUID nullable | FK retained while recipe exists/archived |
 | `recipe_title_snapshot` | text | Required |
-| `servings` | decimal | Greater than zero, bounded by configured maximum |
+| `servings` | numeric(12,3) | Greater than zero, bounded by configured maximum |
 | `nutrition_snapshot_id` | UUID | FK to MealNutritionSnapshot |
 | `origin` | enum | `manual`, `suggestion`, `external` |
 | `version` | integer | Optimistic concurrency |
@@ -320,8 +330,9 @@ a defined rounding tolerance; it does not silently rewrite user targets.
 |---|---|---|
 | `id` | UUIDv7 | Primary key |
 | `recipe_id`, `estimate_id` | UUID nullable | Provenance links |
-| `basis_servings` | decimal | Serving multiplier represented |
-| `calories_kcal`, `protein_g`, `carbohydrate_g`, `fat_g` | decimal nullable | Resolved values after corrections |
+| `basis_servings` | numeric(12,3) | Serving multiplier represented |
+| `calories_kcal` | numeric(20,0) nullable | Display-quantized entry value after servings; round-half-up |
+| `protein_g`, `carbohydrate_g`, `fat_g` | numeric(20,1) nullable | Display-quantized entry values after servings; round-half-up |
 | `nutrition_state` | enum | `source_provided`, `estimated`, `partial`, `manual` |
 | `coverage_ratio` | decimal | 0 through 1 |
 | `captured_at` | timestamp | Immutable |
@@ -349,7 +360,7 @@ explicitly refresh selected entries to a newer estimate, creating replacement sn
 | `id` | UUIDv7 | Primary key |
 | `grocery_list_id` | UUID | FK to GroceryList |
 | `normalized_food_name`, `display_name` | text | Required |
-| `quantity` | decimal nullable | Non-negative |
+| `quantity` | numeric(20,6) nullable | Non-negative |
 | `unit_code`, `unit_text` | text nullable | Canonical and display forms |
 | `aggregation_key` | text nullable | Only set for safely equivalent items |
 | `origin` | enum | `generated`, `manual` |
@@ -366,7 +377,7 @@ explicitly refresh selected entries to a newer estimate, creating replacement sn
 | `grocery_item_id` | UUID | Composite PK/FK |
 | `meal_plan_entry_id` | UUID | Composite PK/FK |
 | `ingredient_id` | UUID nullable | Provenance when recipe remains available |
-| `quantity_contribution` | decimal nullable | In GroceryItem unit when convertible |
+| `quantity_contribution` | numeric(20,6) nullable | In GroceryItem unit when convertible |
 | `original_text` | text | Required traceability |
 
 Regeneration computes proposed generated items, reconciles them by stable source and aggregation key,
@@ -397,7 +408,10 @@ draft -> processing -> ready
                   \-> partial
                   \-> failed
 ready|partial|failed -> processing        (explicit retry/recalculate)
-any non-archived -> archived -> prior usable state
+draft|ready|partial|failed -> archived    (store archived_from_status; supersede active jobs)
+archived -> archived_from_status          (input hash still current)
+archived -> archived_from_status          (recipe restored; nutrition_state becomes stale when basis changed)
+archived -> permanently deleted           (confirmed erasure; detach history)
 
 ProcessingJob:
 queued -> running -> succeeded
@@ -425,11 +439,17 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
 2. Apply active ingredient corrections before reference matching and gram conversion.
 3. Apply active nutrient/yield corrections after rollup.
 4. Divide full-recipe nutrients by the corrected positive serving yield.
-5. Store per-serving values at higher internal precision; round only at display/contract boundaries.
-6. Snapshot resolved values when a meal entry is created or explicitly refreshed.
-7. Sum snapshots for meal/day/week totals. Propagate the least reliable contributing status and
-   minimum coverage ratio alongside the numeric total.
-8. Generate grocery contributions from ingredient quantities and planned servings, not nutrition
+5. Compute quantified-mass coverage as matched convertible grams divided by total convertible grams
+   for non-optional ingredients, and count coverage as resolved non-optional ingredients divided by
+   all non-optional ingredients. `coverage_ratio` is the lower result; a missing/zero denominator is
+   zero. Optional ingredients are excluded unless the user explicitly includes them in the recipe.
+6. Store per-serving values to six decimal places and serving multipliers to three; public values are
+   canonical decimal strings.
+7. Multiply and round-half-up each plan entry to whole kilocalories and 0.1-gram macros when creating
+   or explicitly refreshing its immutable display snapshot.
+8. Sum those display-quantized snapshot values for meal/day/week totals and target differences.
+   Propagate the least reliable contributing status and minimum coverage ratio alongside the total.
+9. Generate grocery contributions from ingredient quantities and planned servings, not nutrition
    snapshots. Combine only matching food identity and dimensionally convertible units.
 
 ## Required Indexes and Constraints
@@ -449,13 +469,19 @@ Invalid transitions return a conflict response and do not mutate the aggregate.
 
 ## Retention and Deletion
 
-- Archiving a recipe removes it from normal search/suggestions but keeps historical plan links.
-- Hard deletion of a referenced recipe first detaches the nullable reference; title and nutrition
-  snapshots remain. Grocery source text remains.
-- Raw fetched HTML is retained only in test fixtures or short-lived diagnostic storage with an
-  explicit expiry; it is not permanent recipe data.
-- Provider response payloads are minimized and may be purged after normalized provenance is stored.
-- Job failure details are retained long enough for diagnosis, then reduced to safe failure code and
-  timestamps according to deployment policy.
+- Archiving a recipe removes it from normal search, new planning, and suggestions, stores the prior
+  usable state, and supersedes active recipe jobs. Restore reuses the prior state only when the input
+  hash and active estimate still match; otherwise the recipe becomes `stale`.
+- Permanent deletion requires an archived recipe and explicit confirmation. It detaches nullable
+  recipe links before deleting recipe-owned ingredients, estimates, corrections, matches, and
+  unshared media; recipe-title and nutrition snapshots plus grocery source text remain immutable.
+- Successful-import HTML is never persisted. Owner-enabled failed-import diagnostics are encrypted,
+  expire within 24 hours, and are independently swept even when a job remains.
+- Raw provider requests and responses are never persisted; only schema-valid normalized output,
+  provenance, hashes, and safe errors are eligible records.
+- Detailed job failure diagnostics are reduced after 30 days. Remaining safe codes and timestamps are
+  deleted after one year.
 - Reset corrections and superseded estimates remain auditable and exportable until explicit owner data
   erasure.
+- Disaster-recovery backups may retain erased records only until the operator-configured rotation
+  expires; restore guidance requires reapplying post-backup erasures when applicable.
