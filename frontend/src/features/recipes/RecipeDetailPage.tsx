@@ -63,7 +63,6 @@ export function RecipeDetailPage() {
     queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], (current) => current ? {
       ...current,
       nutrition,
-      nutritionState: nutrition?.status === "manual" ? "estimated" : nutrition?.status ?? current.nutritionState,
     } : current);
   }
 
