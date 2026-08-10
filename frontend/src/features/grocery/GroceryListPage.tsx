@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Button, DecimalInput, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, ConfirmDialog, DecimalInput, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { pantryApi } from "../pantry/api";
+import type { PantryDeduction } from "../pantry/types";
 import { planningApi } from "../plans/api";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
 import { ApiProblem } from "../recipes/api";
@@ -55,6 +57,7 @@ export function GroceryListPage() {
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const [weekStart, setWeekStart] = useState("");
   const [newItem, setNewItem] = useState<GroceryItemCreate>({ displayName: "", quantity: null, unit: null });
+  const [deductions, setDeductions] = useState<PantryDeduction[]>([]);
   useEffect(() => {
     if (!preferences.data || weekStart) return;
     setWeekStart(weekStartFor(todayInTimezone(preferences.data.timezone), preferences.data.weekStartsOn));
@@ -71,6 +74,22 @@ export function GroceryListPage() {
       void queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
     },
   });
+  const applyDeductions = useMutation({
+    mutationFn: () => pantryApi.applyDeductions(weekStart, { expectedGroceryListVersion: list.data!.version }),
+    onSuccess: (value) => {
+      setDeductions(value);
+      void queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
+      void queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
+    },
+  });
+  const reverseDeduction = useMutation({
+    mutationFn: (value: PantryDeduction) => pantryApi.reverseDeduction(value.id, value.version),
+    onSuccess: (value) => {
+      setDeductions((current) => current.map((item) => item.id === value.id ? value : item));
+      void queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
+      void queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
+    },
+  });
   const missing = list.error instanceof ApiProblem && list.error.status === 404;
 
   if (preferences.isPending || !weekStart || list.isPending) return <Skeleton label="Loading grocery list" lines={8} />;
@@ -84,12 +103,15 @@ export function GroceryListPage() {
   ] as const;
   return (
     <main className="page-shell">
-      <header className="page-header"><div><p className="eyebrow">Week of {list.data.weekStart}</p><h1>Grocery list</h1><p className="lede">Generated quantities retain the recipe ingredient text and plan entry that produced them.</p></div><div className="actions"><Button asChild className="button--secondary"><Link to="/app/plan">Weekly plan</Link></Button><Button onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>{regenerate.isPending ? "Regenerating…" : "Regenerate grocery list"}</Button></div></header>
+      <header className="page-header"><div><p className="eyebrow">Week of {list.data.weekStart}</p><h1>Grocery list</h1><p className="lede">Generated quantities retain the recipe ingredient text and plan entry that produced them.</p></div><div className="actions"><Button asChild className="button--secondary"><Link to="/app/plan">Weekly plan</Link></Button><Button onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>{regenerate.isPending ? "Regenerating…" : "Regenerate grocery list"}</Button><ConfirmDialog trigger={<Button className="button--secondary">Apply pantry quantities</Button>} title="Deduct safe pantry matches?" description="Only reviewed exact food identities with compatible units will be deducted. Every applied conversion is shown below and can be reversed until either quantity changes." confirmLabel="Apply safe deductions" onConfirm={() => applyDeductions.mutate()} /></div></header>
       {list.data.status === "dirty" ? <p className="notice">The plan changed after this list was generated. Regenerate to reconcile quantities while preserving checks and manual edits.</p> : list.data.status === "generating" ? <p className="notice" role="status">Grocery list is generating.</p> : <p className="success-text" role="status">List is current</p>}
       <section className="manual-item"><h2>Add an item</h2><div className="grocery-edit"><Field label="New item name"><input className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="New item quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="New item unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button onClick={() => create.mutate()} disabled={!newItem.displayName.trim() || create.isPending}>Add grocery item</Button></div></section>
+      {deductions.length ? <section className="pantry-deduction-panel" aria-labelledby="deduction-heading"><div><h2 id="deduction-heading">Pantry deductions from this action</h2><p className="muted">Conversions are recorded on both sides. Reverse newer deductions first if quantities overlap.</p></div><div className="deduction-list">{deductions.map((deduction) => <article key={deduction.id} className="deduction-row"><div><strong>{deduction.groceryQuantity} {deduction.groceryUnit} removed from groceries</strong><p className="data-value">Pantry change: {deduction.pantryQuantity} {deduction.pantryUnit}</p><small>{deduction.assumption}</small></div><span className="reliability-badge">{deduction.status}</span>{deduction.status === "applied" ? <Button className="button--secondary" onClick={() => reverseDeduction.mutate(deduction)} disabled={reverseDeduction.isPending}>Reverse deduction</Button> : null}</article>)}</div></section> : null}
       {groups.map(([label, items]) => items.length ? <section className="grocery-group" key={label}><div className="section-heading"><h2>{label}</h2><span className="data-value">{items.length} item{items.length === 1 ? "" : "s"}</span></div><div className="grocery-items">{items.map((item) => <GroceryRow key={item.id} item={item} weekStart={weekStart} />)}</div></section> : null)}
       {regenerate.error instanceof Error ? <p className="error-text" role="alert">{regenerate.error.message}</p> : null}
       {create.error instanceof Error ? <p className="error-text" role="alert">{create.error.message}</p> : null}
+      {applyDeductions.error instanceof Error ? <p className="error-text" role="alert">{applyDeductions.error.message}</p> : null}
+      {reverseDeduction.error instanceof Error ? <p className="error-text" role="alert">{reverseDeduction.error.message}</p> : null}
     </main>
   );
 }

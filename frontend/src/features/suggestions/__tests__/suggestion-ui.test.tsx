@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SuggestionPage } from "../SuggestionPage";
 import type { SuggestionResult } from "../types";
+import { unavailableMicronutrients } from "../../../test/fixtures";
 
 const recipeOne = "00000000-0000-4000-8000-000000000101";
 const recipeTwo = "00000000-0000-4000-8000-000000000102";
@@ -35,7 +36,7 @@ const result: SuggestionResult = {
       localDate: "2026-03-11",
       mealSlot: "breakfast",
       servings: "1.000",
-      projectedNutrition: { basisServings: "1.000", caloriesKcal: "500", proteinG: "45.0", carbohydrateG: "60.0", fatG: "12.0", status: "estimated", coverageRatio: "0.95" },
+      projectedNutrition: { basisServings: "1.000", caloriesKcal: "500", proteinG: "45.0", carbohydrateG: "60.0", fatG: "12.0", status: "estimated", coverageRatio: "0.95", micronutrients: unavailableMicronutrients },
       accepted: false,
     },
     {
@@ -45,14 +46,14 @@ const result: SuggestionResult = {
       localDate: "2026-03-11",
       mealSlot: "dinner",
       servings: "1.000",
-      projectedNutrition: { basisServings: "1.000", caloriesKcal: "700", proteinG: "55.0", carbohydrateG: "60.0", fatG: "23.0", status: "estimated", coverageRatio: "0.98" },
+      projectedNutrition: { basisServings: "1.000", caloriesKcal: "700", proteinG: "55.0", carbohydrateG: "60.0", fatG: "23.0", status: "estimated", coverageRatio: "0.98", micronutrients: unavailableMicronutrients },
       accepted: false,
     },
   ],
   projectedDayTotals: {
-    "2026-03-11": { caloriesKcal: "1200", proteinG: "100.0", carbohydrateG: "120.0", fatG: "35.0", status: "estimated", coverageRatio: "0.96" },
+    "2026-03-11": { caloriesKcal: "1200", proteinG: "100.0", carbohydrateG: "120.0", fatG: "35.0", status: "estimated", coverageRatio: "0.96", micronutrients: unavailableMicronutrients },
   },
-  projectedWeekTotal: { caloriesKcal: "4300", proteinG: "360.0", carbohydrateG: "450.0", fatG: "130.0", status: "estimated", coverageRatio: "0.95" },
+  projectedWeekTotal: { caloriesKcal: "4300", proteinG: "360.0", carbohydrateG: "450.0", fatG: "130.0", status: "estimated", coverageRatio: "0.95", micronutrients: unavailableMicronutrients },
   missedConstraints: [],
   unmetConstraintCount: 0,
   objectiveScore: "0",

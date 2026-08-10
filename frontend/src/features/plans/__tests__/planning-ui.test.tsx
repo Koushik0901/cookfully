@@ -5,12 +5,17 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GoalSettingsPage } from "../../goals/GoalSettingsPage";
+import { unavailableMicronutrients } from "../../../test/fixtures";
 import { DayTabs } from "../DayTabs";
 import { MacroSummary } from "../MacroSummary";
 import { WeeklyPlannerPage } from "../WeeklyPlannerPage";
 import type { MealPlan, OwnerPreferences, UserGoal } from "../types";
 
 const preferences: OwnerPreferences = { timezone: "America/Vancouver", weekStartsOn: 1, version: 2 };
+const planMicronutrients = {
+  ...unavailableMicronutrients,
+  dietaryFiberG: { ...unavailableMicronutrients.dietaryFiberG, value: "12.5", coverageRatio: "0.95", source: "reference" as const },
+};
 const goal: UserGoal = {
   id: "00000000-0000-4000-8000-000000000010",
   mode: "cut",
@@ -34,7 +39,7 @@ const entry = {
   servings: "1.500",
   position: 0,
   refreshNutrition: false,
-  nutrition: { basisServings: "1.500", caloriesKcal: "752", proteinG: "60.1", carbohydrateG: "90.1", fatG: "16.7", status: "estimated" as const, coverageRatio: "0.950000" },
+  nutrition: { basisServings: "1.500", caloriesKcal: "752", proteinG: "60.1", carbohydrateG: "90.1", fatG: "16.7", status: "estimated" as const, coverageRatio: "0.950000", micronutrients: planMicronutrients },
   origin: "manual" as const,
   version: 1,
 };
@@ -45,6 +50,7 @@ const total = {
   fatG: "16.7",
   status: "estimated" as const,
   coverageRatio: "0.950000",
+  micronutrients: planMicronutrients,
   targetDifference: { caloriesKcal: "-1448", proteinG: "-119.9", carbohydrateG: "-129.9", fatG: "-48.3" },
 };
 const plan: MealPlan = {
@@ -133,7 +139,8 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("tab", { name: /tuesday.*march 10/i })).toHaveFocus();
   });
 
-  it("renders exact macro budgets with text reliability and signed differences", () => {
+  it("renders exact macro budgets with text reliability, differences, and micronutrient evidence", async () => {
+    const user = userEvent.setup();
     render(<MacroSummary total={total} target={goal} label="Monday budget" />);
     expect(screen.getByRole("region", { name: "Monday budget" })).toBeVisible();
     expect(screen.getByText("752 / 2200.000000 kcal")).toBeVisible();
@@ -141,6 +148,9 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByText(/estimated · 95% coverage/i)).toBeVisible();
     expect(screen.getByText("-119.9 g remaining")).toBeVisible();
     expect(screen.getAllByRole("progressbar")).toHaveLength(4);
+    await user.click(screen.getByText("Micronutrient planning view"));
+    expect(screen.getByText("12.5 g")).toBeVisible();
+    expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
   });
 
   it("renders week/day navigation, meal slots, entry controls, and optimistic mutations", async () => {

@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { unavailableMicronutrients } from "../../../test/fixtures";
+
 import type { Job, Recipe, RecipeDetail } from "../types";
 import { RecipeCard } from "../RecipeCard";
 import { RecipeDetailPage } from "../RecipeDetailPage";
@@ -28,6 +30,11 @@ const recipe: RecipeDetail = {
     proteinG: "31.125000",
     carbohydrateG: "61.500000",
     fatG: "14.250000",
+    micronutrients: {
+      ...unavailableMicronutrients,
+      dietaryFiberG: { ...unavailableMicronutrients.dietaryFiberG, value: "8.5", coverageRatio: "0.875", source: "reference" },
+      sodiumMg: { ...unavailableMicronutrients.sodiumMg, value: "0", explicitZero: true, coverageRatio: "0.875", source: "reference" },
+    },
     provenance: [{ kind: "reference", label: "USDA Foundation Foods", version: "2026-04-30" }],
     assumptions: ["A level tablespoon was converted by density."],
     corrections: [
@@ -153,6 +160,9 @@ describe("recipe UI", () => {
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
     expect(screen.getByText("USDA Foundation Foods")).toBeVisible();
+    expect(screen.getByText("8.5 g")).toBeVisible();
+    expect(screen.getByText(/0 mg · source-reported zero/i)).toBeVisible();
+    expect(screen.getAllByText(/USDA 1079/).length).toBeGreaterThan(0);
     expect(screen.getByText(/level tablespoon/i)).toBeVisible();
     expect(screen.getByText(/package label/i)).toBeVisible();
     expect(screen.getByText("1.250000 cups rolled oats")).toBeVisible();

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -13,7 +13,12 @@ from vigor_vine.domain.common import (
     DomainError,
     quantize_decimal,
 )
-from vigor_vine.domain.nutrition import MacroValues
+from vigor_vine.domain.nutrition import (
+    MICRONUTRIENT_KEYS,
+    MacroValues,
+    MicronutrientAmounts,
+    MicronutrientKey,
+)
 
 NutritionReliability = Literal["source_provided", "estimated", "partial", "manual"]
 
@@ -26,6 +31,9 @@ class SnapshotSource:
     macros: MacroValues
     status: NutritionReliability
     coverage_ratio: Decimal
+    micronutrients: MicronutrientAmounts = field(
+        default_factory=lambda: dict.fromkeys(MICRONUTRIENT_KEYS)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +48,9 @@ class MealNutritionSnapshotValue:
     fat_g: Decimal | None
     status: NutritionReliability
     coverage_ratio: Decimal
+    micronutrients: MicronutrientAmounts = field(
+        default_factory=lambda: dict.fromkeys(MICRONUTRIENT_KEYS)
+    )
 
 
 def _servings(value: Decimal) -> Decimal:
@@ -66,6 +77,10 @@ def create_snapshot(source: SnapshotSource, servings: Decimal) -> MealNutritionS
         value = getattr(source.macros, field)
         return quantize_decimal(value * basis, scale) if value is not None else None
 
+    def scaled_micronutrient(key: MicronutrientKey) -> Decimal | None:
+        value = source.micronutrients.get(key)
+        return quantize_decimal(value * basis, NUTRIENT_SCALE) if value is not None else None
+
     return MealNutritionSnapshotValue(
         recipe_id=source.recipe_id,
         estimate_id=source.estimate_id,
@@ -77,6 +92,7 @@ def create_snapshot(source: SnapshotSource, servings: Decimal) -> MealNutritionS
         fat_g=scaled("fat_g", DISPLAY_MACRO_SCALE),
         status=source.status,
         coverage_ratio=coverage,
+        micronutrients={key: scaled_micronutrient(key) for key in MICRONUTRIENT_KEYS},
     )
 
 

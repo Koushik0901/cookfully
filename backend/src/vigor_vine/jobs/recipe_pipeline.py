@@ -24,7 +24,17 @@ from vigor_vine.application.recipes import (
     recipe_input_hash,
 )
 from vigor_vine.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now
-from vigor_vine.domain.nutrition import IngredientNutrition, MacroValues, rollup_per_serving
+from vigor_vine.domain.nutrition import (
+    MICRONUTRIENT_KEYS,
+    USDA_MICRONUTRIENT_MANIFEST,
+    IngredientNutrition,
+    MacroValues,
+    MicronutrientContribution,
+    MicronutrientKey,
+    SourceMicronutrient,
+    rollup_micronutrients_per_serving,
+    rollup_per_serving,
+)
 from vigor_vine.domain.units import IngredientMeasure, coverage_ratio, to_grams
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
@@ -328,6 +338,7 @@ class RecipePipeline:
             }
             measures: list[IngredientMeasure] = []
             contributions: list[IngredientNutrition] = []
+            micronutrient_contributions: list[MicronutrientContribution] = []
             assumptions: list[str] = []
             for ingredient in recipe.ingredients:
                 match = matches.get(ingredient.id)
@@ -353,11 +364,32 @@ class RecipePipeline:
                 contributions.append(
                     IngredientNutrition(self._food_macros(food, grams), matched=True)
                 )
+                if not ingredient.optional:
+                    micronutrient_contributions.append(
+                        MicronutrientContribution(
+                            self._food_micronutrients(food, grams),
+                            mass_grams=grams,
+                            resolved=True,
+                        )
+                    )
             coverage = coverage_ratio(measures).overall
             value = rollup_per_serving(
                 contributions,
                 recipe.yield_quantity,
                 coverage=coverage,
+            )
+            required_measures = [item for item in measures if not item.optional]
+            total_mass = sum(
+                (item.minimum for item in required_measures if item.minimum is not None),
+                Decimal(0),
+            )
+            micronutrients = rollup_micronutrients_per_serving(
+                tuple(micronutrient_contributions),
+                servings=recipe.yield_quantity,
+                total_convertible_mass=total_mass,
+                total_ingredient_count=len(required_measures),
+                input_hash=recipe.input_hash,
+                calculated_at=utc_now(),
             )
             complete = self._complete(value.macros)
             status = "estimated" if complete and coverage >= Decimal("0.900000") else "partial"
@@ -376,6 +408,18 @@ class RecipePipeline:
                 protein_g=value.macros.protein_g,
                 carbohydrate_g=value.macros.carbohydrate_g,
                 fat_g=value.macros.fat_g,
+                fiber_g=micronutrients["dietary_fiber_g"].value,
+                sodium_mg=micronutrients["sodium_mg"].value,
+                potassium_mg=micronutrients["potassium_mg"].value,
+                calcium_mg=micronutrients["calcium_mg"].value,
+                iron_mg=micronutrients["iron_mg"].value,
+                magnesium_mg=micronutrients["magnesium_mg"].value,
+                vitamin_c_mg=micronutrients["vitamin_c_mg"].value,
+                vitamin_d_ug=micronutrients["vitamin_d_ug"].value,
+                vitamin_b12_ug=micronutrients["vitamin_b12_ug"].value,
+                micronutrient_mapping_version=next(
+                    iter(USDA_MICRONUTRIENT_MANIFEST.values())
+                ).mapping_version,
                 coverage_ratio=value.coverage,
                 source_label="USDA FoodData Central",
                 assumptions_summary="; ".join(assumptions) or None,
@@ -626,6 +670,32 @@ class RecipePipeline:
             value("carbohydrate_g"),
             value("fat_g"),
         )
+
+    @staticmethod
+    def _food_micronutrients(
+        food: FoodReference, grams: Decimal
+    ) -> dict[MicronutrientKey, SourceMicronutrient]:
+        result: dict[MicronutrientKey, SourceMicronutrient] = {}
+        for key in MICRONUTRIENT_KEYS:
+            mapping = USDA_MICRONUTRIENT_MANIFEST[key]
+            nutrient = next(
+                (
+                    item
+                    for item in food.nutrients
+                    if item.canonical_key == key
+                    or item.nutrient_code in {str(mapping.fdc_nutrient_id), mapping.legacy_number}
+                ),
+                None,
+            )
+            if nutrient is None or nutrient.amount is None:
+                continue
+            result[key] = SourceMicronutrient(
+                quantize_decimal(nutrient.amount * grams / food.basis_grams, NUTRIENT_SCALE),
+                source="USDA FoodData Central",
+                source_release=food.dataset.release_id,
+                explicit=nutrient.explicit_zero,
+            )
+        return result
 
     @staticmethod
     def _complete(macros: MacroValues) -> bool:

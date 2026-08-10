@@ -7,6 +7,18 @@ const MACROS = [
   ["fatG", "Fat", "g", "fat"],
 ] as const;
 
+const MICRONUTRIENTS = [
+  ["dietaryFiberG", "Fiber"],
+  ["sodiumMg", "Sodium"],
+  ["potassiumMg", "Potassium"],
+  ["calciumMg", "Calcium"],
+  ["ironMg", "Iron"],
+  ["magnesiumMg", "Magnesium"],
+  ["vitaminCMg", "Vitamin C"],
+  ["vitaminDUg", "Vitamin D"],
+  ["vitaminB12Ug", "Vitamin B12"],
+] as const;
+
 export function MacroSummary({ total, target, label }: { total?: PeriodTotal; target: UserGoal; label: string }) {
   return (
     <section className="macro-summary" aria-label={label}>
@@ -20,7 +32,16 @@ export function MacroSummary({ total, target, label }: { total?: PeriodTotal; ta
           return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Number(consumed)} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{difference != null ? `${difference} ${unit} remaining` : "No difference available"}</small></div>;
         })}
       </div>
+      <details className="plan-micronutrients">
+        <summary>Micronutrient planning view</summary>
+        <p className="advisory">Micronutrients are a planning aid, not medical advice. Unavailable source values are not zero and totals inherit the least complete entry.</p>
+        <dl className="micronutrient-grid">
+          {MICRONUTRIENTS.map(([field, name]) => {
+            const nutrient = total?.micronutrients?.[field];
+            return <div className="micronutrient" key={field}><dt>{name}</dt><dd className="data-value">{nutrient?.value == null ? "Unavailable" : `${nutrient.value} ${nutrient.unit}`}{nutrient?.explicitZero ? " · source-reported zero" : ""}</dd><small>{nutrient ? `${Math.round(Number(nutrient.coverageRatio) * 100)}% coverage · ${nutrient.source} · USDA ${nutrient.usdaNutrientId}` : "No entries"}</small></div>;
+          })}
+        </dl>
+      </details>
     </section>
   );
 }
-

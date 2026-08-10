@@ -3,6 +3,18 @@ import { type FormEvent, useState } from "react";
 import { Button, DecimalInput, Field, PollingStatusBadge } from "../../components";
 import type { Job, NutritionCorrectionWrite, ResolvedNutrition } from "./types";
 
+const MICRONUTRIENTS = [
+  ["dietaryFiberG", "Dietary fiber"],
+  ["sodiumMg", "Sodium"],
+  ["potassiumMg", "Potassium"],
+  ["calciumMg", "Calcium"],
+  ["ironMg", "Iron"],
+  ["magnesiumMg", "Magnesium"],
+  ["vitaminCMg", "Vitamin C"],
+  ["vitaminDUg", "Vitamin D"],
+  ["vitaminB12Ug", "Vitamin B12"],
+] as const;
+
 const TERMINAL = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 
 export function NutritionPanel({
@@ -88,6 +100,16 @@ export function NutritionPanel({
           </dl>
           <p className="data-value">Basis: {nutrition.basisServings} servings · Coverage: {nutrition.coverageRatio}</p>
 
+          <section className="micronutrient-panel" aria-labelledby="micronutrient-heading">
+            <div><h3 id="micronutrient-heading">Micronutrients</h3><p className="muted">Missing reference values stay unavailable; they are never displayed as zero.</p></div>
+            <dl className="micronutrient-grid">
+              {MICRONUTRIENTS.map(([key, label]) => {
+                const nutrient = nutrition.micronutrients?.[key];
+                return <div className="micronutrient" key={key}><dt>{label}</dt><dd className="data-value">{nutrient?.value == null ? "Unavailable" : `${nutrient.value} ${nutrient.unit}`}{nutrient?.explicitZero ? " · source-reported zero" : ""}</dd><small>{nutrient ? `${Math.round(Number(nutrient.coverageRatio) * 100)}% coverage · ${nutrient.source} · USDA ${nutrient.usdaNutrientId} · ${nutrient.mappingVersion}` : "No micronutrient evidence returned"}</small></div>;
+              })}
+            </dl>
+          </section>
+
           <div className="evidence-grid">
             <section><h3>Provenance</h3>{nutrition.provenance.length ? <ul>{nutrition.provenance.map((item, index) => <li key={`${item.kind}-${item.label}-${index}`}><strong>{item.label}</strong>{item.version ? ` · ${item.version}` : ""}{item.sourceUrl ? <> · <a href={item.sourceUrl} rel="noreferrer">source</a></> : null}</li>)}</ul> : <p className="muted">No external provenance recorded.</p>}</section>
             <section><h3>Assumptions</h3>{nutrition.assumptions?.length ? <ul>{nutrition.assumptions.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="muted">No conversion assumptions recorded.</p>}</section>
@@ -109,4 +131,3 @@ export function NutritionPanel({
     </section>
   );
 }
-

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal, cast
@@ -27,6 +28,12 @@ from vigor_vine.application.recipe_queries import (
 )
 from vigor_vine.application.recipes import IngredientWrite, RecipeWrite
 from vigor_vine.domain.common import canonical_decimal, quantize_decimal
+from vigor_vine.domain.nutrition import (
+    MICRONUTRIENT_KEYS,
+    USDA_MICRONUTRIENT_MANIFEST,
+    MicronutrientKey,
+    SupportedMicronutrientValue,
+)
 
 
 def _fixed_decimal(value: object, *, places: int, positive: bool = False) -> Decimal:
@@ -201,6 +208,84 @@ class NutritionCorrectionResponse(ApiModel):
         )
 
 
+class MicronutrientValueResponse(ApiModel):
+    value: str | None
+    unit: Literal["g", "mg", "ug"]
+    explicit_zero: bool = Field(alias="explicitZero")
+    coverage_ratio: str = Field(alias="coverageRatio")
+    source: Literal["reference", "source", "manual", "unavailable"]
+    mapping_version: str = Field(alias="mappingVersion")
+    usda_nutrient_id: int = Field(alias="usdaNutrientId")
+
+    @classmethod
+    def from_value(cls, value: SupportedMicronutrientValue) -> MicronutrientValueResponse:
+        source = (
+            value.source if value.source in {"reference", "source", "manual"} else "unavailable"
+        )
+        return cls(
+            value=canonical_decimal(value.value) if value.value is not None else None,
+            unit=cast(Literal["g", "mg", "ug"], value.unit),
+            explicit_zero=value.explicit_zero,
+            coverage_ratio=canonical_decimal(value.coverage_ratio),
+            source=cast(Literal["reference", "source", "manual", "unavailable"], source),
+            mapping_version=value.mapping_version,
+            usda_nutrient_id=value.fdc_nutrient_id,
+        )
+
+
+class MicronutrientsResponse(ApiModel):
+    dietary_fiber_g: MicronutrientValueResponse = Field(alias="dietaryFiberG")
+    sodium_mg: MicronutrientValueResponse = Field(alias="sodiumMg")
+    potassium_mg: MicronutrientValueResponse = Field(alias="potassiumMg")
+    calcium_mg: MicronutrientValueResponse = Field(alias="calciumMg")
+    iron_mg: MicronutrientValueResponse = Field(alias="ironMg")
+    magnesium_mg: MicronutrientValueResponse = Field(alias="magnesiumMg")
+    vitamin_c_mg: MicronutrientValueResponse = Field(alias="vitaminCMg")
+    vitamin_d_ug: MicronutrientValueResponse = Field(alias="vitaminDUg")
+    vitamin_b12_ug: MicronutrientValueResponse = Field(alias="vitaminB12Ug")
+
+    @classmethod
+    def from_values(
+        cls, values: Mapping[MicronutrientKey, SupportedMicronutrientValue]
+    ) -> MicronutrientsResponse:
+        return cls(
+            dietary_fiber_g=MicronutrientValueResponse.from_value(values["dietary_fiber_g"]),
+            sodium_mg=MicronutrientValueResponse.from_value(values["sodium_mg"]),
+            potassium_mg=MicronutrientValueResponse.from_value(values["potassium_mg"]),
+            calcium_mg=MicronutrientValueResponse.from_value(values["calcium_mg"]),
+            iron_mg=MicronutrientValueResponse.from_value(values["iron_mg"]),
+            magnesium_mg=MicronutrientValueResponse.from_value(values["magnesium_mg"]),
+            vitamin_c_mg=MicronutrientValueResponse.from_value(values["vitamin_c_mg"]),
+            vitamin_d_ug=MicronutrientValueResponse.from_value(values["vitamin_d_ug"]),
+            vitamin_b12_ug=MicronutrientValueResponse.from_value(values["vitamin_b12_ug"]),
+        )
+
+    @classmethod
+    def from_amounts(
+        cls,
+        amounts: Mapping[MicronutrientKey, Decimal | None],
+        *,
+        coverage_ratio: Decimal,
+    ) -> MicronutrientsResponse:
+        return cls.from_values(
+            {
+                key: SupportedMicronutrientValue(
+                    key=key,
+                    value=amounts.get(key),
+                    unit=USDA_MICRONUTRIENT_MANIFEST[key].unit,
+                    explicit_zero=amounts.get(key) == 0 if amounts.get(key) is not None else False,
+                    source="reference" if amounts.get(key) is not None else "unavailable",
+                    source_release=None,
+                    mapping_version=USDA_MICRONUTRIENT_MANIFEST[key].mapping_version,
+                    fdc_nutrient_id=USDA_MICRONUTRIENT_MANIFEST[key].fdc_nutrient_id,
+                    input_hash="snapshot",
+                    coverage_ratio=coverage_ratio,
+                )
+                for key in MICRONUTRIENT_KEYS
+            }
+        )
+
+
 class ResolvedNutritionResponse(ApiModel):
     status: str
     basis_servings: ServingDecimal = Field(alias="basisServings")
@@ -209,6 +294,7 @@ class ResolvedNutritionResponse(ApiModel):
     protein_g: Decimal6 | None = Field(alias="proteinG", default=None)
     carbohydrate_g: Decimal6 | None = Field(alias="carbohydrateG", default=None)
     fat_g: Decimal6 | None = Field(alias="fatG", default=None)
+    micronutrients: MicronutrientsResponse
     provenance: tuple[ProvenanceResponse, ...]
     assumptions: tuple[str, ...] = ()
     corrections: tuple[NutritionCorrectionResponse, ...] = ()
@@ -223,6 +309,7 @@ class ResolvedNutritionResponse(ApiModel):
             protein_g=value.macros.protein_g,
             carbohydrate_g=value.macros.carbohydrate_g,
             fat_g=value.macros.fat_g,
+            micronutrients=MicronutrientsResponse.from_values(value.micronutrients),
             provenance=tuple(ProvenanceResponse.from_read(item) for item in value.provenance),
             assumptions=value.assumptions,
             corrections=tuple(

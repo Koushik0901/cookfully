@@ -416,6 +416,7 @@ class MealPlanService:
             macros=nutrition.macros,
             status=cast(NutritionReliability, nutrition.status),
             coverage_ratio=nutrition.coverage_ratio,
+            micronutrients={key: item.value for key, item in nutrition.micronutrients.items()},
         )
 
     @staticmethod
@@ -476,6 +477,15 @@ class MealPlanService:
             protein_g=value.protein_g,
             carbohydrate_g=value.carbohydrate_g,
             fat_g=value.fat_g,
+            dietary_fiber_g=value.micronutrients["dietary_fiber_g"],
+            sodium_mg=value.micronutrients["sodium_mg"],
+            potassium_mg=value.micronutrients["potassium_mg"],
+            calcium_mg=value.micronutrients["calcium_mg"],
+            iron_mg=value.micronutrients["iron_mg"],
+            magnesium_mg=value.micronutrients["magnesium_mg"],
+            vitamin_c_mg=value.micronutrients["vitamin_c_mg"],
+            vitamin_d_ug=value.micronutrients["vitamin_d_ug"],
+            vitamin_b12_ug=value.micronutrients["vitamin_b12_ug"],
             nutrition_state=value.status,
             coverage_ratio=value.coverage_ratio,
         )
@@ -493,6 +503,17 @@ class MealPlanService:
             value.fat_g,
             cast(NutritionReliability, value.nutrition_state),
             value.coverage_ratio,
+            {
+                "dietary_fiber_g": value.dietary_fiber_g,
+                "sodium_mg": value.sodium_mg,
+                "potassium_mg": value.potassium_mg,
+                "calcium_mg": value.calcium_mg,
+                "iron_mg": value.iron_mg,
+                "magnesium_mg": value.magnesium_mg,
+                "vitamin_c_mg": value.vitamin_c_mg,
+                "vitamin_d_ug": value.vitamin_d_ug,
+                "vitamin_b12_ug": value.vitamin_b12_ug,
+            },
         )
 
     @classmethod
@@ -511,6 +532,7 @@ class MealPlanService:
             nutrition.fat_g,
             nutrition.status,
             nutrition.coverage_ratio,
+            nutrition.micronutrients,
         )
         return MealPlanEntryRead(
             entry.id,

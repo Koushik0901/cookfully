@@ -27,6 +27,7 @@ MicronutrientKey = Literal[
     "vitamin_d_ug",
     "vitamin_b12_ug",
 ]
+MicronutrientAmounts = dict[MicronutrientKey, Decimal | None]
 
 MICRONUTRIENT_KEYS: tuple[MicronutrientKey, ...] = (
     "dietary_fiber_g",

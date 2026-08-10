@@ -28,7 +28,7 @@ async function mockPantryApi(page: Page) {
     }
     if (path === "/api/v1/pantry-items" && request.method() === "POST") {
       const value = request.postDataJSON();
-      pantry = [...pantry, { id: "00000000-0000-4000-8000-000000000602", normalizedFoodName: "black beans", foodReferenceId: null, matchStatus: "unmatched", matchConfidence: null, version: 1, ...value }];
+      pantry = [...pantry, { id: "00000000-0000-4000-8000-000000000602", normalizedFoodName: "black beans", foodReferenceId: null, matchStatus: "unmatched", matchConfidence: null, version: 1, ...value, quantity: String(Number(value.quantity)) }];
       return route.fulfill({ status: 201, json: pantry.at(-1) });
     }
     if (path === "/api/v1/pantry/recipe-matches") {
@@ -41,12 +41,12 @@ async function mockPantryApi(page: Page) {
 test("manages pantry quantities and shows explicit recipe gaps without mobile overflow", async ({ page }) => {
   await mockPantryApi(page);
   await page.goto("/app/pantry");
-  await expect(page.getByRole("heading", { name: "Pantry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pantry", exact: true })).toBeVisible();
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
 
-  await page.getByLabel("Food name").fill("Black beans");
-  await page.getByLabel("Quantity").fill("2.000000");
-  await page.getByLabel("Unit").selectOption("count");
+  await page.getByLabel("Food name", { exact: true }).fill("Black beans");
+  await page.getByLabel("Quantity", { exact: true }).fill("2.000000");
+  await page.getByLabel("Unit", { exact: true }).selectOption("count");
   await page.getByRole("button", { name: "Add pantry item" }).click();
   await expect(page.getByRole("article", { name: "Black beans" })).toContainText("2 count");
 

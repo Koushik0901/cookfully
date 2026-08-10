@@ -16,9 +16,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from vigor_vine.application.jobs import JobProgress, JobService
 from vigor_vine.domain.common import DomainError
 from vigor_vine.domain.nutrition import (
+    MICRONUTRIENT_KEYS,
+    USDA_MICRONUTRIENT_MANIFEST,
     MacroValues,
+    MicronutrientAmounts,
+    MicronutrientKey,
     NutrientField,
     NutritionCorrectionValue,
+    SupportedMicronutrientValue,
     resolved_macros,
 )
 from vigor_vine.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
@@ -59,6 +64,7 @@ class NutritionRead:
     basis_servings: Decimal
     coverage_ratio: Decimal
     macros: MacroValues
+    micronutrients: dict[MicronutrientKey, SupportedMicronutrientValue]
     provenance: tuple[ProvenanceRead, ...]
     assumptions: tuple[str, ...]
     corrections: tuple[CorrectionRead, ...]
@@ -270,6 +276,7 @@ class RecipeQueryService:
                 estimate.coverage_ratio if estimate is not None else Decimal("0.000000")
             ),
             macros=resolved.values,
+            micronutrients=RecipeQueryService._micronutrients(estimate),
             provenance=provenance,
             assumptions=tuple(
                 item.strip()
@@ -280,6 +287,50 @@ class RecipeQueryService:
             ),
             corrections=tuple(RecipeQueryService._correction(item) for item in corrections),
         )
+
+    @staticmethod
+    def _micronutrients(
+        estimate: NutritionEstimate | None,
+    ) -> dict[MicronutrientKey, SupportedMicronutrientValue]:
+        values: MicronutrientAmounts = {
+            "dietary_fiber_g": estimate.fiber_g if estimate is not None else None,
+            "sodium_mg": estimate.sodium_mg if estimate is not None else None,
+            "potassium_mg": estimate.potassium_mg if estimate is not None else None,
+            "calcium_mg": estimate.calcium_mg if estimate is not None else None,
+            "iron_mg": estimate.iron_mg if estimate is not None else None,
+            "magnesium_mg": estimate.magnesium_mg if estimate is not None else None,
+            "vitamin_c_mg": estimate.vitamin_c_mg if estimate is not None else None,
+            "vitamin_d_ug": estimate.vitamin_d_ug if estimate is not None else None,
+            "vitamin_b12_ug": estimate.vitamin_b12_ug if estimate is not None else None,
+        }
+        coverage = estimate.coverage_ratio if estimate is not None else Decimal("0.000000")
+        source = (
+            "source"
+            if estimate is not None and estimate.status == "source_provided"
+            else "reference"
+            if estimate is not None
+            else "unavailable"
+        )
+        return {
+            key: SupportedMicronutrientValue(
+                key=key,
+                value=values[key],
+                unit=USDA_MICRONUTRIENT_MANIFEST[key].unit,
+                explicit_zero=values[key] == 0 if values[key] is not None else False,
+                source=source,
+                source_release=None,
+                mapping_version=(
+                    estimate.micronutrient_mapping_version
+                    if estimate is not None and estimate.micronutrient_mapping_version
+                    else USDA_MICRONUTRIENT_MANIFEST[key].mapping_version
+                ),
+                fdc_nutrient_id=USDA_MICRONUTRIENT_MANIFEST[key].fdc_nutrient_id,
+                input_hash=estimate.input_hash if estimate is not None else "unavailable",
+                coverage_ratio=coverage,
+                calculated_at=estimate.calculated_at if estimate is not None else None,
+            )
+            for key in MICRONUTRIENT_KEYS
+        }
 
     @staticmethod
     def _correction(value: NutritionCorrection) -> CorrectionRead:

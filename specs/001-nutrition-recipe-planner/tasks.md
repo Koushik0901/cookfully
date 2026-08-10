@@ -296,9 +296,9 @@ complete, true-zero, and unavailable micronutrient states.
 - [X] T136 [P] [US6] Implement fully/partially makeable recipe scoring and explicit missing-ingredient results in `backend/src/vigor_vine/application/pantry_search.py`
 - [X] T137 [US6] Implement visible, safe, reversible pantry deductions through grocery reconciliation in `backend/src/vigor_vine/application/pantry_deductions.py`
 - [X] T138 [US6] Implement pantry CRUD/search/deduction routes and canonical decimal-string DTOs matching the amended contract in `backend/src/vigor_vine/api/routes/pantry.py` and `backend/src/vigor_vine/api/schemas/pantry.py`
-- [ ] T139 [US6] Regenerate and commit exact-decimal pantry/micronutrient TypeScript bindings in `frontend/src/app/api/generated/`
-- [ ] T140 [P] [US6] Implement pantry inventory, match review, quantity editing, and makeable-recipe search in `frontend/src/features/pantry/PantryPage.tsx`
-- [ ] T141 [P] [US6] Add provenance-aware panels for the nine canonical P6 micronutrients, unavailable-versus-explicit-zero states, canonical units, and accessible planning-aid-not-medical-advice language to `frontend/src/features/recipes/NutritionPanel.tsx` and `frontend/src/features/plans/MacroSummary.tsx`
+- [X] T139 [US6] Regenerate and commit exact-decimal pantry/micronutrient TypeScript bindings in `frontend/src/app/api/generated/`
+- [X] T140 [P] [US6] Implement pantry inventory, match review, quantity editing, and makeable-recipe search in `frontend/src/features/pantry/PantryPage.tsx`
+- [X] T141 [P] [US6] Add provenance-aware panels for the nine canonical P6 micronutrients, unavailable-versus-explicit-zero states, canonical units, and accessible planning-aid-not-medical-advice language to `frontend/src/features/recipes/NutritionPanel.tsx` and `frontend/src/features/plans/MacroSummary.tsx`
 
 **Checkpoint**: US6 remains an optional expansion and does not change the core P1-P3 grocery result
 unless pantry subtraction is explicitly enabled.

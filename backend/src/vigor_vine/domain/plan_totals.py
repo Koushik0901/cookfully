@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import cast
 
 from vigor_vine.domain.common import display_calories, display_macro
 from vigor_vine.domain.meal_snapshots import MealNutritionSnapshotValue, NutritionReliability
-from vigor_vine.domain.nutrition import MacroValues
+from vigor_vine.domain.nutrition import MICRONUTRIENT_KEYS, MacroValues, MicronutrientAmounts
 
 FIELDS = ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
 RELIABILITY = {"partial": 0, "estimated": 1, "source_provided": 2, "manual": 3}
@@ -31,6 +31,9 @@ class PeriodTotal:
     status: NutritionReliability
     coverage_ratio: Decimal
     target_difference: MacroValues | None = None
+    micronutrients: MicronutrientAmounts = field(
+        default_factory=lambda: dict.fromkeys(MICRONUTRIENT_KEYS)
+    )
 
     def as_strings(self) -> dict[str, str | None]:
         return {
@@ -75,6 +78,14 @@ def _total(
         return sum((item for item in items if item is not None), Decimal(0))
 
     totals = {field: sum_field(field) for field in FIELDS}
+    micronutrients: MicronutrientAmounts = {}
+    for key in MICRONUTRIENT_KEYS:
+        nutrient_values = [value.micronutrients.get(key) for value in values]
+        micronutrients[key] = (
+            None
+            if any(item is None for item in nutrient_values)
+            else sum((item for item in nutrient_values if item is not None), Decimal(0))
+        )
     status = cast(
         NutritionReliability,
         min((value.status for value in values), key=RELIABILITY.__getitem__, default="partial"),
@@ -91,7 +102,11 @@ def _total(
             )
         )
     return PeriodTotal(
-        **totals, status=status, coverage_ratio=coverage, target_difference=difference
+        **totals,
+        status=status,
+        coverage_ratio=coverage,
+        target_difference=difference,
+        micronutrients=micronutrients,
     )
 
 

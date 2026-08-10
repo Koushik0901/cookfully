@@ -64,6 +64,31 @@ def recipe_payload() -> dict[str, object]:
     }
 
 
+def unavailable_micronutrients() -> dict[str, object]:
+    def value(unit: str, nutrient_id: int) -> dict[str, object]:
+        return {
+            "value": None,
+            "unit": unit,
+            "explicitZero": False,
+            "coverageRatio": "0",
+            "source": "unavailable",
+            "mappingVersion": "usda-fdc-2026-04-v1",
+            "usdaNutrientId": nutrient_id,
+        }
+
+    return {
+        "dietaryFiberG": value("g", 1079),
+        "sodiumMg": value("mg", 1093),
+        "potassiumMg": value("mg", 1092),
+        "calciumMg": value("mg", 1087),
+        "ironMg": value("mg", 1089),
+        "magnesiumMg": value("mg", 1090),
+        "vitaminCMg": value("mg", 1162),
+        "vitaminDUg": value("ug", 1114),
+        "vitaminB12Ug": value("ug", 1178),
+    }
+
+
 def test_owner_preferences_goal_and_plan_openapi_surface(
     isolated_database_url: str, tmp_path: Path
 ) -> None:
@@ -177,6 +202,7 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
             "fatG": "16.7",
             "status": "manual",
             "coverageRatio": "0",
+            "micronutrients": unavailable_micronutrients(),
         }
 
         plan = client.get("/api/v1/meal-plans/2026-03-09")

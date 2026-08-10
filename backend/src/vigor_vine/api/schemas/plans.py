@@ -5,7 +5,12 @@ from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
-from vigor_vine.api.schemas.recipes import ApiModel, Decimal6, ServingDecimal
+from vigor_vine.api.schemas.recipes import (
+    ApiModel,
+    Decimal6,
+    MicronutrientsResponse,
+    ServingDecimal,
+)
 from vigor_vine.application.meal_plans import (
     GoalRead,
     GoalWrite,
@@ -139,6 +144,7 @@ class NutritionSnapshotResponse(ApiModel):
     fat_g: str | None = Field(alias="fatG")
     status: str
     coverage_ratio: str = Field(alias="coverageRatio")
+    micronutrients: MicronutrientsResponse
 
     @classmethod
     def from_read(cls, value: MealPlanEntryRead) -> NutritionSnapshotResponse:
@@ -161,6 +167,10 @@ class NutritionSnapshotResponse(ApiModel):
             fat_g=display_macro(nutrition.fat_g) if nutrition.fat_g is not None else None,
             status=nutrition.status,
             coverage_ratio=canonical_decimal(nutrition.coverage_ratio),
+            micronutrients=MicronutrientsResponse.from_amounts(
+                nutrition.micronutrients,
+                coverage_ratio=nutrition.coverage_ratio,
+            ),
         )
 
 
@@ -208,6 +218,7 @@ class PeriodTotalResponse(ApiModel):
     fat_g: str | None = Field(alias="fatG")
     status: str
     coverage_ratio: str = Field(alias="coverageRatio")
+    micronutrients: MicronutrientsResponse
     target_difference: SignedMacroResponse | None = Field(alias="targetDifference", default=None)
 
     @classmethod
@@ -223,6 +234,10 @@ class PeriodTotalResponse(ApiModel):
             fat_g=displayed["fatG"],
             status=value.status,
             coverage_ratio=canonical_decimal(value.coverage_ratio),
+            micronutrients=MicronutrientsResponse.from_amounts(
+                value.micronutrients,
+                coverage_ratio=value.coverage_ratio,
+            ),
             target_difference=(
                 SignedMacroResponse(
                     calories_kcal=difference["caloriesKcal"],

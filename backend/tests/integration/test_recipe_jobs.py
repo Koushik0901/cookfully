@@ -138,6 +138,21 @@ def install_reference_data(session_factory: sessionmaker[Session]) -> None:
                 FoodNutrient(nutrient_code="1003", amount=Decimal("31"), unit="g"),
                 FoodNutrient(nutrient_code="1005", amount=Decimal("0"), unit="g"),
                 FoodNutrient(nutrient_code="1004", amount=Decimal("3.6"), unit="g"),
+                FoodNutrient(
+                    nutrient_code="291",
+                    canonical_key="dietary_fiber_g",
+                    mapping_version="usda-fdc-2026-04-v1",
+                    amount=Decimal("0"),
+                    unit="g",
+                    explicit_zero=True,
+                ),
+                FoodNutrient(
+                    nutrient_code="306",
+                    canonical_key="potassium_mg",
+                    mapping_version="usda-fdc-2026-04-v1",
+                    amount=Decimal("256"),
+                    unit="mg",
+                ),
             ],
         )
         session.add_all([foundation, legacy, food])
@@ -197,6 +212,9 @@ async def test_parse_match_rollup_chain_is_idempotent_and_preserves_corrections(
         assert estimate.protein_g == Decimal("31.000000")
         assert estimate.carbohydrate_g == Decimal("0.000000")
         assert estimate.fat_g == Decimal("3.600000")
+        assert estimate.fiber_g == Decimal("0.000000")
+        assert estimate.potassium_mg == Decimal("256.000000")
+        assert estimate.micronutrient_mapping_version == "usda-fdc-2026-04-v1"
         active_correction = session.get(NutritionCorrection, correction.id)
         assert active_correction is not None and active_correction.active is True
         assert len(session.scalars(select(NutritionEstimate)).all()) == 1
