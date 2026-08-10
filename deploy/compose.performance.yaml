@@ -36,7 +36,7 @@ services:
       VV_ERASURE_LEDGER_ROOT: /tmp/vigor-vine-performance/ledger
       VV_REFERENCE_PROFILE: "1"
       VV_REFERENCE_STORAGE: ssd
-      VV_PERFORMANCE_REPORT: /app/artifacts/performance-report.json
+      VV_PERFORMANCE_REPORT: ${VV_PERFORMANCE_REPORT_CONTAINER:-/app/artifacts/performance-report.json}
     depends_on:
       api:
         condition: service_healthy
