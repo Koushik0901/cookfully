@@ -3,7 +3,9 @@ import { Slot } from "@radix-ui/react-slot";
 import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
+  type ReactElement,
   type ReactNode,
+  cloneElement,
   useId,
   useState,
 } from "react";
@@ -16,14 +18,17 @@ export function Button({ asChild, className = "", ...props }: ButtonHTMLAttribut
   return <Component className={`button ${className}`} {...props} />;
 }
 
-export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactNode }) {
+export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactElement<{ "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
+  const fieldId = useId();
+  const labelId = `${fieldId}-label`;
+  const descriptionId = hint || error ? `${fieldId}-description` : undefined;
   return (
-    <label className="field">
-      <span className="field__label">{label}</span>
-      {children}
-      {hint && !error ? <span className="field__hint">{hint}</span> : null}
-      {error ? <span className="field__error">{error}</span> : null}
-    </label>
+    <div className="field">
+      <span id={labelId} className="field__label">{label}</span>
+      {cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}
+      {hint && !error ? <span id={descriptionId} className="field__hint">{hint}</span> : null}
+      {error ? <span id={descriptionId} className="field__error">{error}</span> : null}
+    </div>
   );
 }
 

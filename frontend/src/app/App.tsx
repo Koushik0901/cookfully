@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { Button, EmptyState } from "../components";
+import { RecipeDetailPage } from "../features/recipes/RecipeDetailPage";
+import { RecipeEditorPage } from "../features/recipes/RecipeEditorPage";
+import { RecipeLibraryPage } from "../features/recipes/RecipeLibraryPage";
 import { AppProviders, RequireAuthentication } from "./providers";
 
 function LandingPage() {
@@ -20,13 +23,17 @@ function LandingPage() {
 
 function PlannerShell() {
   return (
-    <main className="app-shell">
-      <EmptyState
-        title="Your planner is ready"
-        description="Add a recipe to begin building an evidence-backed weekly plan."
-        action={<Button>Add recipe</Button>}
-      />
-    </main>
+    <>
+      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes">Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a></nav>
+      <Routes>
+        <Route index element={<Navigate to="recipes" replace />} />
+        <Route path="recipes" element={<RecipeLibraryPage />} />
+        <Route path="recipes/new" element={<RecipeEditorPage />} />
+        <Route path="recipes/:recipeId" element={<RecipeDetailPage />} />
+        <Route path="recipes/:recipeId/edit" element={<RecipeEditorPage />} />
+        <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
+      </Routes>
+    </>
   );
 }
 
@@ -35,7 +42,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
-        path="/app"
+        path="/app/*"
         element={
           <RequireAuthentication>
             <PlannerShell />

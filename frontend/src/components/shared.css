@@ -15,6 +15,8 @@
 
 .button:disabled { cursor: not-allowed; opacity: 0.55; }
 .button--danger { border-color: var(--color-error); color: var(--color-on-error); background: var(--color-error); }
+.button--secondary { border-color: var(--color-outline); color: var(--color-on-surface); background: var(--color-surface-high); }
+.button--text { min-height: 2rem; border-color: transparent; padding: var(--space-xs) var(--space-1); color: var(--color-primary); background: transparent; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-sm); }
 .field { display: grid; gap: var(--space-xs); }
 .field__label { font-weight: 700; }
