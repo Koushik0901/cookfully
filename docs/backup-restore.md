@@ -57,7 +57,16 @@ uv run --directory backend vigor-vine backup compare --target-database-url $targ
 
 Set `VV_DATABASE_URL=$targetUrl` for the Alembic command if the environment does not already point at the disposable database. Never point `--target-database-url` or `--target-media-root` at the active deployment.
 
-The restore report must show `active: true`, the backup and current cursors, all replayed record IDs, and zero resurrected recipe IDs. The comparison must report zero missing and zero unexpected rows. Detached historical meal snapshots and grocery source text remain; erased recipe-owned entities and media must not.
+For ordinary and recipe-erasure replay, the restore report must show `active: true`, the backup and
+current cursors, all replayed record IDs, and zero resurrected recipe IDs. The comparison must report
+zero missing and zero unexpected rows. Detached historical meal snapshots and grocery source text
+remain; erased recipe-owned entities and media must not.
+
+If a later `owner_owned` record exists, replay intentionally returns an empty bootstrap database and
+no managed media. That report must show `active: false` and zero `resurrected_owner_ids` as well as
+zero resurrected recipe IDs. Do not start the restored target as though it contained the erased owner;
+complete the normal fresh-owner bootstrap only after the report and comparison pass. See
+`docs/owner-erasure.md` for the destructive workflow and recovery rules.
 
 ## Disaster-recovery drill
 
@@ -68,6 +77,7 @@ Run a restore drill at least quarterly and after archive, ledger, or migration c
 3. Run `backup compare` and require zero differences.
 4. Start an API against the restored target, authenticate, and inspect recipes, corrections, plans, grocery provenance, and media.
 5. Confirm erased recipes cannot be found and detached history remains readable.
+   If owner erasure is under test, instead require bootstrap state and no detached owner history.
 6. Destroy only the explicitly named disposable Compose project and its volumes after recording the drill result.
 
 Treat any checksum, continuity, resurrection, missing-media, non-empty-target, or comparison failure as a failed recovery. Preserve the evidence, keep the target inactive, repair the backup/replication process, and repeat the drill with a new disposable target.

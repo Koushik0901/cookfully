@@ -40,6 +40,7 @@ class RestoreReport:
     current_cursor: int
     replayed_record_ids: tuple[UUID, ...]
     resurrected_recipe_ids: tuple[UUID, ...]
+    resurrected_owner_ids: tuple[UUID, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,24 +234,36 @@ class BackupManager:
             for record in records
             if record.subject_type == "recipe" and record.scope == "recipe_owned"
         }
+        erased_owner_ids = {
+            record.subject_id
+            for record in records
+            if record.subject_type == "owner" and record.scope == "owner_owned"
+        }
         with target_factory() as session:
             recipes = Base.metadata.tables["recipes"]
+            owners = Base.metadata.tables["owner_accounts"]
             resurrected = tuple(
                 recipe_id
                 for recipe_id in sorted(erased_recipe_ids, key=str)
                 if session.scalar(select(recipes.c.id).where(recipes.c.id == recipe_id)) is not None
             )
-        if resurrected:
+            resurrected_owners = tuple(
+                owner_id
+                for owner_id in sorted(erased_owner_ids, key=str)
+                if session.scalar(select(owners.c.id).where(owners.c.id == owner_id)) is not None
+            )
+        if resurrected or resurrected_owners:
             raise DomainError(
                 "restore_resurrection", "Restore replay resurrected erased data.", 500
             )
         current_cursor, _ = current_ledger.head()
         return RestoreReport(
-            active=True,
+            active=not erased_owner_ids,
             backup_cursor=int(manifest["ledgerCursor"]),
             current_cursor=current_cursor,
             replayed_record_ids=tuple(record.record_id for record in records),
             resurrected_recipe_ids=resurrected,
+            resurrected_owner_ids=resurrected_owners,
         )
 
     def compare(

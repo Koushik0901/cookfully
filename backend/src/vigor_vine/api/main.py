@@ -42,6 +42,7 @@ from vigor_vine.application.suggestions import SuggestionService
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
 from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
+from vigor_vine.infrastructure.instance_lease import runtime_service_lease
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.infrastructure.observability import correlation_middleware
 from vigor_vine.mcp.read_tools import ReadTools
@@ -143,41 +144,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        auth_service = AuthService(sessions)
-        auth_service.bootstrap_owner(
-            str(resolved.owner_email),
-            resolved.owner_bootstrap_password.get_secret_value(),
-            "Owner",
-        )
-        app.state.auth_service = auth_service
-        app.state.access_tokens = access_token_service
-        app.state.owner_preferences = OwnerPreferenceService(sessions)
-        app.state.jobs = JobService(sessions)
-        app.state.recipes = RecipeService(
-            sessions,
-            ErasureLedger(resolved.erasure_ledger_root),
-            source_instance_id=resolved.instance_id,
-        )
-        app.state.recipe_queries = recipe_query_service
-        app.state.corrections = CorrectionService(sessions)
-        app.state.idempotency = idempotency_service
-        app.state.goals = goal_service
-        app.state.meal_plans = meal_plan_service
-        app.state.grocery_lists = grocery_list_service
-        app.state.pantry = PantryService(sessions)
-        app.state.pantry_search = PantrySearchService(sessions)
-        app.state.pantry_deductions = PantryDeductionService(sessions)
-        app.state.suggestions = SuggestionService(sessions)
-        app.state.sessions = sessions
-        media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
-        app.state.media_store = media_store
-        app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
-        try:
-            async with mcp_http.router.lifespan_context(mcp_http):
-                yield
-        finally:
-            redis_client.close()
-            engine.dispose()
+        with runtime_service_lease(engine, resolved.erasure_ledger_root):
+            auth_service = AuthService(sessions)
+            auth_service.bootstrap_owner(
+                str(resolved.owner_email),
+                resolved.owner_bootstrap_password.get_secret_value(),
+                "Owner",
+            )
+            app.state.auth_service = auth_service
+            app.state.access_tokens = access_token_service
+            app.state.owner_preferences = OwnerPreferenceService(sessions)
+            app.state.jobs = JobService(sessions)
+            app.state.recipes = RecipeService(
+                sessions,
+                ErasureLedger(resolved.erasure_ledger_root),
+                source_instance_id=resolved.instance_id,
+            )
+            app.state.recipe_queries = recipe_query_service
+            app.state.corrections = CorrectionService(sessions)
+            app.state.idempotency = idempotency_service
+            app.state.goals = goal_service
+            app.state.meal_plans = meal_plan_service
+            app.state.grocery_lists = grocery_list_service
+            app.state.pantry = PantryService(sessions)
+            app.state.pantry_search = PantrySearchService(sessions)
+            app.state.pantry_deductions = PantryDeductionService(sessions)
+            app.state.suggestions = SuggestionService(sessions)
+            app.state.sessions = sessions
+            media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
+            app.state.media_store = media_store
+            app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
+            try:
+                async with mcp_http.router.lifespan_context(mcp_http):
+                    yield
+            finally:
+                redis_client.close()
+                engine.dispose()
 
     app = FastAPI(
         title="Vigor & Vine API",

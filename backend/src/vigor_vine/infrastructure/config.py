@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     job_terminal_deadline_seconds: Literal[900] = 900
     detailed_diagnostic_retention_days: Literal[30] = 30
     safe_job_metadata_retention_days: Literal[365] = 365
+    backup_retention_days: int = 30
     cookie_secure: bool = False
 
     @field_validator("job_retry_delays_seconds", mode="before")

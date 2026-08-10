@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -33,6 +34,19 @@ class ErasureLedger:
         self.path = self.root / "erasure-ledger.jsonl"
         self.checkpoint_path = self.root / "erasure-ledger-checkpoint.json"
 
+    def preflight_append(self) -> None:
+        """Prove the independent volume is readable and durably appendable without a ledger row."""
+
+        self.verify()
+        probe = self.root / f".append-probe-{uuid7()}"
+        try:
+            with probe.open("x", encoding="utf-8") as stream:
+                stream.write("appendable\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        finally:
+            probe.unlink(missing_ok=True)
+
     def append(
         self,
         *,
@@ -61,6 +75,7 @@ class ErasureLedger:
                 json.dumps(self._json(record), sort_keys=True, separators=(",", ":")) + "\n"
             )
             stream.flush()
+            os.fsync(stream.fileno())
         return record
 
     def verify(self) -> list[ErasureRecord]:

@@ -92,3 +92,49 @@ Adapt the editable identity and explicit restore ideas while keeping stricter ar
 The first evidence is in tasks T128–T138 and their pantry/micronutrient unit and API contract tests.
 This decision should be revisited if a future barcode/package model supplies trustworthy package
 quantities or if the reference projects add a well-tested pantry ledger with stronger guarantees.
+
+## P9 backup, maintenance, and full-owner erasure — 2026-08-10
+
+### Sources inspected
+
+- [Mealie backup and restore documentation](https://docs.mealie.io/documentation/getting-started/usage/backups-and-restoring/)
+- [Tandoor backup documentation](https://docs.tandoor.dev/system/backup/) and
+  [update guidance](https://docs.tandoor.dev/system/updating/)
+- [Immich backup and restore documentation](https://docs.immich.app/administration/backup-and-restore/),
+  [maintenance mode](https://docs.immich.app/administration/maintenance-mode/),
+  [system integrity checks](https://docs.immich.app/administration/system-integrity/), and
+  [user deletion lifecycle](https://docs.immich.app/administration/user-management/)
+
+### Objective comparison
+
+Mealie's integrated backup screen and explicit destructive-restore warning make a complex operation
+approachable. Its documented recovery suggestion to edit a failed backup's JSON can rescue partial
+data, but weakens reproducibility and is unsuitable for an erasure-sensitive activation gate unless
+the edited artifact is revalidated. Tandoor is unusually candid that its application-level backup is
+not yet a complete DR solution; separating PostgreSQL and media and telling operators to test restores
+are sound, but consistency and replay remain the operator's responsibility.
+
+Immich supplies the strongest operational reference: explicit maintenance mode, pre-restore points,
+automatic rollback on restore failure, storage integrity markers, and delayed versus immediate user
+deletion. Those mechanisms fit its multi-user, very-large-asset domain. Copying its delayed user
+deletion into this single-owner planner would conflict with the clarified offline exact-confirmation
+requirement, and filesystem marker checks alone do not prevent an older backup from resurrecting
+previously erased data. None of the three maintained documents establishes an independent,
+content-free, hash-chained erasure ledger that gates restored backups.
+
+### Local decision
+
+Adapt their clearest operational lessons—maintenance as an explicit state, destructive confirmation,
+database-plus-filesystem completeness, restore integrity checks, rollback before irreversible
+commit, and routine restore drills. Go further where the local privacy contract requires it:
+
+- active API/worker/outbox processes hold shared database leases; erasure requires an exclusive lease;
+- files move to same-volume quarantine before one durable `owner_owned` ledger append;
+- pre-ledger failure rolls back, while post-ledger failure remains visibly maintenance-locked and
+  resumes idempotently;
+- the independently preserved ledger replays later erasures into every older backup before activation.
+
+This is not asserted to be universally better. It adds a database lock, independent storage,
+operator ceremony, and recovery states that smaller installations must understand. Reconsider it if
+future evidence shows the ledger cannot be operated reliably, but do not weaken zero-resurrection
+without changing the product's explicit privacy guarantee.

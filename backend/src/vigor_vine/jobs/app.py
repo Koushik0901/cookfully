@@ -1,6 +1,12 @@
-from celery import Celery
+from contextlib import AbstractContextManager
+from typing import Any
+
+from celery import Celery, signals
+from sqlalchemy import Engine
 
 from vigor_vine.infrastructure.config import get_settings
+from vigor_vine.infrastructure.database import create_database_engine
+from vigor_vine.infrastructure.instance_lease import runtime_service_lease
 
 settings = get_settings()
 celery_app = Celery("vigor_vine", broker=settings.redis_url)
@@ -21,6 +27,28 @@ celery_app.conf.update(
     imports=("vigor_vine.jobs.recipe_pipeline",),
 )
 celery_app.autodiscover_tasks(["vigor_vine.jobs"])
+
+_runtime_engine: Engine | None = None
+_runtime_lease: AbstractContextManager[None] | None = None
+
+
+@signals.worker_ready.connect  # type: ignore[untyped-decorator]
+def acquire_runtime_lease(**_: Any) -> None:
+    global _runtime_engine, _runtime_lease
+    _runtime_engine = create_database_engine(settings)
+    _runtime_lease = runtime_service_lease(_runtime_engine, settings.erasure_ledger_root)
+    _runtime_lease.__enter__()
+
+
+@signals.worker_shutdown.connect  # type: ignore[untyped-decorator]
+def release_runtime_lease(**_: Any) -> None:
+    global _runtime_engine, _runtime_lease
+    if _runtime_lease is not None:
+        _runtime_lease.__exit__(None, None, None)
+        _runtime_lease = None
+    if _runtime_engine is not None:
+        _runtime_engine.dispose()
+        _runtime_engine = None
 
 
 @celery_app.task(name="vigor_vine.health", ignore_result=True)  # type: ignore[untyped-decorator]
