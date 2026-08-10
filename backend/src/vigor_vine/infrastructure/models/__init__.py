@@ -22,6 +22,7 @@ from vigor_vine.infrastructure.models.reference_foods import (
     FoodReference,
     ReferenceDataset,
 )
+from vigor_vine.infrastructure.models.suggestions import SuggestionItem, SuggestionRun
 
 __all__ = [
     "AccessToken",
@@ -48,5 +49,7 @@ __all__ = [
     "RecipeInstruction",
     "ReferenceDataset",
     "SessionRecord",
+    "SuggestionItem",
+    "SuggestionRun",
     "UserGoal",
 ]

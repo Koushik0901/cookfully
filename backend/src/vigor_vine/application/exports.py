@@ -38,6 +38,7 @@ from vigor_vine.infrastructure.models.reference_foods import (
     FoodReference,
     ReferenceDataset,
 )
+from vigor_vine.infrastructure.models.suggestions import SuggestionItem, SuggestionRun
 
 EXPORT_TABLES: tuple[Table, ...] = tuple(
     cast(Table, table)
@@ -59,6 +60,8 @@ EXPORT_TABLES: tuple[Table, ...] = tuple(
         GroceryList.__table__,
         GroceryItem.__table__,
         GroceryItemSource.__table__,
+        SuggestionRun.__table__,
+        SuggestionItem.__table__,
         MediaAsset.__table__,
     )
 )

@@ -796,6 +796,7 @@ export interface components {
             mealSlot: string;
             servings: components["schemas"]["ServingDecimal"];
             projectedNutrition: components["schemas"]["NutritionSnapshot"];
+            accepted: boolean;
         };
         SuggestionResult: {
             /** Format: uuid */
@@ -803,6 +804,7 @@ export interface components {
             /** @enum {string} */
             status: "queued" | "running" | "feasible" | "infeasible" | "failed" | "expired";
             request: components["schemas"]["SuggestionRequest"];
+            target: components["schemas"]["MacroValues"];
             items: components["schemas"]["SuggestionItem"][];
             projectedDayTotals?: {
                 [key: string]: components["schemas"]["PeriodTotal"];
@@ -814,6 +816,10 @@ export interface components {
             distanceComponents?: components["schemas"]["SuggestionDistanceComponents"] | null;
             planVersion: number;
             failureCode?: string | null;
+            /** @constant */
+            ranking: "fewest-unmet,weighted-4-3-1-1-2-5,fewer-entries,ordered-recipe-ids";
+            /** @constant */
+            planningNotice: "Planning aid only—not medical advice.";
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

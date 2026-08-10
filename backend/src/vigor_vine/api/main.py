@@ -18,6 +18,7 @@ from vigor_vine.api.routes import (
     media,
     owner,
     recipes,
+    suggestions,
 )
 from vigor_vine.application.auth import AuthService
 from vigor_vine.application.corrections import CorrectionService
@@ -29,6 +30,7 @@ from vigor_vine.application.meal_plans import GoalService, MealPlanService
 from vigor_vine.application.owner_preferences import OwnerPreferenceService
 from vigor_vine.application.recipe_queries import RecipeQueryService
 from vigor_vine.application.recipes import RecipeService
+from vigor_vine.application.suggestions import SuggestionService
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
 from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
@@ -64,6 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.goals = GoalService(sessions)
         app.state.meal_plans = MealPlanService(sessions)
         app.state.grocery_lists = GroceryListService(sessions)
+        app.state.suggestions = SuggestionService(sessions)
         app.state.sessions = sessions
         media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
         app.state.media_store = media_store
@@ -93,6 +96,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(meal_plans.router)
     versioned.include_router(grocery.router)
     versioned.include_router(exports.router)
+    versioned.include_router(suggestions.router)
     versioned.include_router(media.router)
     app.include_router(versioned)
     return app

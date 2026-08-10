@@ -1233,7 +1233,7 @@ components:
         maxRecipeRepetitions: { type: integer, minimum: 1, maximum: 21 }
     SuggestionItem:
       type: object
-      required: [id, recipeId, recipeTitle, localDate, mealSlot, servings, projectedNutrition]
+      required: [id, recipeId, recipeTitle, localDate, mealSlot, servings, projectedNutrition, accepted]
       properties:
         id: { type: string, format: uuid }
         recipeId: { type: string, format: uuid }
@@ -1242,13 +1242,15 @@ components:
         mealSlot: { type: string }
         servings: { $ref: "#/components/schemas/ServingDecimal" }
         projectedNutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
+        accepted: { type: boolean }
     SuggestionResult:
       type: object
-      required: [id, status, request, items, missedConstraints, planVersion, createdAt]
+      required: [id, status, request, target, items, missedConstraints, planVersion, ranking, planningNotice, createdAt]
       properties:
         id: { type: string, format: uuid }
         status: { type: string, enum: [queued, running, feasible, infeasible, failed, expired] }
         request: { $ref: "#/components/schemas/SuggestionRequest" }
+        target: { $ref: "#/components/schemas/MacroValues" }
         items: { type: array, items: { $ref: "#/components/schemas/SuggestionItem" } }
         projectedDayTotals:
           type: object
@@ -1263,6 +1265,12 @@ components:
             - type: "null"
         planVersion: { type: integer, minimum: 1 }
         failureCode: { type: [string, "null"] }
+        ranking:
+          type: string
+          const: fewest-unmet,weighted-4-3-1-1-2-5,fewer-entries,ordered-recipe-ids
+        planningNotice:
+          type: string
+          const: Planning aid only—not medical advice.
         createdAt: { type: string, format: date-time }
         expiresAt: { type: [string, "null"], format: date-time }
     SuggestionDistanceComponents:

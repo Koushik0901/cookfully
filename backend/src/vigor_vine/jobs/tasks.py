@@ -7,6 +7,7 @@ from vigor_vine.infrastructure.database import create_database_engine, create_se
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.jobs.app import celery_app
 from vigor_vine.jobs.export import run_export_job
+from vigor_vine.jobs.suggestions import run_suggestion_job
 
 
 @celery_app.task(name="vigor_vine.process_job", ignore_result=True)  # type: ignore[untyped-decorator]
@@ -36,6 +37,9 @@ def process_job(envelope: dict[str, Any]) -> None:
                 settings.export_root,
                 UUID(str(envelope["jobId"])),
             )
+            return
+        if envelope["kind"] == "suggestion":
+            run_suggestion_job(sessions, UUID(str(envelope["jobId"])))
             return
         jobs = JobService(sessions)
         job = jobs.claim(
