@@ -37,7 +37,7 @@ function idempotencyKey(): string {
 
 type RequestOptions = RequestInit & { idempotent?: boolean; version?: number };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("accept", "application/json");
   const method = (options.method ?? "GET").toUpperCase();
@@ -77,33 +77,33 @@ export const recipesApi = {
     if (filters.nutritionState) params.set("nutritionState", filters.nutritionState);
     if (filters.includeArchived) params.set("includeArchived", "true");
     const suffix = params.size ? `?${params.toString()}` : "";
-    return request<RecipePage>(`/recipes${suffix}`);
+    return apiRequest<RecipePage>(`/recipes${suffix}`);
   },
   get(recipeId: string) {
-    return request<RecipeDetail>(`/recipes/${recipeId}`);
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}`);
   },
   create(value: RecipeWrite) {
-    return request<Recipe>("/recipes", { method: "POST", body: JSON.stringify(value) });
+    return apiRequest<Recipe>("/recipes", { method: "POST", body: JSON.stringify(value) });
   },
   update(recipeId: string, version: number, value: RecipeWrite) {
-    return request<RecipeDetail>(`/recipes/${recipeId}`, {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}`, {
       method: "PATCH",
       version,
       body: JSON.stringify(value),
     });
   },
   archive(recipeId: string, version: number) {
-    return request<void>(`/recipes/${recipeId}`, { method: "DELETE", version });
+    return apiRequest<void>(`/recipes/${recipeId}`, { method: "DELETE", version });
   },
   restore(recipeId: string, version: number) {
-    return request<RecipeDetail>(`/recipes/${recipeId}/restore`, {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/restore`, {
       method: "POST",
       version,
       idempotent: true,
     });
   },
   permanentDelete(recipeId: string, version: number) {
-    return request<void>(`/recipes/${recipeId}/permanent`, {
+    return apiRequest<void>(`/recipes/${recipeId}/permanent`, {
       method: "DELETE",
       version,
       idempotent: true,
@@ -111,37 +111,37 @@ export const recipesApi = {
     });
   },
   import(url: string) {
-    return request<JobAccepted>("/recipes/import", {
+    return apiRequest<JobAccepted>("/recipes/import", {
       method: "POST",
       idempotent: true,
       body: JSON.stringify({ url }),
     });
   },
   recalculate(recipeId: string, resetCorrections = false) {
-    return request<JobAccepted>(`/recipes/${recipeId}/nutrition/recalculate`, {
+    return apiRequest<JobAccepted>(`/recipes/${recipeId}/nutrition/recalculate`, {
       method: "POST",
       idempotent: true,
       body: JSON.stringify({ resetCorrections }),
     });
   },
   correct(recipeId: string, value: NutritionCorrectionWrite) {
-    return request<ResolvedNutrition>(`/recipes/${recipeId}/nutrition/corrections`, {
+    return apiRequest<ResolvedNutrition>(`/recipes/${recipeId}/nutrition/corrections`, {
       method: "POST",
       idempotent: true,
       body: JSON.stringify(value),
     });
   },
   resetCorrection(recipeId: string, correctionId: string) {
-    return request<ResolvedNutrition>(
+    return apiRequest<ResolvedNutrition>(
       `/recipes/${recipeId}/nutrition/corrections/${correctionId}`,
       { method: "DELETE", idempotent: true },
     );
   },
   job(jobId: string) {
-    return request<Job>(`/jobs/${jobId}`);
+    return apiRequest<Job>(`/jobs/${jobId}`);
   },
   currentJob(recipeId: string) {
     const params = new URLSearchParams({ aggregateType: "recipe", aggregateId: recipeId });
-    return request<Job>(`/jobs/current?${params.toString()}`);
+    return apiRequest<Job>(`/jobs/current?${params.toString()}`);
   },
 };

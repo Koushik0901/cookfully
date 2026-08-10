@@ -160,12 +160,143 @@ small {
 
 .stack,
 .recipe-form,
+.goal-form,
+.settings-section,
+.meal-targets,
+.planner-day,
+.entry-list,
 .correction-form,
 .recipe-content,
 .nutrition-panel,
 .danger-zone {
   display: grid;
   gap: var(--space-md);
+}
+
+.settings-section,
+.meal-slot,
+.macro-summary,
+.plan-entry {
+  min-width: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--color-surface-low);
+}
+
+.meal-targets fieldset {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+}
+
+.meal-targets legend {
+  padding-inline: var(--space-xs);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.day-tabs {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(5.5rem, 1fr));
+  gap: var(--space-xs);
+  overflow-x: auto;
+  padding-bottom: var(--space-xs);
+}
+
+.day-tab {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius);
+  padding: var(--space-sm);
+  color: var(--color-on-surface-variant);
+  background: var(--color-surface-low);
+  text-align: left;
+}
+
+.day-tab--active {
+  border-color: var(--color-primary);
+  color: var(--color-on-surface);
+  background: var(--color-surface-container);
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.budget {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.budget__label,
+.plan-entry__heading,
+.entry-controls,
+.add-entry {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.budget__label {
+  flex-wrap: wrap;
+}
+
+.budget__track {
+  height: .5rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-high);
+}
+
+.budget__track span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.budget--calories .budget__track span { background: var(--macro-calories); }
+.budget--protein .budget__track span { background: var(--macro-protein); }
+.budget--carbs .budget__track span { background: var(--macro-carbohydrate); }
+.budget--fat .budget__track span { background: var(--macro-fat); }
+
+.reliability-badge {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-1);
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-data-sm);
+  text-transform: capitalize;
+}
+
+.meal-slot,
+.plan-entry {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.entry-controls,
+.add-entry {
+  align-items: end;
+}
+
+.entry-controls .field {
+  flex: 1 1 10rem;
+}
+
+.success-text {
+  color: var(--color-primary);
 }
 
 .recipe-form {
@@ -469,6 +600,7 @@ small {
   .form-grid,
   .recipe-grid,
   .macro-grid,
+  .budget-grid,
   .evidence-grid {
     grid-template-columns: 1fr;
   }
@@ -479,6 +611,22 @@ small {
 
   .check-field {
     white-space: normal;
+  }
+
+  .app-nav {
+    gap: var(--space-sm);
+    overflow-x: auto;
+  }
+
+  .app-nav .brand {
+    min-width: max-content;
+  }
+
+  .plan-entry__heading,
+  .entry-controls,
+  .add-entry {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

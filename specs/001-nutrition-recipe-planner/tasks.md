@@ -145,8 +145,8 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 - [X] T068 [P] [US2] Write failing three-decimal serving, round-half-up display snapshot, exact decimal-string meal/day/week totals, signed differences, reliability, and explicit-refresh tests in `backend/tests/unit/test_meal_plan_totals.py`
 - [X] T069 [P] [US2] Write failing owner-preference, required non-null daily-goal, optional meal-target, and meal-plan CRUD/concurrency plus canonical decimal-string contract tests in `backend/tests/contract/test_meal_plan_api.py`
 - [X] T070 [P] [US2] Write failing recipe-edit/delete-versus-detached-history, display-quantized snapshot, and 50-entry performance integration tests in `backend/tests/integration/test_meal_plan_snapshots.py`
-- [ ] T071 [P] [US2] Write failing target form, week calendar, day tabs, budget bars, status cues, and keyboard interaction tests in `frontend/src/features/plans/__tests__/`
-- [ ] T072 [P] [US2] Write failing goal creation, seven-day planning, serving adjustment, copy/move, and snapshot-refresh journeys in `frontend/e2e/meal-planning.spec.ts`
+- [X] T071 [P] [US2] Write failing target form, week calendar, day tabs, budget bars, status cues, and keyboard interaction tests in `frontend/src/features/plans/__tests__/`
+- [X] T072 [P] [US2] Write failing goal creation, seven-day planning, serving adjustment, copy/move, and snapshot-refresh journeys in `frontend/e2e/meal-planning.spec.ts`
 
 ### Implementation for User Story 2
 
@@ -157,11 +157,11 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 - [X] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/vigor_vine/application/meal_plans.py`
 - [X] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/goals.py`, `backend/src/vigor_vine/api/routes/meal_plans.py`, and `backend/src/vigor_vine/api/schemas/plans.py`
 - [X] T079 [US2] Regenerate and commit exact-decimal goal/plan/owner-preference TypeScript bindings in `frontend/src/app/api/generated/`
-- [ ] T080 [P] [US2] Implement maintenance/target mode, daily macros, effective dates, optional meal targets, timezone, and week-start editing in `frontend/src/features/goals/GoalSettingsPage.tsx`
-- [ ] T081 [P] [US2] Implement timezone/week-start-aware responsive week/day navigation, meal slots, recipe selection, and entry ordering in `frontend/src/features/plans/WeeklyPlannerPage.tsx` and `frontend/src/features/plans/DayTabs.tsx`
-- [ ] T082 [P] [US2] Implement accessible exact-decimal macro rings, budget bars, numeric typography, reliability badges, and non-color state labels in `frontend/src/features/plans/MacroSummary.tsx`
-- [ ] T083 [US2] Implement add/move/copy/resize/remove and explicit nutrition-refresh interactions with optimistic-conflict recovery in `frontend/src/features/plans/MealPlanEntry.tsx` and `frontend/src/features/plans/useMealPlanMutations.ts`
-- [ ] T084 [US2] Add 50-entry exact-sum reference fixtures and automated p95/under-two-second visible-update reporting in `backend/tests/performance/test_plan_totals.py` and `frontend/e2e/meal-plan-performance.spec.ts`
+- [X] T080 [P] [US2] Implement maintenance/target mode, daily macros, effective dates, optional meal targets, timezone, and week-start editing in `frontend/src/features/goals/GoalSettingsPage.tsx`
+- [X] T081 [P] [US2] Implement timezone/week-start-aware responsive week/day navigation, meal slots, recipe selection, and entry ordering in `frontend/src/features/plans/WeeklyPlannerPage.tsx` and `frontend/src/features/plans/DayTabs.tsx`
+- [X] T082 [P] [US2] Implement accessible exact-decimal macro rings, budget bars, numeric typography, reliability badges, and non-color state labels in `frontend/src/features/plans/MacroSummary.tsx`
+- [X] T083 [US2] Implement add/move/copy/resize/remove and explicit nutrition-refresh interactions with optimistic-conflict recovery in `frontend/src/features/plans/MealPlanEntry.tsx` and `frontend/src/features/plans/useMealPlanMutations.ts`
+- [X] T084 [US2] Add 50-entry exact-sum reference fixtures and automated p95/under-two-second visible-update reporting in `backend/tests/performance/test_plan_totals.py` and `frontend/e2e/meal-plan-performance.spec.ts`
 
 **Checkpoint**: US1 and US2 work together, while US2 remains independently testable with seeded
 recipe snapshots.

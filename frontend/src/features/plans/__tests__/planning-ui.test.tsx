@@ -1,0 +1,180 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { GoalSettingsPage } from "../../goals/GoalSettingsPage";
+import { DayTabs } from "../DayTabs";
+import { MacroSummary } from "../MacroSummary";
+import { WeeklyPlannerPage } from "../WeeklyPlannerPage";
+import type { MealPlan, OwnerPreferences, UserGoal } from "../types";
+
+const preferences: OwnerPreferences = { timezone: "America/Vancouver", weekStartsOn: 1, version: 2 };
+const goal: UserGoal = {
+  id: "00000000-0000-4000-8000-000000000010",
+  mode: "cut",
+  maintenanceKcal: "2500.000000",
+  caloriesKcal: "2200.000000",
+  proteinG: "180.000000",
+  carbohydrateG: "220.000000",
+  fatG: "65.000000",
+  effectiveFrom: "2026-03-01",
+  effectiveTo: null,
+  mealTargets: [{ mealSlot: "breakfast", caloriesKcal: "500.000000", proteinG: null, carbohydrateG: null, fatG: null }],
+  macroCalorieDifference: "-15.000000",
+  version: 1,
+};
+const entry = {
+  id: "00000000-0000-4000-8000-000000000020",
+  localDate: "2026-03-09",
+  mealSlot: "breakfast",
+  recipeId: "00000000-0000-4000-8000-000000000001",
+  recipeTitle: "Protein oats",
+  servings: "1.500",
+  position: 0,
+  refreshNutrition: false,
+  nutrition: { basisServings: "1.500", caloriesKcal: "752", proteinG: "60.1", carbohydrateG: "90.1", fatG: "16.7", status: "estimated" as const, coverageRatio: "0.950000" },
+  origin: "manual" as const,
+  version: 1,
+};
+const total = {
+  caloriesKcal: "752",
+  proteinG: "60.1",
+  carbohydrateG: "90.1",
+  fatG: "16.7",
+  status: "estimated" as const,
+  coverageRatio: "0.950000",
+  targetDifference: { caloriesKcal: "-1448", proteinG: "-119.9", carbohydrateG: "-129.9", fatG: "-48.3" },
+};
+const plan: MealPlan = {
+  id: "00000000-0000-4000-8000-000000000030",
+  weekStart: "2026-03-09",
+  timezone: "America/Vancouver",
+  goal,
+  entries: [entry],
+  dayTotals: { "2026-03-09": total },
+  weekTotal: total,
+  groceryStatus: "absent",
+  version: 2,
+};
+
+function json(body: unknown, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
+}
+
+function renderPage(page: React.ReactNode, path = "/app/plan") {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 }, mutations: { retry: false } } });
+  return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}><Routes><Route path="/app/plan" element={page} /><Route path="/app/goals" element={page} /></Routes></MemoryRouter></QueryClientProvider>);
+}
+
+describe("goal and weekly planning UI", () => {
+  beforeEach(() => {
+    document.cookie = "vv_csrf=planning-csrf; path=/";
+    vi.setSystemTime(new Date("2026-03-11T18:00:00Z"));
+    vi.stubGlobal("fetch", vi.fn((input) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [{ id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    }));
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("edits required daily targets, optional meal targets, timezone, and week start", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (init?.method === "PUT" && path.includes("/owner/preferences")) return json({ ...preferences, timezone: "UTC", weekStartsOn: 7, version: 3 });
+      if (init?.method === "PUT" && path.includes("/goals/current")) return json({ ...goal, caloriesKcal: "2300", version: 2 });
+      if (path.includes("/owner/preferences")) return json(preferences);
+      return json(goal);
+    });
+    renderPage(<GoalSettingsPage />, "/app/goals");
+    const user = userEvent.setup();
+    expect(await screen.findByDisplayValue("2200.000000")).toBeVisible();
+    expect(screen.getByText(/macro targets account for 15.*fewer calories/i)).toBeVisible();
+    await user.selectOptions(screen.getByLabelText("Timezone"), "UTC");
+    await user.selectOptions(screen.getByLabelText("Week starts on"), "7");
+    await user.clear(screen.getByLabelText("Daily calories"));
+    await user.type(screen.getByLabelText("Daily calories"), "2300.000000");
+    expect(screen.getByLabelText("Breakfast protein (optional)")).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Save targets" }));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(2));
+    const goalCall = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/goals/current") && init?.method === "PUT");
+    expect(JSON.parse(String(goalCall?.[1]?.body))).toMatchObject({ caloriesKcal: "2300.000000", mealTargets: [{ proteinG: null }] });
+    expect(new Headers(goalCall?.[1]?.headers).get("if-match")).toBe('"1"');
+  });
+
+  it("rejects null or invalid required daily targets before saving", async () => {
+    renderPage(<GoalSettingsPage />, "/app/goals");
+    const user = userEvent.setup();
+    await screen.findByDisplayValue("2200.000000");
+    await user.clear(screen.getByLabelText("Daily protein"));
+    await user.click(screen.getByRole("button", { name: "Save targets" }));
+    expect(await screen.findByText("Daily protein is required.")).toBeVisible();
+    expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "PUT")).toBe(false);
+  });
+
+  it("moves day-tab focus with arrow keys and announces the selected local date", async () => {
+    const user = userEvent.setup();
+    render(<DayTabs dates={["2026-03-09", "2026-03-10", "2026-03-11"]} selected="2026-03-09" onSelect={vi.fn()} totals={{}} />);
+    const monday = screen.getByRole("tab", { name: /monday.*march 9/i });
+    monday.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: /tuesday.*march 10/i })).toHaveFocus();
+  });
+
+  it("renders exact macro budgets with text reliability and signed differences", () => {
+    render(<MacroSummary total={total} target={goal} label="Monday budget" />);
+    expect(screen.getByRole("region", { name: "Monday budget" })).toBeVisible();
+    expect(screen.getByText("752 / 2200.000000 kcal")).toBeVisible();
+    expect(screen.getByText("60.1 / 180.000000 g")).toBeVisible();
+    expect(screen.getByText(/estimated · 95% coverage/i)).toBeVisible();
+    expect(screen.getByText("-119.9 g remaining")).toBeVisible();
+    expect(screen.getAllByRole("progressbar")).toHaveLength(4);
+  });
+
+  it("renders week/day navigation, meal slots, entry controls, and optimistic mutations", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (init?.method === "PATCH") return json({ ...entry, servings: "2", nutrition: { ...entry.nutrition, caloriesKcal: "1003" }, version: 2 });
+      if (init?.method === "POST" && path.includes("/entries")) return json({ ...entry, id: "copy-id", localDate: "2026-03-10" }, 201);
+      if (init?.method === "DELETE") return Promise.resolve(new Response(null, { status: 204 }));
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [{ id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+    expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    expect(screen.getByRole("tab", { name: /monday.*march 9/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { name: "Breakfast" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Protein oats" })).toBeVisible();
+    expect(screen.getAllByText("estimated · 95% coverage").length).toBeGreaterThan(0);
+
+    await user.clear(screen.getByLabelText("Protein oats servings"));
+    await user.type(screen.getByLabelText("Protein oats servings"), "2.000");
+    await user.click(screen.getByRole("button", { name: "Update Protein oats" }));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+      expect(new Headers(call?.[1]?.headers).get("if-match")).toBe('"1"');
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ servings: "2.000" });
+    });
+    await user.click(screen.getByRole("button", { name: "Refresh Protein oats nutrition" }));
+    await user.click(screen.getByRole("button", { name: "Copy Protein oats to next day" }));
+    await user.click(screen.getByRole("button", { name: "Remove Protein oats" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
+  });
+});
