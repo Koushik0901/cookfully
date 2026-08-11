@@ -204,3 +204,40 @@ Evidence: `frontend/src/app/App.tsx`, `frontend/src/app/providers.tsx`,
 `frontend/src/components/MacroPreview.tsx`, and the UI tests `App.test.tsx` and
 `SignInView.test.tsx`. Revisit if a signup or multi-user entry flow is ever introduced, because a
 post-authentication redirect target would then need explicit URL validation.
+
+## Internal surfaces: recipe detail, planner, and forms — 2026-08-11
+
+### Sources inspected
+
+- Mealie `mealie/db/models/recipe/nutrition.py`: macro values stored as free-form strings
+- Mealie issue #2804 on the recipe nutrition card's missing serving-size basis
+- Mealie PR #5165 (recipe-scrapers `nutrients()` fallback) for how imported nutrition is populated
+
+### Objective comparison
+
+Mealie's nutrition card renders whatever string was imported (calories, protein, etc.) without an
+authoritative serving basis, and its maintainers publicly acknowledge that this makes the displayed
+numbers ambiguous to scale (issue #2804). The model stores macros as strings, so there is no
+exact-decimal or coverage concept to present. That is fine for a family recipe organizer, but it is a
+liability for a gym user who budgets macros to the gram.
+
+### Local decision
+
+Adopt the compact "facts card" placement idea, adapt the presentation, and reject the ambiguous
+basis:
+
+- Vigor & Vine renders macros as color-coded chips (Protein blue, Carbs amber, Fats steel, calories
+  as its own accent) on `color-mix` tinted pills, with the serving basis (`Basis: 2.500 servings ·
+  Coverage: 88%`), provenance, assumptions, and corrections always in view — the exact-decimal
+  contract DESIGN.md and the spec require;
+- the weekly planner mirrors the same chip language on entry cards and uses 12px budget bars whose
+  consumed portion glows in the macro color, so "at a glance" remains tied to the macro identity,
+  not to a second color system;
+- no surface mixes another macro-to-color mapping, and calorie/energy stays visually separate from
+  the three inviolable macros.
+
+Evidence: `frontend/src/styles/globals.css` (`.macro`, `.budget`, `.micronutrient`,
+`.result-banner`, `.objective-grid`, `.recipe-form__section`, `.day-tab--active::after`),
+`frontend/src/features/recipes/RecipeDetailPage.tsx`, `frontend/src/features/plans/MealPlanEntry.tsx`,
+and `frontend/src/features/recipes/RecipeEditorPage.tsx`. Revisit if Mealie ever adds exact-decimal,
+coverage-aware nutrition; there is no current reason to copy its label.
