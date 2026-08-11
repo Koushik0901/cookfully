@@ -106,6 +106,8 @@ describe("suggestion UI", () => {
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: "Meal suggestions" })).toBeVisible();
     expect(screen.getByText("Planning aid only—not medical advice.")).toBeVisible();
+    await user.click(screen.getByText("Macro tolerances", { selector: "summary" }));
+    await user.click(screen.getByText("Recipe rules", { selector: "summary" }));
     await user.selectOptions(screen.getByLabelText("Suggestion scope"), "meal");
     expect(screen.getByLabelText("Meal slot")).toBeVisible();
     await user.selectOptions(screen.getByLabelText("Suggestion scope"), "week");

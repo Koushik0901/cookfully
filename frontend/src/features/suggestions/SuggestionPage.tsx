@@ -146,15 +146,15 @@ export function SuggestionPage() {
           {scope === "meal" ? <Field label="Meal slot"><select className="input" value={mealSlot} onChange={(event) => setMealSlot(event.target.value)}>{MEAL_SLOTS.map((slot) => <option key={slot} value={slot}>{slot[0].toUpperCase()}{slot.slice(1)}</option>)}</select></Field> : null}
           <Field label="Maximum recipe repetitions"><input className="input data-value" type="number" min="1" max="21" value={maxRepetitions} onChange={(event) => setMaxRepetitions(Number(event.target.value))} /></Field>
         </div>
-        <fieldset className="tolerance-grid"><legend>Allowed macro distance</legend>
+        <details className="disclosure"><summary>Macro tolerances</summary><fieldset className="tolerance-grid"><legend>Allowed macro distance</legend>
           <Field label="Calories tolerance"><DecimalInput value={tolerances.caloriesKcal} onValueChange={(value) => updateTolerance("caloriesKcal", value)} /></Field>
           <Field label="Protein tolerance"><DecimalInput value={tolerances.proteinG} onValueChange={(value) => updateTolerance("proteinG", value)} /></Field>
           <Field label="Carbohydrate tolerance"><DecimalInput value={tolerances.carbohydrateG} onValueChange={(value) => updateTolerance("carbohydrateG", value)} /></Field>
           <Field label="Fat tolerance"><DecimalInput value={tolerances.fatG} onValueChange={(value) => updateTolerance("fatG", value)} /></Field>
-        </fieldset>
-        <fieldset className="recipe-constraints"><legend>Recipe rules</legend>
+        </fieldset></details>
+        <details className="disclosure"><summary>Recipe rules</summary><fieldset className="recipe-constraints"><legend>Recipe rules</legend>
           {availableRecipes.length ? availableRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><strong>{recipe.title}</strong><label><input type="checkbox" checked={requiredIds.includes(recipe.id)} onChange={(event) => toggleRequired(recipe.id, event.target.checked)} /> Require <span className="visually-hidden">{recipe.title}</span></label><label><input type="checkbox" checked={excludedIds.includes(recipe.id)} onChange={(event) => toggleExcluded(recipe.id, event.target.checked)} /> Exclude <span className="visually-hidden">{recipe.title}</span></label></div>) : <p className="muted">No nutrition-ready recipes are available.</p>}
-        </fieldset>
+        </fieldset></details>
         <div className="actions"><Button disabled={create.isPending || !availableRecipes.length} onClick={() => create.mutate()}>Generate suggestions</Button></div>
         {create.error instanceof Error ? <p className="error-text" role="alert">{create.error.message}</p> : null}
       </section>

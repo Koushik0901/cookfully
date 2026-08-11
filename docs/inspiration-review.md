@@ -241,3 +241,51 @@ Evidence: `frontend/src/styles/globals.css` (`.macro`, `.budget`, `.micronutrien
 `frontend/src/features/recipes/RecipeDetailPage.tsx`, `frontend/src/features/plans/MealPlanEntry.tsx`,
 and `frontend/src/features/recipes/RecipeEditorPage.tsx`. Revisit if Mealie ever adds exact-decimal,
 coverage-aware nutrition; there is no current reason to copy its label.
+
+## Ingredient→food matching against a reference corpus — 2026-08-11
+
+### Sources inspected
+
+- [Mealie `services/matching.py`](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/services/matching.py)
+  (`find_match`: exact alias-map lookup, then rapidfuzz `fuzz.ratio`, food threshold 85) and
+  [`parser_services/_base.py`](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/services/parser_services/_base.py)
+  (`DataMatcher`: name + `plural_name` + user aliases)
+- [Tandoor `cookbook/helper/ingredient_parser.py`](https://github.com/TandoorRecipes/recipes/blob/develop/cookbook/helper/ingredient_parser.py)
+  (`get_food`: exact `name`/`plural_name` match in the user's space, else create; user Automation
+  rules rewrite strings before lookup)
+
+### Objective comparison
+
+Both projects match parsed ingredient text against the **user's own small, curated food list**
+(tens to hundreds of rows they created), where exact + plural + alias lookup plus a light fuzzy
+threshold is adequate. Neither ships a large immutable reference corpus, so neither faces our
+actual problem: ~8.1k USDA rows with verbose inverted names where lexically similar but
+semantically wrong rows are common (`Milk, buttermilk, fluid, whole` for "whole milk";
+`Rice flour, brown` for "brown rice"; dehydrated banana powder for "banana"). Mealie's
+`process.extractOne` silently returns the single best fuzzy hit with no ambiguity concept —
+acceptable for a family organizer, a provenance violation here. Tandoor's create-on-miss is
+meaningless against a fixed corpus, and its Automation rules confirm the shared final fallback:
+the user adjudicates. What is genuinely transferable: plural/alias as first-class matching data
+(both), exact-before-fuzzy ordering (Mealie), and user adjudication as a designed flow rather
+than an error (Tandoor automations ≈ local nutrition corrections).
+
+### Local decision
+
+Reject single-best silent matching and create-on-miss; adopt first-class plural/alias variants
+and exact-first ordering; keep the local ambiguity-first contract:
+
+- singular/plural token **variants** drive database-side containment ordering so canonical rows
+  (`Bananas, raw`) are not excluded from the candidate window by raw-token array mismatch;
+- auto-match is gated on **full query-token containment**; ranking uses lead-token, contiguous
+  block, and USDA head-phrase (pre-comma segment) signals, minus penalties for unrequested
+  product-form tokens (`flour`, `powder`, `dehydrated`, `canned`, `breaded`, …) and unmatched
+  descriptor tokens — no compactness reward, which systematically favored prepared/packaged rows;
+- near-ties and low-confidence tops resolve to **ambiguous with ranked alternatives**, never a
+  silent wrong pick; the nutrition correction flow is the adjudication path, mirroring the role
+  Tandoor's automations play.
+
+Evidence: `backend/src/vigor_vine/application/food_matching.py`,
+`backend/src/vigor_vine/infrastructure/repositories/nutrition.py` (`search_foods`), and the corpus
+tests in `backend/tests/unit/test_food_matching_corpus.py` (including honesty tests that forbid
+auto-matching buttermilk over whole milk or banana powder over raw banana). Revisit if a curated
+staple-food subset or per-owner frequency data ever justifies a popularity prior.

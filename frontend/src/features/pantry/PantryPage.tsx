@@ -69,7 +69,7 @@ function PantryItemCard({ item }: { item: PantryItem }) {
       ) : item.matchStatus === "unmatched" ? (
         <p className="muted">Unmatched items remain inventory only and are never deducted automatically.</p>
       ) : null}
-      <form className="pantry-edit" onSubmit={save}>
+      <details className="disclosure"><summary>Edit {item.displayName}</summary><form className="pantry-edit" onSubmit={save}>
         <Field label={`${item.displayName} food name`}>
           <input className="input" value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
         </Field>
@@ -85,7 +85,7 @@ function PantryItemCard({ item }: { item: PantryItem }) {
           <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
         </Field>
         <Button className="button--secondary" type="submit" disabled={!displayName.trim() || update.isPending}>Save {item.displayName}</Button>
-      </form>
+      </form></details>
       {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
       <div className="actions">
         {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}

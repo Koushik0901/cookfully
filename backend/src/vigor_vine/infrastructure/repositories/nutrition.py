@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import Text, and_, cast, func, or_, select, update
+from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.orm import Session, selectinload
 
 from vigor_vine.domain.common import DomainError
@@ -11,6 +12,25 @@ from vigor_vine.infrastructure.models.nutrition import (
 )
 from vigor_vine.infrastructure.models.recipes import Recipe
 from vigor_vine.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
+
+
+def _token_variants(token: str) -> list[str]:
+    """Singular/plural spellings of a query token for containment ordering.
+
+    Stored reference names keep their original inflection ("Bananas, raw"), so a raw
+    array-containment check for "banana" would exclude the canonical row from the
+    candidate window entirely. Mirrors the singularization in application.food_matching
+    without importing application code into the infrastructure layer.
+    """
+
+    variants = {token}
+    if token.endswith("ies") and len(token) > 4:
+        variants.add(token[:-3] + "y")
+    if token.endswith("s") and len(token) > 3 and not token.endswith(("ss", "us", "is")):
+        variants.add(token[:-1])
+    else:
+        variants.add(token + "s")
+    return sorted(variants)
 
 
 class NutritionRepository:
@@ -29,6 +49,14 @@ class NutritionRepository:
         if not tokens:
             return []
         name_filter = or_(*(FoodReference.normalized_name.ilike(f"%{token}%") for token in tokens))
+        token_array = func.string_to_array(FoodReference.normalized_name, " ")
+        contains_all = and_(
+            *(
+                token_array.op("&&")(cast(array(_token_variants(token)), ARRAY(Text())))
+                for token in tokens
+            )
+        )
+        token_count = func.array_length(token_array, 1)
         return list(
             self.session.scalars(
                 select(FoodReference)
@@ -36,6 +64,12 @@ class NutritionRepository:
                 .where(
                     ReferenceDataset.status == "active",
                     name_filter,
+                )
+                .order_by(
+                    contains_all.desc(),
+                    token_count.asc(),
+                    func.char_length(FoodReference.normalized_name).asc(),
+                    FoodReference.external_id.asc(),
                 )
                 .options(selectinload(FoodReference.nutrients), selectinload(FoodReference.dataset))
                 .limit(limit)

@@ -108,6 +108,7 @@ describe("goal and weekly planning UI", () => {
     const user = userEvent.setup();
     expect(await screen.findByDisplayValue("2200.000000")).toBeVisible();
     expect(screen.getByText(/macro targets account for 15.*fewer calories/i)).toBeVisible();
+    await user.click(screen.getByText("Show optional meal targets", { selector: "summary" }));
     await user.selectOptions(screen.getByLabelText("Timezone"), "UTC");
     await user.selectOptions(screen.getByLabelText("Week starts on"), "7");
     await user.clear(screen.getByLabelText("Daily calories"));

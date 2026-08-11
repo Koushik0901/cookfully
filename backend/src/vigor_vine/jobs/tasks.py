@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from uuid import UUID
 
@@ -7,11 +8,16 @@ from vigor_vine.infrastructure.database import create_database_engine, create_se
 from vigor_vine.infrastructure.media_store import MediaStore
 from vigor_vine.jobs.app import celery_app
 from vigor_vine.jobs.export import run_export_job
+from vigor_vine.jobs.recipe_pipeline import JobEnvelope, get_recipe_pipeline
 from vigor_vine.jobs.suggestions import run_suggestion_job
+
+RECIPE_KINDS = frozenset(
+    {"recipe_import", "ingredient_parse", "nutrition_match", "nutrition_rollup"}
+)
 
 
 @celery_app.task(name="vigor_vine.process_job", ignore_result=True)  # type: ignore[untyped-decorator]
-def process_job(envelope: dict[str, Any]) -> None:
+def process_job(envelope: dict[str, Any]) -> dict[str, str | None] | None:
     """Safe common dispatcher; user-story phases register the concrete handlers."""
 
     allowed = {
@@ -25,7 +31,15 @@ def process_job(envelope: dict[str, Any]) -> None:
         "requestedAt",
     }
     if set(envelope) != allowed or envelope.get("schemaVersion") != 1:
-        return
+        return None
+    if envelope["kind"] in RECIPE_KINDS:
+        parsed = JobEnvelope.model_validate(envelope)
+        result = asyncio.run(get_recipe_pipeline().process(parsed))
+        return {
+            "jobId": str(result.job_id),
+            "status": result.status,
+            "nextJobId": str(result.next_job_id) if result.next_job_id else None,
+        }
     settings = get_settings()
     engine = create_database_engine(settings)
     try:
@@ -37,10 +51,10 @@ def process_job(envelope: dict[str, Any]) -> None:
                 settings.export_root,
                 UUID(str(envelope["jobId"])),
             )
-            return
+            return None
         if envelope["kind"] == "suggestion":
             run_suggestion_job(sessions, UUID(str(envelope["jobId"])))
-            return
+            return None
         jobs = JobService(sessions)
         job = jobs.claim(
             UUID(str(envelope["jobId"])), current_input_hash=str(envelope["inputHash"])
@@ -52,5 +66,6 @@ def process_job(envelope: dict[str, Any]) -> None:
                 retryable=False,
                 safe_message="This processing capability is not installed yet.",
             )
+        return None
     finally:
         engine.dispose()

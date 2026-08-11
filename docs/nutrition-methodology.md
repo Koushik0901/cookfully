@@ -56,6 +56,27 @@ The checked-in report currently records:
 
 All three product criteria pass in both scopes: at least 90% nutrition completeness (SC-001), independently ingredient-derived median error within every threshold (SC-002), and at least 90% complete import of title, yield, ingredients, and instructions (SC-003). The full report also records 9 near-zero protein, 7 carbohydrate, and 6 fat cases; every calorie reference is at least 50 kcal.
 
+## Food matching: scoring, signals, and ambiguity
+
+Ingredient names from recipes are matched against active USDA reference foods (Foundation Foods 2026-04-30 and SR Legacy 2018-04) through a deterministic, non-AI pipeline:
+
+1. **Candidate retrieval.** The database returns up to 30 foods whose singular/plural token variants all appear (containment ordering via `&&` overlap). Token singularisation normalises *bananas* → *banana* and *leaves* → *leave* so canonical rows are never excluded by raw-token mismatch.
+
+2. **Full-containment gate.** Auto-match is only eligible when *every* query token appears in the candidate — partial coverage never auto-matches, preserving the `unmatched` result contract.
+
+3. **Ranking signals** (additive, no multiplicative cap):
+   - **Lead token** (+0.12): candidate starts with a query token (*Chicken, …* for "chicken breast").
+   - **Contiguous block** (+0.08): all query tokens appear in one adjacent window, any order, reflecting USDA noun-phrase inversion (*Yogurt, Greek, …* for "greek yogurt").
+   - **Head-phrase identity** (+0.05): the query's English head noun matches the candidate's USDA identity segment (pre-comma phrase): *Rice* for "Rice, brown, …" vs. *Flour* for "Rice flour, brown".
+
+4. **Penalty lexicons** (−0.05 each) for unmatched tokens that signal a different product form (*flour, powder, dehydrated, canned, breaded, tenders, roll, soufflé, salad, dry* …), flavour variant (*strawberry, vanilla, mesquite, cinnamon* …), or plant part (*leave, peel, seed, stalk, stem*). Mild unmatched-descriptor penalty (−0.01) for remaining unmatched tokens.
+
+5. **Ambiguity = exact ties only.** When the top candidate has a strictly higher quantised score than the second, confidence is treated as sufficient (≥ 0.80 required, margin > 0). Genuine ties — *plain low-fat* vs. *plain non-fat* yogurt, *extra-light* vs. *extra-virgin* olive oil — stay ambiguous with ranked alternatives for user adjudication via the corrections flow. This avoids the silent-wrong-pick risk observed in conventional fuzzy matchers while keeping the common-case input burden low (12 of 15 staple queries resolve cleanly in the live corpus).
+
+6. **Density bridging.** When the ingredient uses a volume unit (cups, tablespoons) the pipeline consults a look-up table (`volume_assumptions.density_for`) keyed on the matched food's description. The density is passed to `to_grams`; missing density raises `DomainError` rather than guessing.
+
+The algorithm was designed against the Mealie/Tandoor reference architectures (see `docs/inspiration-review.md` § ingredient→food matching), which match against a user's small curated food list where exact + plural lookup suffices. USDA-scale matching required containment gating, corpus-convention-aware head-phrase recognition, and explicit ambiguity — all three of which are absent from those projects.
+
 ## Limitations
 
 - Reference labels and recipe sites may use different ingredient brands, edible portions, preparation states, or rounding conventions than USDA entries.

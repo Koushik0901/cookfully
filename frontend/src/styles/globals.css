@@ -357,6 +357,27 @@ small {
   font-weight: 700;
 }
 
+.disclosure {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.disclosure > summary {
+  cursor: pointer;
+  width: fit-content;
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-md);
+  color: var(--color-primary);
+  background: var(--color-primary-container);
+  font-family: var(--font-display);
+  font-weight: 700;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
 .micronutrient-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

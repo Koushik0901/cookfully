@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
+import { todayInTimezone } from "../plans/dates";
 import type { MealTarget, UserGoalWrite } from "../plans/types";
 
 const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
@@ -64,6 +65,11 @@ export function GoalSettingsPage() {
     setMealTargets(targets);
   }, [currentGoal.data]);
 
+  useEffect(() => {
+    if (currentGoal.data || effectiveFrom || !preferences.data) return;
+    setEffectiveFrom(todayInTimezone(preferences.data.timezone));
+  }, [preferences.data, currentGoal.data, effectiveFrom]);
+
   const save = useMutation({
     mutationFn: async (value: UserGoalWrite) => {
       if (!preferences.data) throw new Error("Preferences are unavailable.");
@@ -81,6 +87,11 @@ export function GoalSettingsPage() {
 
   function mealValue(slot: string, field: keyof TargetFields[string], value: string) {
     setMealTargets((current) => ({ ...current, [slot]: { ...current[slot], [field]: value } }));
+  }
+
+  function onCaloriesChange(value: string) {
+    setCaloriesKcal(value);
+    if (!currentGoal.data && !maintenanceKcal) setMaintenanceKcal(value);
   }
 
   function submit(event: FormEvent) {
@@ -118,8 +129,8 @@ export function GoalSettingsPage() {
       {difference ? <p className="notice">Macro targets account for {difference.startsWith("-") ? difference.slice(1) : difference} {difference.startsWith("-") ? "fewer" : "more"} calories than the daily calorie target. The app keeps both values visible.</p> : null}
       <form className="goal-form" onSubmit={submit} noValidate>
         <section className="settings-section"><h2>Calendar preferences</h2><div className="form-grid"><Field label="Timezone"><select className="input" value={timezone} onChange={(event) => setTimezone(event.target.value)}>{!TIMEZONES.includes(timezone) ? <option value={timezone}>{timezone}</option> : null}{TIMEZONES.map((value) => <option key={value} value={value}>{value}</option>)}</select></Field><Field label="Week starts on"><select className="input" value={weekStartsOn} onChange={(event) => setWeekStartsOn(event.target.value)}><option value="1">Monday</option><option value="7">Sunday</option><option value="6">Saturday</option></select></Field></div></section>
-        <section className="settings-section"><h2>Daily targets</h2><div className="form-grid"><Field label="Goal mode"><select className="input" value={mode} onChange={(event) => setMode(event.target.value as UserGoalWrite["mode"])}><option value="cut">Cut</option><option value="maintain">Maintain</option><option value="bulk">Bulk</option></select></Field><Field label="Maintenance calories" error={errors.maintenanceKcal}><DecimalInput value={maintenanceKcal} onInput={(event) => setMaintenanceKcal(event.currentTarget.value)} /></Field><Field label="Daily calories" error={errors.caloriesKcal}><DecimalInput value={caloriesKcal} onInput={(event) => setCaloriesKcal(event.currentTarget.value)} /></Field><Field label="Daily protein" error={errors.proteinG}><DecimalInput value={proteinG} onInput={(event) => setProteinG(event.currentTarget.value)} /></Field><Field label="Daily carbohydrate" error={errors.carbohydrateG}><DecimalInput value={carbohydrateG} onInput={(event) => setCarbohydrateG(event.currentTarget.value)} /></Field><Field label="Daily fat" error={errors.fatG}><DecimalInput value={fatG} onInput={(event) => setFatG(event.currentTarget.value)} /></Field><Field label="Effective from" error={errors.effectiveFrom}><input className="input" type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} /></Field><Field label="Effective to (optional)" error={errors.effectiveTo}><input className="input" type="date" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} /></Field></div></section>
-        <section className="settings-section"><h2>Optional meal targets</h2><div className="meal-targets">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></section>
+        <section className="settings-section"><h2>Daily targets</h2><div className="form-grid"><Field label="Goal mode"><select className="input" value={mode} onChange={(event) => setMode(event.target.value as UserGoalWrite["mode"])}><option value="cut">Cut</option><option value="maintain">Maintain</option><option value="bulk">Bulk</option></select></Field><Field label="Maintenance calories" error={errors.maintenanceKcal}><DecimalInput value={maintenanceKcal} onInput={(event) => setMaintenanceKcal(event.currentTarget.value)} /></Field><Field label="Daily calories" error={errors.caloriesKcal}><DecimalInput value={caloriesKcal} onInput={(event) => onCaloriesChange(event.currentTarget.value)} /></Field><Field label="Daily protein" error={errors.proteinG}><DecimalInput value={proteinG} onInput={(event) => setProteinG(event.currentTarget.value)} /></Field><Field label="Daily carbohydrate" error={errors.carbohydrateG}><DecimalInput value={carbohydrateG} onInput={(event) => setCarbohydrateG(event.currentTarget.value)} /></Field><Field label="Daily fat" error={errors.fatG}><DecimalInput value={fatG} onInput={(event) => setFatG(event.currentTarget.value)} /></Field><Field label="Effective from" error={errors.effectiveFrom}><input className="input" type="date" value={effectiveFrom} onChange={(event) => setEffectiveFrom(event.target.value)} /></Field><Field label="Effective to (optional)" error={errors.effectiveTo}><input className="input" type="date" value={effectiveTo} onChange={(event) => setEffectiveTo(event.target.value)} /></Field></div></section>
+        <section className="settings-section"><h2>Optional meal targets</h2><details className="disclosure"><summary>Show optional meal targets</summary><div className="meal-targets">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></details></section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {saved ? <p className="success-text" role="status">Targets saved</p> : null}
         <Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save targets"}</Button>

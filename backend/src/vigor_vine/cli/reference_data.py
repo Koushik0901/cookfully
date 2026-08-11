@@ -92,6 +92,8 @@ def import_release(
             session.add(dataset)
             session.flush()
             for row in rows:
+                if not isinstance(row, dict):
+                    continue
                 description = str(row.get("description", "")).strip()
                 if not description or row.get("fdcId") is None:
                     continue
@@ -110,7 +112,7 @@ def import_release(
                     basis_grams=quantize_decimal(100, Decimal("0.000001")),
                 )
                 session.add(food)
-                for item in row.get("foodNutrients", []):
+                for item in row.get("foodNutrients") or []:
                     nutrient = item.get("nutrient", {})
                     code = nutrient.get("number") or nutrient.get("id")
                     if code is None:

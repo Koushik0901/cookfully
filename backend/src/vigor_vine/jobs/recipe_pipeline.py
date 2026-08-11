@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -36,6 +35,7 @@ from vigor_vine.domain.nutrition import (
     rollup_per_serving,
 )
 from vigor_vine.domain.units import IngredientMeasure, coverage_ratio, to_grams
+from vigor_vine.domain.volume_assumptions import density_for
 from vigor_vine.infrastructure.config import Settings, get_settings
 from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
 from vigor_vine.infrastructure.ingredient_parser import parse_ingredient_line
@@ -55,7 +55,6 @@ from vigor_vine.infrastructure.recipe_importer import (
 from vigor_vine.infrastructure.repositories.nutrition import NutritionRepository
 from vigor_vine.infrastructure.repositories.recipes import RecipeRepository
 from vigor_vine.infrastructure.safe_fetch import SafeFetcher
-from vigor_vine.jobs.app import celery_app
 
 logger = logging.getLogger(__name__)
 RETRYABLE_CODES = frozenset({"dns_failed", "source_unavailable", "network_timeout"})
@@ -65,10 +64,10 @@ NEXT_KIND = {
     "nutrition_match": "nutrition_rollup",
 }
 CORE_NUTRIENT_CODES = {
-    "calories_kcal": ("1008", "2047", "2048"),
-    "protein_g": ("1003",),
-    "carbohydrate_g": ("1005",),
-    "fat_g": ("1004",),
+    "calories_kcal": ("208", "1008", "2047", "2048"),
+    "protein_g": ("203", "1003"),
+    "carbohydrate_g": ("205", "1005"),
+    "fat_g": ("204", "1004"),
 }
 
 
@@ -293,9 +292,16 @@ class RecipePipeline:
                 active = repository.active_match(ingredient.id)
                 if active is not None and active.status == "manual":
                     continue
-                grams_min, grams_max, method, assumption = self._grams(ingredient)
                 decision = matcher.decide(ingredient.food_name or "")
                 candidate = decision.candidate
+                density = (
+                    density_for(candidate.food.description)
+                    if candidate is not None
+                    else density_for(ingredient.food_name or "")
+                )
+                grams_min, grams_max, method, assumption = self._grams(
+                    ingredient, density_g_per_ml=density
+                )
                 repository.activate_match(
                     IngredientMatch(
                         ingredient_id=ingredient.id,
@@ -306,6 +312,7 @@ class RecipePipeline:
                         grams_min=grams_min,
                         grams_max=grams_max,
                         conversion_method=method,
+                        density_g_per_ml=density,
                         assumption_text=assumption,
                         source_release_id=(
                             candidate.food.dataset.release_id if candidate is not None else None
@@ -633,6 +640,8 @@ class RecipePipeline:
     @staticmethod
     def _grams(
         ingredient: Ingredient,
+        *,
+        density_g_per_ml: Decimal | None = None,
     ) -> tuple[Decimal | None, Decimal | None, str | None, str | None]:
         try:
             converted = to_grams(
@@ -641,7 +650,8 @@ class RecipePipeline:
                     ingredient.quantity_max,
                     ingredient.unit_code,
                     ingredient.optional,
-                )
+                ),
+                density_g_per_ml=density_g_per_ml,
             )
         except DomainError:
             return None, None, None, None
@@ -664,12 +674,19 @@ class RecipePipeline:
                 return None
             return quantize_decimal(amount * grams / food.basis_grams, NUTRIENT_SCALE)
 
-        return MacroValues(
-            value("calories_kcal"),
-            value("protein_g"),
-            value("carbohydrate_g"),
-            value("fat_g"),
-        )
+        protein = value("protein_g")
+        carbohydrates = value("carbohydrate_g")
+        fat = value("fat_g")
+        calories = value("calories_kcal")
+        if calories is None and None not in (protein, carbohydrates, fat):
+            calories = quantize_decimal(
+                Decimal("4") * (protein or Decimal(0))
+                + Decimal("4") * (carbohydrates or Decimal(0))
+                + Decimal("9") * (fat or Decimal(0)),
+                NUTRIENT_SCALE,
+            )
+
+        return MacroValues(calories, protein, carbohydrates, fat)
 
     @staticmethod
     def _food_micronutrients(
@@ -740,14 +757,3 @@ def get_recipe_pipeline() -> RecipePipeline:
     )
     images = RecipeImageService(SafeFetcher(max_bytes=10 * 1024 * 1024), media_store)
     return RecipePipeline(sessions, importer, images)
-
-
-@celery_app.task(name="vigor_vine.process_job", ignore_result=True)  # type: ignore[untyped-decorator]
-def process_job(envelope: dict[str, object]) -> dict[str, str | None]:
-    parsed = JobEnvelope.model_validate(envelope)
-    result = asyncio.run(get_recipe_pipeline().process(parsed))
-    return {
-        "jobId": str(result.job_id),
-        "status": result.status,
-        "nextJobId": str(result.next_job_id) if result.next_job_id else None,
-    }
