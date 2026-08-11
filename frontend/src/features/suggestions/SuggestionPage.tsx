@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { Button, DecimalInput, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
 import { suggestionsApi } from "./api";
 import type { PeriodTotal, SuggestionMacroValues, SuggestionResult } from "./types";
@@ -134,9 +134,7 @@ export function SuggestionPage() {
   const previewTotal = result ? primaryTotal(result) : undefined;
   return (
     <main className="page-shell">
-      <header className="page-header">
-        <div><p className="eyebrow">Deterministic planning assistant</p><h1>Meal suggestions</h1><p className="lede">Set hard recipe constraints and macro tolerances, then preview exact changes before accepting any item.</p></div>
-      </header>
+      <PageHeader eyebrow="Deterministic planning assistant" title="Meal suggestions" description="Set hard recipe constraints and macro tolerances, then preview exact changes before accepting any item." />
       <p className="advisory" role="note">Planning aid only—not medical advice.</p>
 
       <section className="suggestion-form" aria-labelledby="constraint-title">

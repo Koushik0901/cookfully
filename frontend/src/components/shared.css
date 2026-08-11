@@ -22,6 +22,7 @@
 .field__label { font-weight: 700; }
 .field__hint { color: var(--color-on-surface-variant); font-size: var(--text-data-sm); }
 .field__error { color: var(--color-error); font-size: var(--text-data-sm); }
+.login-form { display: grid; width: min(100%, 24rem); gap: var(--space-sm); }
 .input { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-outline); border-radius: var(--radius); padding: var(--space-1); background: var(--color-surface-low); }
 .dialog-overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 65%); }
 .dialog { position: fixed; top: 50%; left: 50%; width: min(32rem, calc(100% - 2rem)); transform: translate(-50%, -50%); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--color-surface-container); box-shadow: var(--shadow-level-2); }
@@ -30,6 +31,8 @@
 .status--succeeded { color: var(--color-primary); }
 .status--failed { color: var(--color-error); }
 .skeleton { display: grid; gap: var(--space-1); width: min(100%, 30rem); padding: var(--space-md); }
-.skeleton span { height: 1rem; border-radius: var(--radius-sm); background: var(--color-surface-high); }
+.skeleton span { height: 1rem; border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--color-surface-high) 25%, var(--color-surface-highest) 37%, var(--color-surface-high) 63%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; }
+.skeleton .skeleton__title { height: 1.5rem; width: 40%; }
 .skeleton span:last-child { width: 65%; }
-.empty-state, .error-recovery { display: grid; justify-items: start; gap: var(--space-sm); max-width: 36rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--color-surface-low); }
+@keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.error-recovery { display: grid; justify-items: start; gap: var(--space-sm); max-width: 36rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--color-surface-low); }

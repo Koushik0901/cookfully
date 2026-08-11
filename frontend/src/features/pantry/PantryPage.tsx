@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorRecovery,
   Field,
+  PageHeader,
   Skeleton,
 } from "../../components";
 import { ApiProblem } from "../recipes/api";
@@ -129,10 +130,7 @@ export function PantryPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header">
-        <div><p className="eyebrow">Inventory and availability</p><h1>Pantry</h1><p className="lede">Track exact quantities, review food identities, and see what is actually makeable without guessing conversions.</p></div>
-        <Button asChild className="button--secondary"><Link to="/app/grocery">Open grocery list</Link></Button>
-      </header>
+      <PageHeader eyebrow="Inventory and availability" title="Pantry" description="Track exact quantities, review food identities, and see what is actually makeable without guessing conversions." actions={<Button asChild className="button--secondary"><Link to="/app/grocery">Open grocery list</Link></Button>} />
 
       <section className="pantry-section">
         <div className="section-heading"><div><h2>Add pantry food</h2><p className="muted">Mass, volume, and count remain separate dimensions.</p></div></div>

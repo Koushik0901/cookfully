@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 
-import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { agentAccessApi } from "./api";
 import type { AccessTokenCreated, AccessTokenScope } from "./types";
 
@@ -102,13 +102,7 @@ export function AgentAccessPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">Owner settings</p>
-          <h1>Agent access</h1>
-          <p className="lede">Create narrowly scoped tokens for MCP clients and revoke them at any time.</p>
-        </div>
-      </header>
+      <PageHeader eyebrow="Owner settings" title="Agent access" description="Create narrowly scoped tokens for MCP clients and revoke them at any time." />
 
       {notice ? <p className="notice" role="status">{notice}</p> : null}
 

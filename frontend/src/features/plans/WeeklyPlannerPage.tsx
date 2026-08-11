@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Button, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "./api";
 import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
@@ -68,7 +68,7 @@ export function WeeklyPlannerPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header"><div><p className="eyebrow">{preferences.data.timezone}</p><h1>Week of {longDate(weekStart)}</h1><p className="lede">Immutable entry snapshots keep displayed totals honest even when recipes change later.</p></div><div className="actions"><Button className="button--secondary" onClick={() => changeWeek(-7)}>Previous week</Button><Button className="button--secondary" onClick={() => changeWeek(7)}>Next week</Button><Button asChild><Link to="/app/goals">Edit targets</Link></Button></div></header>
+      <PageHeader eyebrow={preferences.data.timezone} title={`Week of ${longDate(weekStart)}`} description="Immutable entry snapshots keep displayed totals honest even when recipes change later." actions={<><Button className="button--secondary" onClick={() => changeWeek(-7)}>Previous week</Button><Button className="button--secondary" onClick={() => changeWeek(7)}>Next week</Button><Button asChild><Link to="/app/goals">Edit targets</Link></Button></>} />
       <DayTabs dates={dates} selected={selectedDate} onSelect={setSelectedDate} totals={totals} />
       <MacroSummary label={`${longDate(selectedDate)} budget`} total={totals[selectedDate]} target={goal.data} />
       <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>

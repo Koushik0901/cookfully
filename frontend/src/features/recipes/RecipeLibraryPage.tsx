@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
-import { Button, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { recipesApi } from "./api";
 import { RecipeCard } from "./RecipeCard";
 import { RecipeImportDialog } from "./RecipeImportDialog";
@@ -28,10 +28,12 @@ export function RecipeLibraryPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header">
-        <div><p className="eyebrow">Recipe workspace</p><h1>Recipe library</h1><p className="lede">Search, inspect evidence, and keep every nutrition estimate correctable.</p></div>
-        <div className="actions"><RecipeImportDialog trigger={<Button className="button--secondary">Import from URL</Button>} /><Button asChild><Link to="/app/recipes/new">Create recipe</Link></Button></div>
-      </header>
+      <PageHeader
+        eyebrow="Recipe workspace"
+        title="Recipe library"
+        description="Search, inspect evidence, and keep every nutrition estimate correctable."
+        actions={<><RecipeImportDialog trigger={<Button className="button--secondary">Import from URL</Button>} /><Button asChild><Link to="/app/recipes/new">Create recipe</Link></Button></>}
+      />
 
       <section className="filter-bar" aria-label="Recipe filters">
         <Field label="Search recipes"><input className="input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></Field>

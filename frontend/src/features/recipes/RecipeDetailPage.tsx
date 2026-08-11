@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Button, ConfirmDialog, ErrorRecovery, Skeleton } from "../../components";
+import { Button, ConfirmDialog, ErrorRecovery, PageHeader, Skeleton } from "../../components";
 import { recipesApi } from "./api";
 import { NutritionPanel } from "./NutritionPanel";
 import type { Job, NutritionCorrectionWrite, RecipeDetail } from "./types";
@@ -101,10 +101,7 @@ export function RecipeDetailPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header">
-        <div><p className="eyebrow">{recipe.status === "archived" ? "Archived recipe" : "Recipe"}</p><h1>{recipe.title}</h1><p className="lede">{recipe.description || `${recipe.yieldQuantity} ${recipe.yieldUnit}`}</p></div>
-        <div className="actions"><Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button><Button asChild><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button></div>
-      </header>
+      <PageHeader eyebrow={recipe.status === "archived" ? "Archived recipe" : "Recipe"} title={recipe.title} description={recipe.description || `${recipe.yieldQuantity} ${recipe.yieldUnit}`} actions={<><Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button><Button asChild><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button></>} />
 
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
       <section className="recipe-detail-grid">

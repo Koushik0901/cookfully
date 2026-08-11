@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
 import type { MealTarget, UserGoalWrite } from "../plans/types";
@@ -114,7 +114,7 @@ export function GoalSettingsPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header"><div><p className="eyebrow">Personal targets</p><h1>Goals and calendar</h1><p className="lede">Set exact daily budgets and local-week preferences. Meal targets remain optional.</p></div><Button asChild><Link to="/app/plan">Weekly plan</Link></Button></header>
+      <PageHeader eyebrow="Personal targets" title="Goals and calendar" description="Set exact daily budgets and local-week preferences. Meal targets remain optional." actions={<Button asChild><Link to="/app/plan">Weekly plan</Link></Button>} />
       {difference ? <p className="notice">Macro targets account for {difference.startsWith("-") ? difference.slice(1) : difference} {difference.startsWith("-") ? "fewer" : "more"} calories than the daily calorie target. The app keeps both values visible.</p> : null}
       <form className="goal-form" onSubmit={submit} noValidate>
         <section className="settings-section"><h2>Calendar preferences</h2><div className="form-grid"><Field label="Timezone"><select className="input" value={timezone} onChange={(event) => setTimezone(event.target.value)}>{!TIMEZONES.includes(timezone) ? <option value={timezone}>{timezone}</option> : null}{TIMEZONES.map((value) => <option key={value} value={value}>{value}</option>)}</select></Field><Field label="Week starts on"><select className="input" value={weekStartsOn} onChange={(event) => setWeekStartsOn(event.target.value)}><option value="1">Monday</option><option value="7">Sunday</option><option value="6">Saturday</option></select></Field></div></section>

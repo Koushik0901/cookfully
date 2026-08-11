@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { recipesApi } from "./api";
 import type { RecipeWrite } from "./types";
 
@@ -71,7 +71,7 @@ export function RecipeEditorPage() {
 
   return (
     <main className="page-shell">
-      <header className="page-header"><div><p className="eyebrow">Recipe workspace</p><h1>{recipeId ? "Edit recipe" : "Create a recipe"}</h1><p className="lede">Original ingredient text is always retained alongside structured parsing.</p></div><Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link></header>
+      <PageHeader eyebrow="Recipe workspace" title={recipeId ? "Edit recipe" : "Create a recipe"} description="Original ingredient text is always retained alongside structured parsing." actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
       <form className="recipe-form" onSubmit={submit} noValidate>
         <Field label="Recipe title" error={errors.title}><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} /></Field>
         <Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
