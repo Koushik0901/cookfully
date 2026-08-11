@@ -101,9 +101,9 @@ def create_recipe(
     payload: RecipeWriteRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeResponse:
-    mutation = recipes.create(payload.to_write(), trace_id=correlation_id.get())
+    mutation = recipes.create(payload.to_write(), trace_id=correlation_id.get(), owner_id=owner.id)
     return RecipeResponse.from_read(queries.get(mutation.recipe.id))
 
 
@@ -168,13 +168,14 @@ def update_recipe(
     version: Annotated[int, Depends(expected_version)],
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
-    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeDetailResponse:
     recipes.update(
         recipe_id,
         payload.to_write(),
         expected_version=version,
         trace_id=correlation_id.get(),
+        owner_id=owner.id,
     )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 

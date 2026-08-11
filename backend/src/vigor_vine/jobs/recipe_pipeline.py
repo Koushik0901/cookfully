@@ -43,6 +43,7 @@ from vigor_vine.infrastructure.media_store import MediaStore, StoredMedia
 from vigor_vine.infrastructure.models.jobs import TERMINAL_JOB_STATUSES, ProcessingJob
 from vigor_vine.infrastructure.models.media import MediaAsset
 from vigor_vine.infrastructure.models.nutrition import IngredientMatch, NutritionEstimate
+from vigor_vine.infrastructure.models.owner_foods import OwnerFood
 from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
 from vigor_vine.infrastructure.models.reference_foods import FoodReference
 from vigor_vine.infrastructure.observability import safe_log
@@ -350,7 +351,9 @@ class RecipePipeline:
             for ingredient in recipe.ingredients:
                 match = matches.get(ingredient.id)
                 grams = match.grams_min if match is not None else None
-                matched = match is not None and match.food_reference_id is not None
+                matched = match is not None and (
+                    match.food_reference_id is not None or match.owner_food_id is not None
+                )
                 measures.append(
                     IngredientMeasure(
                         grams,
@@ -365,20 +368,30 @@ class RecipePipeline:
                 if not matched or grams is None:
                     continue
                 assert match is not None
-                food = session.get(FoodReference, match.food_reference_id)
-                if food is None:
-                    continue
-                contributions.append(
-                    IngredientNutrition(self._food_macros(food, grams), matched=True)
-                )
-                if not ingredient.optional:
-                    micronutrient_contributions.append(
-                        MicronutrientContribution(
-                            self._food_micronutrients(food, grams),
-                            mass_grams=grams,
-                            resolved=True,
+                if match.owner_food_id is not None:
+                    owner_food = session.get(OwnerFood, match.owner_food_id)
+                    if owner_food is None:
+                        continue
+                    contributions.append(
+                        IngredientNutrition(
+                            self._owner_food_macros(owner_food, grams), matched=True
                         )
                     )
+                else:
+                    food = session.get(FoodReference, match.food_reference_id)
+                    if food is None:
+                        continue
+                    contributions.append(
+                        IngredientNutrition(self._food_macros(food, grams), matched=True)
+                    )
+                    if not ingredient.optional:
+                        micronutrient_contributions.append(
+                            MicronutrientContribution(
+                                self._food_micronutrients(food, grams),
+                                mass_grams=grams,
+                                resolved=True,
+                            )
+                        )
             coverage = coverage_ratio(measures).overall
             value = rollup_per_serving(
                 contributions,
@@ -687,6 +700,23 @@ class RecipePipeline:
             )
 
         return MacroValues(calories, protein, carbohydrates, fat)
+
+    @staticmethod
+    def _owner_food_macros(food: OwnerFood, grams: Decimal) -> MacroValues:
+        if food.basis_grams is None or food.basis_grams == 0:
+            return MacroValues(
+                quantize_decimal(food.calories_kcal, NUTRIENT_SCALE),
+                quantize_decimal(food.protein_g, NUTRIENT_SCALE),
+                quantize_decimal(food.carbohydrate_g, NUTRIENT_SCALE),
+                quantize_decimal(food.fat_g, NUTRIENT_SCALE),
+            )
+        ratio = grams / food.basis_grams
+        return MacroValues(
+            quantize_decimal(food.calories_kcal * ratio, NUTRIENT_SCALE),
+            quantize_decimal(food.protein_g * ratio, NUTRIENT_SCALE),
+            quantize_decimal(food.carbohydrate_g * ratio, NUTRIENT_SCALE),
+            quantize_decimal(food.fat_g * ratio, NUTRIENT_SCALE),
+        )
 
     @staticmethod
     def _food_micronutrients(

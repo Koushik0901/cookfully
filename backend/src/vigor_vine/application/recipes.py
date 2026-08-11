@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import update
 from sqlalchemy.orm import Session, sessionmaker
 
+from vigor_vine.application.food_matching import _tokens, normalize_food
 from vigor_vine.application.jobs import JobService
 from vigor_vine.domain.common import DomainError, require_version, utc_now, uuid7
 from vigor_vine.domain.recipes import (
@@ -16,8 +17,15 @@ from vigor_vine.domain.recipes import (
 )
 from vigor_vine.infrastructure.erasure_ledger import ErasureLedger, ErasureRecord
 from vigor_vine.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
-from vigor_vine.infrastructure.models.nutrition import NutritionCorrection, NutritionEstimate
+from vigor_vine.infrastructure.models.nutrition import (
+    IngredientMatch,
+    NutritionCorrection,
+    NutritionEstimate,
+)
+from vigor_vine.infrastructure.models.owner_foods import OwnerFood
 from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
+from vigor_vine.infrastructure.repositories.nutrition import NutritionRepository
+from vigor_vine.infrastructure.repositories.owner_foods import UserFoodRepository
 from vigor_vine.infrastructure.repositories.recipes import RecipeRepository
 
 
@@ -90,7 +98,7 @@ class RecipeService:
         self._ledger = erasure_ledger
         self._source_instance_id = source_instance_id
 
-    def create(self, write: RecipeWrite, *, trace_id: str) -> RecipeMutation:
+    def create(self, write: RecipeWrite, *, trace_id: str, owner_id: UUID) -> RecipeMutation:
         self._validate(write)
         recipe_id = uuid7()
         input_hash = recipe_input_hash(recipe_id, write)
@@ -113,6 +121,7 @@ class RecipeService:
                 instructions=self._instructions(recipe_id, write.instructions),
             )
             RecipeRepository(session).add(recipe)
+            self._pre_match_owner_foods(session, recipe, owner_id, input_hash)
             job = self._jobs.accept_in_session(
                 session,
                 kind="ingredient_parse",
@@ -163,6 +172,7 @@ class RecipeService:
         *,
         expected_version: int,
         trace_id: str,
+        owner_id: UUID,
     ) -> RecipeMutation:
         self._validate(write)
         with self._session_factory.begin() as session:
@@ -189,6 +199,7 @@ class RecipeService:
                 self._instructions(recipe_id, write.instructions),
             )
             self._supersede_jobs(session, recipe_id)
+            self._pre_match_owner_foods(session, recipe, owner_id, recipe.input_hash)
             job = self._jobs.accept_in_session(
                 session,
                 kind="ingredient_parse",
@@ -325,6 +336,67 @@ class RecipeService:
             )
             .values(status="superseded", finished_at=now, next_retry_at=None)
         )
+
+    @staticmethod
+    def _pre_match_owner_foods(
+        session: Session,
+        recipe: Recipe,
+        owner_id: UUID,
+        input_hash: str,
+    ) -> None:
+        """Create manual IngredientMatch records for high-confidence owner food hits.
+
+        Owner foods take priority over USDA reference foods. When a user has
+        previously created a food (e.g., their specific whey protein brand),
+        every future recipe import that names it gets the match for free.
+        The pipeline's ``_match`` step skips ingredients whose active match
+        has ``status == "manual"``, so these pre-matches short-circuit the
+        USDA search entirely.
+        """
+
+        repo = UserFoodRepository(session)
+
+        for ingredient in recipe.ingredients:
+            food_name = ingredient.food_name or ingredient.original_text or ""
+            if not food_name.strip():
+                continue
+            query = normalize_food(food_name)
+            candidates = repo.search(owner_id, query, limit=5)
+
+            best_score: float = -1.0
+            best_food: OwnerFood | None = None
+            for candidate in candidates:
+                candidate_tokens = _tokens(candidate.normalized_name)
+                query_tokens = _tokens(query)
+                query_set = set(query_tokens)
+                candidate_set = set(candidate_tokens)
+                intersection = query_set & candidate_set
+                if not intersection:
+                    continue
+                if len(intersection) < len(query_set):
+                    continue
+                simple = len(intersection) / max(len(candidate_set), len(query_set))
+                if simple > best_score:
+                    best_score = simple
+                    best_food = candidate
+
+            if best_food is not None and best_score >= 0.80:
+                NutritionRepository(session).activate_match(
+                    IngredientMatch(
+                        ingredient_id=ingredient.id,
+                        food_reference_id=None,
+                        owner_food_id=best_food.id,
+                        status="manual",
+                        match_method="manual",
+                        match_score=None,
+                        grams_min=None,
+                        grams_max=None,
+                        conversion_method=None,
+                        assumption_text=None,
+                        input_hash=input_hash,
+                        active=True,
+                    )
+                )
 
     @staticmethod
     def _validate(write: RecipeWrite) -> None:
