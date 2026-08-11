@@ -34,6 +34,10 @@ class IngredientMatch(TimestampMixin, Base):
         CheckConstraint(
             "density_g_per_ml IS NULL OR density_g_per_ml > 0", name="positive_density"
         ),
+        CheckConstraint(
+            "(food_reference_id IS NULL) OR (owner_food_id IS NULL)",
+            name="single_food_source",
+        ),
         Index(
             "uq_ingredient_matches_active",
             "ingredient_id",
@@ -48,6 +52,9 @@ class IngredientMatch(TimestampMixin, Base):
     )
     food_reference_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("food_references.id", ondelete="RESTRICT")
+    )
+    owner_food_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("owner_foods.id", ondelete="RESTRICT")
     )
     status: Mapped[str] = mapped_column(String(24), nullable=False)
     match_method: Mapped[str] = mapped_column(String(32), nullable=False)

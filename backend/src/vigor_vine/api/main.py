@@ -13,6 +13,7 @@ from vigor_vine.api.routes import (
     access_tokens,
     auth,
     exports,
+    foods,
     goals,
     grocery,
     health,
@@ -215,6 +216,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(exports.router)
     versioned.include_router(suggestions.router)
     versioned.include_router(media.router)
+    versioned.include_router(foods.router)
     app.include_router(versioned)
     app.mount("/mcp", McpAuthenticationMiddleware(mcp_http, mcp_security), name="mcp")
     return app

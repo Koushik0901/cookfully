@@ -68,6 +68,8 @@ class FoodReference(Base):
     brand_owner: Mapped[str | None] = mapped_column(String(240))
     food_category: Mapped[str | None] = mapped_column(String(240))
     basis_grams: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
+    serving_size_g: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
+    serving_unit: Mapped[str | None] = mapped_column(String(20))
     dataset: Mapped[ReferenceDataset] = relationship(back_populates="foods")
     nutrients: Mapped[list[FoodNutrient]] = relationship(
         back_populates="food", cascade="all, delete-orphan"

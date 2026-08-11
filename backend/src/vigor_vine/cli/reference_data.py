@@ -25,6 +25,31 @@ from vigor_vine.infrastructure.models.reference_foods import (
 
 app = typer.Typer(name="reference-data", help="Inspect, import, and activate USDA reference data.")
 REQUIRED_TYPES = frozenset({"foundation", "sr_legacy"})
+ALLOWED_TYPES = REQUIRED_TYPES | {"branded_food"}
+GYM_BRANDED_CATEGORIES = frozenset(
+    {
+        "Protein & whey powder",
+        "Protein bars",
+        "Plant-based protein",
+        "Ready-to-drink protein shakes",
+        "Greek yogurt",
+        "Cottage cheese",
+        "Nut butters",
+        "Nut milks",
+        "Bread, rolls & buns",
+        "Wraps & tortillas",
+        "Pasta & noodles",
+        "Rice & grains",
+        "Cooking oils",
+        "Soy sauce & condiments",
+        "Pre-workout & energy",
+        "Creatine & amino acids",
+        "BCAAs",
+        "Collagen",
+        "Powdered nut butters",
+    }
+)
+BRANDED_CATEGORIES: set[str] = set()
 
 
 def normalize_food_name(value: str) -> str:
@@ -60,8 +85,12 @@ def import_release(
     released_on: date,
     source_url: str,
 ) -> ReferenceDataset:
-    if dataset_type not in REQUIRED_TYPES:
-        raise DomainError("dataset_type_invalid", "Dataset must be foundation or sr_legacy.", 422)
+    if dataset_type not in ALLOWED_TYPES:
+        raise DomainError(
+            "dataset_type_invalid",
+            f"Dataset must be one of {', '.join(sorted(ALLOWED_TYPES))}.",
+            422,
+        )
     rows = load_usda_archive(path)
     engine = create_database_engine(get_settings())
     sessions = create_session_factory(engine)
@@ -97,7 +126,25 @@ def import_release(
                 description = str(row.get("description", "")).strip()
                 if not description or row.get("fdcId") is None:
                     continue
+                if dataset_type == "branded_food":
+                    branded_category = (
+                        row.get("brandedFoodCategory") or ""
+                    ).strip()
+                    if branded_category not in GYM_BRANDED_CATEGORIES:
+                        continue
                 category = row.get("foodCategory") or {}
+                serving_size_g: Decimal | None = None
+                serving_unit: str | None = None
+                if dataset_type == "branded_food":
+                    raw_serving = row.get("servingSize")
+                    if raw_serving is not None:
+                        try:
+                            serving_size_g = quantize_decimal(
+                                str(raw_serving), Decimal("0.000001")
+                            )
+                        except Exception:
+                            serving_size_g = None
+                    serving_unit = str(row.get("servingSizeUnit", "") or "").strip() or None
                 food = FoodReference(
                     id=uuid7(),
                     dataset_id=dataset.id,
@@ -110,6 +157,8 @@ def import_release(
                         category.get("description") if isinstance(category, dict) else None
                     ),
                     basis_grams=quantize_decimal(100, Decimal("0.000001")),
+                    serving_size_g=serving_size_g,
+                    serving_unit=serving_unit,
                 )
                 session.add(food)
                 for item in row.get("foodNutrients") or []:
