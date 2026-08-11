@@ -73,16 +73,22 @@ export function RecipeEditorPage() {
     <main className="page-shell">
       <PageHeader eyebrow="Recipe workspace" title={recipeId ? "Edit recipe" : "Create a recipe"} description="Original ingredient text is always retained alongside structured parsing." actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
       <form className="recipe-form" onSubmit={submit} noValidate>
-        <Field label="Recipe title" error={errors.title}><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} /></Field>
-        <Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
-        <Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></Field>
-        <div className="form-grid">
-          <Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field>
-          <Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field>
-        </div>
-        <Field label="Ingredients, one per line" error={errors.ingredients} hint="Keep the text exactly as written on the recipe or package."><textarea aria-label="Ingredients, one per line" className="input textarea textarea--tall" value={ingredients} onChange={(event) => setIngredients(event.target.value)} /></Field>
-        {detail.data?.ingredients.length ? <details className="structured-review"><summary>Review structured ingredient parsing</summary><ul>{detail.data.ingredients.map((item) => <li key={item.id}><strong>{item.originalText}</strong><span>{[item.quantityMin, item.quantityMax ? `–${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Not parsed"} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</span></li>)}</ul></details> : null}
-        <Field label="Instructions, one step per line"><textarea className="input textarea textarea--tall" value={instructions} onChange={(event) => setInstructions(event.target.value)} /></Field>
+        <fieldset className="recipe-form__section"><legend>Basics</legend>
+          <Field label="Recipe title" error={errors.title}><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} /></Field>
+          <Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
+          <Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></Field>
+          <div className="form-grid">
+            <Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field>
+            <Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field>
+          </div>
+        </fieldset>
+        <fieldset className="recipe-form__section"><legend>Ingredients</legend>
+          <Field label="Ingredients, one per line" error={errors.ingredients} hint="Keep the text exactly as written on the recipe or package."><textarea aria-label="Ingredients, one per line" className="input textarea textarea--tall" value={ingredients} onChange={(event) => setIngredients(event.target.value)} /></Field>
+          {detail.data?.ingredients.length ? <details className="structured-review"><summary>Review structured ingredient parsing</summary><ul>{detail.data.ingredients.map((item) => <li key={item.id}><strong>{item.originalText}</strong><span>{[item.quantityMin, item.quantityMax ? `–${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Not parsed"} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</span></li>)}</ul></details> : null}
+        </fieldset>
+        <fieldset className="recipe-form__section"><legend>Instructions</legend>
+          <Field label="Instructions, one step per line"><textarea className="input textarea textarea--tall" value={instructions} onChange={(event) => setInstructions(event.target.value)} /></Field>
+        </fieldset>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         <div className="actions"><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>

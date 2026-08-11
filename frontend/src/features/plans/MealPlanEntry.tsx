@@ -14,7 +14,7 @@ export function MealPlanEntry({ entry, weekStart }: { entry: Entry; weekStart: s
   const disabled = !entry.recipeId;
   return (
     <article className="plan-entry">
-      <div className="plan-entry__heading"><div><h3>{entry.recipeTitle}</h3><p className="data-value">{entry.nutrition.caloriesKcal ?? "—"} kcal · {entry.nutrition.proteinG ?? "—"} g protein</p></div><span className="reliability-badge">{entry.nutrition.status.replace("_", " ")} · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% coverage</span></div>
+      <div className="plan-entry__heading"><div className="plan-entry__title"><h3>{entry.recipeTitle}</h3><p className="data-value">{entry.nutrition.caloriesKcal ?? "—"} kcal · {entry.nutrition.proteinG ?? "—"} g protein</p></div><span className="reliability-badge">{entry.nutrition.status.replace("_", " ")} · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% coverage</span></div>
       <div className="entry-controls"><Field label={`${entry.recipeTitle} servings`}><DecimalInput value={servings} disabled={disabled} onInput={(event) => setServings(event.currentTarget.value)} /></Field><Field label={`${entry.recipeTitle} meal slot`}><select className="input" value={mealSlot} disabled={disabled} onChange={(event) => setMealSlot(event.target.value)}>{SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></Field></div>
       {!entry.recipeId ? <p className="notice">Historical snapshot retained; the source recipe was deleted.</p> : null}
       {mutations.error instanceof Error ? <p className="error-text" role="alert">{mutations.conflict ? "The plan changed elsewhere. Reload before trying again." : mutations.error.message}</p> : null}
