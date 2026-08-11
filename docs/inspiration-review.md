@@ -163,3 +163,44 @@ profiles HTTP reads/search, optimistic plan writes, persisted job acknowledgemen
 reconciliation, and solver execution independently. Keep raw three-run results and maximums, disclose
 the measurement boundary, and rerun before raising scale or concurrency. Evidence and limitations are
 in `docs/performance.md` and `artifacts/performance-report.json`.
+
+## First-run presentation: landing and sign-in — 2026-08-11
+
+### Sources inspected
+
+- [Immich login page](https://github.com/immich-app/immich/blob/main/web/src/routes/auth/login/%2Bpage.svelte)
+  and its `AuthPageLayout.svelte` (`web/src/lib/components/auth-page/auth-page-layout.svelte`)
+- [Immich open-redirect advisory GHSA-8244-8vpr-vp9c](https://github.com/immich-app/immich/security/advisories/GHSA-8244-8vpr-vp9c)
+- Mealie's and Tandoor's own landing surfaces for comparison breadth only
+
+### Objective comparison
+
+Immich's unauthenticated page is a full-viewport composition: a single giant, low-opacity brand mark
+sits behind a centered, bordered authentication card that groups the form, a remember-me control, and
+a small help link. It reads instantly as "this is a real product" while carrying only a login form.
+Its liabilities are mostly contextual: the decorative backdrop costs little, but the composition
+relies on a large SVG/logo asset, and its `continue` redirect parameter was the vector for a stored
+open-redirect/XSS advisory — proof that cosmetic flows still need security review. Mealie and Tandoor
+provide no materially better first-run reference, and neither justifies copying a busy dashboard or a
+rich landing page that leaks product state before authentication.
+
+### Local decision
+
+Adapt the compositional idea and reject the dangerous parameter:
+
+- the local landing hero uses a static macro ring plus budget bars (the macro ring motif from
+  DESIGN.md) instead of a logo asset, staying on-palette with only `--macro-*` and neutral/primary
+  tokens;
+- the sign-in view uses the same ring as a faint, blurred, non-interactive backdrop behind a centered
+  auth card, and the card groups heading, promise copy, the existing `LoginForm`, and a single-owner
+  footnote;
+- there is no redirect parameter anywhere in the flow, so the Immich open-redirect class of bug is
+  structurally absent rather than patched;
+- both screens are pure presentational HTML with no pre-authentication data fetches and no external
+  font/CDN dependency (fonts ship via fontsource in the bundle), so the first-run screens cannot
+  signal product state or exfiltrate anything.
+
+Evidence: `frontend/src/app/App.tsx`, `frontend/src/app/providers.tsx`,
+`frontend/src/components/MacroPreview.tsx`, and the UI tests `App.test.tsx` and
+`SignInView.test.tsx`. Revisit if a signup or multi-user entry flow is ever introduced, because a
+post-authentication redirect target would then need explicit URL validation.

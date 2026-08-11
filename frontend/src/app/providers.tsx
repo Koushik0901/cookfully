@@ -2,8 +2,9 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { type ReactNode, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 
-import { ErrorRecovery, Skeleton } from "../components";
+import { ErrorRecovery, MacroRing, Skeleton } from "../components";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
+import { LoginForm } from "./LoginForm";
 
 async function verifySession(): Promise<boolean> {
   const response = await fetch("/api/v1/owner/preferences", {
@@ -23,12 +24,17 @@ export function RequireAuthentication({ children }: { children: ReactNode }) {
   }
   if (!session.data) {
     return (
-      <ErrorRecovery
-        title="Sign in required"
-        description="Sign in with the owner account to open the planner."
-        actionLabel="Return home"
-        onRetry={() => window.location.assign("/")}
-      />
+      <main className="auth-screen">
+        <div className="auth-screen__glow" aria-hidden="true" />
+        <MacroRing className="auth-screen__ring" />
+        <section className="auth-card" aria-label="Sign in">
+          <p className="eyebrow">Self-hosted nutrition planning</p>
+          <h1>Sign in to your planner</h1>
+          <p className="lede">Recipes become honest, correctable macro plans.</p>
+          <LoginForm />
+          <p className="auth-card__footnote">Single-owner instance · your data stays on your server</p>
+        </section>
+      </main>
     );
   }
   return children;

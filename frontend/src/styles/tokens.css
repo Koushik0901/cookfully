@@ -24,9 +24,9 @@
   --macro-carbohydrate: #e5a433;
   --macro-fat: #8a919f;
 
-  --font-display: "Hanken Grotesk", "Public Sans", system-ui, sans-serif;
-  --font-body: "Public Sans", system-ui, sans-serif;
-  --font-data: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Hanken Grotesk Variable", "Hanken Grotesk", "Public Sans", system-ui, sans-serif;
+  --font-body: "Public Sans Variable", "Public Sans", system-ui, sans-serif;
+  --font-data: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 
   --text-display-lg: clamp(2rem, 1.45rem + 2.35vw, 3rem);
   --text-headline-md: 2rem;

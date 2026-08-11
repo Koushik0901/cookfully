@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { decimal6 } from "../app/api/generated/decimal";
+import { MacroPreview, MacroRing } from "./MacroPreview";
 import "./shared.css";
 
 export function Button({ asChild, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
@@ -78,14 +79,41 @@ export function PollingStatusBadge({ status }: { status: "queued" | "running" | 
   return <span className={`status status--${status}`} role="status" aria-live={active ? "polite" : "off"}>{status.replace("_", " ")}</span>;
 }
 
-export function Skeleton({ label, lines = 2 }: { label: string; lines?: number }) {
-  return <div className="skeleton" role="status" aria-label={label}>{Array.from({ length: lines }, (_, index) => <span key={index} />)}</div>;
+export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description?: string; actions?: ReactNode }) {
+  return (
+    <header className="page-header">
+      <div className="page-header__copy">
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        {description ? <p className="lede">{description}</p> : null}
+      </div>
+      {actions ? <div className="actions">{actions}</div> : null}
+    </header>
+  );
 }
 
-export function EmptyState({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
-  return <section className="empty-state"><h2>{title}</h2><p>{description}</p>{action}</section>;
+export function Skeleton({ label, lines = 2 }: { label: string; lines?: number }) {
+  return (
+    <div className="skeleton" role="status" aria-label={label}>
+      <span className="skeleton__title" />
+      {Array.from({ length: lines }, (_, index) => <span key={index} />)}
+    </div>
+  );
+}
+
+export function EmptyState({ title, description, action, motif = true }: { title: string; description: string; action?: ReactNode; motif?: boolean }) {
+  return (
+    <section className="empty-state">
+      {motif ? <MacroRing className="empty-state__ring" /> : null}
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {action ? <div className="empty-state__action">{action}</div> : null}
+    </section>
+  );
 }
 
 export function ErrorRecovery({ title, description = "Try again. If the problem continues, check service health.", actionLabel = "Try again", onRetry }: { title: string; description?: string; actionLabel?: string; onRetry: () => void }) {
   return <section className="error-recovery" role="alert"><h2>{title}</h2><p>{description}</p><Button onClick={onRetry}>{actionLabel}</Button></section>;
 }
+
+export { MacroPreview, MacroRing };
