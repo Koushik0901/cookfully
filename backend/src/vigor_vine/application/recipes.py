@@ -10,7 +10,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from vigor_vine.application.food_matching import _tokens, normalize_food
 from vigor_vine.application.jobs import JobService
-from vigor_vine.domain.common import DomainError, require_version, utc_now, uuid7
+from vigor_vine.domain.common import (
+    NUTRIENT_SCALE,
+    DomainError,
+    quantize_decimal,
+    require_version,
+    utc_now,
+    uuid7,
+)
 from vigor_vine.domain.recipes import (
     IngredientInput,
     RecipeDraft,
@@ -27,6 +34,66 @@ from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe, RecipeI
 from vigor_vine.infrastructure.repositories.nutrition import NutritionRepository
 from vigor_vine.infrastructure.repositories.owner_foods import UserFoodRepository
 from vigor_vine.infrastructure.repositories.recipes import RecipeRepository
+
+
+def _extract_food_from_text(original_text: str) -> str:
+    """Heuristic: strip leading quantity and unit to extract the food name.
+
+    Used during pre-matching when the ingredient has not been parsed yet
+    (food_name is None) and we need a searchable name from the raw text.
+    Safe — the pipeline's parser runs afterward and overwrites the ingredient
+    fields with authoritative values; this is only for the pre-match pass.
+    """
+
+    text = original_text.strip()
+    tokens = text.split()
+    result_parts: list[str] = []
+    for idx, token in enumerate(tokens):
+        cleaned = token.rstrip(".,;:()")
+        if idx <= 1 and (
+            cleaned.replace(".", "").replace("/", "").replace(",", "").isdigit()
+            or cleaned.casefold()
+            in {
+                "cup",
+                "cups",
+                "tablespoon",
+                "tablespoons",
+                "teaspoon",
+                "teaspoons",
+                "ounce",
+                "ounces",
+                "oz",
+                "pound",
+                "pounds",
+                "lb",
+                "lbs",
+                "gram",
+                "grams",
+                "g",
+                "kilogram",
+                "kilograms",
+                "kg",
+                "milliliter",
+                "milliliters",
+                "ml",
+                "liter",
+                "liters",
+                "l",
+                "scoop",
+                "scoops",
+                "pinch",
+                "dash",
+                "can",
+                "cans",
+                "bunch",
+                "package",
+                "clove",
+                "cloves",
+            }
+        ):
+            continue
+        result_parts.append(token)
+    return " ".join(result_parts)
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +150,15 @@ def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
         nutrition_state="pending",
     )
     return draft.input_hash()
+
+
+def _extract_unit_from_text(original_text: str) -> str | None:
+    """Extract the likely unit token from an ingredient line's raw text."""
+
+    tokens = original_text.strip().split()
+    if len(tokens) < 2:
+        return None
+    return tokens[1].rstrip(".,;:()").casefold()
 
 
 class RecipeService:
@@ -357,7 +433,8 @@ class RecipeService:
         repo = UserFoodRepository(session)
 
         for ingredient in recipe.ingredients:
-            food_name = ingredient.food_name or ingredient.original_text or ""
+            food_name = ingredient.food_name or _extract_food_from_text(ingredient.original_text)
+            parsed_unit = ingredient.unit_code or _extract_unit_from_text(ingredient.original_text)
             if not food_name.strip():
                 continue
             query = normalize_food(food_name)
@@ -365,6 +442,7 @@ class RecipeService:
 
             best_score: float = -1.0
             best_food: OwnerFood | None = None
+            full_match_count = 0
             for candidate in candidates:
                 candidate_tokens = _tokens(candidate.normalized_name)
                 query_tokens = _tokens(query)
@@ -375,12 +453,48 @@ class RecipeService:
                     continue
                 if len(intersection) < len(query_set):
                     continue
+                full_match_count += 1
                 simple = len(intersection) / max(len(candidate_set), len(query_set))
                 if simple > best_score:
                     best_score = simple
                     best_food = candidate
 
-            if best_food is not None and best_score >= 0.80:
+            if best_food is not None and (full_match_count == 1 or best_score >= 0.80):
+                grams_min: Decimal | None = None
+                grams_max: Decimal | None = None
+                conversion_method: str | None = None
+                assumption: str | None = None
+
+                if (
+                    best_food.typical_serving_g is not None
+                    and best_food.typical_serving_unit is not None
+                    and parsed_unit is not None
+                    and parsed_unit.casefold()
+                    == best_food.typical_serving_unit.casefold()
+                ):
+                    grams_min = (
+                        quantize_decimal(
+                            ingredient.quantity_min * best_food.typical_serving_g
+                            if ingredient.quantity_min is not None
+                            else best_food.typical_serving_g,
+                            NUTRIENT_SCALE,
+                        )
+                    )
+                    grams_max = (
+                        quantize_decimal(
+                            ingredient.quantity_max * best_food.typical_serving_g
+                            if ingredient.quantity_max is not None
+                            else best_food.typical_serving_g,
+                            NUTRIENT_SCALE,
+                        )
+                    )
+                    conversion_method = "owner_serving"
+                    assumption = (
+                        f"1 {best_food.typical_serving_unit}"
+                        f" = {best_food.typical_serving_g}g"
+                        f" ({best_food.display_name})"
+                    )
+
                 NutritionRepository(session).activate_match(
                     IngredientMatch(
                         ingredient_id=ingredient.id,
@@ -389,10 +503,10 @@ class RecipeService:
                         status="manual",
                         match_method="manual",
                         match_score=None,
-                        grams_min=None,
-                        grams_max=None,
-                        conversion_method=None,
-                        assumption_text=None,
+                        grams_min=grams_min,
+                        grams_max=grams_max,
+                        conversion_method=conversion_method,
+                        assumption_text=assumption,
                         input_hash=input_hash,
                         active=True,
                     )
