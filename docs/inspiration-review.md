@@ -331,3 +331,47 @@ cook. It fits a gym user only because daily macro targets are the central decisi
 `backend/tests/contract/test_meal_plan_api.py`,
 `frontend/src/features/plans/WeeklyPlannerPage.tsx`, and
 `frontend/src/features/plans/__tests__/planning-ui.test.tsx`.
+
+## Non-standard unit handling — 2026-08-12
+
+### Sources inspected
+
+- [Tandoor `UnitConversion` model](https://github.com/TandoorRecipes/recipes/blob/develop/cookbook/models.py)
+  (`base_amount`, `base_unit` → `converted_amount`, `converted_unit`, optional `food` FK)
+- [Tandoor `Food` model](https://github.com/TandoorRecipes/recipes/blob/develop/cookbook/models.py)
+  (`properties_food_amount`, `properties_food_unit`, `base_unit`)
+- [Mealie `Unit` model](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/db/models/recipe/ingredient.py)
+  (`IngredientUnitModel` with name, plural, abbreviation) and its brute-force parser
+
+### Objective comparison
+
+Both Tandoor and Mealie treat units as **user-defined strings** — nothing is hardcoded. A "scoop"
+or "pinch" is just another unit label in the database. Tandoor goes further with a `UnitConversion`
+table that maps arbitrary units to other units (e.g. `1 scoop → 31g`), optionally scoped to a
+specific `Food`. When `food` is `null`, the conversion is generic (e.g. `1 cup → 240ml`). This
+single model handles both food-specific and universal conversions. Mealie's parser does not convert
+units to weights at all — it stores the raw text and relies on the user's recipe display for sense.
+
+Neither application feeds unit conversions into an automated nutrition pipeline because neither has
+one. Their conversions power shopping-list aggregation and ingredient display, not macro rollup.
+
+### Local decision
+
+Adopt the **food-scoped conversion** idea from Tandoor's `UnitConversion.food` FK and reject the
+generic-only table for now:
+
+- `owner_foods.typical_serving_g` + `typical_serving_unit` already implements the food-scoped
+  pattern — one food entry defines both the nutrition panel and the unit-to-gram conversion;
+- the pre-match pipeline at recipe save uses that data to compute `quantity × serving_g` when the
+  parsed ingredient unit matches the food's `typical_serving_unit`;
+- standard volume/mass conversions (cups, tablespoons, ounces, grams) stay in the Pint-based
+  `to_grams` function with density bridging — these are not food-specific;
+- a generic `UnitConversion` table (Tandoor-style, `food=null`) is deferred: "pinch", "dash",
+  "clove", and "bunch" are trivial to add as owner foods with `typical_serving_g` values, and
+  the current pattern avoids a separate model until volume demands it.
+
+Evidence: `backend/src/vigor_vine/domain/units.py` (Pint-based mass/volume conversion),
+`backend/src/vigor_vine/domain/volume_assumptions.py` (density bridging),
+`backend/src/vigor_vine/application/recipes.py` `_pre_match_owner_foods` (food-scoped
+serving conversion), and the Protein Oats coverage demonstration (75% → 100% after creating
+a whey protein owner food with `typical_serving_g=31, typical_serving_unit="scoop"`).
