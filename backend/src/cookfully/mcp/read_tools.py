@@ -6,15 +6,17 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from vigor_vine.api.schemas.plans import (
+from cookfully.api.schemas.plans import (
     MealPlanResponse,
     PeriodTotalResponse,
     UserGoalResponse,
 )
-from vigor_vine.api.schemas.recipes import RecipePageResponse
-from vigor_vine.application.meal_plans import GoalService, MealPlanService
-from vigor_vine.application.recipe_queries import RecipeQueryService
-from vigor_vine.domain.common import DomainError
+from cookfully.api.schemas.recipes import RecipePageResponse
+from cookfully.application.meal_plans import GoalService, MealPlanService
+from cookfully.application.pantry import PantryItemRead, PantryService
+from cookfully.application.recipe_queries import RecipeQueryService
+from cookfully.application.suggestions import SuggestionRead, SuggestionService
+from cookfully.domain.common import DomainError
 
 
 def parse_date(value: str, *, code: str = "invalid_date") -> date:
@@ -30,10 +32,14 @@ class ReadTools:
         goals: GoalService,
         plans: MealPlanService,
         recipes: RecipeQueryService,
+        suggestions: SuggestionService,
+        pantry: PantryService,
     ) -> None:
         self._goals = goals
         self._plans = plans
         self._recipes = recipes
+        self._suggestions = suggestions
+        self._pantry = pantry
 
     def get_current_goals(self, owner_id: UUID, *, on_date: str | None = None) -> dict[str, Any]:
         effective_on = parse_date(on_date) if on_date is not None else datetime.now(UTC).date()
@@ -160,3 +166,61 @@ class ReadTools:
             and (minimum is None or value >= minimum)
             and (maximum is None or value <= maximum)
         )
+
+    def get_suggestion_result(self, owner_id: UUID, *, suggestion_id: str) -> dict[str, Any]:
+        result = self._suggestions.get(UUID(suggestion_id), owner_id=owner_id)
+        return _serialize_suggestion(result)
+
+    def list_pantry_items(self, owner_id: UUID) -> list[dict[str, Any]]:
+        items = self._pantry.list(owner_id)
+        return [_serialize_pantry_item(item) for item in items]
+
+
+def _serialize_suggestion(value: SuggestionRead) -> dict[str, Any]:
+    return {
+        "suggestionId": str(value.id),
+        "status": value.status,
+        "scope": value.request.scope,
+        "weekStart": value.request.week_start.isoformat(),
+        "createdAt": value.created_at.isoformat(),
+        "expiresAt": value.expires_at.isoformat() if value.expires_at else None,
+        "target": {
+            "caloriesKcal": str(value.target.calories_kcal),
+            "proteinG": str(value.target.protein_g),
+            "carbohydrateG": str(value.target.carbohydrate_g),
+            "fatG": str(value.target.fat_g),
+        },
+        "items": [
+            {
+                "date": item.local_date.isoformat(),
+                "mealSlot": item.meal_slot,
+                "recipeId": str(item.recipe_id) if item.recipe_id else None,
+                "recipeTitle": item.recipe_title,
+                "servings": str(item.servings),
+                "caloriesKcal": str(item.calories_kcal),
+                "proteinG": str(item.protein_g),
+                "carbohydrateG": str(item.carbohydrate_g),
+                "fatG": str(item.fat_g),
+            }
+            for item in value.items
+        ],
+        "missedConstraints": list(value.missed_constraints),
+        "unmetConstraintCount": value.unmet_constraint_count,
+        "objectiveScore": str(value.objective_score) if value.objective_score is not None else None,
+        "planVersion": value.plan_version,
+    }
+
+
+def _serialize_pantry_item(value: PantryItemRead) -> dict[str, Any]:
+    return {
+        "pantryItemId": str(value.id),
+        "displayName": value.display_name,
+        "quantity": str(value.quantity),
+        "unit": value.unit,
+        "foodReferenceId": str(value.food_reference_id) if value.food_reference_id else None,
+        "matchStatus": value.match_status,
+        "matchConfidence": str(value.match_confidence)
+        if value.match_confidence is not None
+        else None,
+        "version": value.version,
+    }

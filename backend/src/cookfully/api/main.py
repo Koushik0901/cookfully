@@ -8,8 +8,8 @@ from fastapi.routing import APIRoute
 from mcp.server.transport_security import TransportSecuritySettings
 from redis import Redis
 
-from vigor_vine.api.problems import install_problem_handlers
-from vigor_vine.api.routes import (
+from cookfully.api.problems import install_problem_handlers
+from cookfully.api.routes import (
     access_tokens,
     auth,
     exports,
@@ -25,36 +25,36 @@ from vigor_vine.api.routes import (
     recipes,
     suggestions,
 )
-from vigor_vine.application.access_tokens import AccessTokenService
-from vigor_vine.application.auth import AuthService
-from vigor_vine.application.corrections import CorrectionService
-from vigor_vine.application.exports import ExportJobService
-from vigor_vine.application.grocery_lists import GroceryListService
-from vigor_vine.application.idempotency import IdempotencyService
-from vigor_vine.application.jobs import JobService
-from vigor_vine.application.meal_plans import GoalService, MealPlanService
-from vigor_vine.application.owner_preferences import OwnerPreferenceService
-from vigor_vine.application.pantry import PantryService
-from vigor_vine.application.pantry_deductions import PantryDeductionService
-from vigor_vine.application.pantry_search import PantrySearchService
-from vigor_vine.application.recipe_queries import RecipeQueryService
-from vigor_vine.application.recipes import RecipeService
-from vigor_vine.application.suggestions import SuggestionService
-from vigor_vine.infrastructure.config import Settings, get_settings
-from vigor_vine.infrastructure.database import create_database_engine, create_session_factory
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.instance_lease import runtime_service_lease
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.observability import correlation_middleware
-from vigor_vine.mcp.read_tools import ReadTools
-from vigor_vine.mcp.resources import McpResources
-from vigor_vine.mcp.security import (
+from cookfully.application.access_tokens import AccessTokenService
+from cookfully.application.auth import AuthService
+from cookfully.application.corrections import CorrectionService
+from cookfully.application.exports import ExportJobService
+from cookfully.application.grocery_lists import GroceryListService
+from cookfully.application.idempotency import IdempotencyService
+from cookfully.application.jobs import JobService
+from cookfully.application.meal_plans import GoalService, MealPlanService
+from cookfully.application.owner_preferences import OwnerPreferenceService
+from cookfully.application.pantry import PantryService
+from cookfully.application.pantry_deductions import PantryDeductionService
+from cookfully.application.pantry_search import PantrySearchService
+from cookfully.application.recipe_queries import RecipeQueryService
+from cookfully.application.recipes import RecipeService
+from cookfully.application.suggestions import SuggestionService
+from cookfully.infrastructure.config import Settings, get_settings
+from cookfully.infrastructure.database import create_database_engine, create_session_factory
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.instance_lease import runtime_service_lease
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.observability import correlation_middleware
+from cookfully.mcp.read_tools import ReadTools
+from cookfully.mcp.resources import McpResources
+from cookfully.mcp.security import (
     McpAuthenticationMiddleware,
     McpSecurity,
     RedisTokenRateLimiter,
 )
-from vigor_vine.mcp.server import build_mcp_server
-from vigor_vine.mcp.write_tools import WriteTools
+from cookfully.mcp.server import build_mcp_server
+from cookfully.mcp.write_tools import WriteTools
 
 # Operation IDs are a public compatibility surface used by generated clients. Keep this
 # endpoint-name mapping aligned with contracts/openapi.yaml; the contract drift test enforces it.
@@ -119,13 +119,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     grocery_list_service = GroceryListService(sessions)
     idempotency_service = IdempotencyService(sessions)
     recipe_query_service = RecipeQueryService(sessions)
+    suggestion_service = SuggestionService(sessions)
+    pantry_service = PantryService(sessions)
     mcp_security = McpSecurity(
         access_token_service,
         RedisTokenRateLimiter(redis_client),
     )
     mcp_server = build_mcp_server(
-        ReadTools(goal_service, meal_plan_service, recipe_query_service),
-        WriteTools(meal_plan_service, grocery_list_service, idempotency_service),
+        ReadTools(
+            goal_service,
+            meal_plan_service,
+            recipe_query_service,
+            suggestion_service,
+            pantry_service,
+        ),
+        WriteTools(
+            meal_plan_service,
+            grocery_list_service,
+            idempotency_service,
+            suggestion_service,
+            pantry_service,
+        ),
         McpResources(),
         mcp_security,
     )
@@ -183,7 +197,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 engine.dispose()
 
     app = FastAPI(
-        title="Vigor & Vine API",
+        title="Cookfully API",
         version="0.2.0",
         description=(
             "Canonical API for recipes, honest nutrition estimates, goals, meal plans, "

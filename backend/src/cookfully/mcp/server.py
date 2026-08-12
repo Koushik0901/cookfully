@@ -7,12 +7,12 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ResourceError
 from mcp.types import CallToolResult, TextContent
 
-from vigor_vine.application.access_tokens import AccessTokenPrincipal
-from vigor_vine.domain.common import DomainError
-from vigor_vine.mcp.read_tools import ReadTools
-from vigor_vine.mcp.resources import McpResources
-from vigor_vine.mcp.security import McpSecurity, RateCategory, safe_tool_error
-from vigor_vine.mcp.write_tools import WriteTools
+from cookfully.application.access_tokens import AccessTokenPrincipal
+from cookfully.domain.common import DomainError
+from cookfully.mcp.read_tools import ReadTools
+from cookfully.mcp.resources import McpResources
+from cookfully.mcp.security import McpSecurity, RateCategory, safe_tool_error
+from cookfully.mcp.write_tools import WriteTools
 
 PLANNING_NOTICE = "Nutrition values are planning estimates, not medical advice."
 
@@ -24,9 +24,9 @@ def build_mcp_server(
     security: McpSecurity,
 ) -> MCPServer:
     server = MCPServer(
-        name="Vigor & Vine",
-        title="Vigor & Vine",
-        description="Scoped recipe, meal-plan, nutrition, and grocery access.",
+        name="Cookfully",
+        title="Cookfully",
+        description="Scoped recipe, meal-plan, nutrition, grocery, suggestion, and pantry access.",
         version="0.2.0",
     )
 
@@ -239,8 +239,140 @@ def build_mcp_server(
             ),
         )
 
+    @server.tool(
+        description=f"Request automated meal suggestions. {PLANNING_NOTICE}",
+        structured_output=True,
+    )
+    def request_suggestions(
+        week_start: str,
+        scope: str,
+        idempotency_key: str,
+        meal_slot: str | None = None,
+        local_date: str | None = None,
+    ) -> dict[str, Any]:
+        return _execute(
+            security,
+            "suggestions:write",
+            "mutation",
+            "request_suggestions",
+            lambda principal: write.request_suggestions(
+                principal.owner.id,
+                week_start=week_start,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                meal_slot=meal_slot,
+                local_date=local_date,
+            ),
+        )
+
+    @server.tool(
+        description=f"Read a previously generated suggestion result. {PLANNING_NOTICE}",
+        structured_output=True,
+    )
+    def get_suggestion_result(suggestion_id: str) -> dict[str, Any]:
+        return _execute(
+            security,
+            "suggestions:read",
+            "read",
+            "get_suggestion_result",
+            lambda principal: read.get_suggestion_result(
+                principal.owner.id, suggestion_id=suggestion_id
+            ),
+        )
+
+    @server.tool(
+        description="Return all pantry items for the owner.",
+        structured_output=True,
+    )
+    def list_pantry_items() -> dict[str, Any]:
+        return _execute(
+            security,
+            "pantry:read",
+            "read",
+            "list_pantry_items",
+            lambda principal: {"items": read.list_pantry_items(principal.owner.id)},
+        )
+
+    @server.tool(
+        description="Add an item to the pantry idempotently.",
+        structured_output=True,
+    )
+    def create_pantry_item(
+        display_name: str,
+        quantity: str,
+        unit_code: str,
+        idempotency_key: str,
+        food_reference_id: str | None = None,
+    ) -> dict[str, Any]:
+        return _execute(
+            security,
+            "pantry:write",
+            "mutation",
+            "create_pantry_item",
+            lambda principal: write.create_pantry_item(
+                principal.owner.id,
+                display_name=display_name,
+                quantity=quantity,
+                unit_code=unit_code,
+                food_reference_id=food_reference_id,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    @server.tool(
+        description="Update a pantry item with version protection.",
+        structured_output=True,
+    )
+    def update_pantry_item(
+        pantry_item_id: str,
+        display_name: str,
+        quantity: str,
+        unit_code: str,
+        expected_version: int,
+        idempotency_key: str,
+        food_reference_id: str | None = None,
+    ) -> dict[str, Any]:
+        return _execute(
+            security,
+            "pantry:write",
+            "mutation",
+            "update_pantry_item",
+            lambda principal: write.update_pantry_item(
+                principal.owner.id,
+                pantry_item_id=pantry_item_id,
+                display_name=display_name,
+                quantity=quantity,
+                unit_code=unit_code,
+                food_reference_id=food_reference_id,
+                expected_version=expected_version,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
+    @server.tool(
+        description="Remove a pantry item idempotently.",
+        structured_output=True,
+    )
+    def remove_pantry_item(
+        pantry_item_id: str,
+        expected_version: int,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        return _execute(
+            security,
+            "pantry:write",
+            "mutation",
+            "remove_pantry_item",
+            lambda principal: write.remove_pantry_item(
+                principal.owner.id,
+                pantry_item_id=pantry_item_id,
+                expected_version=expected_version,
+                idempotency_key=idempotency_key,
+            ),
+        )
+
     @server.resource(
-        "vigor-vine://methodology/nutrition",
+        "cookfully://methodology/nutrition",
         name="nutrition_methodology",
         description="Versioned nutrition-estimation and correction methodology.",
         mime_type="text/markdown",
@@ -253,7 +385,7 @@ def build_mcp_server(
             raise ResourceError(safe_tool_error(exc)) from None
 
     @server.resource(
-        "vigor-vine://schema/export/{version}",
+        "cookfully://schema/export/{version}",
         name="export_schema",
         description="Versioned portable-export schema documentation.",
         mime_type="text/markdown",
