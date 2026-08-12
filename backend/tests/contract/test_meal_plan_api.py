@@ -243,3 +243,19 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
             headers={**headers, "If-Match": '"1"', "Idempotency-Key": "plan-entry-delete-01"},
         )
         assert removed.status_code == 204
+
+        current_recipe = client.get(f"/api/v1/recipes/{recipe['id']}").json()
+        stale_recipe = client.patch(
+            f"/api/v1/recipes/{recipe['id']}",
+            json={**recipe_payload(), "title": "Plan bowl revised"},
+            headers={**headers, "If-Match": f'"{current_recipe["version"]}"'},
+        )
+        assert stale_recipe.status_code == 200
+        assert stale_recipe.json()["nutritionState"] == "stale"
+        stale_add = client.post(
+            "/api/v1/meal-plans/2026-03-09/entries",
+            json={**entry_payload, "localDate": "2026-03-10", "position": 1},
+            headers={**headers, "Idempotency-Key": "plan-entry-stale-recipe-01"},
+        )
+        assert stale_add.status_code == 409
+        assert stale_add.json()["code"] == "recipe_nutrition_stale"

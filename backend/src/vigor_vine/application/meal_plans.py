@@ -397,6 +397,12 @@ class MealPlanService:
         recipe = self._recipes.get(recipe_id)
         if recipe.status == "archived":
             raise DomainError("recipe_archived", "Restore the recipe before planning it.", 409)
+        if recipe.nutrition_state == "stale":
+            raise DomainError(
+                "recipe_nutrition_stale",
+                "Recalculate recipe nutrition before adding it to a plan.",
+                409,
+            )
         nutrition = recipe.nutrition
         if nutrition is None or nutrition.status not in {
             "source_provided",

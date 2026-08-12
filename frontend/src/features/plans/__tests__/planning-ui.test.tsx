@@ -201,4 +201,22 @@ describe("goal and weekly planning UI", () => {
     await user.click(screen.getByRole("button", { name: "Remove Protein oats" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
+
+  it("keeps stale recipes out of planning selectors until recalculated", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [
+        { id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 },
+        { id: "00000000-0000-4000-8000-000000000099", title: "Changed recipe", yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "stale", version: 2 },
+      ], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage(<WeeklyPlannerPage />);
+    const selector = await screen.findByLabelText("Breakfast recipe to add");
+    expect(selector).toHaveTextContent("Protein oats");
+    expect(selector).not.toHaveTextContent("Changed recipe");
+  });
 });
