@@ -21,6 +21,7 @@ export function NutritionPanel({
   nutrition,
   nutritionState,
   job,
+  servingsScale = 1,
   onCorrect,
   onResetCorrection,
   onRecalculate,
@@ -28,6 +29,7 @@ export function NutritionPanel({
   nutrition: ResolvedNutrition | null | undefined;
   nutritionState: string;
   job?: Job | null;
+  servingsScale?: number;
   onCorrect: (value: NutritionCorrectionWrite) => Promise<void>;
   onResetCorrection: (correctionId: string) => Promise<void>;
   onRecalculate: (resetCorrections?: boolean) => Promise<void>;
@@ -115,6 +117,11 @@ export function NutritionPanel({
             <div className="macro macro--fat"><dt>Fat</dt><dd>{nutrition.fatG ?? "—"}<span> g</span></dd></div>
           </dl>
           <p className="data-value">Basis: {nutrition.basisServings} servings · Coverage: {Math.round(Number(nutrition.coverageRatio) * 100)}%</p>
+          {servingsScale !== 1 && (
+            <p className="muted">
+              Scaled to {Number(servingsScale).toFixed(1).replace(/\.0$/, "")} servings: {nutrition.caloriesKcal != null ? `${Math.round(Number(nutrition.caloriesKcal) * servingsScale).toLocaleString()} kcal` : "— kcal"}, {nutrition.proteinG != null ? `${(Number(nutrition.proteinG) * servingsScale).toFixed(1)}g P` : "— P"}, {nutrition.carbohydrateG != null ? `${(Number(nutrition.carbohydrateG) * servingsScale).toFixed(1)}g C` : "— C"}, {nutrition.fatG != null ? `${(Number(nutrition.fatG) * servingsScale).toFixed(1)}g F` : "— F"}
+            </p>
+          )}
 
           <section className="micronutrient-panel" aria-labelledby="micronutrient-heading">
             <div><h3 id="micronutrient-heading">Micronutrients</h3><p className="muted">Missing reference values stay unavailable; they are never displayed as zero.</p></div>

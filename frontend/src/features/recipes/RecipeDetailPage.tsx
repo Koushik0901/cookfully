@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button, ConfirmDialog, ErrorRecovery, PageHeader, Skeleton } from "../../components";
@@ -95,6 +95,12 @@ export function RecipeDetailPage() {
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["recipes"] }); navigate("/app/recipes"); },
   });
 
+  const [scale, setScale] = useState(1);
+  const scaleFactor = useMemo(() => {
+    const y = Number(detail.data?.yieldQuantity ?? 1);
+    return y > 0 ? scale / y : 1;
+  }, [scale, detail.data?.yieldQuantity]);
+
   if (detail.isPending) return <Skeleton label="Loading recipe" lines={8} />;
   if (detail.isError || !detail.data) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
   const recipe = detail.data;
@@ -102,17 +108,54 @@ export function RecipeDetailPage() {
 
   return (
     <main className="page-shell">
-      <PageHeader eyebrow={recipe.status === "archived" ? "Archived recipe" : "Recipe"} title={recipe.title} description={recipe.description || `${recipe.yieldQuantity} ${recipe.yieldUnit}`} actions={<><Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button><Button asChild><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button></>} />
+      <PageHeader
+        eyebrow={recipe.status === "archived" ? "Archived recipe" : "Recipe"}
+        title={recipe.title}
+        description={recipe.description ?? undefined}
+        actions={
+          <>
+            <Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button>
+            <Button asChild><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button>
+            {recipe.instructions.length > 0 && (
+              <Button asChild><Link to={`/app/recipes/${recipe.id}/cook`}>Start cooking</Link></Button>
+            )}
+          </>
+        }
+      />
+
+      {Number(recipe.yieldQuantity) > 0 ? (
+        <div className="portion-scale">
+          <label className="portion-scale__label">
+            <span>Servings</span>
+            <input
+              className="input portion-scale__input"
+              type="number"
+              min={0.25}
+              step={0.5}
+              value={scale}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                if (v > 0) setScale(v);
+              }}
+            />
+          </label>
+          <span className="muted">(recipe makes {recipe.yieldQuantity} {recipe.yieldUnit})</span>
+        </div>
+      ) : null}
 
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
       <section className="recipe-detail-grid">
         <div className="recipe-content">
-          <section><h2>Ingredients</h2><ul className="ingredient-list">{recipe.ingredients.map((item) => {
+           <section><h2>Ingredients</h2><ul className="ingredient-list">{recipe.ingredients.map((item) => {
            const foodName = item.food || item.originalText || "";
+           const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+           const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+           const scaledDetail = [scaledMin, scaledMax && scaledMax !== scaledMin ? `\u2013${scaledMax}` : null, item.unit, item.preparation]
+             .filter(Boolean).join(" ") || null;
            return (
              <li key={item.id}>
                <span className="ingredient-text">{item.originalText}</span>
-               <small className="ingredient-detail">{[item.quantityMin, item.quantityMax ? `\u2013${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Original text retained; structured parsing unavailable."} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</small>
+               {scaledDetail ? <small className="ingredient-detail">{scaledDetail} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</small> : null}
                {item.matchStatus !== "matched" && foodName.trim() && recipeId ? (
                  <FoodPicker
                    recipeId={recipeId}
@@ -125,11 +168,12 @@ export function RecipeDetailPage() {
                {item.assumptions?.map((assumption) => <span className="assumption-chip" key={assumption}>{assumption}</span>)}
              </li>
            );
-         })}</ul></section>
+           })}</ul>
+          </section>
           <section><h2>Instructions</h2>{recipe.instructions.length ? <ol className="instruction-list">{recipe.instructions.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol> : <p className="muted">No instructions were provided.</p>}</section>
           {recipe.sourceUrl ? <p>Original source: <a href={recipe.sourceUrl} rel="noreferrer">{new URL(recipe.sourceUrl).hostname}</a></p> : null}
         </div>
-        <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={job.data ?? recipe.activeJob} onCorrect={async (value) => { await correction.mutateAsync(value); }} onResetCorrection={async (id) => { await reset.mutateAsync(id); }} onRecalculate={async (resetCorrections = false) => { await recalculate.mutateAsync(resetCorrections); }} />
+        <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={job.data ?? recipe.activeJob} servingsScale={scale} onCorrect={async (value) => { await correction.mutateAsync(value); }} onResetCorrection={async (id) => { await reset.mutateAsync(id); }} onRecalculate={async (resetCorrections = false) => { await recalculate.mutateAsync(resetCorrections); }} />
       </section>
 
       <section className="danger-zone" aria-labelledby="lifecycle-heading"><h2 id="lifecycle-heading">Recipe lifecycle</h2>

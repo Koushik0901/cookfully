@@ -1,6 +1,6 @@
 # Gym-Focused Recipe & Nutrition Planner Development Guidelines
 
-Auto-generated from feature plans and corrected for the repository layout. Last updated: 2026-08-10
+Auto-generated from feature plans and corrected for the repository layout. Last updated: 2026-08-12
 
 ## Active Technologies
 - Python 3.13 for server and workers; TypeScript 5.x on Node.js 22 LTS for the web client + FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, psycopg 3, Celery 5.6, Redis, HTTPX, `recipe-scrapers`, `ingredient-parser-nlp`, Pint, OR-Tools 9.15 (P4), MCP Python SDK 2.x (P5), React 19.2, Vite 8.1, React Router, TanStack Query, React Hook Form, Zod, Radix UI primitives (001-nutrition-recipe-planner)
@@ -42,6 +42,15 @@ pnpm --dir frontend build
 pnpm --dir frontend exec playwright test
 ```
 
+## Product Persona
+
+Vigor & Vine helps people who want to take control of their personal health through food
+and stay organized in the process. The core audience is meal-preppers, health-conscious home
+cooks, and anyone who wants recipes to "do the macro math for them" without feeling like a
+spreadsheet. The app is deliberately not a gym-bro calorie counter — it is a cooking tool
+that happens to be nutrition-aware. Every feature decision should start with: "Does this
+help someone plan, cook, and eat better food with less friction?"
+
 ## Code Style and Architecture
 
 - Keep domain and application rules independent of FastAPI, Celery, and MCP transports.
@@ -53,6 +62,25 @@ pnpm --dir frontend exec playwright test
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Food matching v2** — signal-based scoring (head/block/lead) with penalty lexicons for
+  product forms, flavours, and plant parts. Exact-tie-only ambiguity. Variant-aware SQL
+  containment ordering. Live-verified against 8.1k USDA corpus.
+
+- **Nutrition pipeline fix** — SR Legacy nutrient codes (203/204/205/208) added to CORE
+  lookup; Atwater energy fallback for foods missing energy data. Nutrition now resolves
+  on seeded recipes at 75%/73% coverage.
+
+- **Owner-created foods** — `owner_foods` table with CRUD API. Owner foods have lexical
+  priority over USDA during recipe save. Pipeline skips manually-matched ingredients.
+  Frontend: Foods library page (`/app/foods`), CreateFoodDialog, FoodPicker on recipe detail.
+
+- **Branded food import** — `food_references.serving_size_g` + `serving_unit`. Branded
+  USDA import gated behind `GYM_BRANDED_CATEGORIES` filter.
+
+- **Cook mode + portion scaling** — Full-screen step-by-step cooking view with wake-lock
+  at `/app/recipes/:id/cook`. Interactive serving adjustment on recipe detail with
+  real-time ingredient + macro recalculation.
+
 - 001-nutrition-recipe-planner: resolved the constitutional benchmark gate order, full-owner erasure,
   reference performance profile, deterministic suggestion ranking, fixed P6 micronutrients, planning-
   aid presentation, and provider-degraded workflow evidence.

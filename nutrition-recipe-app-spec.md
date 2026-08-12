@@ -135,3 +135,50 @@ or later stories. Report all 50 cases for the P1 release checkpoint.
 - Implement the exact HTTP/MCP surfaces, decimal contracts, lifecycle behavior, retention, owner erasure,
   suggestion ranking, micronutrient set, and release evidence defined under
   `specs/001-nutrition-recipe-planner/`.
+
+## 10. Implementation Status (2026-08-12)
+
+### Must-have (v1) — COMPLETE
+- ✅ Recipe CRUD — `RecipeEditorPage`, daily plan entries
+- ✅ Recipe import from URL — `recipe-scrapers` via Celery pipeline
+- ✅ Ingredient parsing — `ingredient-parser-nlp`, structured {qty, unit, food}
+- ✅ Nutrition estimation — USDA-matched via signal-based scoring, density-bridged
+  volume-to-gram conversion, SR Legacy + FDC nutrient codes, Atwater energy fallback
+- ✅ User goal profile — TDEE/maintenance, calorie target, macro splits, per-meal targets
+- ✅ Weekly meal calendar — day tabs, meal slots, plan entry CRUD with nutrition snapshots
+- ✅ Daily/weekly totals vs. goal — per-day and per-week macro budget progress bars
+- ✅ Grocery list — generated from week's plan, aggregated and deduplicated
+- ✅ Manual nutrition override — correction form and `NutritionCorrection` model
+
+### Should-have (v2) — MOSTLY COMPLETE
+- ✅ Auto-suggestion engine — OR-Tools CP-SAT, macro constraints, repetition caps, 8s solve
+- ✅ Micronutrient tracking — 9 micronutrients (fiber, sodium, potassium, calcium, iron,
+  magnesium, vitamin C/D/B12) with coverage provenance
+- ✅ MCP server — 9 tools (goals, meal plan, period totals, recipe search, add/update/remove
+  plan entries, grocery list read/regenerate); resource: methodology + export schema docs
+- ✅ Ingredient-based search + pantry — `PantryPage` with item CRUD, search, deductions
+- ✅ Cook mode — full-screen step-by-step at `/app/recipes/:id/cook`, screen wake-lock,
+  ingredient checklist, step navigation with progress bar
+- ✅ Portion scaling — interactive serving adjustment on recipe detail; scaled ingredient
+  quantities + macro totals displayed in real time
+- ⚠️ Suggestion variety — repetition cap works, but no per-day diversity (entries mechanically
+  assigned `position%7` rather than solver-enforced one-per-day) and no consecutive-day
+  avoidance constraint
+
+### Extra features (beyond original spec)
+- ✅ Owner-created foods — `owner_foods` model with CRUD API; lexical priority over USDA
+  during recipe save; pre-matching at recipe import; library page at `/app/foods`
+- ✅ Branded USDA food import — `GYM_BRANDED_CATEGORIES` filter (protein powders, nut butters,
+  condiments, etc.); `serving_size_g` + `serving_unit` columns
+- ✅ Food picker for ambiguous ingredients — candidate browser (USDA + owner foods) with
+  "Match food" button on recipe detail; create-from-ingredient modal flow
+- ✅ Full CI/CD — GitHub Actions for backend (ruff, mypy, pytest with coverage, pip-audit)
+  and frontend (lint, typecheck, test, build, Playwright e2e on 12 spec files)
+
+### Next priorities
+1. **MCP tool completion** — suggestion tools (`request_suggestions`, `get_suggestion_result`),
+   pantry read/write tools, recipe mutation tools (create/update/delete)
+2. **Suggestion variety** — per-day entry cap solver constraint, consecutive-day avoidance
+3. **Shopping list refinement** — aisle/aisle-grouping categories for streamlined grocery trips
+4. **Docker health checks** — worker + outbox container healthchecks
+

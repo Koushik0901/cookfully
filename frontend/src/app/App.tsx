@@ -9,6 +9,7 @@ import { PantryPage } from "../features/pantry/PantryPage";
 import { RecipeDetailPage } from "../features/recipes/RecipeDetailPage";
 import { RecipeEditorPage } from "../features/recipes/RecipeEditorPage";
 import { RecipeLibraryPage } from "../features/recipes/RecipeLibraryPage";
+import { CookModePage } from "../features/recipes/CookModePage";
 import { AgentAccessPage } from "../features/settings/AgentAccessPage";
 import { SuggestionPage } from "../features/suggestions/SuggestionPage";
 import { AppProviders, RequireAuthentication } from "./providers";
@@ -86,6 +87,7 @@ function PlannerShell() {
         <Route path="recipes" element={<RecipeLibraryPage />} />
         <Route path="recipes/new" element={<RecipeEditorPage />} />
         <Route path="recipes/:recipeId" element={<RecipeDetailPage />} />
+        <Route path="recipes/:recipeId/cook" element={<CookModePage />} />
         <Route path="recipes/:recipeId/edit" element={<RecipeEditorPage />} />
         <Route path="plan" element={<WeeklyPlannerPage />} />
         <Route path="goals" element={<GoalSettingsPage />} />
