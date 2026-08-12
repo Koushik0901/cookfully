@@ -1,6 +1,7 @@
 # SC-008 Usability Evidence
 
-**Private-release status:** Pending the post-fix independent-agent proxy round.
+**Private-release status:** PASS — six fresh-context `gpt-5.6-terra` cognitive walkthroughs completed
+on 2026-08-11. This is simulated agent evidence, not a human study.
 
 This project is built by one owner with one implementation assistant and has no realistic pool of 20
 external participants. The private-release gate therefore uses a transparent cognitive-walkthrough
@@ -52,17 +53,27 @@ The acceptance round evaluates the corrected implementation with new agent insta
 
 ## Proxy result table
 
-This table will be generated from the committed JSON evidence after the post-fix round.
+Machine-validated source: [`usability-proxy-data.json`](usability-proxy-data.json). Computed summary:
+[`usability-proxy-summary.json`](usability-proxy-summary.json).
 
 | Measure | Required | Observed |
 | --- | ---: | ---: |
-| Independent evaluations | >=6 | 0 |
-| Novice personas | >=2 | 0 |
-| Experienced personas | >=2 | 0 |
-| Narrow-mobile evaluations | >=3 | 0 |
-| Desktop evaluations | >=3 | 0 |
-| Required passes | `ceiling(0.90 * evaluations)` | Not computable |
-| Actual passes | >= required passes | 0 |
+| Independent evaluations | >=6 | 6 |
+| Novice personas | >=2 | 2 |
+| Experienced personas | >=2 | 2 |
+| Narrow-mobile evaluations | >=3 | 3 |
+| Desktop evaluations | >=3 | 3 |
+| Required passes | `ceiling(0.90 * evaluations)` | 6 |
+| Actual passes | >= required passes | 6 |
+
+All six agents judged recipe capture and plan addition discoverable, nutrition status meaning correct,
+and target impact semantically correct. No critical blocker was reported. One evaluation used only
+source-and-test evidence because a local runtime was unavailable; it is identified in the JSON rather
+than represented as timed or rendered-UI proof.
+
+Retained noncritical findings: the status guide is collapsed by default; recipe detail does not offer a
+direct add-to-day handoff; and some exact fixed-precision target values are visually noisy. These are
+follow-up usability improvements, not suppressed observations.
 
 ## Deferred public-beta human validation
 

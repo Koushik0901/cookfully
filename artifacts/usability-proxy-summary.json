@@ -2,19 +2,13 @@
   "schemaVersion": "1.0",
   "method": "independent-agent-cognitive-walkthrough-v1",
   "roundId": "SC008-PROXY-ROUND-01",
-  "totalEvaluations": 0,
-  "novicePersonas": 0,
-  "experiencedPersonas": 0,
-  "narrowMobileEvaluations": 0,
-  "desktopEvaluations": 0,
-  "requiredPasses": 0,
-  "actualPasses": 0,
-  "passed": false,
-  "failures": [
-    "evaluation_sample",
-    "novice_persona_quota",
-    "experienced_persona_quota",
-    "narrow_mobile_quota",
-    "desktop_quota"
-  ]
+  "totalEvaluations": 6,
+  "novicePersonas": 2,
+  "experiencedPersonas": 2,
+  "narrowMobileEvaluations": 3,
+  "desktopEvaluations": 3,
+  "requiredPasses": 6,
+  "actualPasses": 6,
+  "passed": true,
+  "failures": []
 }

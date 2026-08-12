@@ -289,3 +289,45 @@ Evidence: `backend/src/vigor_vine/application/food_matching.py`,
 tests in `backend/tests/unit/test_food_matching_corpus.py` (including honesty tests that forbid
 auto-matching buttermilk over whole milk or banana powder over raw banana). Revisit if a curated
 staple-food subset or per-owner frequency data ever justifies a popularity prior.
+
+## Stale nutrition and new plan entries — 2026-08-11
+
+### Sources inspected
+
+- [Mealie repository](https://github.com/mealie-recipes/mealie), whose current documented scope covers
+  imported or manually created recipes, weekly meal planning, and shopping lists
+- [Tandoor Recipes repository](https://github.com/TandoorRecipes/recipes), whose current documented
+  scope covers multiple meals per day, recipe scaling, imported recipes, and shopping lists
+- [Immich user-management documentation](https://docs.immich.app/administration/user-management/),
+  inspected for its explicit lifecycle framing rather than as a nutrition-planning implementation
+
+### Objective comparison
+
+Mealie and Tandoor validate the general pattern of planning from a recipe collection and preserving
+user-editable recipe workflows. Their documented product scope is broader than a nutrition-first
+budget: neither source establishes a contract that an ingredient or yield edit invalidates a derived
+macro snapshot and must be blocked before a new plan entry. Copying their permissive recipe-to-plan
+flow would make sense for cooking schedules, but would risk presenting an old macro estimate as a
+current target calculation here.
+
+Immich is not a meal-planning reference, but its documented user lifecycle reinforces a useful
+general distinction: visible lifecycle state must not be overwritten merely because related metadata
+changes. Its multi-user asset model is much more complex than this single-owner app, so its delayed
+deletion and administration structures are not adopted.
+
+### Local decision
+
+Adapt the recipe-manager planning flow but reject permissive planning of stale nutrition:
+
+- existing plan entries remain immutable historical snapshots, so past totals stay reproducible;
+- a recipe whose ingredients or yield changed is excluded from new-plan selectors until recalculated;
+- the application service independently rejects direct API/MCP attempts with
+  `recipe_nutrition_stale`, so UI filtering is not the only guard; and
+- manual correction provenance does not hide a stale lifecycle warning.
+
+This is not claimed to be universally better: it adds a recalculation step and can slow a casual
+cook. It fits a gym user only because daily macro targets are the central decision surface. Evidence:
+`backend/src/vigor_vine/application/meal_plans.py`,
+`backend/tests/contract/test_meal_plan_api.py`,
+`frontend/src/features/plans/WeeklyPlannerPage.tsx`, and
+`frontend/src/features/plans/__tests__/planning-ui.test.tsx`.

@@ -2,10 +2,10 @@
 
 ## Decision
 
-**Previous automatable gate status: PASS. Current release status: pending the amended SC-008
-independent-agent proxy (T157) and final rerun (T158).** The project has no external participant pool,
-so the private-release criterion now uses transparent simulated cognitive-walkthrough evidence. It is
-not represented as evidence from real participants; human validation is deferred to public beta.
+**Previous automatable gate status: PASS. SC-008 proxy status: PASS. Current release status: pending
+the final T158 rerun.** The project has no external participant pool, so the private-release criterion
+uses transparent simulated cognitive-walkthrough evidence. It is not represented as evidence from
+real participants; human validation is deferred to public beta.
 
 After this automated run, `scripts/verify.ps1` and `scripts/verify.sh` were strengthened to require a
 machine-validated SC-008 artifact. Following the feasibility amendment, they require the independent-
@@ -89,8 +89,7 @@ and profile metadata are preserved in the JSON artifact.
 
 ## Remaining release action
 
-Run six fresh-context `gpt-5.6-terra` persona agents against the corrected implementation. The
-ceiling-based 90% rule requires all six to pass. If all quotas and the pass rule succeed, complete T157,
-rerun this exact script, and mark T158 last. If the proxy fails, fix the observed product problems and
-repeat with a new round rather than reclassifying failures. Conduct the separate real-human protocol
-when a future public beta makes recruitment practical.
+T157 passed with six fresh-context `gpt-5.6-terra` persona agents: two novice, two experienced,
+three narrow-mobile, three desktop, and six of six all-step passes. Rerun this exact script against
+the current commit and mark T158 last. Conduct the separate real-human protocol when a future public
+beta makes recruitment practical.
