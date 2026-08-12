@@ -89,8 +89,8 @@ and profile metadata are preserved in the JSON artifact.
 
 ## Remaining release action
 
-Run 20 fresh-context persona agents against the corrected implementation. If all quotas and the
-ceiling-based 90% rule pass, complete T157, rerun this exact script, and mark T158 last. If the proxy
-fails, fix the observed product problems and repeat with a new round rather than reclassifying
-failures. Conduct the separate real-human protocol when a future public beta makes recruitment
-practical.
+Run six fresh-context `gpt-5.6-terra` persona agents against the corrected implementation. The
+ceiling-based 90% rule requires all six to pass. If all quotas and the pass rule succeed, complete T157,
+rerun this exact script, and mark T158 last. If the proxy fails, fix the observed product problems and
+repeat with a new round rather than reclassifying failures. Conduct the separate real-human protocol
+when a future public beta makes recruitment practical.

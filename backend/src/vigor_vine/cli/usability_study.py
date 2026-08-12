@@ -148,6 +148,7 @@ class StudySummary(EvidenceModel):
 
 class AgentEvaluation(EvidenceModel):
     evaluation_id: str = Field(pattern=r"^A-[0-9]{3}$")
+    model: Literal["gpt-5.6-terra"]
     persona_experience: Literal["novice", "experienced", "other"]
     persona_description: str = Field(min_length=10, max_length=240)
     viewport: Literal["narrow-mobile", "desktop"]
@@ -278,15 +279,15 @@ def summarize_agent_proxy(proxy: AgentProxyData) -> AgentProxySummary:
     narrow_mobile = sum(evaluation.viewport == "narrow-mobile" for evaluation in evaluations)
     desktop = sum(evaluation.viewport == "desktop" for evaluation in evaluations)
     failures: list[str] = []
-    if len(evaluations) < 20:
+    if len(evaluations) < 6:
         failures.append("evaluation_sample")
-    if novice < 5:
+    if novice < 2:
         failures.append("novice_persona_quota")
-    if experienced < 5:
+    if experienced < 2:
         failures.append("experienced_persona_quota")
-    if narrow_mobile < 8:
+    if narrow_mobile < 3:
         failures.append("narrow_mobile_quota")
-    if desktop < 8:
+    if desktop < 3:
         failures.append("desktop_quota")
     if actual < required:
         failures.append("pass_rate")

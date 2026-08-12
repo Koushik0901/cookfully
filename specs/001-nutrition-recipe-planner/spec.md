@@ -22,7 +22,7 @@
 - Q: How are closest infeasible meal suggestions ranked? → A: Never violate recipe exclusions; first minimize the number of other unmet constraints, then minimize a normalized weighted distance using calories 4, protein 3, carbohydrates 1, fat 1, repetition 2, and missing required recipes 5, followed by fewer entries and lexicographic recipe-ID tie-breaks.
 - Q: Which micronutrients does P6 support initially? → A: Support dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C with canonical USDA nutrient mappings and units, while preserving null as unavailable rather than zero.
 - Q: How are planning-aid framing and optional-provider degradation proven? → A: Label estimated nutrition and suggestion surfaces as planning aids rather than medical advice, describe the same limitation in API/MCP/export documentation, and run provider-disabled and forced-provider-failure fixtures proving manual recipe, nutrition, goal, plan, grocery, backup, and export workflows remain usable.
-- Q: How can a private single-owner release satisfy the usability gate when no external participant pool exists? → A: Use a transparent proxy of at least 20 independently instantiated, fresh-context persona agents performing evidence-backed cognitive walkthroughs of the implemented UI, with the original novice, experienced, mobile, desktop, 90%, and all-step criteria. Never report agents as people or as timed human evidence. A genuine product-naive human study remains a nonblocking public-beta validation gate when recruitment becomes possible.
+- Q: How can a private single-owner release satisfy the usability gate when no external participant pool exists? → A: Use six independently instantiated, fresh-context `gpt-5.6-terra` persona agents for focused evidence-backed cognitive walkthroughs of the implemented UI: at least two novice and two experienced gym-focused meal planners, with three narrow-mobile and three desktop evaluations. Keep the 90% ceiling rule; therefore all six must pass every required judgment. Never report agents as people or as timed human evidence. A genuine product-naive human study remains a nonblocking public-beta validation gate when recruitment becomes possible.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -449,13 +449,14 @@ micronutrients for recipes with complete, partial, and unavailable reference dat
   the visual application, HTTP API, MCP tools, exports, and background-job results.
 - **SC-007**: In grocery fixtures, 100% of safely compatible repeated ingredients are aggregated to the
   expected quantity and 100% of incompatible or ambiguous quantities remain separate.
-- **SC-008**: For a private single-owner release without an external participant pool, at least 20
-  independently instantiated persona agents with fresh context MUST perform evidence-backed cognitive
-  walkthroughs of the implemented recipe capture, nutrition-status interpretation, day-plan addition,
-  and target-impact journey. At least 90% MUST judge all four steps discoverable and semantically
-  correct with no critical blocker. The proxy sample MUST include at least five novice and five
-  experienced gym-focused meal-planner personas, eight narrow-mobile evaluations, and eight desktop
-  evaluations; categories MAY overlap. Required passes are `ceiling(0.90 * evaluations)`. Reports MUST
+- **SC-008**: For a private single-owner release without an external participant pool, six
+  independently instantiated, fresh-context `gpt-5.6-terra` persona agents MUST perform evidence-backed
+  cognitive walkthroughs of the implemented recipe capture, nutrition-status interpretation, day-plan
+  addition, and target-impact journey. At least 90% MUST judge all four steps discoverable and
+  semantically correct with no critical blocker. The proxy sample MUST include at least two novice and
+  two experienced gym-focused meal-planner personas, three narrow-mobile evaluations, and three desktop
+  evaluations; categories MAY overlap. Required passes are `ceiling(0.90 * evaluations)`, which means
+  all six passes are required. Reports MUST
   identify this as simulated cognitive-walkthrough evidence, preserve failures, and MUST NOT describe
   agents as people, product-naive participants, or timed human evidence. A genuine study in which at
   least 90% of 20 eligible product-naive human participants complete all four steps unaided in under

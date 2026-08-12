@@ -17,19 +17,19 @@ and generate the computed summary with:
 uv run --directory backend vigor-vine usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
 ```
 
-The proxy requires at least 20 separately instantiated agents with fresh context. Each receives one
-persona and one assigned viewport, then inspects the implemented UI and supporting frontend evidence
+The proxy requires six separately instantiated `gpt-5.6-terra` agents with fresh context. Each receives
+one persona and one assigned viewport, then inspects the implemented UI and supporting frontend evidence
 without editing the product or seeing another evaluator's conclusion. The sample requires at least:
 
-- five novice gym-focused meal-planner personas;
-- five experienced gym-focused meal-planner personas;
-- eight narrow-mobile evaluations at 390x844; and
-- eight desktop evaluations.
+- two novice gym-focused meal-planner personas;
+- two experienced gym-focused meal-planner personas;
+- three narrow-mobile evaluations at 390x844; and
+- three desktop evaluations.
 
 An evaluation passes only when recipe capture and plan addition are discoverable, nutrition-status
 meaning and target-impact meaning are correct, and no critical blocker is reported. Required passes
-are `ceiling(0.90 * evaluations)`; exactly 20 evaluations require 18 passes. Findings are retained as
-reported and failures cannot be reclassified merely to reach the threshold.
+are `ceiling(0.90 * evaluations)`; exactly six evaluations require all six passes. Findings are retained
+as reported and failures cannot be reclassified merely to reach the threshold.
 
 ## Pre-round defect discovery
 
@@ -56,11 +56,11 @@ This table will be generated from the committed JSON evidence after the post-fix
 
 | Measure | Required | Observed |
 | --- | ---: | ---: |
-| Independent evaluations | >=20 | 0 |
-| Novice personas | >=5 | 0 |
-| Experienced personas | >=5 | 0 |
-| Narrow-mobile evaluations | >=8 | 0 |
-| Desktop evaluations | >=8 | 0 |
+| Independent evaluations | >=6 | 0 |
+| Novice personas | >=2 | 0 |
+| Experienced personas | >=2 | 0 |
+| Narrow-mobile evaluations | >=3 | 0 |
+| Desktop evaluations | >=3 | 0 |
 | Required passes | `ceiling(0.90 * evaluations)` | Not computable |
 | Actual passes | >= required passes | 0 |
 

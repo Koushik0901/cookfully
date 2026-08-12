@@ -160,11 +160,10 @@ def test_cli_writes_pending_summary_and_require_pass_fails(tmp_path: Path) -> No
 def agent_evaluation(index: int, *, passes: bool = True) -> dict[str, object]:
     return {
         "evaluationId": f"A-{index:03d}",
-        "personaExperience": (
-            "novice" if index <= 5 else "experienced" if index <= 10 else "other"
-        ),
+        "model": "gpt-5.6-terra",
+        "personaExperience": ("novice" if index <= 2 else "experienced" if index <= 4 else "other"),
         "personaDescription": f"Independent simulated evaluator persona number {index}",
-        "viewport": "narrow-mobile" if index <= 8 else "desktop",
+        "viewport": "narrow-mobile" if index <= 3 else "desktop",
         "freshContextConfirmed": True,
         "inspectedArtifacts": ["frontend/src/features/recipes/RecipeEditor.tsx"],
         "captureDiscoverable": passes,
@@ -177,8 +176,8 @@ def agent_evaluation(index: int, *, passes: bool = True) -> dict[str, object]:
     }
 
 
-def test_agent_proxy_is_transparent_independent_and_uses_ceiling_pass_math() -> None:
-    rows = [agent_evaluation(index, passes=index <= 18) for index in range(1, 21)]
+def test_agent_proxy_uses_six_focused_walkthroughs_and_strict_ceiling_pass_math() -> None:
+    rows = [agent_evaluation(index) for index in range(1, 7)]
     proxy = AgentProxyData.model_validate(
         {
             "schemaVersion": "1.0",
@@ -190,10 +189,28 @@ def test_agent_proxy_is_transparent_independent_and_uses_ceiling_pass_math() -> 
 
     summary = summarize_agent_proxy(proxy)
 
-    assert summary.total_evaluations == 20
-    assert summary.required_passes == 18
-    assert summary.actual_passes == 18
+    assert summary.total_evaluations == 6
+    assert summary.required_passes == 6
+    assert summary.actual_passes == 6
     assert summary.passed is True
+
+
+def test_agent_proxy_rejects_a_failed_six_agent_round() -> None:
+    rows = [agent_evaluation(index, passes=index < 6) for index in range(1, 7)]
+    proxy = AgentProxyData.model_validate(
+        {
+            "schemaVersion": "1.0",
+            "method": "independent-agent-cognitive-walkthrough-v1",
+            "roundId": "SC008-PROXY-ROUND-01",
+            "evaluations": rows,
+        }
+    )
+
+    summary = summarize_agent_proxy(proxy)
+
+    assert summary.actual_passes == 5
+    assert summary.passed is False
+    assert summary.failures == ("pass_rate",)
 
 
 def test_agent_proxy_rejects_shared_context_and_non_ui_evidence() -> None:
