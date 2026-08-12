@@ -74,9 +74,7 @@ class UserFoodRepository:
                     .limit(limit)
                 )
             )
-        name_filter = or_(
-            *(OwnerFood.normalized_name.ilike(f"%{token}%") for token in tokens)
-        )
+        name_filter = or_(*(OwnerFood.normalized_name.ilike(f"%{token}%") for token in tokens))
         return list(
             self.session.scalars(
                 select(OwnerFood)

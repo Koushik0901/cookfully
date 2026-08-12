@@ -159,9 +159,7 @@ def update_user_food(
     session = _open_session(request)
     with session.begin():
         repo = UserFoodRepository(session)
-        food = repo.update(
-            owner.id, food_id, write=write, expected_version=body.expected_version
-        )
+        food = repo.update(owner.id, food_id, write=write, expected_version=body.expected_version)
         result = OwnerFoodResponse.from_row(food)
     session.close()
     return result

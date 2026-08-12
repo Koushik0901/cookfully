@@ -127,9 +127,7 @@ def import_release(
                 if not description or row.get("fdcId") is None:
                     continue
                 if dataset_type == "branded_food":
-                    branded_category = (
-                        row.get("brandedFoodCategory") or ""
-                    ).strip()
+                    branded_category = (row.get("brandedFoodCategory") or "").strip()
                     if branded_category not in GYM_BRANDED_CATEGORIES:
                         continue
                 category = row.get("foodCategory") or {}
@@ -139,9 +137,7 @@ def import_release(
                     raw_serving = row.get("servingSize")
                     if raw_serving is not None:
                         try:
-                            serving_size_g = quantize_decimal(
-                                str(raw_serving), Decimal("0.000001")
-                            )
+                            serving_size_g = quantize_decimal(str(raw_serving), Decimal("0.000001"))
                         except Exception:
                             serving_size_g = None
                     serving_unit = str(row.get("servingSizeUnit", "") or "").strip() or None

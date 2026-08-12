@@ -43,9 +43,7 @@ class OwnerFood(Base):
     protein_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     carbohydrate_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     fat_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
-    basis_grams: Mapped[Decimal] = mapped_column(
-        Numeric(20, 6), nullable=False, default=100
-    )
+    basis_grams: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False, default=100)
     typical_serving_g: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     typical_serving_unit: Mapped[str | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(nullable=False, default=True)
