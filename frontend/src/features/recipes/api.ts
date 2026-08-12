@@ -43,7 +43,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const method = (options.method ?? "GET").toUpperCase();
   if (options.body) headers.set("content-type", "application/json");
   if (!new Set(["GET", "HEAD", "OPTIONS"]).has(method)) {
-    const csrf = cookie("vv_csrf");
+    const csrf = cookie("cookfully_csrf");
     if (csrf) headers.set("x-csrf-token", decodeURIComponent(csrf));
   }
   if (options.idempotent) headers.set("idempotency-key", idempotencyKey());

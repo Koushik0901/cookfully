@@ -4,15 +4,15 @@ from typing import Any
 
 import pytest
 
-from vigor_vine.application.ai_provider import (
+from cookfully.application.ai_provider import (
     DisabledProvider,
     FoodDisambiguationInput,
     FoodDisambiguationOutput,
     StructuredAiPort,
 )
-from vigor_vine.application.food_matching import FoodMatcher, normalize_food
-from vigor_vine.domain.common import DomainError, uuid7
-from vigor_vine.infrastructure.models.reference_foods import FoodReference
+from cookfully.application.food_matching import FoodMatcher, normalize_food
+from cookfully.domain.common import DomainError, uuid7
+from cookfully.infrastructure.models.reference_foods import FoodReference
 
 
 class FoodRepositoryStub:

@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from vigor_vine.api.main import create_app
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.config import Settings
+from cookfully.api.main import create_app
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.config import Settings
 
 
 def test_csrf_token_scope_and_browser_only_token_management(
@@ -30,7 +30,7 @@ def test_csrf_token_scope_and_browser_only_token_management(
             json={"email": "owner@example.com", "password": "correct horse battery staple"},
         )
         assert login.status_code == 204
-        csrf = client.cookies["vv_csrf"]
+        csrf = client.cookies["cookfully_csrf"]
 
         rejected = client.post(
             "/api/v1/recipes",

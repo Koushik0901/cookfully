@@ -98,7 +98,7 @@ function renderRoute(element: React.ReactNode, path = "/app/recipes/00000000-000
 
 describe("recipe UI", () => {
   beforeEach(() => {
-    document.cookie = "vv_csrf=test-csrf-token; path=/";
+    document.cookie = "cookfully_csrf=test-csrf-token; path=/";
     vi.stubGlobal("fetch", vi.fn(() => response(recipe)));
   });
 

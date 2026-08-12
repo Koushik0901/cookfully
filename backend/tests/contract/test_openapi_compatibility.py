@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 import yaml
 
-from vigor_vine.api.main import create_app
-from vigor_vine.mcp.server import build_mcp_server
+from cookfully.api.main import create_app
+from cookfully.mcp.server import build_mcp_server
 
 ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_ROOT = ROOT / "specs" / "001-nutrition-recipe-planner" / "contracts"

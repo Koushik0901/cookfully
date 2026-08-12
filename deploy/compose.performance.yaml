@@ -25,18 +25,18 @@ services:
       target: test
     cpuset: "0-3"
     environment:
-      VV_ENVIRONMENT: test
-      VV_SECRET_KEY: ${VV_SECRET_KEY:?Set VV_SECRET_KEY in .env}
-      VV_OWNER_EMAIL: performance@example.com
-      VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
-      VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
-      VV_REDIS_URL: redis://redis:6379/0
-      VV_MEDIA_ROOT: /tmp/vigor-vine-performance/media
-      VV_EXPORT_ROOT: /tmp/vigor-vine-performance/exports
-      VV_ERASURE_LEDGER_ROOT: /tmp/vigor-vine-performance/ledger
-      VV_REFERENCE_PROFILE: "1"
-      VV_REFERENCE_STORAGE: ssd
-      VV_PERFORMANCE_REPORT: ${VV_PERFORMANCE_REPORT_CONTAINER:-/app/artifacts/performance-report.json}
+      COOKFULLY_ENVIRONMENT: test
+      COOKFULLY_SECRET_KEY: ${COOKFULLY_SECRET_KEY:?Set COOKFULLY_SECRET_KEY in .env}
+      COOKFULLY_OWNER_EMAIL: performance@example.com
+      COOKFULLY_OWNER_BOOTSTRAP_PASSWORD: ${COOKFULLY_OWNER_BOOTSTRAP_PASSWORD:?Set COOKFULLY_OWNER_BOOTSTRAP_PASSWORD in .env}
+      COOKFULLY_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cookfully}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cookfully}
+      COOKFULLY_REDIS_URL: redis://redis:6379/0
+      COOKFULLY_MEDIA_ROOT: /tmp/cookfully-performance/media
+      COOKFULLY_EXPORT_ROOT: /tmp/cookfully-performance/exports
+      COOKFULLY_ERASURE_LEDGER_ROOT: /tmp/cookfully-performance/ledger
+      COOKFULLY_REFERENCE_PROFILE: "1"
+      COOKFULLY_REFERENCE_STORAGE: ssd
+      COOKFULLY_PERFORMANCE_REPORT: ${COOKFULLY_PERFORMANCE_REPORT_CONTAINER:-/app/artifacts/performance-report.json}
     depends_on:
       api:
         condition: service_healthy

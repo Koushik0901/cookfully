@@ -1,18 +1,18 @@
-name: vigor-vine-restore-check
+name: cookfully-restore-check
 
 services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_DB: vigor_vine_restore
-      POSTGRES_USER: vigor_vine
+      POSTGRES_DB: cookfully_restore
+      POSTGRES_USER: cookfully
       POSTGRES_PASSWORD: restore-check-only
     ports:
       - "55432:5432"
     volumes:
       - restore-postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vigor_vine -d vigor_vine_restore"]
+      test: ["CMD-SHELL", "pg_isready -U cookfully -d cookfully_restore"]
       interval: 5s
       timeout: 5s
       retries: 12

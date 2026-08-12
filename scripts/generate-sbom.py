@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 CDXGEN_VERSION = "12.8.2"
-ROOT_PURL = "pkg:generic/vigor-vine@0.1.0"
-FRONTEND_PURL = "pkg:npm/vigor-vine-web@0.1.0"
-BACKEND_PURL = "pkg:pypi/vigor-vine@0.1.0"
+ROOT_PURL = "pkg:generic/cookfully@0.1.0"
+FRONTEND_PURL = "pkg:npm/cookfully-web@0.1.0"
+BACKEND_PURL = "pkg:pypi/cookfully@0.1.0"
 LEGACY_ROOT_PURL = "pkg:pypi/gym-focused recipe & nutrition planner@latest"
 
 EXPECTED_DIRECT_LICENSES = {
@@ -94,14 +94,14 @@ def _normalize(bom: dict[str, Any]) -> None:
     root_component = {
         "type": "application",
         "bom-ref": ROOT_PURL,
-        "name": "Vigor & Vine",
+        "name": "Cookfully",
         "version": "0.1.0",
         "purl": ROOT_PURL,
         "licenses": [{"license": {"name": "Proprietary"}}],
         "properties": [
-            {"name": "vigor-vine:python-lock", "value": "backend/uv.lock"},
-            {"name": "vigor-vine:node-lock", "value": "frontend/pnpm-lock.yaml"},
-            {"name": "vigor-vine:generator", "value": f"cdxgen {CDXGEN_VERSION}"},
+            {"name": "cookfully:python-lock", "value": "backend/uv.lock"},
+            {"name": "cookfully:node-lock", "value": "frontend/pnpm-lock.yaml"},
+            {"name": "cookfully:generator", "value": f"cdxgen {CDXGEN_VERSION}"},
         ],
     }
     bom["metadata"]["component"] = root_component
@@ -122,7 +122,7 @@ def _normalize(bom: dict[str, Any]) -> None:
     missing[0]["licenses"] = [{"license": {"id": "MIT"}}]
     missing[0].setdefault("properties", []).append(
         {
-            "name": "vigor-vine:license-metadata-source",
+            "name": "cookfully:license-metadata-source",
             "value": "https://github.com/python/mypy_extensions/blob/1.1.0/LICENSE",
         }
     )

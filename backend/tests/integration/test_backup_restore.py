@@ -19,18 +19,18 @@ from tests.contract.test_export_format import (
     seed_export_graph,
 )
 
-from vigor_vine.application.exports import PortableExportService, verify_portable_export
-from vigor_vine.cli.backup import BackupManager, verify_backup
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.models import Base
-from vigor_vine.infrastructure.models.grocery import GroceryItem, GroceryItemSource
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.infrastructure.models.media import MediaAsset
-from vigor_vine.infrastructure.models.nutrition import NutritionCorrection
-from vigor_vine.infrastructure.models.plans import MealNutritionSnapshot, MealPlanEntry, UserGoal
-from vigor_vine.infrastructure.models.recipes import Recipe
+from cookfully.application.exports import PortableExportService, verify_portable_export
+from cookfully.cli.backup import BackupManager, verify_backup
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models import Base
+from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.nutrition import NutritionCorrection
+from cookfully.infrastructure.models.plans import MealNutritionSnapshot, MealPlanEntry, UserGoal
+from cookfully.infrastructure.models.recipes import Recipe
 
 
 @contextmanager

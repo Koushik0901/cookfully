@@ -2,7 +2,7 @@
 
 This log keeps comparisons with established self-hosted applications explicit and falsifiable. An
 inspiration project is evidence that a pattern can work in its own context—not proof that the pattern
-fits Vigor & Vine. Likewise, a local design is not preferred merely because it is already implemented.
+fits Cookfully. Likewise, a local design is not preferred merely because it is already implemented.
 
 For each material subsystem review:
 
@@ -28,7 +28,7 @@ Mealie and Tandoor prove that a self-hosted recipe application benefits from own
 long-lived credentials that work with small external integrations. Their comparatively broad token
 authority reduces configuration friction, but it gives a leaked automation credential more power than
 many integrations require. Recommending a separate non-admin account reduces exposure in a multi-user
-system, but does not fit Vigor & Vine's deliberately single-owner model and would introduce a second
+system, but does not fit Cookfully's deliberately single-owner model and would introduce a second
 identity concept only to compensate for coarse tokens.
 
 Immich's fine-grained API-key permissions and once-only secret presentation better match the local
@@ -226,7 +226,7 @@ liability for a gym user who budgets macros to the gram.
 Adopt the compact "facts card" placement idea, adapt the presentation, and reject the ambiguous
 basis:
 
-- Vigor & Vine renders macros as color-coded chips (Protein blue, Carbs amber, Fats steel, calories
+- Cookfully renders macros as color-coded chips (Protein blue, Carbs amber, Fats steel, calories
   as its own accent) on `color-mix` tinted pills, with the serving basis (`Basis: 2.500 servings ·
   Coverage: 88%`), provenance, assumptions, and corrections always in view — the exact-decimal
   contract DESIGN.md and the spec require;
@@ -284,8 +284,8 @@ and exact-first ordering; keep the local ambiguity-first contract:
   silent wrong pick; the nutrition correction flow is the adjudication path, mirroring the role
   Tandoor's automations play.
 
-Evidence: `backend/src/vigor_vine/application/food_matching.py`,
-`backend/src/vigor_vine/infrastructure/repositories/nutrition.py` (`search_foods`), and the corpus
+Evidence: `backend/src/cookfully/application/food_matching.py`,
+`backend/src/cookfully/infrastructure/repositories/nutrition.py` (`search_foods`), and the corpus
 tests in `backend/tests/unit/test_food_matching_corpus.py` (including honesty tests that forbid
 auto-matching buttermilk over whole milk or banana powder over raw banana). Revisit if a curated
 staple-food subset or per-owner frequency data ever justifies a popularity prior.
@@ -327,7 +327,7 @@ Adapt the recipe-manager planning flow but reject permissive planning of stale n
 
 This is not claimed to be universally better: it adds a recalculation step and can slow a casual
 cook. It fits a gym user only because daily macro targets are the central decision surface. Evidence:
-`backend/src/vigor_vine/application/meal_plans.py`,
+`backend/src/cookfully/application/meal_plans.py`,
 `backend/tests/contract/test_meal_plan_api.py`,
 `frontend/src/features/plans/WeeklyPlannerPage.tsx`, and
 `frontend/src/features/plans/__tests__/planning-ui.test.tsx`.
@@ -370,8 +370,8 @@ generic-only table for now:
   "clove", and "bunch" are trivial to add as owner foods with `typical_serving_g` values, and
   the current pattern avoids a separate model until volume demands it.
 
-Evidence: `backend/src/vigor_vine/domain/units.py` (Pint-based mass/volume conversion),
-`backend/src/vigor_vine/domain/volume_assumptions.py` (density bridging),
-`backend/src/vigor_vine/application/recipes.py` `_pre_match_owner_foods` (food-scoped
+Evidence: `backend/src/cookfully/domain/units.py` (Pint-based mass/volume conversion),
+`backend/src/cookfully/domain/volume_assumptions.py` (density bridging),
+`backend/src/cookfully/application/recipes.py` `_pre_match_owner_foods` (food-scoped
 serving conversion), and the Protein Oats coverage demonstration (75% → 100% after creating
 a whey protein owner food with `typical_serving_g=31, typical_serving_unit="scoop"`).

@@ -9,12 +9,12 @@ import httpx
 import pytest
 from PIL import Image
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.ingredient_parser import parse_ingredient_line
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.recipe_images import RecipeImageService
-from vigor_vine.infrastructure.recipe_importer import RecipeImporter
-from vigor_vine.infrastructure.safe_fetch import SafeFetcher
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.recipe_images import RecipeImageService
+from cookfully.infrastructure.recipe_importer import RecipeImporter
+from cookfully.infrastructure.safe_fetch import SafeFetcher
 
 RECIPE_HTML = b"""<!doctype html><html><head><script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Recipe","name":"Training Oats",
@@ -172,7 +172,7 @@ def test_ingredient_mapping_preserves_original_and_fixed_values(
         purpose=None,
     )
     monkeypatch.setattr(
-        "vigor_vine.infrastructure.ingredient_parser.parse_ingredient",
+        "cookfully.infrastructure.ingredient_parser.parse_ingredient",
         lambda *args, **kwargs: parsed,
     )
     result = parse_ingredient_line("1/3-2/3 cup rolled oats, toasted (optional)")

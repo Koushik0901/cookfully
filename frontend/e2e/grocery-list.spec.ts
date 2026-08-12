@@ -45,7 +45,7 @@ async function mockGroceryApi(page: Page) {
       version: 1,
     },
   ];
-  await page.context().addCookies([{ name: "vv_csrf", value: "grocery-csrf", domain: "127.0.0.1", path: "/" }]);
+  await page.context().addCookies([{ name: "cookfully_csrf", value: "grocery-csrf", domain: "127.0.0.1", path: "/" }]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

@@ -2,7 +2,7 @@ from dataclasses import replace
 from decimal import Decimal
 from uuid import UUID
 
-from vigor_vine.domain.suggestion_solver import (
+from cookfully.domain.suggestion_solver import (
     SuggestionCandidate,
     SuggestionProblem,
     SuggestionTarget,

@@ -5,9 +5,9 @@ from decimal import Decimal
 from math import ceil
 from time import perf_counter
 
-from vigor_vine.domain.meal_snapshots import SnapshotSource, create_snapshot
-from vigor_vine.domain.nutrition import MacroValues
-from vigor_vine.domain.plan_totals import PlannedSnapshot, aggregate_plan
+from cookfully.domain.meal_snapshots import SnapshotSource, create_snapshot
+from cookfully.domain.nutrition import MacroValues
+from cookfully.domain.plan_totals import PlannedSnapshot, aggregate_plan
 
 REFERENCE_ENTRY = SnapshotSource(
     recipe_id=None,

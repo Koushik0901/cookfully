@@ -19,7 +19,7 @@ Sync Impact Report
   - ✅ reviewed: DESIGN.md (already aligned; no update required)
 - Deferred items: none.
 -->
-# Vigor & Vine Constitution
+# Cookfully Constitution
 
 ## Core Principles
 

@@ -6,8 +6,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models import Base
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models import Base
 
 
 @pytest.fixture

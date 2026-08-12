@@ -5,9 +5,9 @@ from uuid import UUID
 
 import pytest
 
-from vigor_vine.domain.common import canonical_decimal, display_calories, display_macro, uuid7
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.media_store import MediaStore
+from cookfully.domain.common import canonical_decimal, display_calories, display_macro, uuid7
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.media_store import MediaStore
 
 
 def test_uuid7_decimal_canonicalization_and_round_half_up() -> None:

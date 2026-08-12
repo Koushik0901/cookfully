@@ -14,13 +14,13 @@ uv run --directory backend ruff format --check .
 uv run --directory backend ruff check .
 uv run --directory backend mypy src
 uv run --directory backend python ../scripts/generate-sbom.py --verify-only
-uv run --directory backend vigor-vine usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
+uv run --directory backend cookfully usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
 uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file "$requirements"
 uvx pip-audit -r "$requirements" --strict
 
 docker compose -f "$base_compose" stop api worker outbox retention
 uv run --directory backend pytest
-uv run --directory backend vigor-vine nutrition-corpus run --require-pass --output ../artifacts/nutrition-release-report.json
+uv run --directory backend cookfully nutrition-corpus run --require-pass --output ../artifacts/nutrition-release-report.json
 
 pnpm --dir frontend install --frozen-lockfile
 pnpm --dir frontend audit --audit-level high
@@ -34,15 +34,15 @@ pnpm --dir frontend exec openapi-typescript ../specs/001-nutrition-recipe-planne
 git diff --exit-code -- frontend/src/app/api/generated/schema.ts
 
 docker compose -f "$base_compose" config --quiet
-VV_COOKIE_SECURE=true VV_PUBLIC_BASE_URL=https://planner.example.test \
-  VV_API_BASE_URL=https://planner.example.test VV_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
+COOKFULLY_COOKIE_SECURE=true COOKFULLY_PUBLIC_BASE_URL=https://planner.example.test \
+  COOKFULLY_API_BASE_URL=https://planner.example.test COOKFULLY_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
   docker compose -f "$base_compose" -f "$production_compose" config --quiet
-VV_COOKIE_SECURE=true VV_PUBLIC_BASE_URL=https://planner.example.test \
-  VV_API_BASE_URL=https://planner.example.test VV_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
+COOKFULLY_COOKIE_SECURE=true COOKFULLY_PUBLIC_BASE_URL=https://planner.example.test \
+  COOKFULLY_API_BASE_URL=https://planner.example.test COOKFULLY_TRUSTED_PROXY_CIDRS=172.31.250.10/32 \
   docker compose -f "$base_compose" -f "$production_compose" build
 docker compose -f "$base_compose" -f "$performance_compose" --profile performance up --build -d postgres redis api worker outbox retention web
 docker compose -f "$base_compose" -f "$performance_compose" --profile performance build benchmark
-VV_PERFORMANCE_REPORT_CONTAINER=/app/artifacts/performance-release-report.json \
+COOKFULLY_PERFORMANCE_REPORT_CONTAINER=/app/artifacts/performance-release-report.json \
   docker compose -f "$base_compose" -f "$performance_compose" --profile performance run --no-deps --rm benchmark
 
 python - <<'PY'

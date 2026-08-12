@@ -9,18 +9,18 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from vigor_vine.api.main import create_app
-from vigor_vine.application.ai_provider import (
+from cookfully.api.main import create_app
+from cookfully.application.ai_provider import (
     FoodDisambiguationInput,
     FoodDisambiguationOutput,
     StructuredAiPort,
 )
-from vigor_vine.cli.backup import BackupManager, verify_backup
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.jobs.recipe_pipeline import RecipePipeline
+from cookfully.cli.backup import BackupManager, verify_backup
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.jobs.recipe_pipeline import RecipePipeline
 
 WEEK_START = "2026-03-09"
 
@@ -65,7 +65,7 @@ def _login(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def _manual_recipe_payload(title: str = "Provider-independent bowl") -> dict[str, Any]:
@@ -222,7 +222,7 @@ def test_manual_workflows_survive_every_optional_provider_failure(
             backup_path,
             expires_at=datetime.now(UTC) + timedelta(days=30),
         )
-        assert verify_backup(backup_path)["kind"] == "vigor-vine-disaster-recovery-backup"
+        assert verify_backup(backup_path)["kind"] == "cookfully-disaster-recovery-backup"
 
         stored = client.get(f"/api/v1/recipes/{recipe_id}")
         assert stored.status_code == 200

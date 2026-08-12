@@ -7,8 +7,8 @@ import pytest
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from vigor_vine.cli.main import app
-from vigor_vine.cli.usability_study import (
+from cookfully.cli.main import app
+from cookfully.cli.usability_study import (
     AgentProxyData,
     StudyData,
     summarize,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from vigor_vine.application.pantry_search import (
+from cookfully.application.pantry_search import (
     PantrySearchIngredient,
     PantrySearchItem,
     PantrySearchRecipe,

@@ -3,8 +3,8 @@ from decimal import Decimal
 
 import pytest
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.domain.goals import (
+from cookfully.domain.common import DomainError
+from cookfully.domain.goals import (
     DailyGoal,
     MealTarget,
     effective_periods_overlap,

@@ -7,7 +7,7 @@ const itemId = "00000000-0000-4000-8000-000000000301";
 async function mockSuggestionApi(page: Page) {
   await page.clock.install({ time: new Date("2026-03-11T18:00:00Z") });
   let scope = "day";
-  await page.context().addCookies([{ name: "vv_csrf", value: "suggestion-csrf", domain: "127.0.0.1", path: "/" }]);
+  await page.context().addCookies([{ name: "cookfully_csrf", value: "suggestion-csrf", domain: "127.0.0.1", path: "/" }]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

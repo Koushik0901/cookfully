@@ -15,7 +15,7 @@ job payloads.
 ## Portable ZIP Layout
 
 ```text
-vigor-vine-export-YYYYMMDDTHHMMSSZ.zip
+cookfully-export-YYYYMMDDTHHMMSSZ.zip
 ├── manifest.json
 ├── data/
 │   ├── recipes.ndjson
@@ -38,7 +38,7 @@ unknown optional files.
 
 ```json
 {
-  "format": "vigor-vine-portable-export",
+  "format": "cookfully-portable-export",
   "schemaVersion": 1,
   "createdAt": "2026-08-09T18:00:00Z",
   "applicationVersion": "0.1.0",

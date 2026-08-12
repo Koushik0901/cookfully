@@ -41,7 +41,7 @@ test("keyboard focus, contrast, landmarks, and reduced motion meet the release b
   expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 
   await expect(page.getByRole("main")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Vigor & Vine" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Cookfully" })).toBeVisible();
   expect(await seriousAxeViolations(page)).toEqual([]);
 
   const reducedMotion = await page.locator("body").evaluate((element) => {

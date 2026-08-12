@@ -3,10 +3,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.auth import ALL_TOKEN_SCOPES, AuthService
-from vigor_vine.application.owner_preferences import OwnerPreferenceService
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.models import OwnerAccount
+from cookfully.application.auth import ALL_TOKEN_SCOPES, AuthService
+from cookfully.application.owner_preferences import OwnerPreferenceService
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.models import OwnerAccount
 
 
 def test_bootstrap_session_csrf_expiry_and_logout(session_factory: sessionmaker[Session]) -> None:

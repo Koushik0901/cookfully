@@ -2,8 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.domain.units import IngredientMeasure, coverage_ratio, to_grams
+from cookfully.domain.common import DomainError
+from cookfully.domain.units import IngredientMeasure, coverage_ratio, to_grams
 
 
 def test_ranges_density_count_weights_and_unsafe_conversions() -> None:

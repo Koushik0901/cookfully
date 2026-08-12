@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from vigor_vine.domain.nutrition import (
+from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
     MicronutrientContribution,

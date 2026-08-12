@@ -9,12 +9,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from vigor_vine.api.main import create_app
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.identity import AccessToken, OwnerAccount
-from vigor_vine.mcp.security import RATE_LIMITS
-from vigor_vine.mcp.write_tools import WriteTools
+from cookfully.api.main import create_app
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.identity import AccessToken, OwnerAccount
+from cookfully.mcp.security import RATE_LIMITS
+from cookfully.mcp.write_tools import WriteTools
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -39,7 +39,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def test_openapi_access_token_create_list_once_only_secret_and_revoke(
@@ -75,7 +75,7 @@ def test_openapi_access_token_create_list_once_only_secret_and_revoke(
         assert created.status_code == 201
         body = created.json()
         secret = body.pop("secret")
-        assert secret.startswith("vv_") and len(secret) >= 32
+        assert secret.startswith("cookfully_") and len(secret) >= 32
         assert body["name"] == "Read-only planner"
         assert body["scopes"] == ["goals:read", "plans:read"]
         assert body["revokedAt"] is None and body["lastUsedAt"] is None
@@ -175,7 +175,7 @@ def test_scope_allowlist_validation_and_secret_redaction(
             json={"name": "No authority", "scopes": [], "expiresAt": None},
         )
         assert empty.status_code == 422
-        assert "vv_" not in str(caplog)
+        assert "cookfully_" not in str(caplog)
 
 
 def mcp_call(

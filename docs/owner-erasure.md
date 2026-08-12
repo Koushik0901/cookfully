@@ -29,14 +29,14 @@ before stopping the services. Then run:
 
 ```powershell
 $ownerId = '<exact-owner-uuid>'
-uv run --directory backend vigor-vine owner erase `
+uv run --directory backend cookfully owner erase `
   --owner-id $ownerId `
   --confirm "ERASE OWNER $ownerId" `
   --erasure-ledger ../deploy/erasure-ledger
 ```
 
 The confirmation is case- and whitespace-sensitive. `--erasure-ledger` must name the independently
-preserved live ledger, never a copy embedded in a backup. `VV_MEDIA_ROOT` and `VV_EXPORT_ROOT` must
+preserved live ledger, never a copy embedded in a backup. `COOKFULLY_MEDIA_ROOT` and `COOKFULLY_EXPORT_ROOT` must
 resolve to the live managed volumes. All three roots must be distinct and non-overlapping.
 
 ## Staged, fail-closed lifecycle

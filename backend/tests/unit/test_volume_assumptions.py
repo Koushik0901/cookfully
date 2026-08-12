@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from vigor_vine.domain.volume_assumptions import density_for
+from cookfully.domain.volume_assumptions import density_for
 
 
 def test_density_for_returns_class_assumptions() -> None:

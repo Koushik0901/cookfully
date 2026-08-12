@@ -1,6 +1,6 @@
-# Vigor & Vine
+# Cookfully
 
-Vigor & Vine is a self-hosted recipe and nutrition planner for turning real recipes into honest,
+Cookfully is a self-hosted recipe and nutrition planner for turning real recipes into honest,
 correctable calorie and macro plans.
 
 The implementation is organized as a Python 3.13 API/worker/CLI under `backend/`, a React 19 web

@@ -5,8 +5,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
 
 WEEK_START = "2026-03-09"
 
@@ -33,7 +33,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def mcp_call(
@@ -137,7 +137,7 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
                 "clientInfo": {"name": "contract-inspector", "version": "1.0"},
             },
         )
-        assert initialized["result"]["serverInfo"]["name"] == "Vigor & Vine"
+        assert initialized["result"]["serverInfo"]["name"] == "Cookfully"
         listed = mcp_call(client, read_token, "tools/list", request_id=2)
         names = {tool["name"] for tool in listed["result"]["tools"]}
         assert {
@@ -210,15 +210,15 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
 
         resources = mcp_call(client, read_token, "resources/list", request_id=6)
         uris = {item["uri"] for item in resources["result"]["resources"]}
-        assert "vigor-vine://methodology/nutrition" in uris
+        assert "cookfully://methodology/nutrition" in uris
         templates = mcp_call(client, read_token, "resources/templates/list", request_id=7)
         template_uris = {item["uriTemplate"] for item in templates["result"]["resourceTemplates"]}
-        assert "vigor-vine://schema/export/{version}" in template_uris
+        assert "cookfully://schema/export/{version}" in template_uris
         methodology = mcp_call(
             client,
             read_token,
             "resources/read",
-            {"uri": "vigor-vine://methodology/nutrition"},
+            {"uri": "cookfully://methodology/nutrition"},
             request_id=8,
         )
         assert "planning estimates" in methodology["result"]["contents"][0]["text"].lower()
@@ -226,7 +226,7 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
             client,
             read_token,
             "resources/read",
-            {"uri": "vigor-vine://schema/export/v1"},
+            {"uri": "cookfully://schema/export/v1"},
             request_id=9,
         )
         assert "decimal strings" in export_schema["result"]["contents"][0]["text"].lower()

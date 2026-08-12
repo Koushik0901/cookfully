@@ -5,9 +5,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.jobs import JobService
-from vigor_vine.infrastructure.models.jobs import OutboxEvent
-from vigor_vine.jobs.outbox import OutboxDispatcher
+from cookfully.application.jobs import JobService
+from cookfully.infrastructure.models.jobs import OutboxEvent
+from cookfully.jobs.outbox import OutboxDispatcher
 
 
 def test_one_second_acceptance_broker_outage_and_recovery(

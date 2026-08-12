@@ -7,9 +7,9 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.cli import reference_data
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.reference_foods import (
+from cookfully.cli import reference_data
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
     ReferenceDataset,

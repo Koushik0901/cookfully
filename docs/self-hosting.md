@@ -1,6 +1,6 @@
 # Production self-hosting
 
-This guide deploys one Vigor & Vine owner/household with Docker Compose. PostgreSQL is authoritative,
+This guide deploys one Cookfully owner/household with Docker Compose. PostgreSQL is authoritative,
 Redis is delivery/coordination only, and the erasure ledger is an independent safety dependency that
 must survive database and media restore.
 
@@ -9,33 +9,33 @@ must survive database and media restore.
 Use a maintained x86-64 Linux host, Docker Engine with Compose v2, persistent SSD-backed Docker
 storage, a DNS name, and a TLS-terminating reverse proxy. Keep the repository and `.env` readable only
 by the deployment account. Generate a stable UUID once, a database password, a 32-byte-or-longer
-application secret, and a strong bootstrap password; do not rotate `VV_SECRET_KEY` without first
+application secret, and a strong bootstrap password; do not rotate `COOKFULLY_SECRET_KEY` without first
 accounting for encrypted diagnostics.
 
 Minimum production `.env` values:
 
 ```dotenv
-VV_ENVIRONMENT=production
-VV_INSTANCE_ID=replace-with-one-stable-random-uuid
-VV_SECRET_KEY=replace-with-a-random-secret-of-at-least-32-characters
-VV_OWNER_EMAIL=owner@example.com
-VV_OWNER_BOOTSTRAP_PASSWORD=replace-with-a-strong-bootstrap-password
-VV_PUBLIC_BASE_URL=https://recipes.example.com
-VV_API_BASE_URL=https://recipes.example.com
-VV_COOKIE_SECURE=true
-VV_PROXY_SUBNET=172.31.250.0/24
-VV_WEB_PROXY_IP=172.31.250.10
-VV_TRUSTED_PROXY_CIDRS=172.31.250.10/32
-VV_FAILED_IMPORT_DIAGNOSTICS_ENABLED=false
-VV_RETENTION_SWEEP_INTERVAL_SECONDS=21600
-VV_BACKUP_RETENTION_DAYS=30
-POSTGRES_DB=vigor_vine
-POSTGRES_USER=vigor_vine
+COOKFULLY_ENVIRONMENT=production
+COOKFULLY_INSTANCE_ID=replace-with-one-stable-random-uuid
+COOKFULLY_SECRET_KEY=replace-with-a-random-secret-of-at-least-32-characters
+COOKFULLY_OWNER_EMAIL=owner@example.com
+COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=replace-with-a-strong-bootstrap-password
+COOKFULLY_PUBLIC_BASE_URL=https://recipes.example.com
+COOKFULLY_API_BASE_URL=https://recipes.example.com
+COOKFULLY_COOKIE_SECURE=true
+COOKFULLY_PROXY_SUBNET=172.31.250.0/24
+COOKFULLY_WEB_PROXY_IP=172.31.250.10
+COOKFULLY_TRUSTED_PROXY_CIDRS=172.31.250.10/32
+COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED=false
+COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS=21600
+COOKFULLY_BACKUP_RETENTION_DAYS=30
+POSTGRES_DB=cookfully
+POSTGRES_USER=cookfully
 POSTGRES_PASSWORD=replace-with-a-random-database-password
 ```
 
 Choose a non-conflicting proxy subnet. The web container has the fixed address named by
-`VV_WEB_PROXY_IP`; the API accepts forwarded headers only from `VV_TRUSTED_PROXY_CIDRS`. Keep those
+`COOKFULLY_WEB_PROXY_IP`; the API accepts forwarded headers only from `COOKFULLY_TRUSTED_PROXY_CIDRS`. Keep those
 values aligned. Do not use `*` or trust the public internet. Production validation rejects HTTP base
 URLs, insecure cookies, an empty/invalid proxy allowlist, development secrets, or the default
 instance ID.
@@ -85,7 +85,7 @@ and expires idempotency records. Its health check fails when the heartbeat is ol
 intervals. Alert on an unhealthy or restarting retention container.
 
 Failed-import HTML remains disabled unless explicitly enabled. When enabled, it is encrypted with a
-key derived from `VV_SECRET_KEY`, registered with a 24-hour expiry, and excluded from portable exports
+key derived from `COOKFULLY_SECRET_KEY`, registered with a 24-hour expiry, and excluded from portable exports
 and disaster-recovery backups. Successful-import HTML and raw structured-provider payloads are never
 retained. Prefer leaving diagnostics off; enable them only for a bounded investigation, then confirm a
 successful retention sweep.
@@ -104,9 +104,9 @@ Create and verify a backup daily and before every upgrade:
 
 ```bash
 docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml exec -T api \
-  vigor-vine backup create --output /data/exports --retention-days 30
+  cookfully backup create --output /data/exports --retention-days 30
 docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml exec -T api \
-  vigor-vine backup verify /data/exports/REPLACE_WITH_ARCHIVE.zip
+  cookfully backup verify /data/exports/REPLACE_WITH_ARCHIVE.zip
 ```
 
 Copy verified archives out of `export-data` to protected storage. An external scheduler must delete
@@ -140,7 +140,7 @@ provider payloads, private goals, or diagnostic HTML in ordinary logs.
    deploy/compose.production.yaml stop web worker outbox retention api`.
 3. Pull the reviewed source/image revision. Do not use an unreviewed floating deployment revision.
 4. Start PostgreSQL and Redis, then run migrations once with `docker compose -f deploy/compose.yaml -f
-   deploy/compose.production.yaml run --rm -e VV_RUN_MIGRATIONS=false api alembic upgrade head`.
+   deploy/compose.production.yaml run --rm -e COOKFULLY_RUN_MIGRATIONS=false api alembic upgrade head`.
 5. Start API, outbox, worker, retention, then web; check migration head, health, login, one recipe read,
    one queued job, media access, and the next retention heartbeat.
 
@@ -155,7 +155,7 @@ PostgreSQL reachable, then follow `docs/owner-erasure.md` exactly.
 
 `docs/inspiration-review.md` compares this lifecycle with Mealie, Tandoor Recipes, and Immich. Their
 integrated backups, deployment guidance, maintenance mode, and integrity checks are useful reference
-points, but they solve different scopes and have their own documented limitations. Vigor & Vine's
+points, but they solve different scopes and have their own documented limitations. Cookfully's
 external scheduler and independent erasure ledger add operator burden; they are retained because the
 specified zero-resurrection guarantee cannot be met by treating an application archive as the only
 recovery authority. Reassess this tradeoff with operational evidence rather than assuming either

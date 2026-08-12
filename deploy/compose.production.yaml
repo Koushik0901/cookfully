@@ -11,17 +11,17 @@ services:
 
   api:
     environment:
-      VV_ENVIRONMENT: production
+      COOKFULLY_ENVIRONMENT: production
     command:
       - uvicorn
-      - vigor_vine.api.main:app
+      - cookfully.api.main:app
       - --host
       - 0.0.0.0
       - --port
       - "8000"
       - --proxy-headers
       - --forwarded-allow-ips
-      - ${VV_TRUSTED_PROXY_CIDRS:?Set VV_TRUSTED_PROXY_CIDRS to the web proxy CIDR}
+      - ${COOKFULLY_TRUSTED_PROXY_CIDRS:?Set COOKFULLY_TRUSTED_PROXY_CIDRS to the web proxy CIDR}
     security_opt: ["no-new-privileges:true"]
     networks: [backend, proxy]
 
@@ -39,11 +39,11 @@ services:
 
   web:
     ports: !override
-      - "127.0.0.1:${VV_HTTP_PORT:-8080}:8080"
+      - "127.0.0.1:${COOKFULLY_HTTP_PORT:-8080}:8080"
     security_opt: ["no-new-privileges:true"]
     networks:
       proxy:
-        ipv4_address: ${VV_WEB_PROXY_IP:-172.31.250.10}
+        ipv4_address: ${COOKFULLY_WEB_PROXY_IP:-172.31.250.10}
 
 networks:
   backend: {}
@@ -51,4 +51,4 @@ networks:
     internal: true
     ipam:
       config:
-        - subnet: ${VV_PROXY_SUBNET:-172.31.250.0/24}
+        - subnet: ${COOKFULLY_PROXY_SUBNET:-172.31.250.0/24}

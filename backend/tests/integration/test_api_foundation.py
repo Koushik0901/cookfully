@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
 
 
 def test_health_login_csrf_preferences_and_problem_contract(isolated_database_url: str) -> None:
@@ -22,7 +22,7 @@ def test_health_login_csrf_preferences_and_problem_contract(isolated_database_ur
             },
         )
         assert login.status_code == 204
-        assert login.cookies.get("vv_session")
+        assert login.cookies.get("cookfully_session")
         assert "HttpOnly" in login.headers["set-cookie"]
 
         rejected = client.put(
@@ -35,7 +35,7 @@ def test_health_login_csrf_preferences_and_problem_contract(isolated_database_ur
 
         accepted = client.put(
             "/api/v1/owner/preferences",
-            headers={"x-csrf-token": login.cookies["vv_csrf"]},
+            headers={"x-csrf-token": login.cookies["cookfully_csrf"]},
             json={"timezone": "America/Vancouver", "weekStartsOn": 7, "version": 1},
         )
         assert accepted.status_code == 200

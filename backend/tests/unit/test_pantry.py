@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from vigor_vine.application.pantry import (
+from cookfully.application.pantry import (
     PantryQuantity,
     apply_quantity_deduction,
     convert_quantity,
@@ -12,7 +12,7 @@ from vigor_vine.application.pantry import (
     normalize_pantry_name,
     reverse_quantity_deduction,
 )
-from vigor_vine.domain.common import DomainError
+from cookfully.domain.common import DomainError
 
 
 def test_normalization_and_conversion_preserve_six_decimal_precision() -> None:

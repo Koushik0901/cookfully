@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Vigor & Vine API
+  title: Cookfully API
   version: 0.2.0
   description: >-
     Canonical HTTP contract for recipes, honest nutrition estimates, goals, meal plans,
@@ -899,7 +899,7 @@ components:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: vv_session
+      name: cookfully_session
     bearerToken:
       type: http
       scheme: bearer

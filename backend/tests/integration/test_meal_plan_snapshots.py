@@ -7,17 +7,17 @@ from time import perf_counter
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.domain.meal_snapshots import SnapshotSource, create_snapshot
-from vigor_vine.domain.nutrition import MacroValues
-from vigor_vine.domain.plan_totals import PlannedSnapshot, aggregate_plan
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.infrastructure.models.plans import (
+from cookfully.domain.meal_snapshots import SnapshotSource, create_snapshot
+from cookfully.domain.nutrition import MacroValues
+from cookfully.domain.plan_totals import PlannedSnapshot, aggregate_plan
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.plans import (
     MealNutritionSnapshot,
     MealPlan,
     MealPlanEntry,
     UserGoal,
 )
-from vigor_vine.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.recipes import Recipe
 
 
 def test_recipe_edit_and_delete_leave_detached_snapshot_history(

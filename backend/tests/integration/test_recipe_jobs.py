@@ -11,26 +11,26 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.auth import AuthService
-from vigor_vine.application.corrections import CorrectionService
-from vigor_vine.application.jobs import JobService
-from vigor_vine.application.recipes import IngredientWrite, RecipeService, RecipeWrite
-from vigor_vine.domain.common import DomainError, uuid7
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.models.jobs import OutboxEvent, ProcessingJob
-from vigor_vine.infrastructure.models.media import MediaAsset
-from vigor_vine.infrastructure.models.nutrition import NutritionCorrection, NutritionEstimate
-from vigor_vine.infrastructure.models.recipes import Recipe
-from vigor_vine.infrastructure.models.reference_foods import (
+from cookfully.application.auth import AuthService
+from cookfully.application.corrections import CorrectionService
+from cookfully.application.jobs import JobService
+from cookfully.application.recipes import IngredientWrite, RecipeService, RecipeWrite
+from cookfully.domain.common import DomainError, uuid7
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
+from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.nutrition import NutritionCorrection, NutritionEstimate
+from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
     ReferenceDataset,
 )
-from vigor_vine.infrastructure.recipe_importer import ImportedRecipe, RecipeImporter
-from vigor_vine.infrastructure.safe_fetch import SafeFetcher
-from vigor_vine.jobs.recipe_pipeline import JobEnvelope, RecipePipeline
-from vigor_vine.jobs.retention import sweep_retention
+from cookfully.infrastructure.recipe_importer import ImportedRecipe, RecipeImporter
+from cookfully.infrastructure.safe_fetch import SafeFetcher
+from cookfully.jobs.recipe_pipeline import JobEnvelope, RecipePipeline
+from cookfully.jobs.retention import sweep_retention
 
 
 class ImporterStub:

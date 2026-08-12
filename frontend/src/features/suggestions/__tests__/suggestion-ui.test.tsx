@@ -77,7 +77,7 @@ function renderPage() {
 
 describe("suggestion UI", () => {
   beforeEach(() => {
-    document.cookie = "vv_csrf=suggestion-csrf; path=/";
+    document.cookie = "cookfully_csrf=suggestion-csrf; path=/";
     vi.setSystemTime(new Date("2026-03-11T18:00:00Z"));
     vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "00000000-0000-4000-8000-000000000999") });
     vi.stubGlobal("fetch", vi.fn((input, init) => {

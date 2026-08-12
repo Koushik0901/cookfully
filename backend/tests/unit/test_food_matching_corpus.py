@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from vigor_vine.application.food_matching import FoodMatcher, normalize_food
-from vigor_vine.domain.common import uuid7
-from vigor_vine.infrastructure.models.reference_foods import FoodReference
+from cookfully.application.food_matching import FoodMatcher, normalize_food
+from cookfully.domain.common import uuid7
+from cookfully.infrastructure.models.reference_foods import FoodReference
 
 
 class FoodRepositoryStub:

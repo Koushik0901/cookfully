@@ -18,19 +18,19 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, insert, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.api.main import create_app
-from vigor_vine.application.meal_plans import GoalWrite, MealPlanEntryWrite
-from vigor_vine.domain.common import utc_now
-from vigor_vine.domain.suggestion_solver import (
+from cookfully.api.main import create_app
+from cookfully.application.meal_plans import GoalWrite, MealPlanEntryWrite
+from cookfully.domain.common import utc_now
+from cookfully.domain.suggestion_solver import (
     SuggestionCandidate,
     SuggestionProblem,
     SuggestionTarget,
     solve_suggestion,
 )
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.infrastructure.models.nutrition import NutritionEstimate
-from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.nutrition import NutritionEstimate
+from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 
 RUNS = 3
 WARMUPS = 10
@@ -50,7 +50,7 @@ BUDGETS_MS = {
 pytestmark = [
     pytest.mark.performance,
     pytest.mark.skipif(
-        os.environ.get("VV_REFERENCE_PROFILE") != "1",
+        os.environ.get("COOKFULLY_REFERENCE_PROFILE") != "1",
         reason="Run through deploy/compose.performance.yaml for reference-profile evidence.",
     ),
 ]
@@ -98,7 +98,7 @@ def _profile() -> dict[str, Any]:
         "cpuAffinity": affinity,
         "cpuCount": len(affinity),
         "memoryKiB": memory_kib,
-        "storageClass": os.environ.get("VV_REFERENCE_STORAGE", "unverified"),
+        "storageClass": os.environ.get("COOKFULLY_REFERENCE_STORAGE", "unverified"),
         "containerized": Path("/.dockerenv").exists(),
     }
 
@@ -117,11 +117,11 @@ def _authenticate(client: TestClient) -> dict[str, str]:
         "/api/v1/auth/session",
         json={
             "email": "performance@example.com",
-            "password": os.environ["VV_OWNER_BOOTSTRAP_PASSWORD"],
+            "password": os.environ["COOKFULLY_OWNER_BOOTSTRAP_PASSWORD"],
         },
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def _seed_recipes(factory: sessionmaker[Session], owner_id: UUID) -> UUID:
@@ -218,7 +218,7 @@ def test_linux_reference_profile(isolated_database_url: str, tmp_path: Path) -> 
         environment="test",
         database_url=isolated_database_url,
         owner_email="performance@example.com",
-        owner_bootstrap_password=os.environ["VV_OWNER_BOOTSTRAP_PASSWORD"],
+        owner_bootstrap_password=os.environ["COOKFULLY_OWNER_BOOTSTRAP_PASSWORD"],
         media_root=tmp_path / "media",
         export_root=tmp_path / "exports",
         erasure_ledger_root=tmp_path / "ledger",
@@ -370,7 +370,7 @@ def test_linux_reference_profile(isolated_database_url: str, tmp_path: Path) -> 
             assert all(run["p95Ms"] < BUDGETS_MS[name] for run in runs), (name, runs)
 
     engine.dispose()
-    report_path = Path(os.environ["VV_PERFORMANCE_REPORT"])
+    report_path = Path(os.environ["COOKFULLY_PERFORMANCE_REPORT"])
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, sort_keys=True))

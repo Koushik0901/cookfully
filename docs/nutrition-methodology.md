@@ -1,6 +1,6 @@
 # Nutrition methodology
 
-Vigor & Vine treats nutrition as an evidence-backed planning estimate. It is not medical advice. Every displayed result carries a serving basis, calculation state, coverage, provenance, assumptions, and active corrections so a user can judge and revise it.
+Cookfully treats nutrition as an evidence-backed planning estimate. It is not medical advice. Every displayed result carries a serving basis, calculation state, coverage, provenance, assumptions, and active corrections so a user can judge and revise it.
 
 ## Resolution pipeline and precedence
 
@@ -32,7 +32,7 @@ An eligible comparison reference must publish an unambiguous yield and per-servi
 The gate runs with:
 
 ```powershell
-uv run --directory backend vigor-vine nutrition-corpus run --require-pass
+uv run --directory backend cookfully nutrition-corpus run --require-pass
 ```
 
 It writes the full, primary, source-site, complexity, and per-case report to `backend/tests/fixtures/nutrition-corpus/reports/nutrition-accuracy.json`.

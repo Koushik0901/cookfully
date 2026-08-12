@@ -16,7 +16,7 @@ Commands used from the repository root:
 ```powershell
 rg -n -i "chatbot|chat bot|photo recognition|image recognition|computer vision|social feed|follow user|subscription|medical advice|diagnos|multi[- ]user|team workspace|organization|tenant" backend frontend docs deploy README.md specs/001-nutrition-recipe-planner --glob '!**/node_modules/**' --glob '!**/dist/**' --glob '!**/test-results/**'
 rg -n -i "openai|anthropic|langchain|transformers|opencv|tensorflow|torch|stripe|auth0|clerk|social|chat" backend/pyproject.toml backend/uv.lock frontend/package.json frontend/pnpm-lock.yaml
-rg -n "APIRouter|router\\.(get|post|put|patch|delete)" backend/src/vigor_vine/api/routes
+rg -n "APIRouter|router\\.(get|post|put|patch|delete)" backend/src/cookfully/api/routes
 rg -n "<Route " frontend/src/app/App.tsx
 rg -n '^\\s+operationId:' specs/001-nutrition-recipe-planner/contracts/openapi.yaml
 ```

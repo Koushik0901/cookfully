@@ -14,7 +14,7 @@ from typing import Any
 
 from recipe_scrapers import scrape_html
 
-from vigor_vine.infrastructure.ingredient_parser import parse_ingredient_line
+from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS_ROOT = ROOT / "backend" / "tests" / "fixtures" / "nutrition-corpus"

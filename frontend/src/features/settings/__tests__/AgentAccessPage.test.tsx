@@ -43,7 +43,7 @@ function renderPage() {
 
 describe("agent access settings", () => {
   beforeEach(() => {
-    document.cookie = "vv_csrf=agent-access-csrf; path=/";
+    document.cookie = "cookfully_csrf=agent-access-csrf; path=/";
     vi.stubGlobal("crypto", {
       randomUUID: vi.fn(() => "00000000-0000-4000-8000-000000000999"),
     });
@@ -65,7 +65,7 @@ describe("agent access settings", () => {
               scopes: ["plans:read", "plans:write"],
               createdAt: "2026-03-11T10:00:00Z",
               lastUsedAt: null,
-              secret: "vv_once_only_secret_12345678901234567890",
+              secret: "cookfully_once_only_secret_12345678901234567890",
             },
             201,
           );
@@ -95,12 +95,12 @@ describe("agent access settings", () => {
     await user.click(screen.getByRole("button", { name: "Create access token" }));
 
     const oneTime = await screen.findByRole("region", { name: "One-time token secret" });
-    expect(within(oneTime).getByText("vv_once_only_secret_12345678901234567890")).toBeVisible();
+    expect(within(oneTime).getByText("cookfully_once_only_secret_12345678901234567890")).toBeVisible();
     expect(within(oneTime).getByText(/shown only once/i)).toBeVisible();
     await user.click(within(oneTime).getByRole("button", { name: "Copy token" }));
     expect(await within(oneTime).findByText("Copied to clipboard.")).toBeVisible();
     await user.click(within(oneTime).getByRole("button", { name: "I have stored it" }));
-    expect(screen.queryByText("vv_once_only_secret_12345678901234567890")).not.toBeInTheDocument();
+    expect(screen.queryByText("cookfully_once_only_secret_12345678901234567890")).not.toBeInTheDocument();
 
     const create = vi
       .mocked(fetch)

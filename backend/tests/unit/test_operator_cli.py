@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from vigor_vine.cli.main import app
+from cookfully.cli.main import app
 
 
 def test_backup_export_and_ledger_operator_commands_are_registered(tmp_path: Path) -> None:

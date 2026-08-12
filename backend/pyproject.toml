@@ -3,13 +3,13 @@ requires = ["hatchling>=1.27,<1.32"]
 build-backend = "hatchling.build"
 
 [project]
-name = "vigor-vine"
+name = "cookfully"
 version = "0.1.0"
 description = "Self-hosted gym-focused recipe and nutrition planner"
 readme = "../README.md"
 requires-python = ">=3.13,<3.14"
 license = { text = "Proprietary" }
-authors = [{ name = "Vigor & Vine" }]
+authors = [{ name = "Cookfully" }]
 dependencies = [
   "alembic>=1.16,<2",
   "argon2-cffi>=25.1,<26",
@@ -53,10 +53,10 @@ dev = [
 ]
 
 [project.scripts]
-vigor-vine = "vigor_vine.cli.main:app"
+cookfully = "cookfully.cli.main:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/vigor_vine"]
+packages = ["src/cookfully"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config"
@@ -72,7 +72,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["vigor_vine"]
+source = ["cookfully"]
 
 [tool.coverage.report]
 fail_under = 85
@@ -95,7 +95,7 @@ indent-style = "space"
 [tool.mypy]
 python_version = "3.13"
 strict = true
-packages = ["vigor_vine"]
+packages = ["cookfully"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

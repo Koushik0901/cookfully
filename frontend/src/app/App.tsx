@@ -36,7 +36,7 @@ function LandingPage() {
   return (
     <main className="landing">
       <header className="landing__topbar">
-        <span className="landing__brand">Vigor &amp; Vine</span>
+        <span className="landing__brand">Cookfully</span>
         <span className="landing__pill">Self-hosted</span>
       </header>
       <section className="landing__hero">
@@ -71,7 +71,7 @@ function LandingPage() {
         </ol>
       </section>
       <footer className="landing__footer">
-        <span>Vigor &amp; Vine</span>
+        <span>Cookfully</span>
         <span>Your recipes and plans stay on your own server.</span>
       </footer>
     </main>
@@ -81,7 +81,7 @@ function LandingPage() {
 function PlannerShell() {
   return (
     <>
-      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes"><MacroRing className="app-nav__mark" />Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/suggestions">Suggestions</a><a href="/app/grocery">Grocery</a><a href="/app/pantry">Pantry</a><a href="/app/foods">Foods</a><a href="/app/goals">Goals</a><a href="/app/agent-access">Agent access</a></nav>
+      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes"><MacroRing className="app-nav__mark" />Cookfully</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/suggestions">Suggestions</a><a href="/app/grocery">Grocery</a><a href="/app/pantry">Pantry</a><a href="/app/foods">Foods</a><a href="/app/goals">Goals</a><a href="/app/agent-access">Agent access</a></nav>
       <Routes>
         <Route index element={<Navigate to="recipes" replace />} />
         <Route path="recipes" element={<RecipeLibraryPage />} />

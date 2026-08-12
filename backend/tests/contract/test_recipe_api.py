@@ -4,8 +4,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
 
 
 def recipe_payload(title: str = "Training bowl", servings: str = "2.000") -> dict[str, object]:
@@ -51,7 +51,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         },
     )
     assert response.status_code == 204
-    csrf = client.cookies.get("vv_csrf")
+    csrf = client.cookies.get("cookfully_csrf")
     assert csrf
     return {"X-CSRF-Token": csrf}
 

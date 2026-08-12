@@ -6,7 +6,7 @@ from uuid import UUID
 from hypothesis import given
 from hypothesis import strategies as st
 
-from vigor_vine.domain.grocery import GroceryIngredient, aggregate_grocery_ingredients
+from cookfully.domain.grocery import GroceryIngredient, aggregate_grocery_ingredients
 
 ENTRY_A = UUID("00000000-0000-4000-8000-000000000001")
 ENTRY_B = UUID("00000000-0000-4000-8000-000000000002")

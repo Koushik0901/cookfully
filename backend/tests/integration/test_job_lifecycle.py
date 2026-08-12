@@ -4,8 +4,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.jobs import JobService
-from vigor_vine.infrastructure.models.jobs import OutboxEvent, ProcessingJob
+from cookfully.application.jobs import JobService
+from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
 
 
 def create_job(service: JobService, aggregate_id: UUID, now: datetime) -> ProcessingJob:

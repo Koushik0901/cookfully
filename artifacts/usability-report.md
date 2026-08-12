@@ -15,7 +15,7 @@ The machine-readable source is [`usability-proxy-data.json`](usability-proxy-dat
 and generate the computed summary with:
 
 ```powershell
-uv run --directory backend vigor-vine usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
+uv run --directory backend cookfully usability-study validate-proxy --input ../artifacts/usability-proxy-data.json --output ../artifacts/usability-proxy-summary.json --require-pass
 ```
 
 The proxy requires six separately instantiated `gpt-5.6-terra` agents with fresh context. Each receives
@@ -81,7 +81,7 @@ The stricter human protocol remains available in [`usability-study-data.json`](u
 and can be validated with:
 
 ```powershell
-uv run --directory backend vigor-vine usability-study validate --input ../artifacts/usability-study-data.json --output ../artifacts/usability-study-summary.json --require-pass
+uv run --directory backend cookfully usability-study validate --input ../artifacts/usability-study-data.json --output ../artifacts/usability-study-summary.json --require-pass
 ```
 
 When a public beta creates a real participant pool, recruit at least 20 eligible people who have never

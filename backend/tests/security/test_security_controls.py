@@ -7,13 +7,13 @@ from pathlib import Path
 import httpx
 import pytest
 
-from vigor_vine.application.exports import _safe_member
-from vigor_vine.cli.backup import verify_backup
-from vigor_vine.domain.common import DomainError, utc_now
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.models import Base
-from vigor_vine.infrastructure.observability import redact
-from vigor_vine.infrastructure.safe_fetch import SafeFetcher
+from cookfully.application.exports import _safe_member
+from cookfully.cli.backup import verify_backup
+from cookfully.domain.common import DomainError, utc_now
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models import Base
+from cookfully.infrastructure.observability import redact
+from cookfully.infrastructure.safe_fetch import SafeFetcher
 
 
 @pytest.mark.asyncio
@@ -113,7 +113,7 @@ def test_backup_archive_traversal_is_rejected_before_restore(tmp_path: Path) -> 
 def test_secret_redaction_is_recursive_and_does_not_mutate_safe_fields() -> None:
     value = {
         "email": "owner@example.com",
-        "authorization": "Bearer vv_secret",
+        "authorization": "Bearer cookfully_secret",
         "nested": [
             {"password": "correct horse battery staple", "count": 2},
             {"rawProviderPayload": "private response"},

@@ -3,10 +3,10 @@ from decimal import Decimal
 
 import pytest
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.domain.meal_snapshots import SnapshotSource, create_snapshot, refresh_snapshot
-from vigor_vine.domain.nutrition import MacroValues
-from vigor_vine.domain.plan_totals import PlannedSnapshot, aggregate_plan
+from cookfully.domain.common import DomainError
+from cookfully.domain.meal_snapshots import SnapshotSource, create_snapshot, refresh_snapshot
+from cookfully.domain.nutrition import MacroValues
+from cookfully.domain.plan_totals import PlannedSnapshot, aggregate_plan
 
 
 def source(**overrides: object) -> SnapshotSource:

@@ -3,8 +3,8 @@ from uuid import UUID
 
 import pytest
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.domain.recipes import IngredientInput, RecipeDraft, RecipeLifecycle
+from cookfully.domain.common import DomainError
+from cookfully.domain.recipes import IngredientInput, RecipeDraft, RecipeLifecycle
 
 
 def sample_recipe() -> RecipeDraft:

@@ -1,6 +1,6 @@
 # Agent integration
 
-Vigor & Vine exposes a deliberately narrow Model Context Protocol (MCP) surface for recipe,
+Cookfully exposes a deliberately narrow Model Context Protocol (MCP) surface for recipe,
 meal-plan, goal, and grocery workflows. It is a planning aid, not medical advice. Nutrition values
 may be estimated, partial, source-provided, or manually corrected; clients must preserve the
 reported state, coverage, provenance, nulls, and immutable meal-plan snapshots.
@@ -8,8 +8,8 @@ reported state, coverage, provenance, nulls, and immutable meal-plan snapshots.
 ## Create and revoke access
 
 Sign in as the owner and open **Agent access** at `/app/agent-access`. Name the connection, select
-only the scopes it needs, optionally set an expiry, and create the token. The `vv_...` secret is
-shown exactly once. Store it in the MCP client's secret store; Vigor & Vine stores only its SHA-256
+only the scopes it needs, optionally set an expiry, and create the token. The `cookfully_...` secret is
+shown exactly once. Store it in the MCP client's secret store; Cookfully stores only its SHA-256
 hash and cannot recover it.
 
 The equivalent owner-session HTTP endpoints are:
@@ -27,7 +27,7 @@ inspect, or revoke other tokens. Revoked and expired tokens fail closed on their
 Use the Streamable HTTP endpoint at `https://YOUR_HOST/mcp` with:
 
 ```text
-Authorization: Bearer vv_YOUR_ONE_TIME_SECRET
+Authorization: Bearer cookfully_YOUR_ONE_TIME_SECRET
 Accept: application/json, text/event-stream
 ```
 
@@ -77,9 +77,9 @@ errors contain bounded codes and messages without SQL, stack traces, provider pa
 
 ## Resources
 
-- `vigor-vine://methodology/nutrition` explains estimates, coverage, provenance, correction
+- `cookfully://methodology/nutrition` explains estimates, coverage, provenance, correction
   precedence, snapshots, null handling, and limitations.
-- `vigor-vine://schema/export/{version}` documents the portable export schema; `v1` is supported.
+- `cookfully://schema/export/{version}` documents the portable export schema; `v1` is supported.
 
 ## Inspector validation
 
@@ -88,7 +88,7 @@ With a read token in the environment, start the
 Streamable HTTP URL:
 
 ```powershell
-$env:VV_MCP_TOKEN = "vv_YOUR_ONE_TIME_SECRET"
+$env:COOKFULLY_MCP_TOKEN = "cookfully_YOUR_ONE_TIME_SECRET"
 npx @modelcontextprotocol/inspector
 ```
 

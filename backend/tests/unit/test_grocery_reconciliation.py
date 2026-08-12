@@ -3,11 +3,11 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
-from vigor_vine.application.grocery_reconciliation import (
+from cookfully.application.grocery_reconciliation import (
     ExistingGroceryItem,
     reconcile_grocery_items,
 )
-from vigor_vine.domain.grocery import GrocerySource, ProposedGroceryItem
+from cookfully.domain.grocery import GrocerySource, ProposedGroceryItem
 
 
 def source(value: int) -> GrocerySource:

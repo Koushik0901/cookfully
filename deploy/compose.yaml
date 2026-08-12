@@ -1,18 +1,18 @@
-name: vigor-vine
+name: cookfully
 
 services:
   postgres:
     image: postgres:18-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vigor_vine}
-      POSTGRES_USER: ${POSTGRES_USER:-vigor_vine}
+      POSTGRES_DB: ${POSTGRES_DB:-cookfully}
+      POSTGRES_USER: ${POSTGRES_USER:-cookfully}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigor_vine} -d ${POSTGRES_DB:-vigor_vine}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cookfully} -d ${POSTGRES_DB:-cookfully}"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -38,24 +38,24 @@ services:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
     environment: &backend-environment
-      VV_ENVIRONMENT: ${VV_ENVIRONMENT:-development}
-      VV_INSTANCE_ID: ${VV_INSTANCE_ID:-00000000-0000-7000-8000-000000000001}
-      VV_SECRET_KEY: ${VV_SECRET_KEY:?Set VV_SECRET_KEY in .env}
-      VV_OWNER_EMAIL: ${VV_OWNER_EMAIL:-owner@example.com}
-      VV_OWNER_BOOTSTRAP_PASSWORD: ${VV_OWNER_BOOTSTRAP_PASSWORD:?Set VV_OWNER_BOOTSTRAP_PASSWORD in .env}
-      VV_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vigor_vine}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigor_vine}
-      VV_REDIS_URL: redis://redis:6379/0
-      VV_PUBLIC_BASE_URL: ${VV_PUBLIC_BASE_URL:-http://localhost:8080}
-      VV_API_BASE_URL: ${VV_API_BASE_URL:-http://localhost:8080}
-      VV_TRUSTED_PROXY_CIDRS: ${VV_TRUSTED_PROXY_CIDRS:-}
-      VV_COOKIE_SECURE: ${VV_COOKIE_SECURE:-false}
-      VV_MEDIA_ROOT: /data/media
-      VV_EXPORT_ROOT: /data/exports
-      VV_ERASURE_LEDGER_ROOT: /data/erasure-ledger
-      VV_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${VV_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
-      VV_RETENTION_SWEEP_INTERVAL_SECONDS: ${VV_RETENTION_SWEEP_INTERVAL_SECONDS:-21600}
-      VV_BACKUP_RETENTION_DAYS: ${VV_BACKUP_RETENTION_DAYS:-30}
-      VV_RUN_MIGRATIONS: "true"
+      COOKFULLY_ENVIRONMENT: ${COOKFULLY_ENVIRONMENT:-development}
+      COOKFULLY_INSTANCE_ID: ${COOKFULLY_INSTANCE_ID:-00000000-0000-7000-8000-000000000001}
+      COOKFULLY_SECRET_KEY: ${COOKFULLY_SECRET_KEY:?Set COOKFULLY_SECRET_KEY in .env}
+      COOKFULLY_OWNER_EMAIL: ${COOKFULLY_OWNER_EMAIL:-owner@example.com}
+      COOKFULLY_OWNER_BOOTSTRAP_PASSWORD: ${COOKFULLY_OWNER_BOOTSTRAP_PASSWORD:?Set COOKFULLY_OWNER_BOOTSTRAP_PASSWORD in .env}
+      COOKFULLY_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cookfully}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cookfully}
+      COOKFULLY_REDIS_URL: redis://redis:6379/0
+      COOKFULLY_PUBLIC_BASE_URL: ${COOKFULLY_PUBLIC_BASE_URL:-http://localhost:8080}
+      COOKFULLY_API_BASE_URL: ${COOKFULLY_API_BASE_URL:-http://localhost:8080}
+      COOKFULLY_TRUSTED_PROXY_CIDRS: ${COOKFULLY_TRUSTED_PROXY_CIDRS:-}
+      COOKFULLY_COOKIE_SECURE: ${COOKFULLY_COOKIE_SECURE:-false}
+      COOKFULLY_MEDIA_ROOT: /data/media
+      COOKFULLY_EXPORT_ROOT: /data/exports
+      COOKFULLY_ERASURE_LEDGER_ROOT: /data/erasure-ledger
+      COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
+      COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS: ${COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS:-21600}
+      COOKFULLY_BACKUP_RETENTION_DAYS: ${COOKFULLY_BACKUP_RETENTION_DAYS:-30}
+      COOKFULLY_RUN_MIGRATIONS: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,10 +77,10 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
-    command: ["celery", "-A", "vigor_vine.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
     environment:
       <<: *backend-environment
-      VV_RUN_MIGRATIONS: "false"
+      COOKFULLY_RUN_MIGRATIONS: "false"
     depends_on:
       api:
         condition: service_healthy
@@ -94,10 +94,10 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
-    command: ["python", "-m", "vigor_vine.jobs.outbox_process"]
+    command: ["python", "-m", "cookfully.jobs.outbox_process"]
     environment:
       <<: *backend-environment
-      VV_RUN_MIGRATIONS: "false"
+      COOKFULLY_RUN_MIGRATIONS: "false"
     depends_on:
       api:
         condition: service_healthy
@@ -109,10 +109,10 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
-    command: ["python", "-m", "vigor_vine.jobs.retention_process"]
+    command: ["python", "-m", "cookfully.jobs.retention_process"]
     environment:
       <<: *backend-environment
-      VV_RUN_MIGRATIONS: "false"
+      COOKFULLY_RUN_MIGRATIONS: "false"
     depends_on:
       api:
         condition: service_healthy
@@ -120,7 +120,7 @@ services:
       - media-data:/data/media
       - erasure-ledger-data:/data/erasure-ledger
     healthcheck:
-      test: ["CMD", "python", "-c", "import os,pathlib,time; p=pathlib.Path('/tmp/vigor-vine-retention-heartbeat'); limit=2*int(os.environ['VV_RETENTION_SWEEP_INTERVAL_SECONDS']); raise SystemExit(0 if p.exists() and time.time()-int(p.read_text()) < limit else 1)"]
+      test: ["CMD", "python", "-c", "import os,pathlib,time; p=pathlib.Path('/tmp/cookfully-retention-heartbeat'); limit=2*int(os.environ['COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS']); raise SystemExit(0 if p.exists() and time.time()-int(p.read_text()) < limit else 1)"]
       interval: 5m
       timeout: 5s
       retries: 3

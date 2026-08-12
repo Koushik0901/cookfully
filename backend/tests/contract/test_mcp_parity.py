@@ -6,12 +6,12 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.mcp.read_tools import ReadTools
-from vigor_vine.mcp.resources import McpResources
-from vigor_vine.mcp.write_tools import WriteTools
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.mcp.read_tools import ReadTools
+from cookfully.mcp.resources import McpResources
+from cookfully.mcp.write_tools import WriteTools
 
 WEEK_START = "2026-03-09"
 
@@ -38,7 +38,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def seed_planning_state(client: TestClient, headers: dict[str, str]) -> dict[str, object]:

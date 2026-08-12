@@ -8,10 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from vigor_vine.api.main import create_app
-from vigor_vine.domain.common import DomainError, utc_now
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.suggestions import SuggestionRun
+from cookfully.api.main import create_app
+from cookfully.domain.common import DomainError, utc_now
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.suggestions import SuggestionRun
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -36,7 +36,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def seed_goal(client: TestClient, headers: dict[str, str]) -> None:

@@ -1,5 +1,5 @@
 ---
-name: Vigor & Vine
+name: Cookfully
 colors:
   surface: '#0f141b'
   surface-dim: '#0f141b'

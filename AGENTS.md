@@ -17,7 +17,7 @@ Auto-generated from feature plans and corrected for the repository layout. Last 
 
 ```text
 backend/
-├── src/vigor_vine/
+├── src/cookfully/
 └── tests/
 frontend/
 ├── src/
@@ -44,7 +44,7 @@ pnpm --dir frontend exec playwright test
 
 ## Product Persona
 
-Vigor & Vine helps people who want to take control of their personal health through food
+Cookfully helps people who want to take control of their personal health through food
 and stay organized in the process. The core audience is meal-preppers, health-conscious home
 cooks, and anyone who wants recipes to "do the macro math for them" without feeling like a
 spreadsheet. The app is deliberately not a gym-bro calorie counter — it is a cooking tool
@@ -96,7 +96,7 @@ help someone plan, cook, and eat better food with less friction?"
   architecture, security, data-lifecycle, background-processing, and UI decisions. Inspect current
   official code or documentation rather than relying on reputation or memory.
 - Record material comparisons in `docs/inspiration-review.md`: the problem being solved, the observed
-  pattern, its benefits and liabilities, whether Vigor & Vine adopts/adapts/rejects it, and why the
+  pattern, its benefits and liabilities, whether Cookfully adopts/adapts/rejects it, and why the
   decision fits this project's narrower nutrition-first requirements.
 - Do not presume either this repository or an inspiration project has the best design. Challenge both
   sets of assumptions, account for their different scale/persona/history, and validate adopted patterns

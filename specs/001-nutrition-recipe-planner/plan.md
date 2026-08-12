@@ -5,7 +5,7 @@
 
 ## Summary
 
-Build Vigor & Vine as a fresh, self-hosted nutrition-first web application rather than a fork of
+Build Cookfully as a fresh, self-hosted nutrition-first web application rather than a fork of
 Mealie or Tandoor. Deliver the core P1-P3 loop first: capture a recipe, calculate honest and
 correctable per-serving macros, compare planned servings with personal targets, and derive a grocery
 list. Use a React single-page client over one versioned FastAPI application API, a PostgreSQL system
@@ -209,7 +209,7 @@ specs/001-nutrition-recipe-planner/
 backend/
 ├── pyproject.toml
 ├── migrations/
-├── src/vigor_vine/
+├── src/cookfully/
 │   ├── api/                    # HTTP routes, exact-decimal DTOs, auth/session transport
 │   ├── application/            # Commands, queries, orchestration, policies, owner erasure
 │   ├── domain/                 # Entities, fixed decimals, calculations, lifecycle

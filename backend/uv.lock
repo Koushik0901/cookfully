@@ -1794,7 +1794,7 @@ wheels = [
 ]
 
 [[package]]
-name = "vigor-vine"
+name = "cookfully"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

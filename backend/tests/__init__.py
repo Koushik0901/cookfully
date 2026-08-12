@@ -1,1 +1,1 @@
-"""Vigor & Vine test suite."""
+"""Cookfully test suite."""

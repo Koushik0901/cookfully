@@ -1,5 +1,5 @@
 ---
-description: "Dependency-ordered implementation tasks for Vigor & Vine"
+description: "Dependency-ordered implementation tasks for Cookfully"
 ---
 
 # Tasks: Gym-Focused Recipe & Nutrition Planner
@@ -24,13 +24,13 @@ before their corresponding implementation tasks begin.
 later work reproducible.
 
 - [X] T001 Validate every item in `specs/001-nutrition-recipe-planner/checklists/nutrition.md` against the clarified spec, model, and contracts; link evidence for resolved items, and stop to rerun clarify/plan/tasks/analyze before T002 if any answer changes a requirement
-- [X] T002 Scaffold the Python 3.13 project, `uv.lock`, and package entry points in `backend/pyproject.toml` and `backend/src/vigor_vine/__init__.py`
+- [X] T002 Scaffold the Python 3.13 project, `uv.lock`, and package entry points in `backend/pyproject.toml` and `backend/src/cookfully/__init__.py`
 - [X] T003 [P] Scaffold the React 19.2 TypeScript client and lockfile in `frontend/package.json`, `frontend/pnpm-lock.yaml`, and `frontend/src/main.tsx`
 - [X] T004 Create the planned backend package, test, migration, frontend feature, deployment, script, and documentation directories listed in `specs/001-nutrition-recipe-planner/plan.md`
 - [X] T005 [P] Configure Ruff, mypy, pytest, pytest-asyncio, Hypothesis, and coverage defaults in `backend/pyproject.toml`
 - [X] T006 [P] Configure ESLint, TypeScript, Vitest, Testing Library, axe-core, and Playwright in `frontend/eslint.config.js`, `frontend/tsconfig.json`, `frontend/vite.config.ts`, and `frontend/playwright.config.ts`
 - [X] T007 [P] Translate `DESIGN.md` colors, typography, spacing, radii, and macro-status semantics into `frontend/src/styles/tokens.css` and `frontend/src/styles/globals.css`
-- [X] T008 Define validated environment variables, disabled-by-default failed-import diagnostics, retention deadlines, retry schedule, and safe local defaults in `.env.example` and `backend/src/vigor_vine/infrastructure/config.py`
+- [X] T008 Define validated environment variables, disabled-by-default failed-import diagnostics, retention deadlines, retry schedule, and safe local defaults in `.env.example` and `backend/src/cookfully/infrastructure/config.py`
 - [X] T009 [P] Define healthy PostgreSQL 18 and Redis development services with named volumes in `deploy/compose.yaml`
 - [X] T010 [P] Add locked backend lint, type, unit, and integration jobs in `.github/workflows/backend.yml`
 - [X] T011 [P] Add frontend lint, type, unit, build, accessibility, and Playwright jobs in `.github/workflows/frontend.yml`
@@ -49,23 +49,23 @@ and the application shell required by every story.
 
 **⚠️ CRITICAL**: No user-story implementation begins until this phase passes its tests.
 
-- [X] T014 Create UUIDv7, UTC/local-date, `numeric(20,6)` nutrient/quantity, `numeric(12,3)` serving, canonical decimal-string, round-half-up, optimistic-version, and domain-error primitives in `backend/src/vigor_vine/domain/common.py`
-- [X] T015 Implement SQLAlchemy engine/session factories and the transaction-scoped unit-of-work port in `backend/src/vigor_vine/infrastructure/database.py` and `backend/src/vigor_vine/application/unit_of_work.py`
+- [X] T014 Create UUIDv7, UTC/local-date, `numeric(20,6)` nutrient/quantity, `numeric(12,3)` serving, canonical decimal-string, round-half-up, optimistic-version, and domain-error primitives in `backend/src/cookfully/domain/common.py`
+- [X] T015 Implement SQLAlchemy engine/session factories and the transaction-scoped unit-of-work port in `backend/src/cookfully/infrastructure/database.py` and `backend/src/cookfully/application/unit_of_work.py`
 - [X] T016 Initialize Alembic metadata, naming conventions, and PostgreSQL extension setup in `backend/alembic.ini`, `backend/migrations/env.py`, and `backend/migrations/versions/0001_foundation.py`
-- [X] T017 Create owner timezone/week-start preferences, session, hashed access-token, and encrypted expiring media-asset persistence models in `backend/src/vigor_vine/infrastructure/models/identity.py` and `backend/src/vigor_vine/infrastructure/models/media.py`
+- [X] T017 Create owner timezone/week-start preferences, session, hashed access-token, and encrypted expiring media-asset persistence models in `backend/src/cookfully/infrastructure/models/identity.py` and `backend/src/cookfully/infrastructure/models/media.py`
 - [X] T018 [P] Write failing authentication, CSRF, session-expiry, token-hash/scope, owner timezone/week-start, and once-only-token tests in `backend/tests/integration/test_auth.py`
-- [X] T019 Implement Argon2id owner bootstrap, revocable sessions, CSRF enforcement, scoped token services, and owner preference commands in `backend/src/vigor_vine/application/auth.py` and `backend/src/vigor_vine/application/owner_preferences.py`
-- [X] T020 Implement login/logout and owner preference routes plus hashed scoped-bearer authentication middleware in `backend/src/vigor_vine/api/routes/auth.py`, `backend/src/vigor_vine/api/routes/owner.py`, and `backend/src/vigor_vine/api/dependencies/auth.py`
-- [X] T021 [P] Define RFC 9457-style safe problem responses and field-error mapping in `backend/src/vigor_vine/api/problems.py`
-- [X] T022 [P] Add request/job correlation IDs, raw-provider and personal-data redaction, retention-safe logging, and health metrics in `backend/src/vigor_vine/infrastructure/observability.py`
-- [X] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/vigor_vine/infrastructure/media_store.py`; implement the independent content-free hash-chained erasure ledger, continuity verification, and rotation-plus-30-day retention in `backend/src/vigor_vine/infrastructure/erasure_ledger.py`
-- [X] T024 Create ProcessingJob fields for accepted/next-retry/terminal-deadline/diagnostic-retention timestamps plus OutboxEvent models and indexes in `backend/src/vigor_vine/infrastructure/models/jobs.py` and `backend/migrations/versions/0002_jobs_outbox.py`
+- [X] T019 Implement Argon2id owner bootstrap, revocable sessions, CSRF enforcement, scoped token services, and owner preference commands in `backend/src/cookfully/application/auth.py` and `backend/src/cookfully/application/owner_preferences.py`
+- [X] T020 Implement login/logout and owner preference routes plus hashed scoped-bearer authentication middleware in `backend/src/cookfully/api/routes/auth.py`, `backend/src/cookfully/api/routes/owner.py`, and `backend/src/cookfully/api/dependencies/auth.py`
+- [X] T021 [P] Define RFC 9457-style safe problem responses and field-error mapping in `backend/src/cookfully/api/problems.py`
+- [X] T022 [P] Add request/job correlation IDs, raw-provider and personal-data redaction, retention-safe logging, and health metrics in `backend/src/cookfully/infrastructure/observability.py`
+- [X] T023 [P] Implement content-addressed media storage, encryption and 24-hour expiry for owner-enabled failed-import diagnostics, allowlisted content types, and path traversal guards in `backend/src/cookfully/infrastructure/media_store.py`; implement the independent content-free hash-chained erasure ledger, continuity verification, and rotation-plus-30-day retention in `backend/src/cookfully/infrastructure/erasure_ledger.py`
+- [X] T024 Create ProcessingJob fields for accepted/next-retry/terminal-deadline/diagnostic-retention timestamps plus OutboxEvent models and indexes in `backend/src/cookfully/infrastructure/models/jobs.py` and `backend/migrations/versions/0002_jobs_outbox.py`
 - [X] T025 [P] Write failing job transition, duplicate-delivery, stale-input, 60-second timeout, fixed 5s/30s/2m/5m retry, five-attempt, 15-minute deadline, retention, and outbox recovery tests in `backend/tests/integration/test_job_lifecycle.py`
-- [X] T026 Implement the authoritative job repository, fixed retry/terminal policy, progress DTO, and retention-reduction policy in `backend/src/vigor_vine/application/jobs.py`
-- [X] T027 [P] Configure the Celery 5.6 app with 60-second task limits, Redis broker options, task redaction, and worker health signal in `backend/src/vigor_vine/jobs/app.py`
-- [X] T028 Implement transactional outbox dispatch, the fixed clarified retry schedule, heartbeat/deadline reconciliation, stalled-job recovery, and 24h/30d/1y retention sweeps in `backend/src/vigor_vine/jobs/outbox.py`, `backend/src/vigor_vine/jobs/reconciler.py`, and `backend/src/vigor_vine/jobs/retention.py`
+- [X] T026 Implement the authoritative job repository, fixed retry/terminal policy, progress DTO, and retention-reduction policy in `backend/src/cookfully/application/jobs.py`
+- [X] T027 [P] Configure the Celery 5.6 app with 60-second task limits, Redis broker options, task redaction, and worker health signal in `backend/src/cookfully/jobs/app.py`
+- [X] T028 Implement transactional outbox dispatch, the fixed clarified retry schedule, heartbeat/deadline reconciliation, stalled-job recovery, and 24h/30d/1y retention sweeps in `backend/src/cookfully/jobs/outbox.py`, `backend/src/cookfully/jobs/reconciler.py`, and `backend/src/cookfully/jobs/retention.py`
 - [X] T029 Add one-second acceptance, worker-death, broker-outage, retry/deadline, reload polling, and retention contract coverage from `contracts/background-jobs.md` in `backend/tests/contract/test_background_job_contract.py`
-- [X] T030 Assemble FastAPI lifespan, authentication, problem middleware, health route, and versioned router in `backend/src/vigor_vine/api/main.py`
+- [X] T030 Assemble FastAPI lifespan, authentication, problem middleware, health route, and versioned router in `backend/src/cookfully/api/main.py`
 - [X] T031 Configure OpenAPI 3.1 compatibility checks for API v0.2.0, canonical decimal-string TypeScript adapters, and committed-client generation in `scripts/generate-api-client.ps1` and `frontend/src/app/api/generated/`
 - [X] T032 [P] Create the React router, authentication boundary, TanStack Query provider, and global error boundary in `frontend/src/app/App.tsx` and `frontend/src/app/providers.tsx`
 - [X] T033 [P] Create accessible shared controls for exact-decimal inputs, buttons, fields, destructive confirmations, dialogs, polling status badges, skeletons, empty states, and error recovery in `frontend/src/components/`
@@ -100,26 +100,26 @@ recoverable failures, removed recipe-owned data, and unchanged detached history.
 
 ### Implementation for User Story 1
 
-- [X] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, the recipe-to-foundational-MediaAsset association, and detached-history constraints in `backend/src/vigor_vine/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
-- [X] T044 [US1] Create ReferenceDataset, FoodReference, and FoodNutrient tables plus search indexes in `backend/src/vigor_vine/infrastructure/models/reference_foods.py` and `backend/migrations/versions/0004_reference_foods.py`
-- [X] T045 [US1] Create fixed-scale IngredientMatch, NutritionEstimate, and typed NutritionCorrection tables with canonical precision and active-record constraints in `backend/src/vigor_vine/infrastructure/models/nutrition.py` and `backend/migrations/versions/0005_nutrition.py`
-- [X] T046 [US1] Implement recipe, reference-food, match, estimate, and correction repositories in `backend/src/vigor_vine/infrastructure/repositories/recipes.py` and `backend/src/vigor_vine/infrastructure/repositories/nutrition.py`
-- [X] T047 [P] [US1] Implement the memory-only HTTP/HTTPS fetcher with DNS/redirect revalidation, private-address blocking, byte/time limits, content-type checks, and no successful-HTML persistence in `backend/src/vigor_vine/infrastructure/safe_fetch.py`
-- [X] T048 [P] [US1] Implement the `recipe-scrapers` HTML adapter, source nutrition extraction, immediate buffer disposal, and opt-in encrypted failed-import diagnostic handoff in `backend/src/vigor_vine/infrastructure/recipe_importer.py`
-- [X] T049 [P] [US1] Implement remote recipe-image validation, hashing, transformation limits, and media persistence in `backend/src/vigor_vine/infrastructure/recipe_images.py`
-- [X] T050 [P] [US1] Implement deterministic `ingredient-parser-nlp` mapping to six-decimal quantities while preserving original text, confidence, parser name, and parser version in `backend/src/vigor_vine/infrastructure/ingredient_parser.py`
-- [X] T051 [P] [US1] Implement six-decimal canonical units, ranges, Pint conversions, count weights, explicit density assumptions, and unsafe-conversion rejection in `backend/src/vigor_vine/domain/units.py`
-- [X] T052 [P] [US1] Implement idempotent required Foundation Foods and SR Legacy bulk import, explicit release activation, release/date/license attribution, 90-day review status, no-dataset degraded-state reporting, and stale-on-explicit-reprocess behavior in `backend/src/vigor_vine/cli/reference_data.py`; prove import/activation idempotence, attribution, review status, release switching, and degraded operation in `backend/tests/integration/test_reference_data.py`
-- [X] T053 [US1] Implement normalized alias search, deterministic candidate ranking, ambiguity thresholds, manual matches, release provenance, and lower-of-mass/count coverage inputs in `backend/src/vigor_vine/application/food_matching.py`
-- [X] T054 [P] [US1] Define disabled-by-default structured AI ports with schema validation, data minimization, raw-request/response non-retention, safe hashes/errors, and cache keys in `backend/src/vigor_vine/application/ai_provider.py`
-- [X] T055 [US1] Implement exact ingredient contribution, lower-of-mass/count coverage, six-decimal rollup, three-decimal serving normalization, provenance, and immutable estimate creation in `backend/src/vigor_vine/domain/nutrition.py`
-- [X] T056 [US1] Implement fixed-scale typed correction activation/reset and resolved-value precedence across parse, match, conversion, yield, and nutrient fields in `backend/src/vigor_vine/application/corrections.py`
-- [X] T057 [US1] Implement create/update/archive/restore/confirmed-permanent-delete commands, active-job supersession, detached-history retention, stale-state detection, and current-input hashing in `backend/src/vigor_vine/application/recipes.py`
-- [X] T058 [US1] Implement the import → parse → match → rollup chain with one-second acceptance, 60-second attempts, fixed retry/deadline enforcement, terminal partial/failed mapping, retention hooks, and idempotent activation in `backend/src/vigor_vine/jobs/recipe_pipeline.py`
-- [X] T059 [US1] Implement OpenAPI 3.1 API v0.2.0 recipe/archive/restore/permanent-delete/import/recalculate/correction routes and canonical decimal-string DTOs in `backend/src/vigor_vine/api/routes/recipes.py` and `backend/src/vigor_vine/api/schemas/recipes.py`
-- [X] T060 [US1] Implement authoritative polling DTOs with progress, next retry, terminal deadline, safe failure/recovery actions, and reload discovery in `backend/src/vigor_vine/api/routes/jobs.py`
+- [X] T043 [US1] Create Recipe archived-from-state, RecipeInstruction, six-decimal Ingredient, the recipe-to-foundational-MediaAsset association, and detached-history constraints in `backend/src/cookfully/infrastructure/models/recipes.py` and `backend/migrations/versions/0003_recipes.py`
+- [X] T044 [US1] Create ReferenceDataset, FoodReference, and FoodNutrient tables plus search indexes in `backend/src/cookfully/infrastructure/models/reference_foods.py` and `backend/migrations/versions/0004_reference_foods.py`
+- [X] T045 [US1] Create fixed-scale IngredientMatch, NutritionEstimate, and typed NutritionCorrection tables with canonical precision and active-record constraints in `backend/src/cookfully/infrastructure/models/nutrition.py` and `backend/migrations/versions/0005_nutrition.py`
+- [X] T046 [US1] Implement recipe, reference-food, match, estimate, and correction repositories in `backend/src/cookfully/infrastructure/repositories/recipes.py` and `backend/src/cookfully/infrastructure/repositories/nutrition.py`
+- [X] T047 [P] [US1] Implement the memory-only HTTP/HTTPS fetcher with DNS/redirect revalidation, private-address blocking, byte/time limits, content-type checks, and no successful-HTML persistence in `backend/src/cookfully/infrastructure/safe_fetch.py`
+- [X] T048 [P] [US1] Implement the `recipe-scrapers` HTML adapter, source nutrition extraction, immediate buffer disposal, and opt-in encrypted failed-import diagnostic handoff in `backend/src/cookfully/infrastructure/recipe_importer.py`
+- [X] T049 [P] [US1] Implement remote recipe-image validation, hashing, transformation limits, and media persistence in `backend/src/cookfully/infrastructure/recipe_images.py`
+- [X] T050 [P] [US1] Implement deterministic `ingredient-parser-nlp` mapping to six-decimal quantities while preserving original text, confidence, parser name, and parser version in `backend/src/cookfully/infrastructure/ingredient_parser.py`
+- [X] T051 [P] [US1] Implement six-decimal canonical units, ranges, Pint conversions, count weights, explicit density assumptions, and unsafe-conversion rejection in `backend/src/cookfully/domain/units.py`
+- [X] T052 [P] [US1] Implement idempotent required Foundation Foods and SR Legacy bulk import, explicit release activation, release/date/license attribution, 90-day review status, no-dataset degraded-state reporting, and stale-on-explicit-reprocess behavior in `backend/src/cookfully/cli/reference_data.py`; prove import/activation idempotence, attribution, review status, release switching, and degraded operation in `backend/tests/integration/test_reference_data.py`
+- [X] T053 [US1] Implement normalized alias search, deterministic candidate ranking, ambiguity thresholds, manual matches, release provenance, and lower-of-mass/count coverage inputs in `backend/src/cookfully/application/food_matching.py`
+- [X] T054 [P] [US1] Define disabled-by-default structured AI ports with schema validation, data minimization, raw-request/response non-retention, safe hashes/errors, and cache keys in `backend/src/cookfully/application/ai_provider.py`
+- [X] T055 [US1] Implement exact ingredient contribution, lower-of-mass/count coverage, six-decimal rollup, three-decimal serving normalization, provenance, and immutable estimate creation in `backend/src/cookfully/domain/nutrition.py`
+- [X] T056 [US1] Implement fixed-scale typed correction activation/reset and resolved-value precedence across parse, match, conversion, yield, and nutrient fields in `backend/src/cookfully/application/corrections.py`
+- [X] T057 [US1] Implement create/update/archive/restore/confirmed-permanent-delete commands, active-job supersession, detached-history retention, stale-state detection, and current-input hashing in `backend/src/cookfully/application/recipes.py`
+- [X] T058 [US1] Implement the import → parse → match → rollup chain with one-second acceptance, 60-second attempts, fixed retry/deadline enforcement, terminal partial/failed mapping, retention hooks, and idempotent activation in `backend/src/cookfully/jobs/recipe_pipeline.py`
+- [X] T059 [US1] Implement OpenAPI 3.1 API v0.2.0 recipe/archive/restore/permanent-delete/import/recalculate/correction routes and canonical decimal-string DTOs in `backend/src/cookfully/api/routes/recipes.py` and `backend/src/cookfully/api/schemas/recipes.py`
+- [X] T060 [US1] Implement authoritative polling DTOs with progress, next retry, terminal deadline, safe failure/recovery actions, and reload discovery in `backend/src/cookfully/api/routes/jobs.py`
 - [X] T061 [US1] Regenerate and commit OpenAPI 3.1 API v0.2.0 recipe/job TypeScript bindings and exact-decimal adapters in `frontend/src/app/api/generated/`
-- [X] T062 [US1] Assemble and version the approved 50 captured public-page HTML/reference cases with 15 simple/20 moderate/15 complex cases, a stable 30-recipe primary subset, source-site stratification, expected import fields, classifications, and accuracy reports in `backend/tests/fixtures/nutrition-corpus/` and `backend/src/vigor_vine/cli/nutrition_report.py`; run T040 and block T063-T065 plus all later stories until the stable 30-recipe subset passes SC-001/SC-002
+- [X] T062 [US1] Assemble and version the approved 50 captured public-page HTML/reference cases with 15 simple/20 moderate/15 complex cases, a stable 30-recipe primary subset, source-site stratification, expected import fields, classifications, and accuracy reports in `backend/tests/fixtures/nutrition-corpus/` and `backend/src/cookfully/cli/nutrition_report.py`; run T040 and block T063-T065 plus all later stories until the stable 30-recipe subset passes SC-001/SC-002
 - [X] T063 [P] [US1] After the T062 constitutional gate passes, implement the searchable recipe library, nutrition-state filters, archive/restore view, and responsive RecipeCard with exact decimal display in `frontend/src/features/recipes/RecipeLibraryPage.tsx` and `frontend/src/features/recipes/RecipeCard.tsx`
 - [X] T064 [P] [US1] After the T062 constitutional gate passes, implement exact-decimal recipe editing, original/structured ingredient review, URL import, validation, two-second polling, 15-second background polling, and pending-job feedback in `frontend/src/features/recipes/RecipeEditorPage.tsx` and `frontend/src/features/recipes/RecipeImportDialog.tsx`
 - [X] T065 [US1] After the T062 constitutional gate passes, implement provenance/assumption disclosure, accessible planning-aid-not-medical-advice language, progress/retry/deadline states, reload recovery, correction/reset, stale-yield, archive/restore, and permanent-delete confirmation in `frontend/src/features/recipes/RecipeDetailPage.tsx` and `frontend/src/features/recipes/NutritionPanel.tsx`
@@ -150,12 +150,12 @@ sum exactly to meal/day/week totals while detached history changes only after ex
 
 ### Implementation for User Story 2
 
-- [X] T073 [US2] Create fixed-scale UserGoal, MealTarget, MealPlan, three-decimal MealPlanEntry, display-quantized MealNutritionSnapshot tables, detached recipe links, and non-overlap constraints in `backend/src/vigor_vine/infrastructure/models/plans.py` and `backend/migrations/versions/0006_goals_plans.py`
-- [X] T074 [P] [US2] Implement goal effective-date, owner timezone/week-start, target/tolerance, and exact macro-derived-calorie policies in `backend/src/vigor_vine/domain/goals.py`
-- [X] T075 [P] [US2] Implement immutable whole-kcal/0.1g round-half-up snapshots, three-decimal servings, explicit refresh, detached recipe provenance, and least-reliable propagation in `backend/src/vigor_vine/domain/meal_snapshots.py`
-- [X] T076 [US2] Implement canonical decimal-string meal/day/week aggregation and signed target differences by summing display-quantized entries in `backend/src/vigor_vine/domain/plan_totals.py`
-- [X] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/vigor_vine/application/meal_plans.py`
-- [X] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/goals.py`, `backend/src/vigor_vine/api/routes/meal_plans.py`, and `backend/src/vigor_vine/api/schemas/plans.py`
+- [X] T073 [US2] Create fixed-scale UserGoal, MealTarget, MealPlan, three-decimal MealPlanEntry, display-quantized MealNutritionSnapshot tables, detached recipe links, and non-overlap constraints in `backend/src/cookfully/infrastructure/models/plans.py` and `backend/migrations/versions/0006_goals_plans.py`
+- [X] T074 [P] [US2] Implement goal effective-date, owner timezone/week-start, target/tolerance, and exact macro-derived-calorie policies in `backend/src/cookfully/domain/goals.py`
+- [X] T075 [P] [US2] Implement immutable whole-kcal/0.1g round-half-up snapshots, three-decimal servings, explicit refresh, detached recipe provenance, and least-reliable propagation in `backend/src/cookfully/domain/meal_snapshots.py`
+- [X] T076 [US2] Implement canonical decimal-string meal/day/week aggregation and signed target differences by summing display-quantized entries in `backend/src/cookfully/domain/plan_totals.py`
+- [X] T077 [US2] Implement goal and plan repositories plus add/move/copy/resize/remove commands with optimistic concurrency in `backend/src/cookfully/application/meal_plans.py`
+- [X] T078 [US2] Implement owner preference, current-goal, and weekly meal-plan routes/DTOs with canonical decimal strings matching `contracts/openapi.yaml` in `backend/src/cookfully/api/routes/goals.py`, `backend/src/cookfully/api/routes/meal_plans.py`, and `backend/src/cookfully/api/schemas/plans.py`
 - [X] T079 [US2] Regenerate and commit exact-decimal goal/plan/owner-preference TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T080 [P] [US2] Implement maintenance/target mode, daily macros, effective dates, optional meal targets, timezone, and week-start editing in `frontend/src/features/goals/GoalSettingsPage.tsx`
 - [X] T081 [P] [US2] Implement timezone/week-start-aware responsive week/day navigation, meal slots, recipe selection, and entry ordering in `frontend/src/features/plans/WeeklyPlannerPage.tsx` and `frontend/src/features/plans/DayTabs.tsx`
@@ -188,16 +188,16 @@ compare reconciled/exported/restored detached history plus post-backup erasure w
 
 ### Implementation for User Story 3
 
-- [X] T091 [US3] Create GroceryList, six-decimal GroceryItem, detached GroceryItemSource tables, origin/lifecycle fields, and version/index constraints in `backend/src/vigor_vine/infrastructure/models/grocery.py` and `backend/migrations/versions/0007_grocery.py`
-- [X] T092 [US3] Implement six-decimal ingredient scaling, canonical aggregation keys, dimensional compatibility, and detached source-contribution calculation in `backend/src/vigor_vine/domain/grocery.py`
-- [X] T093 [US3] Implement proposed-list reconciliation that preserves manual/check state and marks material conflicts for review in `backend/src/vigor_vine/application/grocery_reconciliation.py`
-- [X] T094 [US3] Implement grocery list generation, dirty-state tracking, regeneration, and item-edit commands in `backend/src/vigor_vine/application/grocery_lists.py`
-- [X] T095 [US3] Implement grocery generation plus manual item create/update/delete routes and canonical decimal-string DTOs matching `contracts/openapi.yaml` in `backend/src/vigor_vine/api/routes/grocery.py` and `backend/src/vigor_vine/api/schemas/grocery.py`
+- [X] T091 [US3] Create GroceryList, six-decimal GroceryItem, detached GroceryItemSource tables, origin/lifecycle fields, and version/index constraints in `backend/src/cookfully/infrastructure/models/grocery.py` and `backend/migrations/versions/0007_grocery.py`
+- [X] T092 [US3] Implement six-decimal ingredient scaling, canonical aggregation keys, dimensional compatibility, and detached source-contribution calculation in `backend/src/cookfully/domain/grocery.py`
+- [X] T093 [US3] Implement proposed-list reconciliation that preserves manual/check state and marks material conflicts for review in `backend/src/cookfully/application/grocery_reconciliation.py`
+- [X] T094 [US3] Implement grocery list generation, dirty-state tracking, regeneration, and item-edit commands in `backend/src/cookfully/application/grocery_lists.py`
+- [X] T095 [US3] Implement grocery generation plus manual item create/update/delete routes and canonical decimal-string DTOs matching `contracts/openapi.yaml` in `backend/src/cookfully/api/routes/grocery.py` and `backend/src/cookfully/api/schemas/grocery.py`
 - [X] T096 [US3] Regenerate and commit exact-decimal grocery TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T097 [US3] Implement grouped shopping view, source disclosure, check/edit/add/remove controls, dirty/regenerating states, and narrow-mobile layout in `frontend/src/features/grocery/GroceryListPage.tsx`
-- [X] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/vigor_vine/application/exports.py` and `backend/src/vigor_vine/jobs/export.py`
-- [X] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/vigor_vine/cli/backup.py`
-- [X] T100 [US3] Implement export job creation/status API and secure one-time archive download in `backend/src/vigor_vine/api/routes/exports.py`
+- [X] T098 [P] [US3] Implement versioned exact-decimal ZIP/NDJSON export, erased-recipe exclusion, detached-history retention, safe media inclusion, checksums, and export jobs in `backend/src/cookfully/application/exports.py` and `backend/src/cookfully/jobs/export.py`
+- [X] T099 [P] [US3] Implement consistent PostgreSQL/media backup create/verify/staged restore/compare with manifest ledger cursor/hash, independent-ledger continuity validation, idempotent post-backup erasure replay, activation gate, and replay reporting in `backend/src/cookfully/cli/backup.py`
+- [X] T100 [US3] Implement export job creation/status API and secure one-time archive download in `backend/src/cookfully/api/routes/exports.py`
 - [X] T101 [US3] Document Docker volumes, independent erasure-ledger replication and protection, scheduled backup rotation, ledger rotation-plus-30-day retention, fail-closed replay-gated staged restore, portable exports, and disaster-recovery validation in `docs/backup-restore.md`
 
 **Checkpoint**: P1-P3 form the core release and pass SC-001 through SC-008, SC-011, and applicable
@@ -223,11 +223,11 @@ decimal plan totals match the preview exactly.
 
 ### Implementation for User Story 4
 
-- [X] T106 [US4] Create SuggestionRun and SuggestionItem tables with exact target/projected snapshots, plan version, expiry, and lifecycle states in `backend/src/vigor_vine/infrastructure/models/suggestions.py` and `backend/migrations/versions/0008_suggestions.py`
-- [X] T107 [US4] Implement canonical-decimal-to-scaled-integer OR-Tools CP-SAT variables; inviolable exclusion/availability/positive-serving constraints; feasible tolerances; deterministic infeasible ranking by fewest unmet constraints, normalized 4/3/1/1/2/5 distance, fewer entries, and ordered recipe IDs; time limit; and exact explainable result mapping in `backend/src/vigor_vine/domain/suggestion_solver.py`
-- [X] T108 [US4] Implement suggestion validation, candidate preparation, exact target snapshots, infeasibility reasons, expiry, preview parity, and selective acceptance commands in `backend/src/vigor_vine/application/suggestions.py`
-- [X] T109 [US4] Implement idempotent suggestion execution using shared fixed retry/deadline policy and stale-plan rejection in `backend/src/vigor_vine/jobs/suggestions.py`
-- [X] T110 [US4] Implement OpenAPI 3.1 API v0.2.0 suggestion create/status/result/accept routes, canonical decimal-string DTOs, unmet-constraint count, objective score/components, and deterministic ranking disclosure in `backend/src/vigor_vine/api/routes/suggestions.py` and `backend/src/vigor_vine/api/schemas/suggestions.py`
+- [X] T106 [US4] Create SuggestionRun and SuggestionItem tables with exact target/projected snapshots, plan version, expiry, and lifecycle states in `backend/src/cookfully/infrastructure/models/suggestions.py` and `backend/migrations/versions/0008_suggestions.py`
+- [X] T107 [US4] Implement canonical-decimal-to-scaled-integer OR-Tools CP-SAT variables; inviolable exclusion/availability/positive-serving constraints; feasible tolerances; deterministic infeasible ranking by fewest unmet constraints, normalized 4/3/1/1/2/5 distance, fewer entries, and ordered recipe IDs; time limit; and exact explainable result mapping in `backend/src/cookfully/domain/suggestion_solver.py`
+- [X] T108 [US4] Implement suggestion validation, candidate preparation, exact target snapshots, infeasibility reasons, expiry, preview parity, and selective acceptance commands in `backend/src/cookfully/application/suggestions.py`
+- [X] T109 [US4] Implement idempotent suggestion execution using shared fixed retry/deadline policy and stale-plan rejection in `backend/src/cookfully/jobs/suggestions.py`
+- [X] T110 [US4] Implement OpenAPI 3.1 API v0.2.0 suggestion create/status/result/accept routes, canonical decimal-string DTOs, unmet-constraint count, objective score/components, and deterministic ranking disclosure in `backend/src/cookfully/api/routes/suggestions.py` and `backend/src/cookfully/api/schemas/suggestions.py`
 - [X] T111 [US4] Regenerate and commit exact-decimal suggestion TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T112 [US4] Implement meal/day/week constraint editing, progress, deterministically ranked alternatives, unmet-constraint/objective explanations, projected totals, and accessible planning-aid-not-medical-advice language in `frontend/src/features/suggestions/SuggestionPage.tsx`
 - [X] T113 [US4] Implement selective suggestion acceptance through normal plan mutations with conflict recovery in `frontend/src/features/suggestions/useAcceptSuggestion.ts`
@@ -255,13 +255,13 @@ versions, and prove revocation and once-only secret behavior.
 
 ### Implementation for User Story 5
 
-- [X] T118 [US5] Implement access-token create/list/revoke commands, allowlisted scopes, hashes, expiry, and once-only secret presentation in `backend/src/vigor_vine/application/access_tokens.py`
-- [X] T119 [US5] Implement canonical OpenAPI 3.1 API v0.2.0 access-token management routes and DTOs in `backend/src/vigor_vine/api/routes/access_tokens.py` and `backend/src/vigor_vine/api/schemas/access_tokens.py`
-- [X] T120 [US5] Assemble the official MCP SDK server, Streamable HTTP transport, application-service injection, and safe problem mapping in `backend/src/vigor_vine/mcp/server.py`
-- [X] T121 [P] [US5] Implement `get_current_goals`, `get_meal_plan`, `get_period_totals`, and `find_recipes` with canonical decimal strings in `backend/src/vigor_vine/mcp/read_tools.py`
-- [X] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/vigor_vine/mcp/write_tools.py`
-- [X] T123 [P] [US5] Implement nutrition-methodology and export-schema resources with no prompt templates in `backend/src/vigor_vine/mcp/resources.py`
-- [X] T124 [US5] Add scoped authentication, revocation checks, rate limits, audit origin, correlation IDs, and HTTP deployment wiring in `backend/src/vigor_vine/mcp/security.py` and `backend/src/vigor_vine/api/main.py`
+- [X] T118 [US5] Implement access-token create/list/revoke commands, allowlisted scopes, hashes, expiry, and once-only secret presentation in `backend/src/cookfully/application/access_tokens.py`
+- [X] T119 [US5] Implement canonical OpenAPI 3.1 API v0.2.0 access-token management routes and DTOs in `backend/src/cookfully/api/routes/access_tokens.py` and `backend/src/cookfully/api/schemas/access_tokens.py`
+- [X] T120 [US5] Assemble the official MCP SDK server, Streamable HTTP transport, application-service injection, and safe problem mapping in `backend/src/cookfully/mcp/server.py`
+- [X] T121 [P] [US5] Implement `get_current_goals`, `get_meal_plan`, `get_period_totals`, and `find_recipes` with canonical decimal strings in `backend/src/cookfully/mcp/read_tools.py`
+- [X] T122 [P] [US5] Implement idempotent add/update/remove plan and get/regenerate grocery tools in `backend/src/cookfully/mcp/write_tools.py`
+- [X] T123 [P] [US5] Implement nutrition-methodology and export-schema resources with no prompt templates in `backend/src/cookfully/mcp/resources.py`
+- [X] T124 [US5] Add scoped authentication, revocation checks, rate limits, audit origin, correlation IDs, and HTTP deployment wiring in `backend/src/cookfully/mcp/security.py` and `backend/src/cookfully/api/main.py`
 - [X] T125 [US5] Regenerate and commit access-token TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T126 [US5] Implement access-token scope selection, once-only copy, active-token list, and revocation UI in `frontend/src/features/settings/AgentAccessPage.tsx`
 - [X] T127 [US5] Document HTTP token management, MCP connection/scopes, `get_meal_plan`, decimal-string contracts, idempotency, planning-aid-not-medical-advice limitations, and Inspector validation in `docs/agent-integration.md`
@@ -290,12 +290,12 @@ complete, true-zero, and unavailable micronutrient states.
 
 ### Implementation for User Story 6
 
-- [X] T133 [US6] Create six-decimal PantryItem and PantryDeduction tables with match and reversible-state constraints in `backend/src/vigor_vine/infrastructure/models/pantry.py` and `backend/migrations/versions/0009_pantry.py`
-- [X] T134 [P] [US6] Extend reference import and six-decimal typed nutrition records with a versioned USDA mapping manifest for dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C plus unavailable-versus-explicit-zero handling in `backend/src/vigor_vine/cli/reference_data.py` and `backend/src/vigor_vine/domain/nutrition.py`
-- [X] T135 [P] [US6] Implement six-decimal pantry normalization, matching, quantity conversion, and manual correction in `backend/src/vigor_vine/application/pantry.py`
-- [X] T136 [P] [US6] Implement fully/partially makeable recipe scoring and explicit missing-ingredient results in `backend/src/vigor_vine/application/pantry_search.py`
-- [X] T137 [US6] Implement visible, safe, reversible pantry deductions through grocery reconciliation in `backend/src/vigor_vine/application/pantry_deductions.py`
-- [X] T138 [US6] Implement pantry CRUD/search/deduction routes and canonical decimal-string DTOs matching the amended contract in `backend/src/vigor_vine/api/routes/pantry.py` and `backend/src/vigor_vine/api/schemas/pantry.py`
+- [X] T133 [US6] Create six-decimal PantryItem and PantryDeduction tables with match and reversible-state constraints in `backend/src/cookfully/infrastructure/models/pantry.py` and `backend/migrations/versions/0009_pantry.py`
+- [X] T134 [P] [US6] Extend reference import and six-decimal typed nutrition records with a versioned USDA mapping manifest for dietary fiber, sodium, potassium, calcium, iron, magnesium, vitamin D, vitamin B12, and vitamin C plus unavailable-versus-explicit-zero handling in `backend/src/cookfully/cli/reference_data.py` and `backend/src/cookfully/domain/nutrition.py`
+- [X] T135 [P] [US6] Implement six-decimal pantry normalization, matching, quantity conversion, and manual correction in `backend/src/cookfully/application/pantry.py`
+- [X] T136 [P] [US6] Implement fully/partially makeable recipe scoring and explicit missing-ingredient results in `backend/src/cookfully/application/pantry_search.py`
+- [X] T137 [US6] Implement visible, safe, reversible pantry deductions through grocery reconciliation in `backend/src/cookfully/application/pantry_deductions.py`
+- [X] T138 [US6] Implement pantry CRUD/search/deduction routes and canonical decimal-string DTOs matching the amended contract in `backend/src/cookfully/api/routes/pantry.py` and `backend/src/cookfully/api/schemas/pantry.py`
 - [X] T139 [US6] Regenerate and commit exact-decimal pantry/micronutrient TypeScript bindings in `frontend/src/app/api/generated/`
 - [X] T140 [P] [US6] Implement pantry inventory, match review, quantity editing, and makeable-recipe search in `frontend/src/features/pantry/PantryPage.tsx`
 - [X] T141 [P] [US6] Add provenance-aware panels for the nine canonical P6 micronutrients, unavailable-versus-explicit-zero states, canonical units, and accessible planning-aid-not-medical-advice language to `frontend/src/features/recipes/NutritionPanel.tsx` and `frontend/src/features/plans/MacroSummary.tsx`
@@ -317,7 +317,7 @@ selected release boundary.
 - [X] T145 [P] Complete keyboard, focus, contrast, reduced-motion, polling/status announcements, destructive confirmation, screen-reader, desktop, and 390x844 overflow checks in `frontend/e2e/accessibility.spec.ts` and `frontend/e2e/responsive.spec.ts`
 - [X] T146 [P] Prove SC-015 with provider-disabled, timeout, invalid-structured-output, and failure substitutes while exercising manual recipe editing/nutrition, goals, plans, groceries, backup, and export plus affected partial/failed recovery states in `backend/tests/integration/test_provider_degraded_workflows.py` and `frontend/e2e/provider-degraded.spec.ts`
 - [X] T147 [P] Write failing offline full-owner-erasure tests for stopped-service enforcement, exact confirmation, unavailable-ledger fail-closed behavior, same-volume quarantine rollback, post-ledger resumability with maintenance lock, complete core/expansion/token/session/job/media/export removal, single owner-owned ledger append, bootstrap state, and older-backup zero-resurrection replay in `backend/tests/integration/test_owner_erasure.py`
-- [X] T148 Implement the maintenance-locked offline `vigor-vine owner erase` command with exact confirmation, ledger preflight, same-volume managed-file quarantine, ledger-first append, idempotent owner-scope database deletion, post-ledger resumability, verified bootstrap reset, quarantine removal, and safe recovery in `backend/src/vigor_vine/application/owner_erasure.py` and `backend/src/vigor_vine/cli/owner.py`
+- [X] T148 Implement the maintenance-locked offline `cookfully owner erase` command with exact confirmation, ledger preflight, same-volume managed-file quarantine, ledger-first append, idempotent owner-scope database deletion, post-ledger resumability, verified bootstrap reset, quarantine removal, and safe recovery in `backend/src/cookfully/application/owner_erasure.py` and `backend/src/cookfully/cli/owner.py`
 - [X] T149 Document the offline full-owner-erasure preconditions, disposable validation, exact confirmation, managed scope, ledger dependency, staged-file recovery, bootstrap result, backup replay, and emergency failure handling in `docs/owner-erasure.md`, `docs/backup-restore.md`, and `docs/operations-runbook.md`
 - [X] T150 Run a clean-instance exact-decimal backup/export/restore comparison including media, detached history, excluded diagnostics, backup/current ledger cursors, verified recipe-owned and owner-owned erasure replay, bootstrap-state restoration after owner erasure, zero resurrection, and fail-closed evidence in `artifacts/restore-report.md`
 - [X] T151 [P] Complete production Compose, TLS/reverse-proxy, trusted-header, retention scheduling, diagnostic encryption, independently preserved erasure-ledger volume/replication, backup rotation, upgrade, volume, and health guidance in `docs/self-hosting.md`

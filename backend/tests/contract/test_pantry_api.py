@@ -9,12 +9,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
-from vigor_vine.infrastructure.models.grocery import GroceryItem, GroceryList
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.infrastructure.models.pantry import PantryItem
-from vigor_vine.infrastructure.models.plans import MealPlan, UserGoal
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.grocery import GroceryItem, GroceryList
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.pantry import PantryItem
+from cookfully.infrastructure.models.plans import MealPlan, UserGoal
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -38,7 +38,7 @@ def authenticate(client: TestClient) -> dict[str, str]:
         json={"email": "owner@example.com", "password": "correct horse battery staple"},
     )
     assert response.status_code == 204
-    return {"X-CSRF-Token": client.cookies["vv_csrf"]}
+    return {"X-CSRF-Token": client.cookies["cookfully_csrf"]}
 
 
 def seed_deduction_targets(isolated_database_url: str) -> tuple[str, str]:

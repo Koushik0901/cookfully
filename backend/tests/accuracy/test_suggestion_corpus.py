@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 
-from vigor_vine.domain.suggestion_solver import (
+from cookfully.domain.suggestion_solver import (
     SuggestionCandidate,
     SuggestionProblem,
     SuggestionSolution,

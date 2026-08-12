@@ -13,17 +13,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from tests.contract.test_export_format import OWNER_ID, seed_export_graph
 from tests.integration.test_backup_restore import empty_target_database
 
-from vigor_vine.application.access_tokens import AccessTokenService
-from vigor_vine.application.auth import AuthService
-from vigor_vine.application.owner_erasure import OwnerErasureService
-from vigor_vine.cli.backup import BackupManager
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.instance_lease import runtime_service_lease
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.models import Base
-from vigor_vine.infrastructure.models.identity import OwnerAccount, SessionRecord
-from vigor_vine.infrastructure.models.pantry import PantryItem
+from cookfully.application.access_tokens import AccessTokenService
+from cookfully.application.auth import AuthService
+from cookfully.application.owner_erasure import OwnerErasureService
+from cookfully.cli.backup import BackupManager
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.instance_lease import runtime_service_lease
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models import Base
+from cookfully.infrastructure.models.identity import OwnerAccount, SessionRecord
+from cookfully.infrastructure.models.pantry import PantryItem
 
 INSTANCE_ID = UUID("00000000-0000-7000-8000-000000000099")
 EXPIRY = datetime.now(UTC) + timedelta(days=30)

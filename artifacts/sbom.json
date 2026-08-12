@@ -35,10 +35,10 @@
     ],
     "component": {
       "type": "application",
-      "bom-ref": "pkg:generic/vigor-vine@0.1.0",
-      "name": "Vigor & Vine",
+      "bom-ref": "pkg:generic/cookfully@0.1.0",
+      "name": "Cookfully",
       "version": "0.1.0",
-      "purl": "pkg:generic/vigor-vine@0.1.0",
+      "purl": "pkg:generic/cookfully@0.1.0",
       "licenses": [
         {
           "license": {
@@ -48,15 +48,15 @@
       ],
       "properties": [
         {
-          "name": "vigor-vine:python-lock",
+          "name": "cookfully:python-lock",
           "value": "backend/uv.lock"
         },
         {
-          "name": "vigor-vine:node-lock",
+          "name": "cookfully:node-lock",
           "value": "frontend/pnpm-lock.yaml"
         },
         {
-          "name": "vigor-vine:generator",
+          "name": "cookfully:generator",
           "value": "cdxgen 12.8.2"
         }
       ]
@@ -72,7 +72,7 @@
       },
       {
         "name": "cdx:bom:componentSrcFiles",
-        "value": "backend\\.venv\\Lib\\site-packages\\absl_py-2.5.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\alembic-1.19.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\amqp-5.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\annotated_doc-0.0.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\annotated_types-0.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\anyio-4.14.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\argon2_cffi-25.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\argon2_cffi_bindings-25.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\attrs-26.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\beautifulsoup4-4.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\billiard-4.2.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\celery-5.6.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\certifi-2026.7.22.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\cffi-2.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\charset_normalizer-3.4.9.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click-8.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_didyoumean-0.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_plugins-1.1.1.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_repl-0.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\colorama-0.4.6.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\coverage-7.15.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\cryptography-50.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\defusedxml-0.7.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\dnspython-2.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\docker-7.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\email_validator-2.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\extruct-0.18.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\fastapi-0.141.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\flexcache-0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\flexparser-0.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\greenlet-3.5.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\h11-0.16.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\html5lib-1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\html_text-0.7.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpcore-1.0.9.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpcore2-2.10.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httptools-0.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpx-0.28.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpx2-2.10.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\hypothesis-6.165.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\idna-3.18.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\immutabledict-4.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ingredient_parser_nlp-2.7.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\iniconfig-2.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\isodate-0.7.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\joblib-1.5.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jsonschema-4.26.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jsonschema_specifications-2025.9.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jstyleson-0.0.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\kombu-5.6.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\librt-0.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\lxml-6.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\lxml_html_clean-0.4.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mako-1.4.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\markdown_it_py-4.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\markupsafe-3.0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mcp-2.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mcp_types-2.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mdurl-0.1.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mf2py-2.0.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mypy-1.20.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mypy_extensions-1.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\nltk-3.10.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\numpy-2.5.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\opentelemetry_api-1.44.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ortools-9.15.6755.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\packaging-26.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pandas-3.0.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pathspec-1.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pillow-12.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pint-0.25.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\platformdirs-4.11.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pluggy-1.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\prompt_toolkit-3.0.53.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\protobuf-6.33.6.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\psycopg-3.3.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\psycopg_binary-3.3.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pycparser-3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic-2.13.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic_core-2.46.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic_settings-2.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pygments-2.20.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyjwt-2.13.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyparsing-3.3.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyrdfa3-3.6.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest-8.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest_asyncio-1.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest_cov-6.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_dateutil-2.9.0.post0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_dotenv-1.2.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_multipart-0.0.32.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pywin32-312.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyyaml-6.0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rdflib-7.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\recipe_scrapers-15.12.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\redis-6.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\referencing-0.37.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\regex-2026.7.19.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\requests-2.34.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rich-15.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rpds_py-2026.6.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ruff-0.16.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\shellingham-1.5.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\six-1.17.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sortedcontainers-2.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\soupsieve-2.9.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sqlalchemy-2.0.51.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sse_starlette-3.4.8.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\starlette-1.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\testcontainers-4.13.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tqdm-4.70.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\truststore-0.10.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typer-0.27.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_cffi-2.0.0.20260518.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_pyOpenSSL-24.1.0.20240722.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_redis-4.6.0.20241004.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_setuptools-83.0.0.20260807.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typing_extensions-4.16.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typing_inspection-0.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tzdata-2026.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tzlocal-5.4.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\urllib3-2.7.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\uvicorn-0.52.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\vigor_vine-0.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\vine-5.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\w3lib-2.4.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\watchfiles-1.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\wcwidth-0.8.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\webencodings-0.5.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\websockets-17.0.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\wrapt-2.3.0.dist-info\\METADATA\\nbackend\\pyproject.toml\\nbackend\\uv.lock\\nfrontend\\pnpm-lock.yaml"
+        "value": "backend\\.venv\\Lib\\site-packages\\absl_py-2.5.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\alembic-1.19.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\amqp-5.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\annotated_doc-0.0.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\annotated_types-0.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\anyio-4.14.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\argon2_cffi-25.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\argon2_cffi_bindings-25.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\attrs-26.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\beautifulsoup4-4.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\billiard-4.2.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\celery-5.6.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\certifi-2026.7.22.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\cffi-2.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\charset_normalizer-3.4.9.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click-8.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_didyoumean-0.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_plugins-1.1.1.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\click_repl-0.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\colorama-0.4.6.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\coverage-7.15.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\cryptography-50.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\defusedxml-0.7.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\dnspython-2.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\docker-7.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\email_validator-2.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\extruct-0.18.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\fastapi-0.141.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\flexcache-0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\flexparser-0.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\greenlet-3.5.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\h11-0.16.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\html5lib-1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\html_text-0.7.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpcore-1.0.9.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpcore2-2.10.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httptools-0.8.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpx-0.28.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\httpx2-2.10.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\hypothesis-6.165.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\idna-3.18.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\immutabledict-4.3.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ingredient_parser_nlp-2.7.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\iniconfig-2.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\isodate-0.7.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\joblib-1.5.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jsonschema-4.26.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jsonschema_specifications-2025.9.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\jstyleson-0.0.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\kombu-5.6.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\librt-0.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\lxml-6.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\lxml_html_clean-0.4.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mako-1.4.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\markdown_it_py-4.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\markupsafe-3.0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mcp-2.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mcp_types-2.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mdurl-0.1.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mf2py-2.0.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mypy-1.20.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\mypy_extensions-1.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\nltk-3.10.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\numpy-2.5.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\opentelemetry_api-1.44.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ortools-9.15.6755.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\packaging-26.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pandas-3.0.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pathspec-1.1.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pillow-12.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pint-0.25.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\platformdirs-4.11.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pluggy-1.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\prompt_toolkit-3.0.53.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\protobuf-6.33.6.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\psycopg-3.3.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\psycopg_binary-3.3.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pycparser-3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic-2.13.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic_core-2.46.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pydantic_settings-2.15.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pygments-2.20.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyjwt-2.13.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyparsing-3.3.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyrdfa3-3.6.5.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest-8.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest_asyncio-1.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pytest_cov-6.3.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_dateutil-2.9.0.post0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_dotenv-1.2.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\python_multipart-0.0.32.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pywin32-312.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\pyyaml-6.0.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rdflib-7.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\recipe_scrapers-15.12.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\redis-6.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\referencing-0.37.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\regex-2026.7.19.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\requests-2.34.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rich-15.0.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\rpds_py-2026.6.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\ruff-0.16.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\shellingham-1.5.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\six-1.17.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sortedcontainers-2.4.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\soupsieve-2.9.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sqlalchemy-2.0.51.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\sse_starlette-3.4.8.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\starlette-1.6.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\testcontainers-4.13.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tqdm-4.70.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\truststore-0.10.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typer-0.27.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_cffi-2.0.0.20260518.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_pyOpenSSL-24.1.0.20240722.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_redis-4.6.0.20241004.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\types_setuptools-83.0.0.20260807.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typing_extensions-4.16.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\typing_inspection-0.4.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tzdata-2026.3.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\tzlocal-5.4.4.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\urllib3-2.7.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\uvicorn-0.52.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\cookfully-0.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\vine-5.1.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\w3lib-2.4.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\watchfiles-1.2.0.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\wcwidth-0.8.2.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\webencodings-0.5.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\websockets-17.0.1.dist-info\\METADATA\\nbackend\\.venv\\Lib\\site-packages\\wrapt-2.3.0.dist-info\\METADATA\\nbackend\\pyproject.toml\\nbackend\\uv.lock\\nfrontend\\pnpm-lock.yaml"
       }
     ]
   },
@@ -83490,7 +83490,7 @@
           "value": ">=3.8"
         },
         {
-          "name": "vigor-vine:license-metadata-source",
+          "name": "cookfully:license-metadata-source",
           "value": "https://github.com/python/mypy_extensions/blob/1.1.0/LICENSE"
         }
       ],
@@ -99670,12 +99670,12 @@
     {
       "authors": [
         {
-          "name": "Vigor & Vine"
+          "name": "Cookfully"
         }
       ],
-      "publisher": "Vigor & Vine",
+      "publisher": "Cookfully",
       "group": "",
-      "name": "vigor-vine",
+      "name": "cookfully",
       "version": "0.1.0",
       "description": "Self-hosted gym-focused recipe and nutrition planner",
       "licenses": [
@@ -99707,13 +99707,13 @@
           }
         }
       ],
-      "purl": "pkg:pypi/vigor-vine@0.1.0",
+      "purl": "pkg:pypi/cookfully@0.1.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/vigor-vine@0.1.0",
+      "bom-ref": "pkg:pypi/cookfully@0.1.0",
       "properties": [
         {
           "name": "SrcFile",
-          "value": "backend\\.venv\\Lib\\site-packages\\vigor_vine-0.1.0.dist-info\\METADATA"
+          "value": "backend\\.venv\\Lib\\site-packages\\cookfully-0.1.0.dist-info\\METADATA"
         },
         {
           "name": "cdx:python:requires_python",
@@ -99733,20 +99733,20 @@
               {
                 "technique": "manifest-analysis",
                 "confidence": 0.5,
-                "value": "backend\\.venv\\Lib\\site-packages\\vigor_vine-0.1.0.dist-info\\METADATA"
+                "value": "backend\\.venv\\Lib\\site-packages\\cookfully-0.1.0.dist-info\\METADATA"
               }
             ],
-            "concludedValue": "backend\\.venv\\Lib\\site-packages\\vigor_vine-0.1.0.dist-info\\METADATA"
+            "concludedValue": "backend\\.venv\\Lib\\site-packages\\cookfully-0.1.0.dist-info\\METADATA"
           }
         ]
       }
     },
     {
-      "name": "vigor-vine-web",
+      "name": "cookfully-web",
       "group": "",
       "version": "0.1.0",
-      "purl": "pkg:npm/vigor-vine-web@0.1.0",
-      "bom-ref": "pkg:npm/vigor-vine-web@0.1.0",
+      "purl": "pkg:npm/cookfully-web@0.1.0",
+      "bom-ref": "pkg:npm/cookfully-web@0.1.0",
       "properties": [
         {
           "name": "cdx:npm:scripts",
@@ -99770,7 +99770,7 @@
   "services": [],
   "dependencies": [
     {
-      "ref": "pkg:npm/vigor-vine-web@0.1.0",
+      "ref": "pkg:npm/cookfully-web@0.1.0",
       "dependsOn": [
         "pkg:npm/@radix-ui/react-dialog@1.1.23",
         "pkg:npm/@radix-ui/react-slot@1.3.3",
@@ -102779,10 +102779,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:generic/vigor-vine@0.1.0",
+      "ref": "pkg:generic/cookfully@0.1.0",
       "dependsOn": [
-        "pkg:pypi/vigor-vine@0.1.0",
-        "pkg:npm/vigor-vine-web@0.1.0"
+        "pkg:pypi/cookfully@0.1.0",
+        "pkg:npm/cookfully-web@0.1.0"
       ]
     }
   ],
@@ -102790,7 +102790,7 @@
     {
       "bom-ref": "metadata-annotations",
       "subjects": [
-        "pkg:npm/vigor-vine-web@0.1.0"
+        "pkg:npm/cookfully-web@0.1.0"
       ],
       "annotator": {
         "component": {
@@ -102809,7 +102809,7 @@
         }
       },
       "timestamp": "2026-08-10T20:29:26Z",
-      "text": "This Software Bill-of-Materials (SBOM) document was created on Monday, August 10, 2026 with cdxgen. The data was captured during the pre-build lifecycle phase without building the application. The document describes an application named 'vigor-vine-web' with version '0.1.0'. The application also has 1 child modules/components. Trusted publishing metadata is present for 154 npm component(s) and 0 PyPI component(s). 2 package type(s) and 23 purl namespaces are described in the document under components."
+      "text": "This Software Bill-of-Materials (SBOM) document was created on Monday, August 10, 2026 with cdxgen. The data was captured during the pre-build lifecycle phase without building the application. The document describes an application named 'cookfully-web' with version '0.1.0'. The application also has 1 child modules/components. Trusted publishing metadata is present for 154 npm component(s) and 0 PyPI component(s). 2 package type(s) and 23 purl namespaces are described in the document under components."
     }
   ]
 }

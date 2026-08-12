@@ -10,24 +10,24 @@ from uuid import UUID
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.exports import (
+from cookfully.application.exports import (
     PortableExportService,
     stage_portable_export,
     verify_portable_export,
 )
-from vigor_vine.domain.common import DomainError
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
-from vigor_vine.infrastructure.models.identity import OwnerAccount
-from vigor_vine.infrastructure.models.media import MediaAsset
-from vigor_vine.infrastructure.models.nutrition import NutritionCorrection
-from vigor_vine.infrastructure.models.plans import (
+from cookfully.domain.common import DomainError
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
+from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.nutrition import NutritionCorrection
+from cookfully.infrastructure.models.plans import (
     MealNutritionSnapshot,
     MealPlan,
     MealPlanEntry,
     UserGoal,
 )
-from vigor_vine.infrastructure.models.recipes import Ingredient, Recipe
+from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
 ACTIVE_RECIPE_ID = UUID("00000000-0000-7000-8000-000000000010")
@@ -198,7 +198,7 @@ def test_portable_manifest_decimal_ndjson_detached_history_media_and_staging(
     )
     manifest = verify_portable_export(archive)
     assert manifest["schemaVersion"] == 1
-    assert manifest["kind"] == "vigor-vine-portable-export"
+    assert manifest["kind"] == "cookfully-portable-export"
     assert manifest["decimalPolicy"] == {
         "stored": 6,
         "servings": 3,
@@ -236,7 +236,7 @@ def test_verifier_rejects_traversal_checksum_tampering_and_merge_policy(tmp_path
     archive = tmp_path / "tampered.zip"
     manifest = {
         "schemaVersion": 1,
-        "kind": "vigor-vine-portable-export",
+        "kind": "cookfully-portable-export",
         "mergePolicy": "owner-scoped-upsert",
         "files": [{"path": "data/recipes.ndjson", "sha256": "0" * 64, "bytes": 3}],
     }

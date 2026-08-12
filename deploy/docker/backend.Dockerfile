@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
     PATH=/app/.venv/bin:$PATH
 
-RUN groupadd --system vigor && useradd --system --gid vigor --home /app vigor
+RUN groupadd --system cookfully && useradd --system --gid cookfully --home /app cookfully
 WORKDIR /app
 COPY --from=uv /uv /usr/local/bin/uv
 COPY README.md /app/README.md
@@ -17,18 +17,18 @@ COPY deploy/docker/backend-entrypoint.sh /usr/local/bin/backend-entrypoint
 RUN uv sync --directory /app/backend --locked --no-dev --all-extras \
     && chmod +x /usr/local/bin/backend-entrypoint \
     && mkdir -p /data/media /data/erasure-ledger \
-    && chown -R vigor:vigor /app /data
+    && chown -R cookfully:cookfully /app /data
 
-USER vigor
+USER cookfully
 WORKDIR /app/backend
 ENTRYPOINT ["backend-entrypoint"]
-CMD ["uvicorn", "vigor_vine.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "cookfully.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM runtime AS test
 USER root
 RUN uv sync --directory /app/backend --locked --all-extras \
-    && chown -R vigor:vigor /app
-USER vigor
+    && chown -R cookfully:cookfully /app
+USER cookfully
 ENTRYPOINT []
 
 FROM runtime AS production

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-if [ "${VV_RUN_MIGRATIONS:-false}" = "true" ]; then
+if [ "${COOKFULLY_RUN_MIGRATIONS:-false}" = "true" ]; then
   alembic upgrade head
 fi
 

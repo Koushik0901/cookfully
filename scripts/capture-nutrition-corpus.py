@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CORPUS_ROOT = ROOT / "backend" / "tests" / "fixtures" / "nutrition-corpus"
 SNAPSHOT_ROOT = CORPUS_ROOT / "html"
 CAPTURED_AT = "2026-08-10"
-USER_AGENT = "VigorVineNutritionBenchmark/1.0 (+local reproducible test capture)"
+USER_AGENT = "CookfullyNutritionBenchmark/1.0 (+local reproducible test capture)"
 
 
 @dataclass(frozen=True, slots=True)

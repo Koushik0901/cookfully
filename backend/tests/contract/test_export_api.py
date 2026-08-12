@@ -5,8 +5,8 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
-from vigor_vine.api.main import create_app
-from vigor_vine.infrastructure.config import Settings
+from cookfully.api.main import create_app
+from cookfully.infrastructure.config import Settings
 
 
 def test_export_job_status_and_one_time_download(
@@ -30,7 +30,7 @@ def test_export_job_status_and_one_time_download(
         )
         assert login.status_code == 204
         headers = {
-            "X-CSRF-Token": client.cookies["vv_csrf"],
+            "X-CSRF-Token": client.cookies["cookfully_csrf"],
             "Idempotency-Key": "portable-export-0001",
         }
         accepted = client.post("/api/v1/exports", json={"includeMedia": True}, headers=headers)

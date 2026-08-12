@@ -83,9 +83,9 @@ canonical strings defined by OpenAPI; MCP results never convert them to binary f
 
 ## Resources
 
-- `vigor-vine://methodology/nutrition` — versioned explanation of estimates, provenance, coverage,
+- `cookfully://methodology/nutrition` — versioned explanation of estimates, provenance, coverage,
   correction precedence, and limitations.
-- `vigor-vine://schema/export/{version}` — portable export schema documentation.
+- `cookfully://schema/export/{version}` — portable export schema documentation.
 
 The server exposes no prompt templates and no general chat tool.
 

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from vigor_vine.infrastructure.config import Settings
+from cookfully.infrastructure.config import Settings
 
 
 def test_safe_job_policy_defaults_are_fixed() -> None:
@@ -19,8 +19,8 @@ def test_safe_job_policy_defaults_are_fixed() -> None:
 def test_comma_separated_values_parse_from_environment_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("VV_JOB_RETRY_DELAYS_SECONDS", "5,30,120,300")
-    monkeypatch.setenv("VV_TRUSTED_PROXY_CIDRS", "")
+    monkeypatch.setenv("COOKFULLY_JOB_RETRY_DELAYS_SECONDS", "5,30,120,300")
+    monkeypatch.setenv("COOKFULLY_TRUSTED_PROXY_CIDRS", "")
     settings = Settings(_env_file=None)
 
     assert settings.job_retry_delays_seconds == (5, 30, 120, 300)

@@ -62,7 +62,7 @@ async function mockDegradedApi(page: Page) {
   };
   let recipe: RecipeFixture = failedRecipe();
   await page.context().addCookies([
-    { name: "vv_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" },
+    { name: "cookfully_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" },
   ]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();

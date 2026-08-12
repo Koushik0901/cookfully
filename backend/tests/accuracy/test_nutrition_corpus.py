@@ -8,7 +8,7 @@ import httpx
 import pytest
 from recipe_scrapers import scrape_html
 
-from vigor_vine.benchmark.nutrition_corpus import (
+from cookfully.benchmark.nutrition_corpus import (
     CorpusObservation,
     MacroObservation,
     derive_observations,
@@ -18,10 +18,10 @@ from vigor_vine.benchmark.nutrition_corpus import (
     nutrient_summary,
     validate_snapshots,
 )
-from vigor_vine.cli.nutrition_report import build_report
-from vigor_vine.infrastructure.media_store import MediaStore
-from vigor_vine.infrastructure.recipe_importer import RecipeImporter
-from vigor_vine.infrastructure.safe_fetch import SafeFetcher
+from cookfully.cli.nutrition_report import build_report
+from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.recipe_importer import RecipeImporter
+from cookfully.infrastructure.safe_fetch import SafeFetcher
 
 CORPUS_ROOT = Path(__file__).parents[1] / "fixtures" / "nutrition-corpus"
 MANIFEST = load_manifest(CORPUS_ROOT / "manifest.json")

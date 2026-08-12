@@ -25,7 +25,7 @@ async function mockAgentAccessApi(page: Page) {
     },
   ];
   await page.context().addCookies([
-    { name: "vv_csrf", value: "agent-access-csrf", domain: "127.0.0.1", path: "/" },
+    { name: "cookfully_csrf", value: "agent-access-csrf", domain: "127.0.0.1", path: "/" },
   ]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
@@ -51,7 +51,7 @@ async function mockAgentAccessApi(page: Page) {
       tokens = [...tokens, created];
       return route.fulfill({
         status: 201,
-        json: { ...created, secret: "vv_once_only_e2e_secret_12345678901234567890" },
+        json: { ...created, secret: "cookfully_once_only_e2e_secret_12345678901234567890" },
       });
     }
     if (path.startsWith("/api/v1/access-tokens/") && method === "DELETE") {
@@ -77,10 +77,10 @@ test("creates, stores once, and revokes scoped agent tokens without overflow", a
   await page.getByLabel("Write meal plans").check();
   await page.getByRole("button", { name: "Create access token" }).click();
   const oneTime = page.getByRole("region", { name: "One-time token secret" });
-  await expect(oneTime).toContainText("vv_once_only_e2e_secret_12345678901234567890");
+  await expect(oneTime).toContainText("cookfully_once_only_e2e_secret_12345678901234567890");
   await expect(oneTime).toContainText(/shown only once/i);
   await oneTime.getByRole("button", { name: "I have stored it" }).click();
-  await expect(page.getByText("vv_once_only_e2e_secret_12345678901234567890")).toHaveCount(0);
+  await expect(page.getByText("cookfully_once_only_e2e_secret_12345678901234567890")).toHaveCount(0);
 
   const existing = page.getByRole("article", { name: "Read-only coach" });
   await existing.getByRole("button", { name: "Revoke" }).click();

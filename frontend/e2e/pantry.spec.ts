@@ -15,7 +15,7 @@ async function mockPantryApi(page: Page) {
     },
   ];
   await page.context().addCookies([
-    { name: "vv_csrf", value: "pantry-csrf", domain: "127.0.0.1", path: "/" },
+    { name: "cookfully_csrf", value: "pantry-csrf", domain: "127.0.0.1", path: "/" },
   ]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();

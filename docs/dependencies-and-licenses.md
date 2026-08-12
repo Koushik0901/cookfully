@@ -13,7 +13,7 @@ uv run --directory backend python ../scripts/generate-sbom.py
 uv run --directory backend python ../scripts/generate-sbom.py --verify-only
 ```
 
-The verified document contains one Vigor & Vine root, 514 components (133 Python and 381 npm), 514
+The verified document contains one Cookfully root, 514 components (133 Python and 381 npm), 514
 dependency nodes, and no component without a license declaration. The generator pins cdxgen 12.8.2,
 normalizes the two app components under the product root, and fills the sole upstream metadata gap:
 `mypy-extensions` 1.1.0 is MIT, linked to its versioned upstream license. Run the generator only in a
@@ -48,7 +48,7 @@ must still include the notices and source/relocation rights required by each shi
 
 USDA FoodData Central data is public domain under CC0. Mealie, Tandoor Recipes, and Immich are
 objective implementation references only; none is copied, linked, or packaged as an application
-dependency. Mealie and Tandoor's application licenses therefore do not become Vigor & Vine's license,
+dependency. Mealie and Tandoor's application licenses therefore do not become Cookfully's license,
 but their ideas must still be independently implemented. Optional structured-provider SDKs are not
 dependencies; provider calls use the generic HTTP boundary and remain disabled by default.
 

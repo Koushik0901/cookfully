@@ -10,7 +10,7 @@ async function mockPlanningApi(page: Page) {
   let goal: Record<string, unknown> | null = null;
   let entries: Array<Record<string, unknown>> = [];
   let planVersion = 1;
-  await page.context().addCookies([{ name: "vv_csrf", value: "plan-e2e-csrf", domain: "127.0.0.1", path: "/" }]);
+  await page.context().addCookies([{ name: "cookfully_csrf", value: "plan-e2e-csrf", domain: "127.0.0.1", path: "/" }]);
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

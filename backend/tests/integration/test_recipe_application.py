@@ -8,21 +8,21 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.auth import AuthService
-from vigor_vine.application.corrections import CorrectionService
-from vigor_vine.application.food_matching import FoodMatcher
-from vigor_vine.application.recipes import IngredientWrite, RecipeService, RecipeWrite
-from vigor_vine.domain.common import DomainError, uuid7
-from vigor_vine.infrastructure.erasure_ledger import ErasureLedger
-from vigor_vine.infrastructure.models.jobs import OutboxEvent, ProcessingJob
-from vigor_vine.infrastructure.models.nutrition import (
+from cookfully.application.auth import AuthService
+from cookfully.application.corrections import CorrectionService
+from cookfully.application.food_matching import FoodMatcher
+from cookfully.application.recipes import IngredientWrite, RecipeService, RecipeWrite
+from cookfully.domain.common import DomainError, uuid7
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
+from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
+from cookfully.infrastructure.models.nutrition import (
     IngredientMatch,
     NutritionCorrection,
     NutritionEstimate,
 )
-from vigor_vine.infrastructure.models.recipes import Recipe
-from vigor_vine.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
-from vigor_vine.infrastructure.repositories.nutrition import NutritionRepository
+from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
+from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 
 
 def recipe_write(title: str = "Training bowl", servings: str = "2.000") -> RecipeWrite:

@@ -3,9 +3,9 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from vigor_vine.application.auth import AuthService
-from vigor_vine.application.idempotency import IdempotencyService
-from vigor_vine.domain.common import DomainError
+from cookfully.application.auth import AuthService
+from cookfully.application.idempotency import IdempotencyService
+from cookfully.domain.common import DomainError
 
 
 def test_idempotency_replay_conflict_abort_and_expiry(

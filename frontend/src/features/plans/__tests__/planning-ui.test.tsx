@@ -76,7 +76,7 @@ function renderPage(page: React.ReactNode, path = "/app/plan") {
 
 describe("goal and weekly planning UI", () => {
   beforeEach(() => {
-    document.cookie = "vv_csrf=planning-csrf; path=/";
+    document.cookie = "cookfully_csrf=planning-csrf; path=/";
     vi.setSystemTime(new Date("2026-03-11T18:00:00Z"));
     vi.stubGlobal("fetch", vi.fn((input) => {
       const path = String(input);

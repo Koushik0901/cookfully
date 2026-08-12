@@ -2,8 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-from vigor_vine.domain.common import DomainError
-from vigor_vine.domain.nutrition import (
+from cookfully.domain.common import DomainError
+from cookfully.domain.nutrition import (
     IngredientNutrition,
     MacroValues,
     NutritionCorrectionValue,
