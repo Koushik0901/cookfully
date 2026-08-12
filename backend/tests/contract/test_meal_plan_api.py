@@ -102,6 +102,7 @@ def test_owner_preferences_goal_and_plan_openapi_surface(
         assert {"UserGoalWriteRequest", "MealPlanResponse", "MealPlanEntryWriteRequest"}.issubset(
             schema["components"]["schemas"]
         )
+        assert "goal" not in schema["components"]["schemas"]["MealPlanResponse"].get("required", [])
 
 
 def test_required_goal_optional_meal_targets_preferences_and_canonical_decimals(
@@ -259,3 +260,46 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
         )
         assert stale_add.status_code == 409
         assert stale_add.json()["code"] == "recipe_nutrition_stale"
+
+
+def test_meal_plan_can_start_before_a_goal_exists(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        recipe = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers).json()
+        for index, (field, value) in enumerate(
+            (
+                ("calories_kcal", "501.500000"),
+                ("protein_g", "40.050000"),
+                ("carbohydrate_g", "60.050000"),
+                ("fat_g", "11.150000"),
+            )
+        ):
+            corrected = client.post(
+                f"/api/v1/recipes/{recipe['id']}/nutrition/corrections",
+                json={"field": field, "decimalValue": value},
+                headers={**headers, "Idempotency-Key": f"goal-free-correction-{index:02d}"},
+            )
+            assert corrected.status_code == 201
+
+        added = client.post(
+            "/api/v1/meal-plans/2026-03-09/entries",
+            json={
+                "localDate": "2026-03-09",
+                "mealSlot": "dinner",
+                "recipeId": recipe["id"],
+                "servings": "1.500",
+                "position": 0,
+                "refreshNutrition": False,
+            },
+            headers={**headers, "Idempotency-Key": "goal-free-plan-entry-01"},
+        )
+        assert added.status_code == 201
+
+        plan = client.get("/api/v1/meal-plans/2026-03-09")
+        assert plan.status_code == 200
+        body = plan.json()
+        assert body["goal"] is None
+        assert body["entries"][0]["recipeTitle"] == "Plan bowl"
+        assert body["dayTotals"]["2026-03-09"]["targetDifference"] is None

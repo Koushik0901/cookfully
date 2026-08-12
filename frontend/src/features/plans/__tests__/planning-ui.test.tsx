@@ -106,15 +106,19 @@ describe("goal and weekly planning UI", () => {
     });
     renderPage(<GoalSettingsPage />, "/app/goals");
     const user = userEvent.setup();
+    expect(await screen.findByLabelText("Current daily nutrition guide")).toHaveTextContent("2,200 kcal");
+    expect(screen.getByText((_, element) => element?.tagName === "P" && /guide adds up to about.*15 kcal below/i.test(element.textContent ?? ""))).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Adjust daily guide" }));
     expect(await screen.findByDisplayValue("2200.000000")).toBeVisible();
-    expect(screen.getByText(/macro targets account for 15.*fewer calories/i)).toBeVisible();
-    await user.click(screen.getByText("Show optional meal targets", { selector: "summary" }));
+    await user.click(screen.getByText("Meal-by-meal targets", { selector: "strong" }));
+    await user.click(screen.getByText("Calendar preferences", { selector: "strong" }));
     await user.selectOptions(screen.getByLabelText("Timezone"), "UTC");
     await user.selectOptions(screen.getByLabelText("Week starts on"), "7");
     await user.clear(screen.getByLabelText("Daily calories"));
     await user.type(screen.getByLabelText("Daily calories"), "2300.000000");
+    expect(screen.getByText((_, element) => element?.tagName === "P" && /115 kcal below/i.test(element.textContent ?? ""))).toBeVisible();
     expect(screen.getByLabelText("Breakfast protein (optional)")).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: "Save targets" }));
+    await user.click(screen.getByRole("button", { name: "Save my guide" }));
     await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(2));
     const goalCall = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/goals/current") && init?.method === "PUT");
     expect(JSON.parse(String(goalCall?.[1]?.body))).toMatchObject({ caloriesKcal: "2300.000000", mealTargets: [{ proteinG: null }] });
@@ -124,9 +128,10 @@ describe("goal and weekly planning UI", () => {
   it("rejects null or invalid required daily targets before saving", async () => {
     renderPage(<GoalSettingsPage />, "/app/goals");
     const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Adjust daily guide" }));
     await screen.findByDisplayValue("2200.000000");
     await user.clear(screen.getByLabelText("Daily protein"));
-    await user.click(screen.getByRole("button", { name: "Save targets" }));
+    await user.click(screen.getByRole("button", { name: "Save my guide" }));
     expect(await screen.findByText("Daily protein is required.")).toBeVisible();
     expect(vi.mocked(fetch).mock.calls.some(([, init]) => init?.method === "PUT")).toBe(false);
   });
@@ -146,7 +151,7 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("region", { name: "Monday budget" })).toBeVisible();
     expect(screen.getByText("752 / 2200.000000 kcal")).toBeVisible();
     expect(screen.getByText("60.1 / 180.000000 g")).toBeVisible();
-    expect(screen.getByText(/estimated · 95% coverage/i)).toBeVisible();
+    expect(screen.getByText(/nutrition estimate supported/i)).toBeVisible();
     expect(screen.getByText("119.9 g remaining")).toBeVisible();
     expect(screen.getAllByRole("progressbar")).toHaveLength(4);
     await user.click(screen.getByText("Micronutrient planning view"));
@@ -183,26 +188,63 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "See the food, not just the count" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /edit monday.*march 9/i })).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "Prep" }));
+    expect(screen.getByRole("heading", { name: "Cook 1 dish for 1 meal" })).toBeVisible();
+    expect(screen.getByText("1.5 total servings")).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "Day" }));
+    await user.click(screen.getByRole("tab", { name: /monday.*march 9/i }));
     expect(screen.getByRole("tab", { name: /monday.*march 9/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: "Breakfast" })).toBeVisible();
     expect(await screen.findByRole("heading", { name: "Protein oats" })).toBeVisible();
-    expect(screen.getAllByText("estimated · 95% coverage").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Nutrition estimate supported").length).toBeGreaterThan(0);
 
+    await user.click(screen.getByText("Adjust meal", { selector: "summary" }));
     await user.clear(screen.getByLabelText("Protein oats servings"));
     await user.type(screen.getByLabelText("Protein oats servings"), "2.000");
-    await user.click(screen.getByRole("button", { name: "Update Protein oats" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
       expect(new Headers(call?.[1]?.headers).get("if-match")).toBe('"1"');
       expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ servings: "2.000" });
     });
-    await user.click(screen.getByRole("button", { name: "Refresh Protein oats nutrition" }));
-    await user.click(screen.getByRole("button", { name: "Copy Protein oats to next day" }));
-    await user.click(screen.getByRole("button", { name: "Remove Protein oats" }));
+    await user.click(screen.getByRole("button", { name: "Refresh nutrition" }));
+    await user.click(screen.getByRole("button", { name: "Next day" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
 
+  it("lets someone plan meals before creating a nutrition guide", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (init?.method === "POST" && path.includes("/entries")) return json(entry, 201);
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json({ code: "goal_not_found", title: "No goal" }, 404);
+      if (path.includes("/meal-plans/")) return json({ code: "meal_plan_not_found", title: "No plan" }, 404);
+      if (path.includes("/recipes")) return json({ items: [{ id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    });
+
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+    expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add nutrition guide" })).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Day" }));
+    await user.click(screen.getByRole("button", { name: "Add a recipe to Lunch" }));
+    await user.click(await screen.findByRole("button", { name: "Add Protein oats to Lunch" }));
+
+    expect(await screen.findByText("Meal added to your plan.")).toBeVisible();
+    const addCall = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/entries") && init?.method === "POST");
+    expect(JSON.parse(String(addCall?.[1]?.body))).toMatchObject({ mealSlot: "lunch", recipeId: entry.recipeId });
+    expect(screen.queryByText(/set targets first/i)).not.toBeInTheDocument();
+  });
+
   it("keeps stale recipes out of planning selectors until recalculated", async () => {
+    const user = userEvent.setup();
     vi.mocked(fetch).mockImplementation((input) => {
       const path = String(input);
       if (path.includes("/owner/preferences")) return json(preferences);
@@ -215,8 +257,9 @@ describe("goal and weekly planning UI", () => {
       return json({}, 404);
     });
     renderPage(<WeeklyPlannerPage />);
-    const selector = await screen.findByLabelText("Breakfast recipe to add");
-    expect(selector).toHaveTextContent("Protein oats");
-    expect(selector).not.toHaveTextContent("Changed recipe");
+    await user.click(await screen.findByRole("tab", { name: "Day" }));
+    await user.click(await screen.findByRole("button", { name: "Add a recipe to Lunch" }));
+    expect(screen.getByRole("button", { name: "Add Protein oats to Lunch" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add Changed recipe to Lunch" })).not.toBeInTheDocument();
   });
 });

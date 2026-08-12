@@ -1,7 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Slot } from "@radix-ui/react-slot";
+import { CookingPot } from "lucide-react";
 import {
-  type ButtonHTMLAttributes,
+  type ComponentProps,
   type InputHTMLAttributes,
   type ReactElement,
   type ReactNode,
@@ -11,12 +11,24 @@ import {
 } from "react";
 
 import { decimal6 } from "../app/api/generated/decimal";
+import { Button as ShadcnButton } from "./ui/button";
 import { MacroPreview, MacroRing } from "./MacroPreview";
 import "./shared.css";
 
-export function Button({ asChild, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
-  const Component = asChild ? Slot : "button";
-  return <Component className={`button ${className}`} {...props} />;
+export function Button({ className = "", variant: explicitVariant, ...props }: ComponentProps<typeof ShadcnButton>) {
+  const variant = className.includes("button--danger")
+    ? "destructive"
+    : className.includes("button--text")
+      ? "ghost"
+      : className.includes("button--secondary")
+        ? "secondary"
+        : explicitVariant;
+  const cleanedClassName = className.replace(/button--(?:danger|text|secondary)/g, "").trim();
+  return <ShadcnButton className={`button ${cleanedClassName}`} variant={variant} {...props} />;
+}
+
+export function BrandMark({ className = "" }: { className?: string }) {
+  return <img className={`brand-mark ${className}`} src="/brand/cookfully-mark-512.png" alt="" aria-hidden="true" />;
 }
 
 export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactElement<{ "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
@@ -104,7 +116,7 @@ export function Skeleton({ label, lines = 2 }: { label: string; lines?: number }
 export function EmptyState({ title, description, action, motif = true }: { title: string; description: string; action?: ReactNode; motif?: boolean }) {
   return (
     <section className="empty-state">
-      {motif ? <MacroRing className="empty-state__ring" /> : null}
+      {motif ? <CookingPot className="empty-state__icon" aria-hidden="true" /> : null}
       <h2>{title}</h2>
       <p>{description}</p>
       {action ? <div className="empty-state__action">{action}</div> : null}

@@ -1,61 +1,93 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 
-import { Button, EmptyState, MacroPreview, MacroRing } from "../components";
-import { GoalSettingsPage } from "../features/goals/GoalSettingsPage";
-import { GroceryListPage } from "../features/grocery/GroceryListPage";
-import { OwnerFoodsPage } from "../features/foods/OwnerFoodsPage";
-import { WeeklyPlannerPage } from "../features/plans/WeeklyPlannerPage";
-import { PantryPage } from "../features/pantry/PantryPage";
-import { RecipeDetailPage } from "../features/recipes/RecipeDetailPage";
-import { RecipeEditorPage } from "../features/recipes/RecipeEditorPage";
-import { RecipeLibraryPage } from "../features/recipes/RecipeLibraryPage";
-import { CookModePage } from "../features/recipes/CookModePage";
-import { AgentAccessPage } from "../features/settings/AgentAccessPage";
-import { SuggestionPage } from "../features/suggestions/SuggestionPage";
+import {
+  BookOpenText,
+  CalendarDays,
+  Carrot,
+  CircleEllipsis,
+  ListChecks,
+  PackageOpen,
+  ShoppingBasket,
+} from "lucide-react";
+
+import { BrandMark, Button, EmptyState, Skeleton } from "../components";
 import { AppProviders, RequireAuthentication } from "./providers";
+
+const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
+const CookModePage = lazy(() => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage })));
+const GoalSettingsPage = lazy(() => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage })));
+const GroceryListPage = lazy(() => import("../features/grocery/GroceryListPage").then((module) => ({ default: module.GroceryListPage })));
+const OwnerFoodsPage = lazy(() => import("../features/foods/OwnerFoodsPage").then((module) => ({ default: module.OwnerFoodsPage })));
+const PantryPage = lazy(() => import("../features/pantry/PantryPage").then((module) => ({ default: module.PantryPage })));
+const RecipeDetailPage = lazy(() => import("../features/recipes/RecipeDetailPage").then((module) => ({ default: module.RecipeDetailPage })));
+const RecipeEditorPage = lazy(() => import("../features/recipes/RecipeEditorPage").then((module) => ({ default: module.RecipeEditorPage })));
+const RecipeLibraryPage = lazy(() => import("../features/recipes/RecipeLibraryPage").then((module) => ({ default: module.RecipeLibraryPage })));
+const SuggestionPage = lazy(() => import("../features/suggestions/SuggestionPage").then((module) => ({ default: module.SuggestionPage })));
+const WeeklyPlannerPage = lazy(() => import("../features/plans/WeeklyPlannerPage").then((module) => ({ default: module.WeeklyPlannerPage })));
 
 const WORKFLOW = [
   {
     index: "01",
-    title: "Import from anywhere",
-    body: "Paste a recipe URL. Ingredients, instructions, and a best-effort per-serving estimate arrive together — even when the source page publishes no nutrition at all.",
+    title: "Bring in a recipe",
+    body: "Save a favorite from the web or write your own. Ingredients, method, and a useful nutrition estimate stay together.",
   },
   {
     index: "02",
-    title: "Measure against your targets",
-    body: "Set daily and per-meal calories and macros. Every recipe and every planned day is scored against the numbers you actually care about.",
+    title: "Build a realistic week",
+    body: "Plan one meal or seven days. Adjust servings as life changes and let your grocery list follow along.",
   },
   {
     index: "03",
-    title: "Plan, shop, correct",
-    body: "Fill the week, generate the grocery list, and correct any estimate. Every correction is remembered and wins from then on.",
+    title: "Understand the balance",
+    body: "See the nutrition that matters without turning dinner into a spreadsheet. Correct an estimate whenever you know better.",
   },
 ];
+
+const PRIMARY_NAVIGATION = [
+  { to: "/app/recipes", label: "Recipes", Icon: BookOpenText },
+  { to: "/app/plan", label: "Plan", Icon: CalendarDays },
+  { to: "/app/grocery", label: "Grocery", Icon: ShoppingBasket },
+  { to: "/app/pantry", label: "Pantry", Icon: PackageOpen },
+] as const;
+
+const SECONDARY_NAVIGATION = [
+  { to: "/app/foods", label: "Foods", Icon: Carrot },
+  { to: "/app/goals", label: "Goals", Icon: ListChecks },
+] as const;
 
 function LandingPage() {
   return (
     <main className="landing">
       <header className="landing__topbar">
-        <span className="landing__brand">Cookfully</span>
+        <span className="landing__brand"><BrandMark />Cookfully</span>
         <span className="landing__pill">Self-hosted</span>
       </header>
       <section className="landing__hero">
         <div className="landing__copy">
-          <p className="eyebrow">Self-hosted nutrition planning</p>
-          <h1>Recipes become honest, correctable macro plans.</h1>
+          <p className="eyebrow">A calmer way to eat well</p>
+          <h1>Good food. Clear choices. Your kind of healthy.</h1>
           <p className="lede">
-            Pull a recipe from any URL and get a per-serving nutrition estimate you can trust. Set your
-            calorie and macro targets, plan a week, and fix any number — your correction wins from then on.
+            Keep the recipes you love, plan meals that fit real life, and understand the nutrition without
+            doing the math yourself.
           </p>
           <div className="actions">
             <Button asChild>
-              <a href="/app">Open the planner</a>
+              <a href="/app">Open Cookfully</a>
             </Button>
           </div>
         </div>
-        <div className="landing__visual">
-          <MacroPreview />
-        </div>
+        <figure className="landing__visual">
+          <img
+            src="/cookfully-hero-balanced-table.png"
+            alt="Roasted vegetables, grains, greens, and salmon served for a balanced meal"
+          />
+          <figcaption>
+            <span>Dinner, understood</span>
+            <strong>Herbed salmon grain bowl</strong>
+            <small><i className="nutrient-dot nutrient-dot--protein" aria-hidden="true" /> 38 g protein · estimated per serving</small>
+          </figcaption>
+        </figure>
       </section>
       <section className="landing__features" aria-label="What the planner does">
         <ol>
@@ -80,25 +112,67 @@ function LandingPage() {
 
 function PlannerShell() {
   return (
-    <>
-      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes"><MacroRing className="app-nav__mark" />Cookfully</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/suggestions">Suggestions</a><a href="/app/grocery">Grocery</a><a href="/app/pantry">Pantry</a><a href="/app/foods">Foods</a><a href="/app/goals">Goals</a><a href="/app/agent-access">Agent access</a></nav>
-      <Routes>
-        <Route index element={<Navigate to="recipes" replace />} />
-        <Route path="recipes" element={<RecipeLibraryPage />} />
-        <Route path="recipes/new" element={<RecipeEditorPage />} />
-        <Route path="recipes/:recipeId" element={<RecipeDetailPage />} />
-        <Route path="recipes/:recipeId/cook" element={<CookModePage />} />
-        <Route path="recipes/:recipeId/edit" element={<RecipeEditorPage />} />
-        <Route path="plan" element={<WeeklyPlannerPage />} />
-        <Route path="goals" element={<GoalSettingsPage />} />
-        <Route path="grocery" element={<GroceryListPage />} />
-        <Route path="pantry" element={<PantryPage />} />
-        <Route path="foods" element={<OwnerFoodsPage />} />
-        <Route path="suggestions" element={<SuggestionPage />} />
-        <Route path="agent-access" element={<AgentAccessPage />} />
-        <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
-      </Routes>
-    </>
+    <div className="planner-shell">
+      <aside className="planner-nav">
+        <NavLink className="planner-nav__brand" to="/app/recipes">
+          <BrandMark />
+          <span>Cookfully</span>
+        </NavLink>
+        <nav aria-label="Kitchen">
+          <p className="planner-nav__label">Kitchen</p>
+          {PRIMARY_NAVIGATION.map(({ to, label, Icon }) => (
+            <NavLink key={to} to={to} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+              <Icon aria-hidden="true" /><span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <nav aria-label="Your space" className="planner-nav__secondary">
+          <p className="planner-nav__label">Your space</p>
+          {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+            <NavLink key={to} to={to} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+              <Icon aria-hidden="true" /><span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <p className="planner-nav__promise">Your food stays on your server.</p>
+      </aside>
+      <div className="planner-shell__mobile-brand"><BrandMark /><strong>Cookfully</strong></div>
+      <nav className="mobile-nav" aria-label="Primary navigation">
+        {PRIMARY_NAVIGATION.map(({ to, label, Icon }) => (
+          <NavLink key={to} to={to} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
+            <Icon aria-hidden="true" /><span>{label}</span>
+          </NavLink>
+        ))}
+        <details className="mobile-nav__more">
+          <summary><CircleEllipsis aria-hidden="true" /><span>More</span></summary>
+          <div className="mobile-nav__menu">
+            {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+              <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span></NavLink>
+            ))}
+          </div>
+        </details>
+      </nav>
+      <main className="planner-shell__content">
+        <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
+          <Routes>
+            <Route index element={<Navigate to="recipes" replace />} />
+            <Route path="recipes" element={<RecipeLibraryPage />} />
+            <Route path="recipes/new" element={<RecipeEditorPage />} />
+            <Route path="recipes/:recipeId" element={<RecipeDetailPage />} />
+            <Route path="recipes/:recipeId/cook" element={<CookModePage />} />
+            <Route path="recipes/:recipeId/edit" element={<RecipeEditorPage />} />
+            <Route path="plan" element={<WeeklyPlannerPage />} />
+            <Route path="goals" element={<GoalSettingsPage />} />
+            <Route path="grocery" element={<GroceryListPage />} />
+            <Route path="pantry" element={<PantryPage />} />
+            <Route path="foods" element={<OwnerFoodsPage />} />
+            <Route path="suggestions" element={<SuggestionPage />} />
+            <Route path="agent-access" element={<AgentAccessPage />} />
+            <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
+          </Routes>
+        </Suspense>
+      </main>
+    </div>
   );
 }
 

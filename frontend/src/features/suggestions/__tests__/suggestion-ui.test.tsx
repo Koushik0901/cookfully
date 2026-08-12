@@ -70,9 +70,9 @@ function json(body: unknown, status = 200) {
   return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
 }
 
-function renderPage() {
+function renderPage(path = "/app/suggestions") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 }, mutations: { retry: false } } });
-  return render(<QueryClientProvider client={client}><MemoryRouter><SuggestionPage /></MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}><SuggestionPage /></MemoryRouter></QueryClientProvider>);
 }
 
 describe("suggestion UI", () => {
@@ -101,27 +101,36 @@ describe("suggestion UI", () => {
     vi.unstubAllGlobals();
   });
 
+  it("opens in the meal-planning context carried from an empty slot", async () => {
+    renderPage("/app/suggestions?scope=meal&localDate=2026-03-13&mealSlot=dinner");
+    expect(await screen.findByRole("radio", { name: /One meal/i })).toBeChecked();
+    expect(screen.getByLabelText("Day to plan")).toHaveValue("2026-03-13");
+    expect(screen.getByLabelText("Meal")).toHaveValue("dinner");
+  });
+
   it("edits meal/day/week constraints and explains a feasible deterministic preview", async () => {
     renderPage();
     const user = userEvent.setup();
-    expect(await screen.findByRole("heading", { name: "Meal suggestions" })).toBeVisible();
-    expect(screen.getByText("Planning aid only—not medical advice.")).toBeVisible();
-    await user.click(screen.getByText("Macro tolerances", { selector: "summary" }));
-    await user.click(screen.getByText("Recipe rules", { selector: "summary" }));
-    await user.selectOptions(screen.getByLabelText("Suggestion scope"), "meal");
-    expect(screen.getByLabelText("Meal slot")).toBeVisible();
-    await user.selectOptions(screen.getByLabelText("Suggestion scope"), "week");
-    expect(screen.queryByLabelText("Local date")).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Suggestion scope"), "day");
+    expect(await screen.findByRole("heading", { name: "What would make your plan easier?" })).toBeVisible();
+    expect(screen.getByText("Nothing changes yet")).toBeVisible();
+    await user.click(screen.getByText("Fine-tune the nutrition fit", { selector: "strong" }));
+    await user.click(screen.getByText("Use or avoid specific recipes", { selector: "strong" }));
+    await user.click(screen.getByRole("radio", { name: /One meal/i }));
+    expect(screen.getByLabelText("Meal")).toBeVisible();
+    await user.click(screen.getByRole("radio", { name: /Fill my week/i }));
+    expect(screen.queryByLabelText("Day to plan")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /A full day/i }));
     await user.clear(screen.getByLabelText("Calories tolerance"));
     await user.type(screen.getByLabelText("Calories tolerance"), "100.000000");
-    await user.click(screen.getByLabelText("Require Protein oats"));
-    await user.click(screen.getByLabelText("Exclude Chicken rice bowl"));
-    await user.click(screen.getByRole("button", { name: "Generate suggestions" }));
+    await user.click(screen.getByLabelText("Use Protein oats"));
+    await user.click(screen.getByLabelText("Avoid Chicken rice bowl"));
+    await user.click(screen.getByRole("button", { name: "Find meal ideas" }));
 
-    expect(await screen.findByText("Feasible within your tolerances")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Why this result ranks first" })).toBeVisible();
+    expect(await screen.findByText("Here’s a plan that fits")).toBeVisible();
+    await user.click(screen.getByText("How Cookfully chose this", { selector: "summary" }));
+    expect(screen.getByRole("heading", { name: "How Cookfully chose this" })).toBeVisible();
     expect(screen.getByText(/fewest unmet constraints.*weighted macro distance.*fewer entries.*recipe IDs/i)).toBeVisible();
+    await user.click(screen.getByText("Nutrition fit for this day", { selector: "summary" }));
     expect(screen.getByText("1200 kcal")).toBeVisible();
     expect(screen.getByText("100.0 g protein")).toBeVisible();
     expect(screen.getByLabelText("Accept Protein oats")).toBeChecked();
@@ -139,11 +148,11 @@ describe("suggestion UI", () => {
   it("selectively accepts preview items and reports exact accepted-total parity", async () => {
     renderPage();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Generate suggestions" }));
-    await screen.findByText("Feasible within your tolerances");
+    await user.click(await screen.findByRole("button", { name: "Find meal ideas" }));
+    await screen.findByText("Here’s a plan that fits");
     await user.click(screen.getByLabelText("Accept Chicken rice bowl"));
     await user.click(screen.getByRole("button", { name: "Accept 1 selected item" }));
-    expect(await screen.findByText(/accepted 1 item/i)).toBeVisible();
+    expect(await screen.findByText(/1 meal is ready in your plan/i)).toBeVisible();
     expect(screen.getByText(/accepted day total: 1200 kcal.*matches the preview/i)).toBeVisible();
     const acceptCall = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith("/accept") && init?.method === "POST");
     expect(JSON.parse(String(acceptCall?.[1]?.body))).toEqual({ selectedItemIds: [itemOne], expectedPlanVersion: 4 });
@@ -160,9 +169,9 @@ describe("suggestion UI", () => {
     });
     renderPage();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Generate suggestions" }));
-    expect(await screen.findByText("No feasible result")).toBeVisible();
-    const blockers = screen.getByRole("region", { name: "Constraints to review" });
+    await user.click(await screen.findByRole("button", { name: "Find meal ideas" }));
+    expect(await screen.findByText("We couldn’t fit every preference")).toBeVisible();
+    const blockers = screen.getByRole("region", { name: "Preferences to loosen" });
     expect(within(blockers).getByText("Protein tolerance")).toBeVisible();
     expect(within(blockers).getByText("Required recipe unavailable")).toBeVisible();
     expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
@@ -180,7 +189,7 @@ describe("suggestion UI", () => {
     });
     renderPage();
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Generate suggestions" }));
+    await user.click(await screen.findByRole("button", { name: "Find meal ideas" }));
     await user.click(await screen.findByRole("button", { name: "Accept 2 selected items" }));
     expect(await screen.findByText(/plan changed before acceptance/i)).toBeVisible();
     expect(screen.getByRole("button", { name: "Create a fresh suggestion" })).toBeVisible();

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { type ReactNode, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 
-import { ErrorRecovery, MacroRing, Skeleton } from "../components";
+import { BrandMark, ErrorRecovery, Skeleton } from "../components";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { LoginForm } from "./LoginForm";
 
@@ -25,15 +25,28 @@ export function RequireAuthentication({ children }: { children: ReactNode }) {
   if (!session.data) {
     return (
       <main className="auth-screen">
-        <div className="auth-screen__glow" aria-hidden="true" />
-        <MacroRing className="auth-screen__ring" />
-        <section className="auth-card" aria-label="Sign in">
-          <p className="eyebrow">Self-hosted nutrition planning</p>
-          <h1>Sign in to your planner</h1>
-          <p className="lede">Recipes become honest, correctable macro plans.</p>
-          <LoginForm />
-          <p className="auth-card__footnote">Single-owner instance · your data stays on your server</p>
-        </section>
+        <div className="auth-layout">
+          <figure className="auth-visual">
+            <img
+              src="/cookfully-hero-balanced-table.png"
+              alt="A balanced salmon grain bowl with roasted vegetables"
+            />
+            <figcaption>
+              <span>Cook with clarity</span>
+              <strong>Good food, organized around your life.</strong>
+            </figcaption>
+          </figure>
+          <section className="auth-card" aria-label="Sign in">
+            <a className="auth-card__brand" href="/"><BrandMark />Cookfully</a>
+            <div>
+              <p className="eyebrow">Your kitchen, in one place</p>
+              <h1>Welcome back</h1>
+              <p className="lede">Pick up your recipes, weekly plan, and grocery list.</p>
+            </div>
+            <LoginForm />
+            <p className="auth-card__footnote">Private by design · your data stays on your server</p>
+          </section>
+        </div>
       </main>
     );
   }

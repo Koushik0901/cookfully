@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 
 import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { agentAccessApi } from "./api";
 import type { AccessTokenCreated, AccessTokenScope } from "./types";
 
@@ -138,7 +139,7 @@ export function AgentAccessPage() {
           <legend>Allowed scopes</legend>
           {SCOPES.map(({ scope, label, description }) => (
             <label key={scope} className="scope-option">
-              <input aria-label={label} type="checkbox" checked={selectedScopes.has(scope)} onChange={() => toggleScope(scope)} />
+              <Checkbox aria-label={label} checked={selectedScopes.has(scope)} onCheckedChange={() => toggleScope(scope)} />
               <span><strong>{label}</strong><small>{description}</small><code>{scope}</code></span>
             </label>
           ))}

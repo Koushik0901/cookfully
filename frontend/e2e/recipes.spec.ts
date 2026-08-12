@@ -212,14 +212,14 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await page.getByRole("button", { name: "Permanently delete recipe" }).click();
   await expect(page.getByText(/historical plan and grocery records remain detached/i)).toBeVisible();
   await page.getByRole("button", { name: "Delete permanently" }).click();
-  await expect(page.getByText("No recipes yet")).toBeVisible();
+  await expect(page.getByText("No matching recipes")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("URL import survives reload, exposes bounded retry, and offers stale-yield recovery", async ({ page }) => {
   const api = await mockApi(page);
   await page.goto("/app/recipes");
-  await page.getByRole("button", { name: "Import from URL" }).click();
+  await page.getByRole("button", { name: "Import recipe" }).click();
   await page.getByLabel("Recipe URL").fill("https://example.com/protein-oats");
   await page.getByRole("button", { name: "Start import" }).click();
   await expect(page.getByText("running")).toBeVisible();

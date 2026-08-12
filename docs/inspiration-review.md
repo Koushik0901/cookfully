@@ -326,7 +326,8 @@ Adapt the recipe-manager planning flow but reject permissive planning of stale n
 - manual correction provenance does not hide a stale lifecycle warning.
 
 This is not claimed to be universally better: it adds a recalculation step and can slow a casual
-cook. It fits a gym user only because daily macro targets are the central decision surface. Evidence:
+cook. It fits Cookfully because nutrition actively shapes the weekly plan and therefore must remain
+trustworthy even though cooking and meal preparation are the primary experience. Evidence:
 `backend/src/cookfully/application/meal_plans.py`,
 `backend/tests/contract/test_meal_plan_api.py`,
 `frontend/src/features/plans/WeeklyPlannerPage.tsx`, and
@@ -375,3 +376,106 @@ Evidence: `backend/src/cookfully/domain/units.py` (Pint-based mass/volume conver
 `backend/src/cookfully/application/recipes.py` `_pre_match_owner_foods` (food-scoped
 serving conversion), and the Protein Oats coverage demonstration (75% → 100% after creating
 a whey protein owner food with `typical_serving_g=31, typical_serving_unit="scoop"`).
+
+## Food-first weekly planning and recipe discovery — 2026-08-12
+
+### Problem being solved
+
+The existing Plan page led with a calorie-budget card and repeated form controls. That made a weekly
+meal-prep tool resemble a daily intake tracker. Suggestions also lived in the permanent navigation,
+separating inspiration from the two places where it is useful: choosing a recipe and filling a week.
+The recipe library exposed database nutrition states more prominently than cooking-oriented ways to
+find and organize food.
+
+### Sources inspected
+
+- [Mealie feature documentation](https://docs.mealie.io/documentation/getting-started/features/):
+  categories, tags, saved-search cookbooks, calendar planning, notes, random-recipe actions, and
+  planner rules that constrain the candidate pool
+- [Mealie repository](https://github.com/mealie-recipes/mealie): recipe-first product scope that
+  connects a weekly planner and shopping list to the saved recipe collection
+- [Tandoor documentation](https://docs.tandoor.dev/) and
+  [Tandoor repository](https://github.com/TandoorRecipes/recipes): multiple meals per day,
+  meal-plan-to-shopping-list flow, cookbooks, tags, and customizable full-text search
+- [ReciMe meal-plan guide](https://recime.app/help/en/articles/14999930-how-to-use-your-meal-plan):
+  adding from either a planner slot or recipe detail, moving recipes across a weekly calendar, and
+  generating the grocery list from the plan
+- [ReciMe overview](https://recime.app/help/en/articles/11594896-que-es-recime) and
+  [cookbook guide](https://recime.app/help/en/articles/13571088-how-do-i-create-a-cookbook-on-recime):
+  custom cookbooks organized by meal type, cuisine, occasion, or user-defined theme
+- [Mob product description](https://careers.mob.co.uk/): personalized recipe feeds, make-ahead and
+  weeknight framing, cooking mode, and shopping lists; plus Mob's public recipe discovery surfaces,
+  which foreground use cases such as weeknight dinner, family meals, and plan-and-batch
+
+### Benefits and liabilities observed
+
+Mealie and Tandoor offer strong collection management and power-user filtering. Their tag/category
+models are flexible, but copying every control into the default Cookfully view would add metadata
+work and administration before it improves dinner. ReciMe's direct planner-to-grocery flow and
+multiple entry points reduce navigation friction, but its nutrition role is less central than
+Cookfully requires. Mob makes inspiration emotionally immediate and frames recipes around real-life
+cooking situations, but a publisher-curated feed does not directly map to a private, self-hosted
+recipe collection.
+
+### Local decision
+
+Adapt the shared strengths without copying their interfaces:
+
+- remove Suggestions from permanent navigation, while retaining the capability through prominent
+  “Give me ideas” and “Help fill this week” actions in Recipes and Plan;
+- let every open meal slot launch ideas with its date and meal already selected, and carry the visible
+  week into the week-filling flow so inspiration behaves like a layer of planning rather than a
+  destination the user must configure again;
+- lead suggestion results with the actual dishes, servings, and placement, while keeping nutrition
+  totals and deterministic ranking available as evidence behind disclosures;
+- make the selected day's meals, servings, and open slots the main planner workspace;
+- separate planning into three purposeful views instead of making seven day tabs impersonate a weekly
+  overview: Week shows the actual dishes across all seven days, Day is the focused editing surface,
+  and Prep groups repeated recipes into total servings plus the dates and meal slots they cover;
+- default the current week to today's date while keeping the full Week view as the entry point, so a
+  person can orient to the whole plan before editing the meal that is relevant now;
+- keep nutrition visible beside the meals as planning guidance, with whole-week nutrition remaining
+  important without repeating a second macro dashboard: Week compares the average of days that
+  actually contain meals with the daily guide, Day keeps detailed remaining amounts beside the food,
+  and unfinished days are never presented as nutritional failure;
+- allow meal planning to begin before someone enters numeric targets: the Week and Day views invite
+  a nutrition guide without blocking recipe placement, while target-dependent suggestions still ask
+  for a guide because their ranking cannot be honest without one. When a guide is later created, the
+  existing plan adopts it and nutrition guidance becomes available without rebuilding the week;
+- present an existing nutrition guide as a calm review state instead of a permanent form: energy and
+  macros remain prominent planning inputs, editing is explicit, the energy-to-macro comparison updates
+  while values change, and the save action appears only when there is something to save;
+- translate snapshot coverage into a human planning state (for example, “Nutrition estimate
+  incomplete”) and keep the exact status and source-coverage percentage behind a disclosure;
+- remove timezone and immutable-snapshot implementation copy from the normal planning surface;
+- replace repeated or permanent add forms with a slot-level `Add a recipe` action and a search-first
+  recipe sheet, so the date and meal context are already decided before recipe browsing begins;
+- render planned meals as image-led rows with servings and a compact nutrition contribution; keep
+  moving, refreshing, and removal behind a single adjustment disclosure;
+- when a recipe has no photo, use category-aware Cookfully editorial food art rather than a repeated
+  generic pot icon or an invented photo of the exact dish. Real imported/uploaded imagery always wins;
+  discovery cards then limit their visible evidence to serving count, calories, and protein so the
+  food remains the foreground rather than a four-macro dashboard;
+- replace the database-state filter with cooking-oriented views (all, ready to plan, needs
+  attention, archived), while retaining honest nutrition status on each card;
+- add sorting by recency, name, protein, or calories and optional grouping by planning readiness;
+- defer tag, cuisine, time, dietary, occasion, and custom-cookbook filters until those metadata exist
+  in the domain model. Inventing UI-only facets would create filters that cannot be trusted.
+- make manual recipe creation feel like writing a recipe: title, yield, ingredients, and method lead;
+  description, source, parser output, matching state, and conversion assumptions remain available
+  through progressive disclosure instead of turning the primary task into a provenance form;
+- keep Agent Access directly addressable for owners who need integrations, but remove it from everyday
+  kitchen navigation because token administration is not part of planning, cooking, or shopping;
+- make the grocery list read as the final meal-prep step—items left, check-off behavior, pantry use,
+  and manual extras—while keeping ingredient provenance behind per-item disclosure.
+
+Evidence: `frontend/src/app/App.tsx`, `frontend/src/features/plans/WeeklyPlannerPage.tsx`,
+`frontend/src/features/plans/NutritionGuideInvitation.tsx`,
+`frontend/src/features/plans/MealPlanEntry.tsx`, `frontend/src/features/plans/DayTabs.tsx`, and
+`frontend/src/features/plans/RecipePickerSheet.tsx`,
+`frontend/src/features/recipes/RecipeLibraryPage.tsx`, `frontend/src/features/recipes/RecipeEditorPage.tsx`,
+`frontend/src/features/recipes/RecipeDetailPage.tsx`,
+`frontend/src/features/suggestions/SuggestionPage.tsx`, and
+`frontend/src/features/goals/GoalSettingsPage.tsx`,
+`frontend/src/features/grocery/GroceryListPage.tsx`, and
+`backend/src/cookfully/application/meal_plans.py`.

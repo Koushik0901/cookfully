@@ -117,11 +117,11 @@ class MealPlan(TimestampMixin, Base):
     )
     week_start: Mapped[date] = mapped_column(Date, nullable=False)
     timezone: Mapped[str] = mapped_column(String(100), nullable=False)
-    goal_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("user_goals.id", ondelete="RESTRICT"), nullable=False
+    goal_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("user_goals.id", ondelete="RESTRICT"), nullable=True
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    goal: Mapped[UserGoal] = relationship(back_populates="plans")
+    goal: Mapped[UserGoal | None] = relationship(back_populates="plans")
     entries: Mapped[list[MealPlanEntry]] = relationship(
         back_populates="meal_plan",
         cascade="all, delete-orphan",

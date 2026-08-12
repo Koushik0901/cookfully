@@ -1,6 +1,5 @@
-import "@fontsource-variable/hanken-grotesk";
-import "@fontsource-variable/public-sans";
-import "@fontsource-variable/jetbrains-mono";
+import "@fontsource-variable/afacad-flux";
+import "@fontsource-variable/inclusive-sans";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

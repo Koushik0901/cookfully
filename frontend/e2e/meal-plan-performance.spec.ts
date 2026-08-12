@@ -71,17 +71,21 @@ async function mockFiftyEntryPlan(page: Page) {
 test("50-entry exact total updates remain visibly under two seconds at p95", async ({ page }, testInfo) => {
   await mockFiftyEntryPlan(page);
   await page.goto("/app/plan");
-  await expect(page.getByLabel("March 9 budget").getByText(/^25100 \/ 2200\.000000 kcal$/)).toBeVisible();
+  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: /monday.*march 9/i }).click();
+  await expect(page.getByLabel("Nutrition balance").getByText(/^25100 \/ 2200\.000000 kcal$/)).toBeVisible();
 
   const entry = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Recipe 01" }) });
   const samples: number[] = [];
   for (let index = 0; index < 20; index += 1) {
     const servings = index % 2 === 0 ? "2.000" : "1.000";
     const expected = servings === "2.000" ? "25601" : "25100";
+    const disclosure = entry.locator("details.plan-entry__adjust");
+    if (!(await disclosure.evaluate((element) => (element as HTMLDetailsElement).open))) await entry.getByText("Adjust meal", { exact: true }).click();
     await entry.getByLabel("Recipe 01 servings").fill(servings);
     const started = performance.now();
-    await entry.getByRole("button", { name: "Update Recipe 01" }).click();
-    await expect(page.getByLabel("March 9 budget").getByText(new RegExp(`^${expected} / 2200\\.000000 kcal$`))).toBeVisible();
+    await entry.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByLabel("Nutrition balance").getByText(new RegExp(`^${expected} / 2200\\.000000 kcal$`))).toBeVisible();
     samples.push(performance.now() - started);
   }
   const ordered = [...samples].sort((left, right) => left - right);

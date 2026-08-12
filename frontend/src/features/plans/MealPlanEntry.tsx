@@ -1,12 +1,19 @@
 import { useState } from "react";
+import { Copy, RefreshCw, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { Button, DecimalInput, Field } from "../../components";
-import type { MealPlanEntry as Entry } from "./types";
+import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { formatCookingNumber } from "../recipes/formatCooking";
+import type { MealPlanEntry as Entry, RecipePage } from "./types";
+import { nutritionConfidenceLabel } from "./nutritionConfidence";
 import { useMealPlanMutations } from "./useMealPlanMutations";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 
-export function MealPlanEntry({ entry, weekStart }: { entry: Entry; weekStart: string }) {
+type Recipe = RecipePage["items"][number];
+
+export function MealPlanEntry({ entry, weekStart, recipe }: { entry: Entry; weekStart: string; recipe?: Recipe }) {
   const [servings, setServings] = useState(entry.servings);
   const [mealSlot, setMealSlot] = useState(entry.mealSlot);
   const mutations = useMealPlanMutations(weekStart);
@@ -14,12 +21,17 @@ export function MealPlanEntry({ entry, weekStart }: { entry: Entry; weekStart: s
   const disabled = !entry.recipeId;
   return (
     <article className="plan-entry">
-      <div className="plan-entry__heading"><div className="plan-entry__title"><h3>{entry.recipeTitle}</h3><p className="data-value">{entry.nutrition.caloriesKcal ?? "—"} kcal · {entry.nutrition.proteinG ?? "—"} g protein</p></div><span className="reliability-badge">{entry.nutrition.status.replace("_", " ")} · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% coverage</span></div>
-      <div className="entry-controls"><Field label={`${entry.recipeTitle} servings`}><DecimalInput value={servings} disabled={disabled} onInput={(event) => setServings(event.currentTarget.value)} /></Field><Field label={`${entry.recipeTitle} meal slot`}><select className="input" value={mealSlot} disabled={disabled} onChange={(event) => setMealSlot(event.target.value)}>{SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></Field></div>
+      <div className="plan-entry__main">
+        {entry.recipeId ? <Link className={`plan-entry__media ${recipe?.imageUrl ? "" : "plan-entry__media--fallback"}`} to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`}>{recipe?.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={entry.recipeTitle} />}</Link> : <span className="plan-entry__media plan-entry__media--fallback"><RecipeFallbackArt title={entry.recipeTitle} /></span>}
+        <div className="plan-entry__body">
+          <div className="plan-entry__heading"><div className="plan-entry__title"><h4>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : entry.recipeTitle}</h4></div><details className="nutrition-confidence nutrition-confidence--meal"><summary>{nutritionConfidenceLabel(entry.nutrition.status, entry.nutrition.coverageRatio)}</summary><p>{entry.nutrition.status.replace("_", " ")} nutrition · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% source coverage</p></details></div>
+          <div className="plan-entry__nutrition" aria-label={`${entry.recipeTitle} plan contribution`}><span><strong>{formatCookingNumber(entry.servings)}</strong> {Number(entry.servings) === 1 ? "serving" : "servings"}</span><span>{formatCookingNumber(entry.nutrition.caloriesKcal, 0) || "—"} kcal</span><span className="plan-entry__protein"><i aria-hidden="true" />{formatCookingNumber(entry.nutrition.proteinG, 1) || "—"} g protein</span></div>
+        </div>
+      </div>
       {!entry.recipeId ? <p className="notice">Historical snapshot retained; the source recipe was deleted.</p> : null}
       {mutations.error instanceof Error ? <p className="error-text" role="alert">{mutations.conflict ? "The plan changed elsewhere. Reload before trying again." : mutations.error.message}</p> : null}
       {mutations.message ? <p className="success-text" role="status">{mutations.message}</p> : null}
-      <div className="actions"><Button className="button--secondary" disabled={disabled || mutations.update.isPending} onClick={() => mutations.update.mutate({ entry, value: payload() })}>Update {entry.recipeTitle}</Button><Button className="button--text" disabled={disabled} onClick={() => mutations.update.mutate({ entry, value: payload(true), action: "refresh" })}>Refresh {entry.recipeTitle} nutrition</Button><Button className="button--text" disabled={disabled} onClick={() => mutations.copy.mutate(entry)}>Copy {entry.recipeTitle} to next day</Button><Button className="button--text" onClick={() => mutations.remove.mutate(entry)}>Remove {entry.recipeTitle}</Button>{mutations.conflict ? <Button onClick={() => void mutations.reload()}>Reload plan</Button> : null}</div>
+      <div className="plan-entry__actions"><details className="plan-entry__adjust"><summary>Adjust meal</summary><div className="entry-controls"><Field label={`${entry.recipeTitle} servings`}><DecimalInput value={servings} disabled={disabled} onInput={(event) => setServings(event.currentTarget.value)} /></Field><Field label={`${entry.recipeTitle} meal slot`}><select className="input" value={mealSlot} disabled={disabled} onChange={(event) => setMealSlot(event.target.value)}>{SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</select></Field></div><div className="plan-entry__adjust-actions"><Button className="button--secondary" disabled={disabled || mutations.update.isPending} onClick={() => mutations.update.mutate({ entry, value: payload() })}>Save changes</Button><Button className="button--text" disabled={disabled} onClick={() => mutations.update.mutate({ entry, value: payload(true), action: "refresh" })}><RefreshCw aria-hidden="true" />Refresh nutrition</Button><Button className="button--text plan-entry__remove" onClick={() => mutations.remove.mutate(entry)}><Trash2 aria-hidden="true" />Remove</Button>{mutations.conflict ? <Button onClick={() => void mutations.reload()}>Reload plan</Button> : null}</div></details><Button className="button--text" disabled={disabled} onClick={() => mutations.copy.mutate(entry)}><Copy aria-hidden="true" />Next day</Button></div>
     </article>
   );
 }

@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button, ConfirmDialog, ErrorRecovery, PageHeader, Skeleton } from "../../components";
 import { FoodPicker } from "../foods/FoodPicker";
 import { recipesApi } from "./api";
+import { formatCookingText, servingLabel } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
 import type { Job, NutritionCorrectionWrite, RecipeDetail } from "./types";
 
@@ -104,6 +105,7 @@ export function RecipeDetailPage() {
   if (detail.isPending) return <Skeleton label="Loading recipe" lines={8} />;
   if (detail.isError || !detail.data) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
   const recipe = detail.data;
+  const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus !== "matched" && item.matchStatus !== "manual").length;
   const actionError = [correction.error, reset.error, recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
 
   return (
@@ -115,7 +117,7 @@ export function RecipeDetailPage() {
         actions={
           <>
             <Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button>
-            <Button asChild><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button>
+            <Button asChild className="button--secondary"><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button>
             {recipe.instructions.length > 0 && (
               <Button asChild><Link to={`/app/recipes/${recipe.id}/cook`}>Start cooking</Link></Button>
             )}
@@ -139,36 +141,43 @@ export function RecipeDetailPage() {
               }}
             />
           </label>
-          <span className="muted">(recipe makes {recipe.yieldQuantity} {recipe.yieldUnit})</span>
+          <span className="muted">(recipe makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)})</span>
         </div>
       ) : null}
 
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
       <section className="recipe-detail-grid">
         <div className="recipe-content">
-           <section><h2>Ingredients</h2><ul className="ingredient-list">{recipe.ingredients.map((item) => {
+           <section className="ingredient-section"><div className="section-heading"><h2>Ingredients</h2><span>{recipe.ingredients.length} item{recipe.ingredients.length === 1 ? "" : "s"}</span></div><ul className="ingredient-list">{recipe.ingredients.map((item) => {
            const foodName = item.food || item.originalText || "";
            const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
            const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-           const scaledDetail = [scaledMin, scaledMax && scaledMax !== scaledMin ? `\u2013${scaledMax}` : null, item.unit, item.preparation]
-             .filter(Boolean).join(" ") || null;
+           const friendlyIngredient = scaleFactor !== 1 && scaledMin
+             ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `\u2013${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
+             : formatCookingText(item.originalText);
+           const needsReview = item.matchStatus !== "matched" && item.matchStatus !== "manual";
            return (
              <li key={item.id}>
-               <span className="ingredient-text">{item.originalText}</span>
-               {scaledDetail ? <small className="ingredient-detail">{scaledDetail} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</small> : null}
-               {item.matchStatus !== "matched" && foodName.trim() && recipeId ? (
+               <span className="ingredient-text">{friendlyIngredient}</span>
+               {needsReview ? <span className="ingredient-review-badge">Needs review</span> : null}
+               {needsReview && foodName.trim() && recipeId ? (
                  <FoodPicker
                    recipeId={recipeId}
                    ingredientId={item.id}
                    ingredientName={foodName}
-                   trigger={<button className="text-link ingredient-match-btn">Match food</button>}
+                   trigger={<button className="text-link ingredient-match-btn">Review food match</button>}
                    onSelected={() => detail.refetch()}
                  />
                ) : null}
-               {item.assumptions?.map((assumption) => <span className="assumption-chip" key={assumption}>{assumption}</span>)}
              </li>
            );
            })}</ul>
+           <details className="ingredient-evidence"><summary><span><strong>Ingredient matching and assumptions</strong><small>{ingredientReviewCount ? `${ingredientReviewCount} ingredient${ingredientReviewCount === 1 ? "" : "s"} need review` : "All ingredients are ready for nutrition planning"}</small></span></summary><div className="ingredient-evidence__list">{recipe.ingredients.map((item) => {
+             const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+             const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+             const scaledDetail = [scaledMin, scaledMax && scaledMax !== scaledMin ? `\u2013${scaledMax}` : null, item.unit, item.preparation].filter(Boolean).join(" ") || "Quantity not parsed";
+             return <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{scaledDetail} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus.replace("_", " ")}` : ""}</small>{item.assumptions?.length ? <div className="ingredient-assumptions">{item.assumptions.map((assumption) => <span className="assumption-chip" key={assumption}>{formatCookingText(assumption)}</span>)}</div> : null}</article>;
+           })}</div></details>
           </section>
           <section><h2>Instructions</h2>{recipe.instructions.length ? <ol className="instruction-list">{recipe.instructions.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol> : <p className="muted">No instructions were provided.</p>}</section>
           {recipe.sourceUrl ? <p>Original source: <a href={recipe.sourceUrl} rel="noreferrer">{new URL(recipe.sourceUrl).hostname}</a></p> : null}

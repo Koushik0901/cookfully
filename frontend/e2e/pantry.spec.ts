@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import axe from "axe-core";
 
 async function mockPantryApi(page: Page) {
   let pantry = [
@@ -41,17 +42,31 @@ async function mockPantryApi(page: Page) {
 test("manages pantry quantities and shows explicit recipe gaps without mobile overflow", async ({ page }) => {
   await mockPantryApi(page);
   await page.goto("/app/pantry");
-  await expect(page.getByRole("heading", { name: "Pantry", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What’s already at home?" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
 
-  await page.getByLabel("Food name", { exact: true }).fill("Black beans");
-  await page.getByLabel("Quantity", { exact: true }).fill("2.000000");
-  await page.getByLabel("Unit", { exact: true }).selectOption("count");
-  await page.getByRole("button", { name: "Add pantry item" }).click();
+  await page.getByRole("button", { name: "Add item" }).click();
+  const addDialog = page.getByRole("dialog", { name: "Add something on hand" });
+  await page.addScriptTag({ content: axe.source });
+  const serious = await page.evaluate(async () => {
+    const result = await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } });
+    return result.violations.filter((violation) => ["serious", "critical"].includes(violation.impact ?? ""));
+  });
+  expect(serious).toEqual([]);
+  await addDialog.getByLabel("Food name", { exact: true }).fill("Black beans");
+  await addDialog.getByLabel("Quantity", { exact: true }).fill("2.000000");
+  await addDialog.getByLabel("Unit", { exact: true }).selectOption("count");
+  await addDialog.getByRole("button", { name: "Add to pantry" }).click();
   await expect(page.getByRole("article", { name: "Black beans" })).toContainText("2 count");
 
-  await page.getByRole("button", { name: "Find makeable recipes" }).click();
+  await page.getByRole("button", { name: "Find recipes" }).click();
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("Partially makeable");
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("400 g chicken breast");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+declare global {
+  interface Window {
+    axe: typeof axe;
+  }
+}

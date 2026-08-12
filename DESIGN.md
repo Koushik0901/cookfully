@@ -1,191 +1,332 @@
 ---
 name: Cookfully
+version: 2.0
+direction: Editorial kitchen utility
+defaultTheme: light
+fonts:
+  display: Afacad Flux Variable
+  body: Inclusive Sans Variable
 colors:
-  surface: '#0f141b'
-  surface-dim: '#0f141b'
-  surface-bright: '#353941'
-  surface-container-lowest: '#0a0e15'
-  surface-container-low: '#171c23'
-  surface-container: '#1b2027'
-  surface-container-high: '#262a32'
-  surface-container-highest: '#31353d'
-  on-surface: '#dfe2ed'
-  on-surface-variant: '#c0c7d6'
-  inverse-surface: '#dfe2ed'
-  inverse-on-surface: '#2c3138'
-  outline: '#8a919f'
-  outline-variant: '#404753'
-  surface-tint: '#a6c8ff'
-  primary: '#a6c8ff'
-  on-primary: '#00315f'
-  primary-container: '#2c91ff'
-  on-primary-container: '#002a54'
-  inverse-primary: '#005fb0'
-  secondary: '#a9c8fc'
-  on-secondary: '#09315c'
-  secondary-container: '#294a76'
-  on-secondary-container: '#9bbaed'
-  tertiary: '#ffb68c'
-  on-tertiary: '#532200'
-  tertiary-container: '#e76e0a'
-  on-tertiary-container: '#481d00'
-  error: '#ffb4ab'
-  on-error: '#690005'
-  error-container: '#93000a'
-  on-error-container: '#ffdad6'
-  primary-fixed: '#d5e3ff'
-  primary-fixed-dim: '#a6c8ff'
-  on-primary-fixed: '#001c3b'
-  on-primary-fixed-variant: '#004787'
-  secondary-fixed: '#d5e3ff'
-  secondary-fixed-dim: '#a9c8fc'
-  on-secondary-fixed: '#001c3b'
-  on-secondary-fixed-variant: '#274773'
-  tertiary-fixed: '#ffdbc9'
-  tertiary-fixed-dim: '#ffb68c'
-  on-tertiary-fixed: '#321200'
-  on-tertiary-fixed-variant: '#753400'
-  background: '#0f141b'
-  on-background: '#dfe2ed'
-  surface-variant: '#31353d'
-typography:
-  display-lg:
-    fontFamily: Hanken Grotesk
-    fontSize: 48px
-    fontWeight: '800'
-    lineHeight: 56px
-    letterSpacing: -0.02em
-  headline-md:
-    fontFamily: Hanken Grotesk
-    fontSize: 32px
-    fontWeight: '700'
-    lineHeight: 40px
-    letterSpacing: -0.01em
-  headline-sm:
-    fontFamily: Hanken Grotesk
-    fontSize: 24px
-    fontWeight: '600'
-    lineHeight: 32px
-  body-lg:
-    fontFamily: Public Sans
-    fontSize: 18px
-    fontWeight: '400'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Public Sans
-    fontSize: 16px
-    fontWeight: '400'
-    lineHeight: 24px
-  data-lg:
-    fontFamily: JetBrains Mono
-    fontSize: 20px
-    fontWeight: '600'
-    lineHeight: 24px
-    letterSpacing: -0.02em
-  data-sm:
-    fontFamily: JetBrains Mono
-    fontSize: 14px
-    fontWeight: '500'
-    lineHeight: 16px
-  label-caps:
-    fontFamily: Public Sans
-    fontSize: 12px
-    fontWeight: '700'
-    lineHeight: 16px
-    letterSpacing: 0.05em
+  canvas: oklch(0.974 0.012 88)
+  surface: oklch(0.992 0.006 88)
+  surface-muted: oklch(0.948 0.018 92)
+  ink: oklch(0.255 0.032 148)
+  ink-muted: oklch(0.475 0.028 145)
+  line: oklch(0.875 0.025 95)
+  primary: oklch(0.445 0.105 148)
+  primary-hover: oklch(0.390 0.100 148)
+  on-primary: oklch(0.985 0.012 92)
+  accent: oklch(0.790 0.145 76)
+  destructive: oklch(0.555 0.195 28)
+  protein: oklch(0.610 0.125 244)
+  carbohydrate: oklch(0.740 0.145 78)
+  fat: oklch(0.800 0.145 92)
+  fiber: oklch(0.560 0.105 145)
 rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
-  full: 9999px
+  control: 10px
+  surface: 18px
+  media: 22px
+  pill: 999px
 spacing:
-  base: 8px
-  xs: 4px
-  sm: 12px
-  md: 24px
-  lg: 48px
-  xl: 64px
-  gutter: 20px
-  margin-mobile: 16px
-  margin-desktop: 40px
+  unit: 4px
+  page-mobile: 16px
+  page-tablet: 28px
+  page-desktop: 48px
 ---
 
-## Brand & Style
+# Cookfully design system
 
-The design system is engineered for the intersection of culinary artistry and nutritional precision. It speaks to users who view food as both fuel and craft—demanding the rigor of a data-driven fitness tracker with the sensory appeal of a premium cookbook.
+This document is authoritative for Cookfully interface work. It translates the product persona into
+component rules that can be reviewed in code and verified in the browser. If a screen is attractive but
+breaks these rules, the screen is not finished. If a rule creates friction for the user, change this
+document deliberately rather than adding a local exception.
 
-The aesthetic follows a **Modern / Tech-Humanist** approach. It leans into "Dark Mode First" as the primary environment to minimize kitchen glare and maximize the punch of macro-specific data visualizations. The interface utilizes generous whitespace (or "dark space") to create a sense of calm, ensuring that complex nutritional data never feels overwhelming. Subtle tactile cues—soft shadows and layered surfaces—prevent the UI from feeling like a flat spreadsheet, instead offering a sophisticated, tool-like experience that feels authoritative yet inviting.
+## Product feeling
 
-## Colors
+Cookfully is a cooking tool with nutritional intelligence. It is for anyone trying to eat with more
+care: a household planning weeknight meals, someone managing dietary targets, a person cutting or
+bulking, or a cook who simply wants balanced food. It must never assume that exercise, weight loss,
+body composition, or macro optimization is the user's identity.
 
-The palette is anchored by a deep **Slate-toned Charcoal** foundation, providing a high-contrast backdrop for functional data. The **Primary Brand Accent (Electric Blue)** is used for high-intent actions and progress completion.
+The visual direction is **editorial kitchen utility**: the appetite and pacing of a contemporary food
+publication, combined with the clarity and reliability of a calm personal tool.
 
-Nutritional data is strictly categorized by an "Inviolable Macro Palette" to build muscle memory:
-- **Protein (Electric Blue):** Reliable, structural, and primary.
-- **Carbs (Deep Amber):** Energetic and warm.
-- **Fats (Steel Blue/Grey):** Rich and muted.
+- **Personality:** warm, assured, appetizing.
+- **Not:** clinical, gym-coded, rustic, childish, luxury-theatre, or generic wellness SaaS.
+- **Memorable idea:** food is the foreground; nutrition is the quiet evidence layer beneath it.
+- **Default theme:** light. A dark theme may be added, but it cannot delay or weaken the light theme.
 
-Neutral scales prioritize legibility, using cool-tinted greys to distinguish between background, container, and interactive states without introducing visual noise.
+## Product principles
 
-## Typography
+1. **Food before figures.** Recipe imagery, names, ingredients, and cooking context lead. Nutrition
+   supports the decision; it does not dominate every surface.
+2. **Start with the next useful action.** Every page answers what the user can do now. A region has at
+   most one primary action.
+3. **Reveal complexity on demand.** Quick paths stay visible. Advanced nutrition, provenance, import
+   diagnostics, and system settings live behind deliberate disclosure.
+4. **Never judge.** Use neutral language such as `remaining`, `planned`, and `outside target`; never
+   `bad`, `cheat`, `failed`, or celebratory weight-loss language.
+5. **Honesty without noise.** Estimated, partial, manual, corrected, stale, and failed data remain
+   explicit, but compact. Precision belongs in detail and editing surfaces, not discovery cards.
+6. **Mobile is a cooking context.** Mobile layouts prioritize touch, one-handed navigation, readable
+   ingredients, and quick plan edits. They are redesigned, not shrunk desktop pages.
 
-This design system utilizes a dual-font strategy to separate narrative content from technical data.
+## Visual foundation
 
-- **Hanken Grotesk** is used for headlines and titles. It provides a sharp, contemporary edge that feels "fitness-forward" and confident.
-- **Public Sans** handles all body copy and instructions. Its neutral, humanist qualities ensure long-form recipes remain highly readable and warm.
-- **JetBrains Mono** is reserved exclusively for numerical data, weights, and macro counts. The monospaced nature ensures that numbers align perfectly in lists and dashboards, reinforcing the "data-forward" brand pillar.
+### Color roles
 
-For mobile, `display-lg` should scale down to 32px to ensure title visibility without excessive wrapping.
+Use the semantic tokens in the front matter through CSS custom properties. Raw colors are prohibited in
+feature CSS. Neutrals are warm and subtly herb-tinted; pure white and pure black are prohibited.
 
-## Layout & Spacing
+- `canvas` is the page field.
+- `surface` is used sparingly for interactive or raised regions.
+- `surface-muted` groups quiet secondary material without creating another card.
+- `ink` and `ink-muted` are the only default text colors.
+- `primary` is deep herb green and is reserved for the page's primary action, active navigation, and
+  successful completion.
+- `accent` is saffron. It marks moments of discovery, a new suggestion, or a small decorative detail;
+  it is not a second primary action color.
+- Nutrient colors are semantic and based on familiar food associations: protein is blue (structure),
+  carbohydrate is orange (energy), fat is oil/golden yellow, and fiber/plants are green. Calories and
+  totals stay neutral ink. These assignments are global and cannot be changed page-by-page merely to
+  create visual variety.
+- Nutrient colors carry meaning only when the category is also named. They never color general
+  navigation, buttons, or headings. Color reinforces a label; it never replaces one.
+- Interface states use a separate registry so they never borrow a nutrient meaning: blue is
+  processing/information, amber is partial/stale attention, green is confirmed/manual success, and
+  red is failed/destructive. A status color always appears with text or an accessible name.
+- Error/destructive red is reserved for errors and destructive actions.
 
-The layout employs a **Fluid Grid** system with fixed maximum widths for recipe content to prevent line lengths from becoming unreadable. 
+Minimum contrast is WCAG 2.2 AA: 4.5:1 for normal text and 3:1 for large text, icons, controls, focus
+indicators, and meaningful chart marks.
 
-- **Grid:** 12-column on desktop, 4-column on mobile.
-- **Rhythm:** An 8px base unit drives all padding and margin decisions. 
-- **Density:** High density for data tables and ingredient lists; low density (more whitespace) for recipe discovery and editorial content.
+### Typography
 
-Components should utilize "Safe Areas" for mobile interaction, specifically ensuring horizontal scrolling elements (like Day Tabs) have 16px of bleed to indicate more content is available.
+Self-host the variable faces. Do not load fonts from a third-party CDN.
 
-## Elevation & Depth
+- **Afacad Flux Variable**: wordmark, display, page, section, and card headings.
+- **Inclusive Sans Variable**: body, controls, labels, instructions, and data.
+- Numbers use `font-variant-numeric: tabular-nums`; a monospace face is not used as shorthand for
+  nutrition or technical credibility.
 
-The design system uses **Tonal Layering** combined with **Ambient Shadows** to create a sense of hierarchy. 
+| Token | Desktop | Mobile | Weight | Use |
+|---|---:|---:|---:|---|
+| `display` | 56/58 | 40/43 | 650 | Marketing statement only |
+| `page-title` | 42/44 | 34/37 | 620 | One per page |
+| `section-title` | 28/32 | 25/29 | 600 | Major content section |
+| `card-title` | 21/25 | 20/24 | 590 | Recipe and plan titles |
+| `body` | 16/24 | 16/24 | 430 | Default copy |
+| `body-small` | 14/20 | 14/20 | 440 | Metadata and helper text |
+| `label` | 13/16 | 13/16 | 620 | Form and compact UI labels |
 
-- **Level 0 (Background):** Deepest charcoal slate tone.
-- **Level 1 (Cards/Containers):** Slightly lighter surface with a 1px subtle border (#FFFFFF10) to define edges against the background.
-- **Level 2 (Modals/Popovers):** Higher contrast with a soft, diffused 24px blur shadow (0% offset, 15% opacity black).
+Letter spacing is normal for body copy, `-0.015em` for headings, and `0.02em` only for short eyebrow
+labels. All-caps labels are prohibited. Body line length is 45–72 characters.
 
-Glassmorphism is used exclusively for "Sticky" headers or bottom navigation bars, using a backdrop-filter (blur: 12px) to maintain context of the scroll position behind the navigation.
+### Spacing and rhythm
 
-## Shapes
+The base unit is 4px. Approved gaps are 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, and 96px.
 
-The shape language is "Soft-Modern." A standard radius of **12px to 16px** is applied to cards and large containers to evoke a friendly, approachable feel. 
+- Tight internal grouping: 4–12px.
+- Related controls/content: 16–24px.
+- Section separation: 40–64px.
+- Major page transitions: 64–96px.
+- Do not use identical padding on every region. Rhythm must visibly alternate between tight groups and
+  open transitions.
 
-- **Interactive Elements:** Buttons and Input fields use a 12px radius.
-- **Data Tags:** Pills (full-round) are used for "Macro Badges" to distinguish them from interactive buttons.
-- **Progress Bars:** Use fully rounded caps to feel fluid and organic.
+### Shape and depth
 
-## Components
+- Controls: 10px radius; 44px minimum height, 48px for primary form fields.
+- Content surfaces: 18px radius.
+- Recipe media: 22px radius.
+- Pills are reserved for filters, status, and compact categories—not every button.
+- Default surfaces use tonal contrast and a one-pixel line. Shadows are reserved for floating sheets,
+  menus, and media that intentionally overlaps another plane.
+- Never nest cards inside cards. Flatten with spacing, headings, separators, or a muted field.
+- Glass blur is allowed only on persistent navigation over scrolling content.
 
-### Macro Rings & Budget Bars
-- **Macro Rings:** 8px stroke width. Background track should be a low-opacity version of the macro color (e.g., Protein track is Blue at 10% opacity).
-- **Budget Bar:** A thick horizontal track (12px height). The "Consumed" portion glows slightly using a soft outer shadow of the same color.
+## Layout system
 
-### Recipe Cards
-- Image-led with a 16:9 aspect ratio. 
-- Macro Badges are overlaid in the top-right corner using a semi-transparent dark blur.
-- Title uses `headline-sm`, and the footer contains "Total Time" and "Calorie Count" using `data-sm`.
+### Application shell
 
-### Day Tabs
-- Horizontal scroller. Active state uses the Primary Brand Accent (Electric Blue) for the text and a small dot indicator below.
-- Inactive days show the date and a "dimmed" ring representing the total calorie completion for that past/future day.
+- Desktop (`>= 1024px`): 232px navigation rail, fixed within the viewport; content uses the remaining
+  width and a maximum readable width of 1440px.
+- Tablet (`768–1023px`): 80px icon rail or compact top navigation depending on content needs.
+- Mobile (`< 768px`): compact top bar plus a 68px bottom navigation with four primary destinations and
+  one `More` entry. Safe-area padding is mandatory.
+- Primary destinations: Recipes, Plan, Grocery, Pantry. Suggestions may replace Pantry if product data
+  proves it is used more frequently. Foods, Goals, agent/system access, and account live under More.
+- Navigation labels are always visible on mobile. Icons supplement text; they never replace it.
 
-### Ingredient Row
-- Features a custom checkbox that, when checked, strikes through the text and reduces its opacity to 40%.
-- Quantities are right-aligned using `data-sm` for vertical alignment precision.
+### Page frame
 
-### Nutrition Panel
-- Styled as a clean list with 1px dividers.
-- "Estimated" badges use `label-caps` in a subtle ghost-pill format (low-opacity border, no fill) to indicate data confidence without drawing excessive attention.
+- Horizontal page inset: 16px mobile, 28px tablet, 48px desktop.
+- Page header has a short optional eyebrow, one title, and at most one sentence of supporting copy.
+- Desktop header actions sit opposite the title. Mobile actions sit immediately below the copy.
+- A page title must not exceed two lines at 390px.
+- Do not repeat the page title in the first section heading.
+
+## Component contracts
+
+### Buttons
+
+- Primary: filled herb green. One per region.
+- Secondary: quiet tonal surface with visible boundary.
+- Ghost: secondary navigation and reversible actions.
+- Destructive: ghost by default; filled red only inside the final confirmation.
+- Icon-only buttons require an accessible name and tooltip.
+- Loading preserves width, disables repeated submission, and shows a spinner plus verb when space allows.
+- Touch target is at least 44x44px; adjacent targets have at least 8px separation.
+
+### Forms
+
+- Labels are persistent and sit above controls. Placeholder text is an example, never the label.
+- Helper or error text reserves a stable row below the control to avoid layout jumps.
+- Group related fields with a visible legend and one sentence explaining why they matter.
+- Two to seven exclusive options use a segmented or toggle group, not a select.
+- Long recipe entry uses sections with a visible completion path: Basics → Ingredients → Method →
+  Nutrition. Only the current section expands on mobile.
+- Advanced nutrition, import diagnostics, external services, and automation settings are collapsed by
+  default and state what opening them will reveal.
+- Validation happens on blur and submit. Focus the first invalid field and provide a summary for long
+  forms.
+
+### Search, filters, and selection
+
+- Search is the dominant recipe-library control.
+- Common filters appear as no more than three chips. Remaining filters live in a popover or mobile sheet.
+- Active filter count appears in the trigger. `Clear filters` is available whenever any filter is active.
+- Selection is optimistic and reversible; success is acknowledged quietly without a blocking modal.
+
+### Recipe cards
+
+- Image-first with a 4:3 media field. If no image exists, use a Cookfully ingredient/plate illustration,
+  never initials or a generic gray box.
+- Image, title, and entire primary card area open the recipe. Archive/edit actions appear on hover/focus
+  or in a compact menu.
+- The visible metadata line contains at most three useful facts: total time, serving count, and one
+  contextual nutrition summary.
+- Discovery surfaces round values for scanning (`540 kcal`, `32 g protein`). Exact decimals and
+  provenance remain available in recipe detail/editing.
+- Nutrition is never placed in a blurred overlay that obscures food.
+- Desktop grid: 3 columns above 1180px, 2 columns from 760–1179px, 1 column below 760px. A deliberate
+  featured card may span two columns; identical dashboard-card grids are prohibited.
+
+### Nutrition ribbon
+
+The compact evidence layer used on recipe, plan, and suggestion summaries:
+
+- Calories are plain ink text; protein, carbohydrate, fat, and fiber use a 6px semantic dot plus category
+  name and the global nutrient-color registry above.
+- Maximum four values in one row. Collapse to two rows before horizontal scrolling.
+- No rings, gauges, or progress bars unless a real target comparison exists.
+- Target comparison states both values (`32 of 45 g protein`) and never relies on color alone.
+- Coverage/provenance is one compact status trigger that opens explanatory detail.
+
+### Planning
+
+- Week and day navigation remain visible while planning.
+- A day begins with a concise balance summary, followed by Breakfast, Lunch, Dinner, and Snacks.
+- Empty meal slots show a single `Add a recipe` action. The recipe picker is a search-first sheet, not a
+  permanently visible select/input pair repeated four times.
+- Planned recipes show image thumbnail, recipe name, serving count, and contribution. Editing happens
+  inline or in the same picker sheet.
+- Suggestions appear only where they resolve a visible gap; they do not become another dashboard panel.
+
+### Goals and settings
+
+- Goals begin with intent in human language, then show calculated targets for review.
+- The default path contains only the inputs necessary to calculate a useful plan. Manual macro targets,
+  micronutrients, and advanced calculation assumptions are separate disclosures.
+- Settings use a scannable index and focused detail groups. No page presents a wall of unrelated inputs.
+- AI, MCP, database, import provider, and maintenance options are system administration, not ordinary
+  cooking settings; place them in a clearly named `System` area with consequences explained.
+
+### Overlays and feedback
+
+- Use a popover for a small contextual choice, a sheet for browse/search/quick-edit workflows, and a
+  dialog only when the user must resolve a blocking decision.
+- Every dialog and sheet has a semantic title, optional description, visible close action, initial focus,
+  focus trap, and focus restoration.
+- Toasts acknowledge background or reversible actions. Errors that block the current task stay inline.
+- Empty states teach the first action and show an illustrative food-related cue; they do not merely say
+  `Nothing here`.
+- Loading uses skeletons shaped like the destination content. Never replace a whole page with a spinner.
+
+## shadcn component foundation
+
+Cookfully may use shadcn components as source-owned accessible primitives. The component library is not
+the visual identity.
+
+- Store primitives under `frontend/src/components/ui` and shared Cookfully compositions under
+  `frontend/src/components/cookfully`.
+- Map shadcn semantic variables to the tokens above; never keep an untouched preset palette.
+- Prefer shadcn Button, Field/Input, Select/Combobox, ToggleGroup, Tabs, Sheet, Dialog, Popover,
+  Tooltip, DropdownMenu, Badge, Separator, Skeleton, Progress, Empty, and Sonner behavior.
+- Feature code must not restyle primitives with raw colors. Add documented variants when a repeated
+  product pattern needs them.
+- A recipe card, nutrition ribbon, meal slot, day selector, and food media fallback are Cookfully
+  components, not generic registry blocks.
+
+## Motion and interaction
+
+- Default duration: 160ms for hover/focus, 220ms for disclosure, 280ms for sheet/page entrances.
+- Easing: `cubic-bezier(0.22, 1, 0.36, 1)` for entrances; standard ease for color transitions.
+- Animate opacity and transform. Do not animate width, height, margin, or padding.
+- Page entrances may stagger the header and first content group once; repeated scroll reveals are
+  prohibited.
+- Hover translation is at most 2px. No bounce, elastic easing, floating decoration, or decorative
+  infinite motion.
+- Respect `prefers-reduced-motion` by removing non-essential movement and using instant state changes.
+
+## Content language
+
+- Lead with what the person can accomplish: `Plan this week`, `Add a recipe`, `Review nutrition`.
+- Use `you` and plain language; avoid marketing claims inside the application.
+- Prefer `Nutrition estimate is incomplete` over `Pipeline coverage failure`.
+- Prefer `System` over `Database`, `Agent access` over `MCP configuration`, and explain unfamiliar terms
+  before showing controls.
+- Never call food clean/dirty, good/bad, guilt-free, cheat, or sinful. Cookfully supports mindful choices
+  without moralizing them.
+
+## Required states and accessibility
+
+Every data surface explicitly implements and tests: loading, empty, partial, estimated, manual,
+corrected, stale, failed, and unavailable/provider-degraded where applicable.
+
+- Semantic HTML first; ARIA supplements only when needed.
+- Full keyboard navigation with visible 2px focus ring and 2px offset.
+- Focus order follows reading order. Roving tab index is required for day tabs and composite controls.
+- Images have useful alt text or empty alt when decorative.
+- At 200% zoom, controls and content reflow without loss.
+- Verify 1440x900 desktop and 390x844 mobile. No page may create document-level horizontal overflow.
+
+## AI-slop rejection list
+
+Reject the implementation if it contains any of the following:
+
+- a generic hero with oversized centered copy, gradient text, floating glass cards, or meaningless blobs;
+- a dashboard made of identical rounded statistic cards;
+- icons in colored rounded squares above every heading;
+- a card around every section or nested card stacks;
+- default shadcn colors/typography presented as the finished brand;
+- an empty page with one lonely input;
+- a wall of inputs exposed before the user chooses the task;
+- dark navy with electric blue as a shortcut for technical credibility;
+- macros treated as the product's personality;
+- nutrient colors assigned decoratively or inconsistently rather than by the global semantic registry;
+- precision-heavy decimal strings on recipe discovery cards;
+- side-stripe accents, decorative sparklines, gradient text, or pervasive glassmorphism;
+- mobile produced solely by shrinking desktop measurements.
+
+## Page acceptance checklist
+
+A page is ready for visual review only when all answers are yes:
+
+1. Does the first viewport clearly communicate the next useful action?
+2. Is there at most one primary action in each region?
+3. Is food or cooking context visually ahead of nutrition metrics?
+4. Has complexity been progressively disclosed instead of merely restyled?
+5. Are typography, color, spacing, radius, and states expressed through system tokens/components?
+6. Does the page remain coherent with realistic long text, missing images, partial nutrition, and errors?
+7. Is it fully usable at 390x844 with touch and at 1440x900 with keyboard?
+8. Would the page still feel recognizably Cookfully if the wordmark were removed?

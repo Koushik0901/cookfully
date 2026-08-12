@@ -1,4 +1,5 @@
 import type { PeriodTotal, UserGoal } from "./types";
+import { nutritionConfidenceLabel } from "./nutritionConfidence";
 
 const MACROS = [
   ["caloriesKcal", "Calories", "kcal", "calories"],
@@ -30,7 +31,7 @@ function formatTargetDifference(value: string | null | undefined, unit: string) 
 export function MacroSummary({ total, target, label }: { total?: PeriodTotal; target: UserGoal; label: string }) {
   return (
     <section className="macro-summary" aria-label={label}>
-      <div className="section-heading"><h2>{label}</h2><span className="reliability-badge">{total ? `${total.status.replace("_", " ")} · ${Math.round(Number(total.coverageRatio) * 100)}% coverage` : "No entries · 0% coverage"}</span></div>
+      <div className="section-heading"><h2>{label}</h2>{total ? <details className="nutrition-confidence"><summary>{nutritionConfidenceLabel(total.status, total.coverageRatio)}</summary><p>{total.status.replace("_", " ")} nutrition · {Math.round(Number(total.coverageRatio) * 100)}% source coverage</p></details> : <span className="nutrition-confidence__empty">No meals planned</span>}</div>
       <div className="budget-grid">
         {MACROS.map(([field, name, unit, className]) => {
           const consumed = total?.[field] ?? "0";
@@ -38,7 +39,7 @@ export function MacroSummary({ total, target, label }: { total?: PeriodTotal; ta
           const percentage = Math.min(100, Math.max(0, Number(consumed) / Number(targetValue || 1) * 100));
           const difference = total?.targetDifference?.[field] ?? (total ? undefined : `-${targetValue}`);
           const differenceLabel = formatTargetDifference(difference, unit);
-          return <div className={`budget budget--${className}`} key={field}><div className="budget__label"><strong>{name}</strong><span className="data-value">{consumed} / {targetValue} {unit}</span></div><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Math.min(Number(targetValue), Number(consumed))} aria-valuetext={`${consumed} of ${targetValue} ${unit}; ${differenceLabel}`} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="data-value">{differenceLabel}</small></div>;
+          return <div className={`budget budget--${className}`} key={field}><strong className="budget__name">{name}</strong><span className="budget__value data-value">{consumed} / {targetValue} {unit}</span><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Math.min(Number(targetValue), Number(consumed))} aria-valuetext={`${consumed} of ${targetValue} ${unit}; ${differenceLabel}`} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="budget__remaining data-value">{differenceLabel}</small></div>;
         })}
       </div>
       <details className="plan-micronutrients">

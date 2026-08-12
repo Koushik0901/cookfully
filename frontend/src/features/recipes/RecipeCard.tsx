@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 
 import { Button, PollingStatusBadge } from "../../components";
+import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { servingLabel } from "./formatCooking";
 import type { Recipe } from "./types";
 
 export function RecipeCard({
@@ -16,10 +18,14 @@ export function RecipeCard({
   const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
     ? recipe.nutritionState
     : nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
+  const displayNumber = (value: string | null, maximumFractionDigits: number) =>
+    value == null
+      ? "—"
+      : new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(Number(value));
   return (
     <article className="recipe-card">
       <Link className="recipe-card__media" to={`/app/recipes/${recipe.id}`} aria-label={`Open ${recipe.title}`}>
-        {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" /> : <span aria-hidden="true">V&amp;V</span>}
+        {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={recipe.title} />}
         <span className="recipe-card__state">{displayedNutritionState.replace("_", " ")}</span>
       </Link>
       <div className="recipe-card__body">
@@ -27,13 +33,11 @@ export function RecipeCard({
           <h2><Link to={`/app/recipes/${recipe.id}`}>{recipe.title}</Link></h2>
           {recipe.status === "processing" ? <PollingStatusBadge status="running" /> : null}
         </div>
-        <p className="recipe-card__yield data-value">{recipe.yieldQuantity} {recipe.yieldUnit}</p>
+        <p className="recipe-card__yield data-value">{servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</p>
         {nutrition ? (
-          <dl className="macro-row" aria-label={`${recipe.title} nutrition`}>
-            <div className="macro macro--calories"><dt>Calories</dt><dd>{nutrition.caloriesKcal ?? "—"} kcal</dd></div>
-            <div className="macro macro--protein"><dt>Protein</dt><dd>{nutrition.proteinG ?? "—"} g protein</dd></div>
-            <div className="macro macro--carbs"><dt>Carbs</dt><dd>{nutrition.carbohydrateG ?? "—"} g</dd></div>
-            <div className="macro macro--fat"><dt>Fat</dt><dd>{nutrition.fatG ?? "—"} g</dd></div>
+          <dl className="recipe-card__nutrition" aria-label={`${recipe.title} nutrition`}>
+            <div><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)} kcal</dd></div>
+            <div className="recipe-card__protein"><dt>Protein</dt><dd>{displayNumber(nutrition.proteinG, 1)} g</dd></div>
           </dl>
         ) : <p className="muted">Nutrition {recipe.nutritionState.replace("_", " ")}.</p>}
         <div className="actions">

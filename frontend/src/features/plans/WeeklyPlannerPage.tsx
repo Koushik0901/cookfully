@@ -1,25 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { CalendarDays, ChevronLeft, ChevronRight, CookingPot, HeartPulse, LayoutGrid, Plus, Sparkles } from "lucide-react";
 
-import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Button, ErrorRecovery, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "./api";
 import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
 import { DayTabs } from "./DayTabs";
 import { MacroSummary } from "./MacroSummary";
 import { MealPlanEntry } from "./MealPlanEntry";
+import { NutritionPulse } from "./NutritionPulse";
+import { NutritionGuideInvitation } from "./NutritionGuideInvitation";
+import { PrepOverview } from "./PrepOverview";
+import { RecipePickerSheet } from "./RecipePickerSheet";
+import { WeekOverview } from "./WeekOverview";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
-
-function multiplyDecimal(value: string, multiplier: bigint): string {
-  const [whole, fraction = ""] = value.split(".");
-  const scale = fraction.length;
-  const product = BigInt(`${whole}${fraction}`) * multiplier;
-  if (!scale) return product.toString();
-  const padded = product.toString().padStart(scale + 1, "0");
-  return `${padded.slice(0, -scale)}.${padded.slice(-scale)}`;
-}
+type PlannerView = "week" | "day" | "prep";
 
 export function WeeklyPlannerPage() {
   const queryClient = useQueryClient();
@@ -27,14 +25,17 @@ export function WeeklyPlannerPage() {
   const goal = useQuery({ queryKey: ["current-goal"], queryFn: () => planningApi.goal(), retry: false });
   const [weekStart, setWeekStart] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [recipeId, setRecipeId] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSlot, setPickerSlot] = useState("dinner");
   const [addMessage, setAddMessage] = useState("");
+  const [view, setView] = useState<PlannerView>("week");
 
   useEffect(() => {
     if (!preferences.data || weekStart) return;
     const start = weekStartFor(todayInTimezone(preferences.data.timezone), preferences.data.weekStartsOn);
+    const today = todayInTimezone(preferences.data.timezone);
     setWeekStart(start);
-    setSelectedDate(start);
+    setSelectedDate(weekDates(start).includes(today) ? today : start);
   }, [preferences.data, weekStart]);
 
   const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
@@ -43,40 +44,71 @@ export function WeeklyPlannerPage() {
   const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
   const goalMissing = goal.error instanceof ApiProblem && goal.error.status === 404;
   const add = useMutation({
-    mutationFn: (mealSlot: string) => {
-      if (!recipeId) throw new Error("Select a recipe first.");
+    mutationFn: ({ recipeId, mealSlot }: { recipeId: string; mealSlot: string }) => {
       return planningApi.addEntry(weekStart, { localDate: selectedDate, mealSlot, recipeId, servings: "1.000", refreshNutrition: false });
     },
-    onSuccess: () => { setAddMessage("Recipe added to plan"); void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] }); },
+    onSuccess: () => { setAddMessage("Meal added to your plan."); setPickerOpen(false); void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] }); },
   });
 
   function changeWeek(days: number) {
     const next = addDays(weekStart, days);
+    const today = todayInTimezone(preferences.data!.timezone);
     setWeekStart(next);
-    setSelectedDate(next);
+    setSelectedDate(weekDates(next).includes(today) ? today : next);
     setAddMessage("");
   }
 
   if (preferences.isPending || goal.isPending || !weekStart) return <Skeleton label="Loading weekly planner" lines={8} />;
   if (preferences.isError) return <ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} />;
   if (goal.isError && !goalMissing) return <ErrorRecovery title="Goal could not be loaded" onRetry={() => void goal.refetch()} />;
-  if (goalMissing || !goal.data) return <main className="page-shell"><EmptyState title="Set your daily targets first" description="A goal anchors daily and weekly nutrition budgets." action={<Button asChild><Link to="/app/goals">Configure targets</Link></Button>} /></main>;
   if (plan.isError && !planMissing) return <ErrorRecovery title="Weekly plan could not be loaded" onRetry={() => void plan.refetch()} />;
   const entries = plan.data?.entries ?? [];
   const selectedEntries = entries.filter((entry) => entry.localDate === selectedDate);
   const totals = plan.data?.dayTotals ?? {};
+  const availableRecipes = recipes.data?.items.filter((recipe) => recipe.status !== "archived" && !["failed", "pending", "stale"].includes(recipe.nutritionState)) ?? [];
+  const recipesById = new Map(availableRecipes.map((recipe) => [recipe.id, recipe]));
+  const plannedDays = new Set(entries.map((entry) => entry.localDate)).size;
+  const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
 
   return (
     <main className="page-shell">
-      <PageHeader eyebrow={preferences.data.timezone} title={`Week of ${longDate(weekStart)}`} description="Immutable entry snapshots keep displayed totals honest even when recipes change later." actions={<><Button className="button--secondary" onClick={() => changeWeek(-7)}>Previous week</Button><Button className="button--secondary" onClick={() => changeWeek(7)}>Next week</Button><Button asChild><Link to="/app/goals">Edit targets</Link></Button></>} />
-      <DayTabs dates={dates} selected={selectedDate} onSelect={setSelectedDate} totals={totals} />
-      <MacroSummary label={`${longDate(selectedDate)} budget`} total={totals[selectedDate]} target={goal.data} />
-      <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
-        {SLOTS.map((slot) => <section className="meal-slot" key={slot}><div className="section-heading"><h2>{slot[0].toUpperCase()}{slot.slice(1)}</h2><div className="add-entry"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} recipe to add`}><select className="input" value={recipeId} onChange={(event) => setRecipeId(event.target.value)}><option value="">Select recipe</option>{recipes.data?.items.filter((recipe) => recipe.status !== "archived" && !["failed", "pending", "stale"].includes(recipe.nutritionState)).map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.title}</option>)}</select></Field><Button onClick={() => add.mutate(slot)} disabled={!recipeId || add.isPending}>Add to {slot}</Button></div></div>{selectedEntries.filter((entry) => entry.mealSlot === slot).length ? <div className="entry-list">{selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position).map((entry) => <MealPlanEntry key={entry.id} entry={entry} weekStart={weekStart} />)}</div> : <p className="muted">No entries in this meal.</p>}</section>)}
-      </section>
-      {add.error instanceof Error ? <p className="error-text" role="alert">{add.error.message}</p> : null}
-      {addMessage ? <p className="success-text" role="status">{addMessage}</p> : null}
-      <MacroSummary label="Weekly total" total={plan.data?.weekTotal} target={{ ...goal.data, caloriesKcal: multiplyDecimal(goal.data.caloriesKcal, 7n), proteinG: multiplyDecimal(goal.data.proteinG, 7n), carbohydrateG: multiplyDecimal(goal.data.carbohydrateG, 7n), fatG: multiplyDecimal(goal.data.fatG, 7n) }} />
+      <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button className="button--secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button className="button--secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />
+      <div className="planner-toolbar">
+        <div className="planner-views" role="tablist" aria-label="Planning views">
+          <button role="tab" aria-selected={view === "week"} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
+          <button role="tab" aria-selected={view === "day"} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
+          <button role="tab" aria-selected={view === "prep"} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
+        </div>
+        {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
+      </div>
+
+      {view === "week" ? <>
+        <WeekOverview dates={dates} entries={entries} recipesById={recipesById} selectedDate={selectedDate} onOpenDay={(date) => { setSelectedDate(date); setAddMessage(""); setView("day"); }} />
+        {goal.data ? <NutritionPulse total={plan.data?.weekTotal} target={goal.data} plannedDays={plannedDays} /> : <NutritionGuideInvitation />}
+      </> : null}
+
+      {view === "day" ? <>
+        <DayTabs dates={dates} selected={selectedDate} onSelect={(date) => { setSelectedDate(date); setAddMessage(""); }} totals={totals} entryCounts={entryCounts} />
+        <div className="plan-workspace">
+        <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
+          <div className="planner-day__heading"><div><p className="eyebrow">Selected day</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
+          {addMessage ? <p className="planner-day__feedback success-text" role="status">{addMessage}</p> : null}
+          {SLOTS.map((slot) => {
+            const slotEntries = selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position);
+            const slotLabel = slot[0].toUpperCase() + slot.slice(1);
+            return <section className="meal-slot" key={slot}><div className="section-heading"><h3>{slotLabel}</h3><span>{slotEntries.length ? `${slotEntries.length} planned` : "Open"}</span></div>{slotEntries.length ? <div className="entry-list">{slotEntries.map((entry) => <MealPlanEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} />)}</div> : <div className="meal-slot__empty"><div><strong>Nothing planned yet</strong><span>{goal.data ? "Choose a recipe you know, or ask Cookfully for a useful fit." : "Choose any recipe. Nutrition guidance can be added later."}</span></div><div className="meal-slot__empty-actions"><Button className="button--secondary" aria-label={`Add a recipe to ${slotLabel}`} onClick={() => { add.reset(); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a recipe</Button>{goal.data ? <Link to={`/app/suggestions?scope=meal&localDate=${selectedDate}&mealSlot=${slot}`}><Sparkles aria-hidden="true" />Find an idea</Link> : <Link to="/app/goals"><HeartPulse aria-hidden="true" />Guide my ideas</Link>}</div></div>}</section>;
+          })}
+        </section>
+        {goal.data ? <aside className="plan-nutrition" aria-label="Nutrition guidance">
+          <div className="plan-nutrition__intro"><p className="eyebrow">Nutrition guidance</p><h2>Shape the day as you plan</h2><p>Use the remaining amounts to adjust servings or choose the next meal—not to grade the food you’ve already chosen.</p></div>
+          <MacroSummary label="Nutrition balance" total={totals[selectedDate]} target={goal.data} />
+          <Button className="button--text" asChild><Link to="/app/goals">Adjust nutrition targets</Link></Button>
+        </aside> : <aside className="plan-nutrition"><NutritionGuideInvitation compact /></aside>}
+        </div>
+      </> : null}
+
+      {view === "prep" ? <PrepOverview entries={entries} recipesById={recipesById} groceryStatus={plan.data?.groceryStatus} /> : null}
+      <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
     </main>
   );
 }

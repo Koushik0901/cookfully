@@ -3,20 +3,17 @@
   min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-primary-container);
   border-radius: var(--radius);
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-on-primary);
-  background: var(--color-primary);
   cursor: pointer;
   font-weight: 700;
   text-decoration: none;
 }
 
 .button:disabled { cursor: not-allowed; opacity: 0.55; }
-.button--danger { border-color: var(--color-error); color: var(--color-on-error); background: var(--color-error); }
-.button--secondary { border-color: var(--color-outline); color: var(--color-on-surface); background: var(--color-surface-high); }
-.button--text { min-height: 2rem; border-color: transparent; padding: var(--space-xs) var(--space-1); color: var(--color-primary); background: transparent; }
+.button[data-variant="default"] { border-color: var(--color-primary); color: var(--color-on-primary); background: var(--color-primary); }
+.button[data-variant="secondary"] { border-color: var(--color-outline-variant); color: var(--color-on-surface); background: var(--color-surface-high); }
+.button[data-variant="destructive"] { border-color: color-mix(in srgb, var(--color-error) 35%, transparent); color: var(--color-error); background: var(--status-error-container); }
+.button[data-variant="ghost"] { min-height: 2rem; border-color: transparent; color: var(--color-primary); background: transparent; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-sm); }
 .field { display: grid; gap: var(--space-xs); }
 .field__label { font-weight: 700; }
@@ -24,12 +21,14 @@
 .field__error { color: var(--color-error); font-size: var(--text-data-sm); }
 .login-form { display: grid; width: min(100%, 24rem); gap: var(--space-sm); }
 .input { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-outline); border-radius: var(--radius); padding: var(--space-1); background: var(--color-surface-low); }
-.dialog-overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 65%); }
-.dialog { position: fixed; top: 50%; left: 50%; width: min(32rem, calc(100% - 2rem)); transform: translate(-50%, -50%); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--color-surface-container); box-shadow: var(--shadow-level-2); }
+.dialog-overlay { position: fixed; z-index: 100; inset: 0; background: oklch(0.16 0.025 148 / 68%); }
+.dialog { position: fixed; z-index: 101; top: 50%; left: 50%; width: min(32rem, calc(100% - 2rem)); transform: translate(-50%, -50%); border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: var(--space-md); background: var(--color-surface-container); box-shadow: var(--shadow-level-2); }
 .dialog p, .empty-state p, .error-recovery p { color: var(--color-on-surface-variant); }
-.status { display: inline-flex; border-radius: var(--radius-full); padding: var(--space-xs) var(--space-1); background: var(--color-surface-high); font-size: var(--text-data-sm); text-transform: capitalize; }
-.status--succeeded { color: var(--color-primary); }
-.status--failed { color: var(--color-error); }
+.status { display: inline-flex; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: var(--space-xs) var(--space-1); color: var(--color-on-surface-variant); background: var(--color-surface-high); font-size: var(--text-data-sm); text-transform: capitalize; }
+.status--queued, .status--running { border-color: color-mix(in srgb, var(--status-info) 35%, transparent); color: var(--status-info); background: var(--status-info-container); }
+.status--retry_wait { border-color: color-mix(in srgb, var(--status-warning) 35%, transparent); color: var(--status-warning); background: var(--status-warning-container); }
+.status--succeeded { border-color: color-mix(in srgb, var(--status-success) 35%, transparent); color: var(--status-success); background: var(--status-success-container); }
+.status--failed { border-color: color-mix(in srgb, var(--color-error) 35%, transparent); color: var(--color-error); background: var(--status-error-container); }
 .skeleton { display: grid; gap: var(--space-1); width: min(100%, 30rem); padding: var(--space-md); }
 .skeleton span { height: 1rem; border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--color-surface-high) 25%, var(--color-surface-highest) 37%, var(--color-surface-high) 63%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; }
 .skeleton .skeleton__title { height: 1.5rem; width: 40%; }

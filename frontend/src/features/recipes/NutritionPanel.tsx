@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 
 import { Button, DecimalInput, Field, PollingStatusBadge } from "../../components";
+import { formatCookingNumber } from "./formatCooking";
 import type { Job, NutritionCorrectionWrite, ResolvedNutrition } from "./types";
 
 const MICRONUTRIENTS = [
@@ -16,6 +17,10 @@ const MICRONUTRIENTS = [
 ] as const;
 
 const TERMINAL = new Set(["succeeded", "failed", "cancelled", "superseded"]);
+const displayNumber = (value: string | null, maximumFractionDigits: number) =>
+  value == null
+    ? "—"
+    : new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(Number(value));
 
 export function NutritionPanel({
   nutrition,
@@ -111,12 +116,12 @@ export function NutritionPanel({
       {nutrition ? (
         <>
           <dl className="macro-grid">
-            <div className="macro macro--calories"><dt>Calories</dt><dd>{nutrition.caloriesKcal ?? "—"}<span> kcal</span></dd></div>
-            <div className="macro macro--protein"><dt>Protein</dt><dd>{nutrition.proteinG ?? "—"}<span> g</span></dd></div>
-            <div className="macro macro--carbs"><dt>Carbohydrate</dt><dd>{nutrition.carbohydrateG ?? "—"}<span> g</span></dd></div>
-            <div className="macro macro--fat"><dt>Fat</dt><dd>{nutrition.fatG ?? "—"}<span> g</span></dd></div>
+            <div className="macro macro--calories"><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)}<span> kcal</span></dd></div>
+            <div className="macro macro--protein"><dt>Protein</dt><dd>{displayNumber(nutrition.proteinG, 1)}<span> g</span></dd></div>
+            <div className="macro macro--carbs"><dt>Carbohydrate</dt><dd>{displayNumber(nutrition.carbohydrateG, 1)}<span> g</span></dd></div>
+            <div className="macro macro--fat"><dt>Fat</dt><dd>{displayNumber(nutrition.fatG, 1)}<span> g</span></dd></div>
           </dl>
-          <p className="data-value">Basis: {nutrition.basisServings} servings · Coverage: {Math.round(Number(nutrition.coverageRatio) * 100)}%</p>
+          <p className="data-value">Basis: {formatCookingNumber(nutrition.basisServings)} servings · Coverage: {Math.round(Number(nutrition.coverageRatio) * 100)}%</p>
           {servingsScale !== 1 && (
             <p className="muted">
               Scaled to {Number(servingsScale).toFixed(1).replace(/\.0$/, "")} servings: {nutrition.caloriesKcal != null ? `${Math.round(Number(nutrition.caloriesKcal) * servingsScale).toLocaleString()} kcal` : "— kcal"}, {nutrition.proteinG != null ? `${(Number(nutrition.proteinG) * servingsScale).toFixed(1)}g P` : "— P"}, {nutrition.carbohydrateG != null ? `${(Number(nutrition.carbohydrateG) * servingsScale).toFixed(1)}g C` : "— C"}, {nutrition.fatG != null ? `${(Number(nutrition.fatG) * servingsScale).toFixed(1)}g F` : "— F"}

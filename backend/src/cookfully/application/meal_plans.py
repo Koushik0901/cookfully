@@ -115,7 +115,7 @@ class MealPlanRead:
     id: UUID
     week_start: date
     timezone: str
-    goal: GoalRead
+    goal: GoalRead | None
     entries: tuple[MealPlanEntryRead, ...]
     totals: PlanTotals
     grocery_status: str
@@ -292,16 +292,20 @@ class MealPlanService:
             repository = MealPlanRepository(session)
             plan = repository.find_week(owner_id, week_start)
             if plan is None:
-                goal = GoalRepository(session).effective(owner_id, week_start)
+                goal = GoalRepository(session).effective_or_none(owner_id, week_start)
                 plan = MealPlan(
                     owner_id=owner_id,
                     week_start=week_start,
                     timezone=owner.timezone,
-                    goal_id=goal.id,
+                    goal_id=goal.id if goal is not None else None,
                     version=1,
                 )
                 session.add(plan)
                 session.flush()
+            elif plan.goal is None:
+                goal = GoalRepository(session).effective_or_none(owner_id, week_start)
+                if goal is not None:
+                    plan.goal = goal
             position = value.position
             if position is None:
                 maximum = session.scalar(
@@ -557,23 +561,28 @@ class MealPlanService:
     @classmethod
     def _read(cls, plan: MealPlan) -> MealPlanRead:
         entries = tuple(cls._entry_read(entry, entry.nutrition_snapshot) for entry in plan.entries)
+        daily_target = (
+            MacroValues(
+                plan.goal.target_kcal,
+                plan.goal.protein_g,
+                plan.goal.carbohydrate_g,
+                plan.goal.fat_g,
+            )
+            if plan.goal is not None
+            else None
+        )
         totals = aggregate_plan(
             [
                 PlannedSnapshot(entry.local_date, entry.meal_slot, entry.position, entry.nutrition)
                 for entry in entries
             ],
-            daily_target=MacroValues(
-                plan.goal.target_kcal,
-                plan.goal.protein_g,
-                plan.goal.carbohydrate_g,
-                plan.goal.fat_g,
-            ),
+            daily_target=daily_target,
         )
         return MealPlanRead(
             plan.id,
             plan.week_start,
             plan.timezone,
-            GoalService._read(plan.goal),
+            GoalService._read(plan.goal) if plan.goal is not None else None,
             entries,
             totals,
             plan.grocery_list.status if plan.grocery_list is not None else "absent",

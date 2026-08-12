@@ -82,25 +82,27 @@ async function mockGroceryApi(page: Page) {
 test("regenerates, traces, edits, checks, adds, and removes grocery items", async ({ page }) => {
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: "Grocery list" })).toBeVisible();
-  await expect(page.getByText(/plan changed.*regenerate/i)).toBeVisible();
-  await page.getByRole("button", { name: "Regenerate grocery list" }).click();
-  await expect(page.getByText("List is current")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Everything you need this week" })).toBeVisible();
+  await expect(page.getByText(/meal plan changed.*refresh/i)).toBeVisible();
+  await page.getByRole("button", { name: "Refresh from plan" }).click();
+  await expect(page.getByText("Ready to shop")).toBeVisible();
 
   await page.getByRole("button", { name: "Show Red onion sources" }).click();
   await expect(page.getByText("500 g red onion")).toBeVisible();
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeChecked();
 
+  await page.getByText("Edit Red onion", { exact: true }).click();
   await page.getByLabel("Red onion name").fill("My red onions");
   await page.getByLabel("Red onion quantity").fill("800.000000");
   await page.getByRole("button", { name: "Save Red onion" }).click();
   await expect(page.getByRole("heading", { name: "My red onions" })).toBeVisible();
 
-  await page.getByLabel("New item name").fill("Reusable bags");
-  await page.getByLabel("New item quantity").fill("2.000000");
-  await page.getByLabel("New item unit").fill("bags");
-  await page.getByRole("button", { name: "Add grocery item" }).click();
+  await page.getByText("Add something else", { exact: true }).click();
+  await page.getByLabel("Item", { exact: true }).fill("Reusable bags");
+  await page.getByLabel("Quantity", { exact: true }).fill("2.000000");
+  await page.getByLabel("Unit", { exact: true }).fill("bags");
+  await page.getByRole("button", { name: "Add to list" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toBeVisible();
   await page.getByRole("button", { name: "Remove Reusable bags" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);

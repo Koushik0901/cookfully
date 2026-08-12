@@ -12,7 +12,9 @@ class GoalRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def effective(self, owner_id: UUID, on_date: date, *, for_update: bool = False) -> UserGoal:
+    def effective_or_none(
+        self, owner_id: UUID, on_date: date, *, for_update: bool = False
+    ) -> UserGoal | None:
         statement = (
             select(UserGoal)
             .where(
@@ -25,7 +27,10 @@ class GoalRepository:
         )
         if for_update:
             statement = statement.with_for_update()
-        goal = self.session.scalar(statement)
+        return self.session.scalar(statement)
+
+    def effective(self, owner_id: UUID, on_date: date, *, for_update: bool = False) -> UserGoal:
+        goal = self.effective_or_none(owner_id, on_date, for_update=for_update)
         if goal is None:
             raise DomainError("goal_not_found", "No goal is effective on that date.", 404)
         return goal

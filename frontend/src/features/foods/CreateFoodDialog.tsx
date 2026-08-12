@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { Button, Field } from "../../components";
 import { foodsApi } from "./api";
 import type { OwnerFoodWrite } from "./types";
@@ -62,7 +63,7 @@ export function CreateFoodDialog({
     const p = parseFloat(protein);
     const c = parseFloat(carbs);
     const f = parseFloat(fat);
-    const basis = parseFloat(basisGrams) || 100;
+    const basis = parseFloat(basisGrams);
 
     if (!displayName.trim()) {
       setError("Food name is required.");
@@ -70,6 +71,10 @@ export function CreateFoodDialog({
     }
     if (isNaN(cal) || cal < 0 || isNaN(p) || p < 0 || isNaN(c) || c < 0 || isNaN(f) || f < 0) {
       setError("All macro values must be non-negative numbers.");
+      return;
+    }
+    if (isNaN(basis) || basis <= 0) {
+      setError("Label serving weight must be greater than zero.");
       return;
     }
 
@@ -81,7 +86,7 @@ export function CreateFoodDialog({
       carbohydrateG: c,
       fatG: f,
       basisGrams: basis,
-      typicalServingG: prefill?.servingGrams ?? undefined,
+      typicalServingG: servingUnit.trim() ? basis : undefined,
       typicalServingUnit: servingUnit.trim() || undefined,
     });
   }
@@ -91,108 +96,54 @@ export function CreateFoodDialog({
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog" aria-describedby="create-food-desc">
-          <Dialog.Title>Create your own food</Dialog.Title>
-          <Dialog.Description id="create-food-desc">
-            Enter the nutrition values from your product label.
-          </Dialog.Description>
-
-          <form className="stack" onSubmit={submit}>
-            <Field label="Food name" error={error && !displayName.trim() ? error : undefined}>
-              <input
-                className="input"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={ingredientName}
-              />
-            </Field>
-
-            <Field label="Brand (optional)">
-              <input
-                className="input"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder="e.g. Optimum Nutrition"
-              />
-            </Field>
-
-            <Field label="Calories (kcal per serving)">
-              <input
-                className="input"
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-                placeholder="120"
-              />
-            </Field>
-
-            <Field label="Protein (g per serving)">
-              <input
-                className="input"
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-                placeholder="25"
-              />
-            </Field>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-sm)" }}>
-              <Field label="Carbs (g)">
-                <input
-                  className="input"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  value={carbs}
-                  onChange={(e) => setCarbs(e.target.value)}
-                  placeholder="3"
-                />
-              </Field>
-              <Field label="Fat (g)">
-                <input
-                  className="input"
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  value={fat}
-                  onChange={(e) => setFat(e.target.value)}
-                  placeholder="1"
-                />
-              </Field>
+        <Dialog.Content className="dialog food-dialog" aria-describedby="create-food-desc">
+          <header className="food-dialog__header">
+            <div>
+              <p className="eyebrow">From a product label</p>
+              <Dialog.Title>Add a food you know</Dialog.Title>
+              <Dialog.Description id="create-food-desc" className="food-dialog__description">
+                Copy one serving from the package. Cookfully will keep these values together for future recipes.
+              </Dialog.Description>
             </div>
+            <Dialog.Close className="food-dialog__close" aria-label="Close add food dialog"><X aria-hidden="true" /></Dialog.Close>
+          </header>
 
-            <details className="disclosure">
-              <summary>Serving size details</summary>
-              <div className="stack" style={{ marginBlockStart: "var(--space-sm)" }}>
-                <Field label="Grams per serving">
-                  <input
-                    className="input"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.1"
-                    value={basisGrams}
-                    onChange={(e) => setBasisGrams(e.target.value)}
-                    placeholder="100"
-                  />
+          <form className="food-dialog__form" onSubmit={submit}>
+            <fieldset className="food-dialog__section">
+              <legend><span>1</span>Identify the food</legend>
+              <p>Use the name you expect to see in a recipe.</p>
+              <div className="food-dialog__identity-grid">
+                <Field label="Food name" error={error && !displayName.trim() ? error : undefined}>
+                  <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={ingredientName || "Vanilla whey protein"} autoFocus />
                 </Field>
-                <Field label="Serving unit (optional)">
-                  <input
-                    className="input"
-                    value={servingUnit}
-                    onChange={(e) => setServingUnit(e.target.value)}
-                    placeholder="scoop"
-                  />
+                <Field label="Brand (optional)">
+                  <input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Optimum Nutrition" />
                 </Field>
               </div>
-            </details>
+            </fieldset>
 
-            {error && <p className="error-text">{error}</p>}
+            <fieldset className="food-dialog__section food-dialog__section--label">
+              <legend><span>2</span>Copy one label serving</legend>
+              <p>Enter the four values shown for a single serving, then tell us how much that serving weighs.</p>
+              <div className="food-dialog__macro-grid">
+                <Field label="Calories"><input className="input" type="number" inputMode="decimal" min="0" step="0.1" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="120" /></Field>
+                <Field label="Protein (g)"><input className="input" type="number" inputMode="decimal" min="0" step="0.1" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="25" /></Field>
+                <Field label="Carbohydrate (g)"><input className="input" type="number" inputMode="decimal" min="0" step="0.1" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="3" /></Field>
+                <Field label="Fat (g)"><input className="input" type="number" inputMode="decimal" min="0" step="0.1" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="1" /></Field>
+              </div>
+              <div className="food-dialog__serving-grid">
+                <Field label="Label serving weight" hint="The gram weight those nutrition values describe.">
+                  <input className="input" type="number" inputMode="decimal" min="0.1" step="0.1" value={basisGrams} onChange={(e) => setBasisGrams(e.target.value)} placeholder="31" />
+                </Field>
+                <Field label="Serving name (optional)" hint="For example: scoop, bar, cup.">
+                  <input className="input" value={servingUnit} onChange={(e) => setServingUnit(e.target.value)} placeholder="scoop" />
+                </Field>
+              </div>
+            </fieldset>
 
-            <div className="actions">
+            {error && <p className="error-text food-dialog__error" role="alert">{error}</p>}
+
+            <div className="food-dialog__actions">
               <Dialog.Close asChild>
                 <Button type="button" className="button--secondary">Cancel</Button>
               </Dialog.Close>

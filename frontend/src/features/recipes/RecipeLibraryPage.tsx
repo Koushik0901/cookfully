@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Search, Sparkles } from "lucide-react";
 
 import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { recipesApi } from "./api";
@@ -10,9 +11,10 @@ import { RecipeImportDialog } from "./RecipeImportDialog";
 export function RecipeLibraryPage() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [nutritionState, setNutritionState] = useState("");
-  const [includeArchived, setIncludeArchived] = useState(false);
-  const filters = { query, nutritionState, includeArchived };
+  const [libraryView, setLibraryView] = useState<"all" | "ready" | "attention" | "archived">("all");
+  const [sortBy, setSortBy] = useState<"updated" | "title-asc" | "title-desc" | "protein" | "calories">("updated");
+  const [groupBy, setGroupBy] = useState<"none" | "readiness">("none");
+  const filters = { query, includeArchived: libraryView === "archived" };
   const recipes = useQuery({
     queryKey: ["recipes", filters],
     queryFn: () => recipesApi.list(filters),
@@ -25,27 +27,55 @@ export function RecipeLibraryPage() {
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["recipes"] }),
   });
+  const displayedRecipes = useMemo(() => {
+    const items = recipes.data?.items.filter((recipe) => {
+      const ready = recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState);
+      if (libraryView === "ready") return ready;
+      if (libraryView === "attention") return recipe.status !== "archived" && !ready;
+      if (libraryView === "archived") return recipe.status === "archived";
+      return recipe.status !== "archived";
+    }) ?? [];
+    return [...items].sort((a, b) => {
+      if (sortBy === "title-asc") return a.title.localeCompare(b.title);
+      if (sortBy === "title-desc") return b.title.localeCompare(a.title);
+      if (sortBy === "protein") return Number(b.nutrition?.proteinG ?? -1) - Number(a.nutrition?.proteinG ?? -1);
+      if (sortBy === "calories") return Number(a.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY) - Number(b.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY);
+      return new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime();
+    });
+  }, [libraryView, recipes.data?.items, sortBy]);
+  const groupedRecipes = groupBy === "readiness"
+    ? [
+        { title: "Ready to plan", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState)) },
+        { title: "Needs a nutrition check", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && ["pending", "failed", "stale"].includes(recipe.nutritionState)) },
+        { title: "Archived", items: displayedRecipes.filter((recipe) => recipe.status === "archived") },
+      ].filter((group) => group.items.length)
+    : [{ title: "", items: displayedRecipes }];
 
   return (
     <main className="page-shell">
       <PageHeader
-        eyebrow="Recipe workspace"
-        title="Recipe library"
-        description="Search, inspect evidence, and keep every nutrition estimate correctable."
-        actions={<><RecipeImportDialog trigger={<Button className="button--secondary">Import from URL</Button>} /><Button asChild><Link to="/app/recipes/new">Create recipe</Link></Button></>}
+        eyebrow="Your recipes"
+        title="What would you like to cook?"
+        description="Browse what you know, or let Cookfully help you find a good fit for the week."
+        actions={<><Button asChild><Link to="/app/suggestions"><Sparkles aria-hidden="true" />Give me ideas</Link></Button><RecipeImportDialog trigger={<Button className="button--secondary">Import recipe</Button>} /><Button className="button--secondary" asChild><Link to="/app/recipes/new">Create recipe</Link></Button></>}
       />
 
-      <section className="filter-bar" aria-label="Recipe filters">
-        <Field label="Search recipes"><input className="input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></Field>
-        <Field label="Nutrition state"><select className="input" value={nutritionState} onChange={(event) => setNutritionState(event.target.value)}><option value="">All states</option><option value="pending">Pending</option><option value="source_provided">Source provided</option><option value="estimated">Estimated</option><option value="partial">Partial</option><option value="failed">Failed</option><option value="stale">Stale</option></select></Field>
-        <label className="check-field"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} /> Include archived recipes</label>
+      <section className="recipe-discovery" aria-label="Find recipes">
+        <div className="recipe-search"><Search aria-hidden="true" /><input className="input" aria-label="Search recipes" type="search" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+        <div className="recipe-view-tabs" aria-label="Recipe views">
+          {([['all', 'All recipes'], ['ready', 'Ready to plan'], ['attention', 'Needs attention'], ['archived', 'Archived']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={libraryView === value} onClick={() => setLibraryView(value)}>{label}</button>)}
+        </div>
+        <div className="recipe-organize">
+          <Field label="Sort"><select className="input" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="updated">Recently updated</option><option value="title-asc">Name A–Z</option><option value="title-desc">Name Z–A</option><option value="protein">Highest protein</option><option value="calories">Lowest calories</option></select></Field>
+          <Field label="Group"><select className="input" value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)}><option value="none">No grouping</option><option value="readiness">Planning readiness</option></select></Field>
+        </div>
       </section>
 
       {lifecycle.error instanceof Error ? <p className="error-text" role="alert">{lifecycle.error.message}</p> : null}
       {recipes.isPending ? <Skeleton label="Loading recipe library" lines={6} /> : null}
       {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
-      {recipes.data && recipes.data.items.length === 0 ? <EmptyState title="No recipes yet" description={query || nutritionState || includeArchived ? "No recipes match these filters." : "Create one manually or import a public recipe URL."} action={<Button asChild><Link to="/app/recipes/new">Create recipe</Link></Button>} /> : null}
-      {recipes.data?.items.length ? <section className="recipe-grid" aria-label="Recipes">{recipes.data.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} />)}</section> : null}
+      {recipes.data && displayedRecipes.length === 0 ? <EmptyState title="No matching recipes" description={query || libraryView !== "all" ? "Try another search or recipe view." : "Create one manually or import a public recipe URL."} action={<Button asChild><Link to="/app/recipes/new">Create recipe</Link></Button>} /> : null}
+      {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} />)}</div></section> : null)}
     </main>
   );
 }

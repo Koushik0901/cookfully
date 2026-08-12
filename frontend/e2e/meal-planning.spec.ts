@@ -64,38 +64,79 @@ async function mockPlanningApi(page: Page) {
   });
 }
 
+test("starts food-first planning before a nutrition guide exists", async ({ page }) => {
+  await mockPlanningApi(page);
+  await page.goto("/app/plan");
+
+  await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
+  await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
+
+  await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add nutrition guidance" })).toBeVisible();
+  await expect(page.getByText("Meal added to your plan.")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes snapshots", async ({ page }) => {
   await mockPlanningApi(page);
   await page.goto("/app/goals");
+  await page.getByText("Energy baseline and dates", { exact: true }).click();
   await page.getByLabel("Maintenance calories").fill("2500.000000");
   await page.getByLabel("Daily calories").fill("2200.000000");
   await page.getByLabel("Daily protein").fill("180.000000");
   await page.getByLabel("Daily carbohydrate").fill("220.000000");
   await page.getByLabel("Daily fat").fill("65.000000");
   await page.getByLabel("Effective from").fill("2026-03-01");
-  await page.getByRole("button", { name: "Save targets" }).click();
-  await expect(page.getByText("Targets saved")).toBeVisible();
+  await page.getByRole("button", { name: "Save my guide" }).click();
+  await expect(page.getByText("Your planning guide is saved.")).toBeVisible();
+  await expect(page.getByLabel("Current daily nutrition guide")).toContainText("2,200 kcal");
+  await expect(page.getByRole("button", { name: "Adjust daily guide" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save my guide" })).toHaveCount(0);
 
-  await page.getByRole("main").getByRole("link", { name: "Weekly plan" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Back to meal plan" }).click();
   await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
-  const tabs = page.getByRole("tab");
-  await expect(tabs).toHaveCount(7);
+  await page.getByRole("tab", { name: "Day" }).click();
+  const dayTabs = page.getByRole("tablist", { name: "Days in planning week" }).getByRole("tab");
+  await expect(dayTabs).toHaveCount(7);
   for (let index = 0; index < 7; index += 1) {
-    await tabs.nth(index).click();
-    await page.getByLabel("Breakfast recipe to add").selectOption(recipeId);
-    await page.getByRole("button", { name: "Add to breakfast" }).click();
+    await dayTabs.nth(index).click();
+    await page.getByRole("button", { name: "Add a recipe to Breakfast" }).click();
+    await page.getByRole("button", { name: "Add Protein oats to Breakfast" }).click();
     await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   }
 
-  await tabs.first().click();
-  await page.getByLabel("Protein oats servings").fill("2.000");
-  await page.getByRole("button", { name: "Update Protein oats" }).click();
-  await expect(page.getByText("1003 kcal")).toBeVisible();
-  await page.getByRole("button", { name: "Copy Protein oats to next day" }).click();
-  await page.getByLabel("Protein oats meal slot").selectOption("lunch");
-  await page.getByRole("button", { name: "Update Protein oats" }).click();
-  await expect(page.getByRole("heading", { name: "Lunch" })).toBeVisible();
-  await page.getByRole("button", { name: "Refresh Protein oats nutrition" }).click();
+  await dayTabs.first().click();
+  const plannedEntry = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Protein oats" }) });
+  const ensureAdjustmentsOpen = async () => {
+    const disclosure = plannedEntry.locator("details.plan-entry__adjust");
+    if (!(await disclosure.evaluate((element) => (element as HTMLDetailsElement).open))) await plannedEntry.getByText("Adjust meal", { exact: true }).click();
+  };
+  await ensureAdjustmentsOpen();
+  await plannedEntry.getByLabel("Protein oats servings").fill("2.000");
+  await plannedEntry.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("1,003 kcal")).toBeVisible();
+  await plannedEntry.getByRole("button", { name: "Next day" }).click();
+  await ensureAdjustmentsOpen();
+  await plannedEntry.getByLabel("Protein oats meal slot").selectOption("lunch");
+  await plannedEntry.getByRole("button", { name: "Save changes" }).click();
+  const lunchSlot = page.locator("section.meal-slot").filter({ has: page.getByRole("heading", { name: "Lunch" }) });
+  const movedEntry = lunchSlot.getByRole("article").filter({ has: page.getByRole("heading", { name: "Protein oats" }) });
+  await expect(movedEntry).toBeVisible();
+  await movedEntry.getByText("Adjust meal", { exact: true }).click();
+  await expect(movedEntry.getByRole("button", { name: "Refresh nutrition" })).toBeVisible();
+  await movedEntry.getByRole("button", { name: "Refresh nutrition" }).click();
   await expect(page.getByText(/snapshot refreshed/i)).toBeVisible();
+
+  await page.getByRole("tab", { name: "Week" }).click();
+  await expect(page.getByRole("heading", { name: "See the food, not just the count" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Weekly nutrition guidance" })).toBeVisible();
+  await page.getByRole("tab", { name: "Prep" }).click();
+  await expect(page.getByRole("heading", { name: "Cook 1 dish for 8 meals" })).toBeVisible();
+  await expect(page.getByText("10 total servings")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

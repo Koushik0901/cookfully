@@ -25,7 +25,7 @@ describe("sign-in view", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 401 })));
     renderView();
 
-    expect(await screen.findByRole("heading", { name: "Sign in to your planner" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();

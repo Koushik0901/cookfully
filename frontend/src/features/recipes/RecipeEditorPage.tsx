@@ -20,6 +20,7 @@ export function RecipeEditorPage() {
   const [yieldUnit, setYieldUnit] = useState("servings");
   const [ingredients, setIngredients] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [extrasOpen, setExtrasOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export function RecipeEditorPage() {
     setYieldUnit(detail.data.yieldUnit);
     setIngredients(detail.data.ingredients.map((item) => item.originalText).join("\n"));
     setInstructions(detail.data.instructions.join("\n"));
+    setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
   }, [detail.data]);
 
   const save = useMutation({
@@ -71,26 +73,26 @@ export function RecipeEditorPage() {
 
   return (
     <main className="page-shell">
-      <PageHeader eyebrow="Recipe workspace" title={recipeId ? "Edit recipe" : "Create a recipe"} description="Original ingredient text is always retained alongside structured parsing." actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
-      <form className="recipe-form" onSubmit={submit} noValidate>
-        <fieldset className="recipe-form__section"><legend>Basics</legend>
-          <Field label="Recipe title" error={errors.title}><input className="input" value={title} onChange={(event) => setTitle(event.target.value)} /></Field>
-          <Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
-          <Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></Field>
-          <div className="form-grid">
-            <Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field>
-            <Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field>
-          </div>
-        </fieldset>
-        <fieldset className="recipe-form__section"><legend>Ingredients</legend>
-          <Field label="Ingredients, one per line" error={errors.ingredients} hint="Keep the text exactly as written on the recipe or package."><textarea aria-label="Ingredients, one per line" className="input textarea textarea--tall" value={ingredients} onChange={(event) => setIngredients(event.target.value)} /></Field>
-          {detail.data?.ingredients.length ? <details className="structured-review"><summary>Review structured ingredient parsing</summary><ul>{detail.data.ingredients.map((item) => <li key={item.id}><strong>{item.originalText}</strong><span>{[item.quantityMin, item.quantityMax ? `–${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Not parsed"} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</span></li>)}</ul></details> : null}
-        </fieldset>
-        <fieldset className="recipe-form__section"><legend>Instructions</legend>
-          <Field label="Instructions, one step per line"><textarea className="input textarea textarea--tall" value={instructions} onChange={(event) => setInstructions(event.target.value)} /></Field>
-        </fieldset>
+      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
+      <form className="recipe-form recipe-editor" onSubmit={submit} noValidate>
+        <section className="recipe-editor__identity" aria-label="Recipe name and yield">
+          <Field label="Recipe title" error={errors.title}><input className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
+          <div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field></div>
+        </section>
+
+        <div className="recipe-editor__workbench">
+          <section className="recipe-editor__section"><div className="recipe-editor__section-heading"><span>01</span><div><h2>Ingredients</h2><p>One ingredient per line, exactly as you would write it.</p></div></div>
+            <Field label="Ingredients, one per line" error={errors.ingredients} hint="Amounts and preparation notes can stay in the same line."><textarea aria-label="Ingredients, one per line" className="input textarea recipe-editor__textarea" value={ingredients} onChange={(event) => setIngredients(event.target.value)} placeholder={"2 chicken breasts\n1 lemon, juiced\n2 tbsp olive oil\nA handful of parsley"} /></Field>
+            {detail.data?.ingredients.length ? <details className="structured-review"><summary>Ingredient parsing details</summary><ul>{detail.data.ingredients.map((item) => <li key={item.id}><strong>{item.originalText}</strong><span>{[item.quantityMin, item.quantityMax ? `–${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Not parsed"} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</span></li>)}</ul></details> : null}
+          </section>
+          <section className="recipe-editor__section"><div className="recipe-editor__section-heading"><span>02</span><div><h2>Method</h2><p>Write each cooking step on its own line.</p></div></div>
+            <Field label="Instructions, one step per line"><textarea className="input textarea recipe-editor__textarea" value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder={"Season the chicken generously.\nSear until golden on both sides.\nAdd lemon juice and finish in the oven."} /></Field>
+          </section>
+        </div>
+
+        <details className="recipe-editor__extras" open={extrasOpen} onToggle={(event) => setExtrasOpen(event.currentTarget.open)}><summary><span><strong>Add a description or source</strong><small>Optional context for remembering where this recipe came from</small></span></summary><div className="recipe-editor__extras-content"><Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="A quick weeknight dinner with bright lemon and herbs." /></Field><Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://…" /></Field></div></details>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
-        <div className="actions"><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
+        <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
     </main>
   );

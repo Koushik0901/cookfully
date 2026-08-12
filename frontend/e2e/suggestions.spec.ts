@@ -40,10 +40,10 @@ for (const scope of ["day", "week"] as const) {
   test(`${scope} suggestion preserves exact preview and accepted-total parity`, async ({ page }) => {
     await mockSuggestionApi(page);
     await page.goto("/app/suggestions");
-    await expect(page.getByRole("heading", { name: "Meal suggestions" })).toBeVisible();
-    await page.getByLabel("Suggestion scope").selectOption(scope);
-    await page.getByRole("button", { name: "Generate suggestions" }).click();
-    await expect(page.getByText("Feasible within your tolerances")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What would make your plan easier?" })).toBeVisible();
+    await page.getByRole("radio", { name: scope === "week" ? /Fill my week/i : /A full day/i }).click();
+    await page.getByRole("button", { name: "Find meal ideas" }).click();
+    await expect(page.getByText("Here’s a plan that fits")).toBeVisible();
     const expected = scope === "week" ? "8400 kcal" : "1200 kcal";
     await expect(page.getByTestId("preview-primary-total")).toContainText(expected);
     await page.getByRole("button", { name: "Accept 1 selected item" }).click();

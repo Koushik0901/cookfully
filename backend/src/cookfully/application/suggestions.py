@@ -340,6 +340,9 @@ class SuggestionService:
         repository = MealPlanRepository(session)
         plan = repository.find_week(owner_id, week_start)
         if plan is not None:
+            if plan.goal is None:
+                goal = GoalRepository(session).effective(owner_id, week_start)
+                plan.goal = goal
             return plan
         owner = session.get(OwnerAccount, owner_id)
         if owner is None:
@@ -359,15 +362,20 @@ class SuggestionService:
 
     @staticmethod
     def _remaining_target(plan: MealPlan, value: SuggestionWrite) -> SuggestionTarget:
+        if plan.goal is None:
+            raise DomainError(
+                "goal_not_found", "Add a nutrition guide before asking for suggestions.", 404
+            )
+        goal = plan.goal
         goal_values = SuggestionTarget(
-            plan.goal.target_kcal,
-            plan.goal.protein_g,
-            plan.goal.carbohydrate_g,
-            plan.goal.fat_g,
+            goal.target_kcal,
+            goal.protein_g,
+            goal.carbohydrate_g,
+            goal.fat_g,
         )
         if value.scope == "meal":
             target = next(
-                (item for item in plan.goal.meal_targets if item.meal_slot == value.meal_slot), None
+                (item for item in goal.meal_targets if item.meal_slot == value.meal_slot), None
             )
             if target is not None and all(
                 getattr(target, field) is not None
@@ -501,6 +509,11 @@ class SuggestionService:
         solution: SuggestionSolution,
         recipes: dict[UUID, RecipeRead],
     ) -> None:
+        if plan.goal is None:
+            raise DomainError(
+                "goal_not_found", "Add a nutrition guide before asking for suggestions.", 404
+            )
+        goal = plan.goal
         run.items.clear()
         suggested_snapshots: list[PlannedSnapshot] = []
         for position, selection in enumerate(solution.items):
@@ -552,10 +565,10 @@ class SuggestionService:
         totals = aggregate_plan(
             existing + suggested_snapshots,
             MacroValues(
-                plan.goal.target_kcal,
-                plan.goal.protein_g,
-                plan.goal.carbohydrate_g,
-                plan.goal.fat_g,
+                goal.target_kcal,
+                goal.protein_g,
+                goal.carbohydrate_g,
+                goal.fat_g,
             ),
         )
         run.projected_day_totals = {

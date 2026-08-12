@@ -257,7 +257,7 @@ class MealPlanResponse(ApiModel):
     id: UUID
     week_start: date = Field(alias="weekStart")
     timezone: str
-    goal: UserGoalResponse
+    goal: UserGoalResponse | None = None
     entries: tuple[MealPlanEntryResponse, ...]
     day_totals: dict[str, PeriodTotalResponse] = Field(alias="dayTotals")
     week_total: PeriodTotalResponse = Field(alias="weekTotal")
@@ -270,7 +270,7 @@ class MealPlanResponse(ApiModel):
             id=value.id,
             week_start=value.week_start,
             timezone=value.timezone,
-            goal=UserGoalResponse.from_read(value.goal),
+            goal=UserGoalResponse.from_read(value.goal) if value.goal is not None else None,
             entries=tuple(MealPlanEntryResponse.from_read(item) for item in value.entries),
             day_totals={
                 day.isoformat(): PeriodTotalResponse.from_total(total)

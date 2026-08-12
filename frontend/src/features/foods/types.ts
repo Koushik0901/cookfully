@@ -3,12 +3,12 @@ export interface OwnerFood {
   displayName: string;
   normalizedName: string;
   brand: string | null;
-  caloriesKcal: number;
-  proteinG: number;
-  carbohydrateG: number;
-  fatG: number;
-  basisGrams: number;
-  typicalServingG: number | null;
+  caloriesKcal: string;
+  proteinG: string;
+  carbohydrateG: string;
+  fatG: string;
+  basisGrams: string;
+  typicalServingG: string | null;
   typicalServingUnit: string | null;
   version: number;
 }
@@ -34,7 +34,7 @@ export interface FoodCandidate {
   id: string;
   description: string;
   brandOwner: string | null;
-  servingSizeG: number | null;
+  servingSizeG: string | null;
   servingUnit: string | null;
 }
 

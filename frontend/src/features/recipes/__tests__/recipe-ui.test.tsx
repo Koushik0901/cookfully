@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unavailableMicronutrients } from "../../../test/fixtures";
 
 import type { Job, Recipe, RecipeDetail } from "../types";
+import { CookModePage } from "../CookModePage";
 import { RecipeCard } from "../RecipeCard";
 import { RecipeDetailPage } from "../RecipeDetailPage";
 import { RecipeEditorPage } from "../RecipeEditorPage";
@@ -87,6 +88,7 @@ function renderRoute(element: React.ReactNode, path = "/app/recipes/00000000-000
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/app/recipes/:recipeId" element={element} />
+          <Route path="/app/recipes/:recipeId/cook" element={element} />
           <Route path="/app/recipes/:recipeId/edit" element={element} />
           <Route path="/app/recipes/new" element={element} />
           <Route path="/app/recipes" element={<div>Recipe library</div>} />
@@ -110,7 +112,7 @@ describe("recipe UI", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders a keyboard-accessible card without changing exact decimal strings", async () => {
+  it("renders a keyboard-accessible card with human-readable nutrition", async () => {
     const onArchive = vi.fn();
     render(
       <MemoryRouter>
@@ -122,8 +124,9 @@ describe("recipe UI", () => {
       "href",
       `/app/recipes/${recipe.id}`,
     );
-    expect(screen.getByText("512.340000 kcal")).toBeVisible();
-    expect(screen.getByText("31.125000 g protein")).toBeVisible();
+    expect(screen.getByText("512 kcal")).toBeVisible();
+    expect(screen.getByText("31.1 g")).toBeVisible();
+    expect(document.querySelector('[data-fallback-kind="breakfast"]')).toHaveAttribute("src", "/media/recipe-fallbacks/breakfast.jpg");
     expect(screen.getByText("estimated", { selector: ".recipe-card__state" })).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: /archive exact oats/i }));
     expect(onArchive).toHaveBeenCalledWith(recipe.id, 3);
@@ -136,6 +139,40 @@ describe("recipe UI", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("manual", { selector: ".recipe-card__state" })).toBeVisible();
+  });
+
+  it("keeps a real recipe image ahead of generated fallback art", () => {
+    render(
+      <MemoryRouter>
+        <RecipeCard recipe={{ ...recipe, imageUrl: "/media/actual-recipe.jpg" } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(document.querySelector(".recipe-card__media img")).toHaveAttribute("src", "/media/actual-recipe.jpg");
+    expect(document.querySelector(".recipe-fallback-art")).not.toBeInTheDocument();
+  });
+
+  it("guides cooking as a focused step flow with an ingredient checklist and completion moment", async () => {
+    vi.mocked(fetch).mockImplementation(() => response({
+      ...recipe,
+      instructions: ["Mix the oats.", "Chill and serve."],
+    }));
+    renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
+    expect(screen.getByText("Step 1 of 2")).toBeVisible();
+    expect(screen.getByText("Mix the oats.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Leave" })).toHaveAttribute("href", `/app/recipes/${recipe.id}`);
+
+    await user.click(screen.getByRole("checkbox"));
+    expect(screen.getByText("Everything’s ready to cook.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getByText("Chill and serve.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Finish cooking" }));
+    expect(screen.getByRole("heading", { name: "Time to eat." })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Cook again" }));
+    expect(screen.getByText("Mix the oats.")).toBeVisible();
   });
 
   it("keeps stale lifecycle warnings ahead of manual provenance on recipe cards", () => {
@@ -178,7 +215,7 @@ describe("recipe UI", () => {
     renderRoute(<RecipeDetailPage />);
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
-    expect(screen.getByText("Basis: 2.500 servings · Coverage: 88%")).toBeVisible();
+    expect(screen.getByText("Basis: 2.5 servings · Coverage: 88%")).toBeVisible();
     await userEvent.click(screen.getByText(/what the nutrition status means/i));
     expect(screen.getByText(/calculated from matched ingredients/i)).toBeVisible();
     expect(screen.getByText(/percentage of quantified ingredients/i)).toBeVisible();
@@ -186,9 +223,10 @@ describe("recipe UI", () => {
     expect(screen.getByText("8.5 g")).toBeVisible();
     expect(screen.getByText(/0 mg · source-reported zero/i)).toBeVisible();
     expect(screen.getAllByText(/USDA 1079/).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByText("Ingredient matching and assumptions"));
     expect(screen.getByText(/level tablespoon/i)).toBeVisible();
     expect(screen.getByText(/package label/i)).toBeVisible();
-    expect(screen.getByText("1.250000 cups rolled oats")).toBeVisible();
+    expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
   });
 
   it("creates and resets a correction with CSRF and idempotency headers", async () => {

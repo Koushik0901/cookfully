@@ -7,9 +7,9 @@ describe("App", () => {
   it("introduces the nutrition-first product on the landing page", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Recipes become honest, correctable macro plans." })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open the planner" })).toBeInTheDocument();
-    expect(screen.getByText(/import from anywhere/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Good food. Clear choices. Your kind of healthy." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Cookfully" })).toBeInTheDocument();
+    expect(screen.getByText(/bring in a recipe/i)).toBeInTheDocument();
   });
 });
 

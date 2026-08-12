@@ -1,13 +1,21 @@
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": new URL("./src", import.meta.url).pathname,
+    },
+  },
   server: {
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        // Reuse the healthy Docker edge in local UI development so HMR can
+        // talk to the same API/session surface as the composed application.
+        target: "http://localhost:8080",
         changeOrigin: false,
       },
     },

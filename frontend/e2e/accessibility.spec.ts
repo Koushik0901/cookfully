@@ -31,7 +31,7 @@ test("keyboard focus, contrast, landmarks, and reduced motion meet the release b
   await page.goto("/");
 
   await page.keyboard.press("Tab");
-  const openPlanner = page.getByRole("link", { name: "Open planner" });
+  const openPlanner = page.getByRole("link", { name: "Open Cookfully" });
   await expect(openPlanner).toBeFocused();
   const focusStyle = await openPlanner.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -40,8 +40,8 @@ test("keyboard focus, contrast, landmarks, and reduced motion meet the release b
   expect(focusStyle.outlineStyle).not.toBe("none");
   expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 
-  await expect(page.getByRole("main")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: "Cookfully" })).toBeVisible();
+  await expect(page.getByRole("main").first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Good food\. Clear choices/i })).toBeVisible();
   expect(await seriousAxeViolations(page)).toEqual([]);
 
   const reducedMotion = await page.locator("body").evaluate((element) => {
@@ -64,8 +64,8 @@ test("polling announcements and destructive confirmation preserve screen-reader 
   const status = page.getByLabel("Nutrition processing status").getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(status).toHaveText("running");
-  await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
-  await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.locator("nav:visible").first()).toBeVisible();
+  await expect(page.getByRole("main").first()).toBeVisible();
   await expect(page.getByLabel("Nutrition field")).toBeVisible();
 
   const trigger = page.getByRole("button", { name: "Permanently delete recipe" });

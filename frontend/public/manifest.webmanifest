@@ -1,0 +1,24 @@
+{
+  "name": "Cookfully",
+  "short_name": "Cookfully",
+  "description": "Recipes, meal planning, and nutrition for everyday healthy cooking.",
+  "start_url": "/app/recipes",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f2e5",
+  "theme_color": "#f8f2e5",
+  "icons": [
+    {
+      "src": "/brand/cookfully-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/cookfully-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

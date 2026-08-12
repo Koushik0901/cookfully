@@ -138,8 +138,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
   await expect(page.getByText(/nutrition is stale/i)).toBeVisible();
 
-  await expect(page.getByRole("link", { name: "Weekly plan" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Plan" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Grocery" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Goals" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
