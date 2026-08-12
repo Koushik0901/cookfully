@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Button, EmptyState, MacroPreview, MacroRing } from "../components";
 import { GoalSettingsPage } from "../features/goals/GoalSettingsPage";
 import { GroceryListPage } from "../features/grocery/GroceryListPage";
+import { OwnerFoodsPage } from "../features/foods/OwnerFoodsPage";
 import { WeeklyPlannerPage } from "../features/plans/WeeklyPlannerPage";
 import { PantryPage } from "../features/pantry/PantryPage";
 import { RecipeDetailPage } from "../features/recipes/RecipeDetailPage";
@@ -79,7 +80,7 @@ function LandingPage() {
 function PlannerShell() {
   return (
     <>
-      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes"><MacroRing className="app-nav__mark" />Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/suggestions">Suggestions</a><a href="/app/grocery">Grocery</a><a href="/app/pantry">Pantry</a><a href="/app/goals">Goals</a><a href="/app/agent-access">Agent access</a></nav>
+      <nav className="app-nav" aria-label="Primary navigation"><a className="brand" href="/app/recipes"><MacroRing className="app-nav__mark" />Vigor &amp; Vine</a><a href="/app/recipes">Recipes</a><a href="/app/plan">Weekly plan</a><a href="/app/suggestions">Suggestions</a><a href="/app/grocery">Grocery</a><a href="/app/pantry">Pantry</a><a href="/app/foods">Foods</a><a href="/app/goals">Goals</a><a href="/app/agent-access">Agent access</a></nav>
       <Routes>
         <Route index element={<Navigate to="recipes" replace />} />
         <Route path="recipes" element={<RecipeLibraryPage />} />
@@ -90,6 +91,7 @@ function PlannerShell() {
         <Route path="goals" element={<GoalSettingsPage />} />
         <Route path="grocery" element={<GroceryListPage />} />
         <Route path="pantry" element={<PantryPage />} />
+        <Route path="foods" element={<OwnerFoodsPage />} />
         <Route path="suggestions" element={<SuggestionPage />} />
         <Route path="agent-access" element={<AgentAccessPage />} />
         <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />

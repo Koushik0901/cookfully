@@ -1746,3 +1746,68 @@ small {
     border-color: var(--color-outline);
   }
 }
+
+/* ── Food picker & candidates ── */
+.ingredient-match-btn {
+  margin-inline-start: var(--space-xs);
+  font-size: 0.8125rem;
+}
+
+.food-candidate-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-sm) 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.food-candidate-list li {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-outline);
+  margin-block-end: var(--space-xs);
+}
+.food-candidate-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.food-candidate-name { font-size: 0.9375rem; }
+.food-candidate-meta {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+}
+.food-candidate-source {
+  color: var(--color-primary);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ── Owner foods library ── */
+.owner-foods-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-md) 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+.owner-food-card {
+  padding: var(--space-sm);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+}
+.owner-food-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.owner-food-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.owner-food-row__name { font-size: 1.0625rem; }
+.owner-food-row__brand { font-size: 0.8125rem; }
+.owner-food-row__macros { font-size: 0.8125rem; }

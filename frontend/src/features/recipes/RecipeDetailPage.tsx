@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button, ConfirmDialog, ErrorRecovery, PageHeader, Skeleton } from "../../components";
+import { FoodPicker } from "../foods/FoodPicker";
 import { recipesApi } from "./api";
 import { NutritionPanel } from "./NutritionPanel";
 import type { Job, NutritionCorrectionWrite, RecipeDetail } from "./types";
@@ -106,7 +107,25 @@ export function RecipeDetailPage() {
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
       <section className="recipe-detail-grid">
         <div className="recipe-content">
-          <section><h2>Ingredients</h2><ul className="ingredient-list">{recipe.ingredients.map((item) => <li key={item.id}><span className="ingredient-text">{item.originalText}</span><small className="ingredient-detail">{[item.quantityMin, item.quantityMax ? `–${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Original text retained; structured parsing unavailable."} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</small>{item.assumptions?.map((assumption) => <span className="assumption-chip" key={assumption}>{assumption}</span>)}</li>)}</ul></section>
+          <section><h2>Ingredients</h2><ul className="ingredient-list">{recipe.ingredients.map((item) => {
+           const foodName = item.food || item.originalText || "";
+           return (
+             <li key={item.id}>
+               <span className="ingredient-text">{item.originalText}</span>
+               <small className="ingredient-detail">{[item.quantityMin, item.quantityMax ? `\u2013${item.quantityMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ") || "Original text retained; structured parsing unavailable."} · {item.parseStatus}{item.matchStatus ? ` / ${item.matchStatus}` : ""}</small>
+               {item.matchStatus !== "matched" && foodName.trim() && recipeId ? (
+                 <FoodPicker
+                   recipeId={recipeId}
+                   ingredientId={item.id}
+                   ingredientName={foodName}
+                   trigger={<button className="text-link ingredient-match-btn">Match food</button>}
+                   onSelected={() => detail.refetch()}
+                 />
+               ) : null}
+               {item.assumptions?.map((assumption) => <span className="assumption-chip" key={assumption}>{assumption}</span>)}
+             </li>
+           );
+         })}</ul></section>
           <section><h2>Instructions</h2>{recipe.instructions.length ? <ol className="instruction-list">{recipe.instructions.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol> : <p className="muted">No instructions were provided.</p>}</section>
           {recipe.sourceUrl ? <p>Original source: <a href={recipe.sourceUrl} rel="noreferrer">{new URL(recipe.sourceUrl).hostname}</a></p> : null}
         </div>
