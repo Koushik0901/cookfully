@@ -14,9 +14,7 @@ from cookfully.infrastructure.models.media import MediaAsset
 SESSION_SWEEP_GRACE_DAYS = 30
 
 
-def sweep_sessions(
-    session_factory: sessionmaker[Session], *, now: datetime | None = None
-) -> int:
+def sweep_sessions(session_factory: sessionmaker[Session], *, now: datetime | None = None) -> int:
     checked_at = (now or utc_now()).astimezone(UTC)
     cutoff = checked_at - timedelta(days=SESSION_SWEEP_GRACE_DAYS)
     with session_factory.begin() as session:

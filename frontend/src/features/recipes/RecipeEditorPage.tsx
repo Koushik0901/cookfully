@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
@@ -21,7 +21,14 @@ export function RecipeEditorPage() {
   const [ingredients, setIngredients] = useState("");
   const [instructions, setInstructions] = useState("");
   const [extrasOpen, setExtrasOpen] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const photoPreview = useMemo(() => photo ? URL.createObjectURL(photo) : null, [photo]);
+
+  useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
   useEffect(() => {
     if (!detail.data) return;
@@ -33,15 +40,25 @@ export function RecipeEditorPage() {
     setIngredients(detail.data.ingredients.map((item) => item.originalText).join("\n"));
     setInstructions(detail.data.instructions.join("\n"));
     setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
+    setRemovePhoto(false);
   }, [detail.data]);
 
   const save = useMutation({
     mutationFn: (value: RecipeWrite) => recipeId && detail.data ? recipesApi.update(recipeId, detail.data.version, value) : recipesApi.create(value),
-    onSuccess: (saved) => {
-      if ("ingredients" in saved) queryClient.setQueryData(["recipe", saved.id], saved);
-      else queryClient.removeQueries({ queryKey: ["recipe", saved.id], exact: true });
+    onSuccess: async (saved) => {
+      let finalRecipe = saved;
+      try {
+        if (photo) finalRecipe = await recipesApi.uploadPhoto(saved.id, saved.version, photo);
+        else if (recipeId && removePhoto && detail.data?.imageUrl) finalRecipe = await recipesApi.removePhoto(saved.id, saved.version);
+      } catch (error) {
+        setSavedRecipeId(saved.id);
+        setPhotoError(error instanceof Error ? `Recipe saved, but its photo was not attached: ${error.message}` : "Recipe saved, but its photo was not attached.");
+        return;
+      }
+      if ("ingredients" in finalRecipe) queryClient.setQueryData(["recipe", finalRecipe.id], finalRecipe);
+      else queryClient.removeQueries({ queryKey: ["recipe", finalRecipe.id], exact: true });
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      navigate(`/app/recipes/${saved.id}`);
+      navigate(`/app/recipes/${finalRecipe.id}`);
     },
   });
 
@@ -56,6 +73,7 @@ export function RecipeEditorPage() {
       try { new URL(sourceUrl); } catch { nextErrors.sourceUrl = "Enter a complete source URL."; }
     }
     setErrors(nextErrors);
+    setPhotoError("");
     if (Object.keys(nextErrors).length) return;
     save.mutate({
       title: title.trim(),
@@ -91,8 +109,10 @@ export function RecipeEditorPage() {
         </div>
 
         <details className="recipe-editor__extras" open={extrasOpen} onToggle={(event) => setExtrasOpen(event.currentTarget.open)}><summary><span><strong>Add a description or source</strong><small>Optional context for remembering where this recipe came from</small></span></summary><div className="recipe-editor__extras-content"><Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="A quick weeknight dinner with bright lemon and herbs." /></Field><Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://…" /></Field></div></details>
+        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h2 id="recipe-photo-heading">Add a photo</h2><p>Optional. A simple snap is enough to make this recipe easy to find again.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">Your dish can stay photo-free.</div>}<div className="recipe-editor__photo-actions"><label className="button button--secondary"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Replace photo" : "Choose photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{photo || (detail.data?.imageUrl && !removePhoto) ? <Button type="button" className="button--text" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button> : null}</div></div></section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
-        <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
+        {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
+        <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
     </main>
   );

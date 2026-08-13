@@ -4,7 +4,18 @@ import re
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Header,
+    Path,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 
 from cookfully.api.dependencies.auth import require_browser_owner, require_scopes
 from cookfully.api.schemas.jobs import JobAcceptedResponse
@@ -13,7 +24,10 @@ from cookfully.api.schemas.recipes import (
     NutritionCorrectionWriteRequest,
     PermanentDeleteRequest,
     RecalculateRequest,
+    RecipeCollectionResponse,
+    RecipeCollectionWriteRequest,
     RecipeDetailResponse,
+    RecipeOrganizationWriteRequest,
     RecipePageResponse,
     RecipeResponse,
     RecipeWriteRequest,
@@ -21,6 +35,8 @@ from cookfully.api.schemas.recipes import (
 )
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.idempotency import IdempotencyService
+from cookfully.application.recipe_organization import RecipeOrganizationService
+from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
 from cookfully.domain.common import DomainError, utc_now
@@ -60,6 +76,104 @@ def recipe_queries(request: Request) -> RecipeQueryService:
     return service
 
 
+def recipe_photos(request: Request) -> RecipePhotoService:
+    service: RecipePhotoService = request.app.state.recipe_photos
+    return service
+
+
+def recipe_organization(request: Request) -> RecipeOrganizationService:
+    service: RecipeOrganizationService = request.app.state.recipe_organization
+    return service
+
+
+@router.get(
+    "/collections",
+    response_model=tuple[RecipeCollectionResponse, ...],
+    response_model_by_alias=True,
+)
+def list_recipe_collections(
+    organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
+) -> tuple[RecipeCollectionResponse, ...]:
+    return tuple(
+        RecipeCollectionResponse.from_read(value) for value in organization.collections(owner.id)
+    )
+
+
+@router.post(
+    "/collections",
+    response_model=RecipeCollectionResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_recipe_collection(
+    payload: RecipeCollectionWriteRequest,
+    organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeCollectionResponse:
+    if payload.name is None:
+        raise DomainError("recipe_collection_name_required", "Collection name is required.", 422)
+    return RecipeCollectionResponse.from_read(
+        organization.create_collection(owner.id, payload.name)
+    )
+
+
+@router.patch(
+    "/collections/{collectionId}",
+    response_model=RecipeCollectionResponse,
+    response_model_by_alias=True,
+)
+def update_recipe_collection(
+    collection_id: Annotated[UUID, Path(alias="collectionId")],
+    payload: RecipeCollectionWriteRequest,
+    version: Annotated[int, Depends(expected_version)],
+    organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeCollectionResponse:
+    return RecipeCollectionResponse.from_read(
+        organization.update_collection(
+            owner.id,
+            collection_id,
+            version,
+            name=payload.name,
+            position=payload.position,
+        )
+    )
+
+
+@router.delete("/collections/{collectionId}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_recipe_collection(
+    collection_id: Annotated[UUID, Path(alias="collectionId")],
+    version: Annotated[int, Depends(expected_version)],
+    organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> Response:
+    organization.delete_collection(owner.id, collection_id, version)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/{recipeId}/organization", response_model=RecipeDetailResponse, response_model_by_alias=True
+)
+def replace_recipe_organization(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    payload: RecipeOrganizationWriteRequest,
+    version: Annotated[int, Depends(expected_version)],
+    organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
+    queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeDetailResponse:
+    organization.replace(
+        owner.id,
+        recipe_id,
+        version,
+        favorite=payload.favorite,
+        collection_ids=payload.collection_ids,
+        meal_roles=payload.meal_roles,
+    )
+    return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
 def correction_service(request: Request) -> CorrectionService:
     service: CorrectionService = request.app.state.corrections
     return service
@@ -78,12 +192,18 @@ def list_recipes(
     limit: Annotated[int, Query(ge=1, le=100)] = 30,
     query: Annotated[str | None, Query(max_length=200)] = None,
     nutrition_state: Annotated[str | None, Query(alias="nutritionState")] = None,
+    favorite: bool | None = None,
+    collection_id: Annotated[UUID | None, Query(alias="collectionId")] = None,
+    meal_role: Annotated[str | None, Query(alias="mealRole")] = None,
     include_archived: Annotated[bool, Query(alias="includeArchived")] = False,
 ) -> RecipePageResponse:
     return RecipePageResponse.from_read(
         queries.list(
             query=query,
             nutrition_state=nutrition_state,
+            favorite=favorite,
+            collection_id=collection_id,
+            meal_role=meal_role,
             include_archived=include_archived,
             cursor=cursor,
             limit=limit,
@@ -177,6 +297,41 @@ def update_recipe(
         trace_id=correlation_id.get(),
         owner_id=owner.id,
     )
+    return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.put("/{recipeId}/photo", response_model=RecipeDetailResponse, response_model_by_alias=True)
+async def replace_recipe_photo(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    photo: Annotated[UploadFile, File()],
+    version: Annotated[int, Depends(expected_version)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeDetailResponse:
+    try:
+        photos.replace(
+            recipe_id,
+            content=await photo.read(),
+            content_type=photo.content_type or "",
+            expected_version=version,
+        )
+    finally:
+        await photo.close()
+    return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.delete(
+    "/{recipeId}/photo", response_model=RecipeDetailResponse, response_model_by_alias=True
+)
+def remove_recipe_photo(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    version: Annotated[int, Depends(expected_version)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeDetailResponse:
+    photos.remove(recipe_id, expected_version=version)
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
 

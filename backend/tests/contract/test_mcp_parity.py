@@ -112,6 +112,8 @@ def test_all_read_tools_and_resources_match_http_contract_exactly(
             client.app.state.goals,
             client.app.state.meal_plans,
             client.app.state.recipe_queries,
+            client.app.state.suggestions,
+            client.app.state.pantry,
         )
 
         goal_http = client.get("/api/v1/goals/current", params={"onDate": WEEK_START}).json()
@@ -164,6 +166,8 @@ def test_all_write_tools_match_http_reloads_and_are_idempotent(
             client.app.state.meal_plans,
             client.app.state.grocery_lists,
             client.app.state.idempotency,
+            client.app.state.suggestions,
+            client.app.state.pantry,
         )
         recipe_id = str(seeded["recipe"]["id"])
 

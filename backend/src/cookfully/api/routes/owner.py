@@ -1,10 +1,13 @@
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
+from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
+from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
 
 router = APIRouter(prefix="/owner", tags=["Owner"])
@@ -19,6 +22,17 @@ class OwnerPreferences(BaseModel):
     version: int = Field(ge=1)
 
 
+class OwnerOnboarding(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    state: Literal["pending", "completed", "dismissed"]
+    first_action: Literal["manual_recipe", "import_recipe", "view_plan"] | None = Field(
+        alias="firstAction", default=None
+    )
+    resolved_at: datetime | None = Field(alias="resolvedAt", default=None)
+    version: int = Field(ge=1)
+
+
 @router.get("/preferences", response_model=OwnerPreferences)
 def get_preferences(
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
@@ -28,6 +42,48 @@ def get_preferences(
         timezone=owner.timezone,
         week_starts_on=owner.week_starts_on,
         version=owner.version,
+    )
+
+
+@router.get("/onboarding", response_model=OwnerOnboarding, response_model_by_alias=True)
+def get_onboarding(
+    request: Request,
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> OwnerOnboarding:
+    service: OwnerOnboardingService = request.app.state.owner_onboarding
+    value = service.get(owner.id)
+    return OwnerOnboarding(
+        state=value.state,
+        first_action=value.first_action,
+        resolved_at=value.resolved_at,
+        version=value.version,
+    )
+
+
+@router.put("/onboarding", response_model=OwnerOnboarding, response_model_by_alias=True)
+def resolve_onboarding(
+    payload: OwnerOnboarding,
+    request: Request,
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> OwnerOnboarding:
+    if payload.state == "pending":
+        raise DomainError(
+            "onboarding_resolution_required",
+            "Onboarding may only be completed or dismissed.",
+            422,
+        )
+    service: OwnerOnboardingService = request.app.state.owner_onboarding
+    value = service.resolve(
+        owner.id,
+        state=payload.state,
+        first_action=payload.first_action,
+        expected_version=payload.version,
+    )
+    return OwnerOnboarding(
+        state=value.state,
+        first_action=value.first_action,
+        resolved_at=value.resolved_at,
+        version=value.version,
     )
 
 

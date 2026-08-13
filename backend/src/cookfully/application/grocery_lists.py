@@ -20,7 +20,13 @@ from cookfully.domain.grocery import (
     aggregate_grocery_ingredients,
     normalize_food_name,
 )
-from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
+from cookfully.infrastructure.models.grocery import (
+    GroceryItem,
+    GroceryItemSource,
+    GroceryList,
+    GroceryShoppingStop,
+    RememberedGroceryPlacement,
+)
 from cookfully.infrastructure.models.plans import MealPlan
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.repositories.grocery import GroceryRepository
@@ -44,6 +50,10 @@ class GroceryItemRead:
     checked: bool
     needs_review: bool
     position: int
+    shopping_stop_id: UUID | None
+    shopping_stop_name: str | None
+    shopping_stop_position: int | None
+    shopping_stop_version: int | None
     sources: tuple[GrocerySourceRead, ...]
     version: int
 
@@ -54,6 +64,7 @@ class GroceryListRead:
     week_start: date
     status: str
     generated_at: datetime | None
+    completed_at: datetime | None
     items: tuple[GroceryItemRead, ...]
     version: int
 
@@ -81,6 +92,12 @@ class GroceryListService:
                 session.add(grocery_list)
                 session.flush()
             else:
+                if grocery_list.status == "completed":
+                    raise DomainError(
+                        "grocery_list_completed",
+                        "Reopen this completed shopping pass before refreshing it.",
+                        409,
+                    )
                 grocery_list.status = "generating"
 
             proposed = aggregate_grocery_ingredients(self._ingredients(session, plan))
@@ -98,6 +115,21 @@ class GroceryListService:
                     model = GroceryItem()
                     grocery_list.items.append(model)
                 self._apply_reconciled(model, value)
+                if model.id is None:
+                    remembered_stop_id = session.scalar(
+                        select(RememberedGroceryPlacement.shopping_stop_id).where(
+                            RememberedGroceryPlacement.owner_id == owner_id,
+                            RememberedGroceryPlacement.normalized_food_name
+                            == value.normalized_food_name,
+                        )
+                    )
+                    if (
+                        value.origin == "generated"
+                        and not value.manual_name
+                        and not value.needs_review
+                        and remembered_stop_id is not None
+                    ):
+                        model.shopping_stop_id = remembered_stop_id
                 model.sources.clear()
                 session.flush()
                 model.sources.extend(
@@ -112,6 +144,7 @@ class GroceryListService:
             grocery_list.status = "current"
             grocery_list.source_plan_version = plan.version
             grocery_list.generated_at = utc_now()
+            grocery_list.completed_at = None
             if current:
                 grocery_list.version += 1
             session.flush()
@@ -135,6 +168,7 @@ class GroceryListService:
             grocery_list = GroceryRepository(session).get_for_week(
                 owner_id, week_start, for_update=True
             )
+            self._ensure_active(grocery_list)
             if position is None:
                 maximum = session.scalar(
                     select(func.max(GroceryItem.position)).where(
@@ -174,6 +208,7 @@ class GroceryListService:
     ) -> GroceryItemRead:
         with self._session_factory.begin() as session:
             item = GroceryRepository(session).get_item(owner_id, item_id, for_update=True)
+            self._ensure_active(item.grocery_list)
             require_version(expected_version, item.version)
             if "display_name" in values:
                 name = str(values["display_name"]).strip()
@@ -198,6 +233,42 @@ class GroceryListService:
                     session, item.grocery_list_id, position, exclude_id=item.id
                 )
                 item.position = position
+            if "shopping_stop_id" in values:
+                stop_id = values["shopping_stop_id"]
+                if stop_id is not None:
+                    item.shopping_stop = self._require_stop(session, owner_id, stop_id)
+                else:
+                    item.shopping_stop = None
+            if values.get("remember_placement"):
+                if item.shopping_stop_id is None:
+                    raise DomainError(
+                        "grocery_placement_required",
+                        "Choose a shopping stop before remembering it.",
+                        422,
+                    )
+                if item.origin != "generated" or item.manual_name or item.needs_review:
+                    raise DomainError(
+                        "grocery_placement_not_safe",
+                        "Only clear generated items can be remembered for a future stop.",
+                        422,
+                    )
+                placement = session.scalar(
+                    select(RememberedGroceryPlacement).where(
+                        RememberedGroceryPlacement.owner_id == owner_id,
+                        RememberedGroceryPlacement.normalized_food_name
+                        == item.normalized_food_name,
+                    )
+                )
+                if placement is None:
+                    session.add(
+                        RememberedGroceryPlacement(
+                            owner_id=owner_id,
+                            normalized_food_name=item.normalized_food_name,
+                            shopping_stop_id=item.shopping_stop_id,
+                        )
+                    )
+                else:
+                    placement.shopping_stop_id = item.shopping_stop_id
             item.version += 1
             item.grocery_list.version += 1
             session.flush()
@@ -206,6 +277,7 @@ class GroceryListService:
     def remove(self, owner_id: UUID, item_id: UUID, *, expected_version: int) -> None:
         with self._session_factory.begin() as session:
             item = GroceryRepository(session).get_item(owner_id, item_id, for_update=True)
+            self._ensure_active(item.grocery_list)
             require_version(expected_version, item.version)
             item.grocery_list.version += 1
             session.execute(delete(GroceryItem).where(GroceryItem.id == item.id))
@@ -213,7 +285,7 @@ class GroceryListService:
     @staticmethod
     def mark_dirty(session: Session, meal_plan_id: UUID) -> None:
         grocery_list = GroceryRepository(session).find_for_plan(meal_plan_id, for_update=True)
-        if grocery_list is not None and grocery_list.status != "dirty":
+        if grocery_list is not None and grocery_list.status not in {"dirty", "completed"}:
             grocery_list.status = "dirty"
             grocery_list.version += 1
 
@@ -259,6 +331,7 @@ class GroceryListService:
             needs_review=item.needs_review,
             position=item.position,
             version=item.version,
+            shopping_stop_id=item.shopping_stop_id,
             sources=tuple(
                 GrocerySource(
                     source.meal_plan_entry_id,
@@ -285,6 +358,7 @@ class GroceryListService:
         model.needs_review = value.needs_review
         model.position = value.position
         model.version = value.version
+        model.shopping_stop_id = value.shopping_stop_id
 
     @staticmethod
     def _position_available(
@@ -316,6 +390,10 @@ class GroceryListService:
             value.checked,
             value.needs_review,
             value.position,
+            value.shopping_stop_id,
+            value.shopping_stop.name if value.shopping_stop is not None else None,
+            value.shopping_stop.position if value.shopping_stop is not None else None,
+            value.shopping_stop.version if value.shopping_stop is not None else None,
             tuple(
                 GrocerySourceRead(
                     source.meal_plan_entry_id,
@@ -334,8 +412,71 @@ class GroceryListService:
             value.meal_plan.week_start,
             value.status,
             value.generated_at,
+            value.completed_at,
             tuple(
                 cls._item_read(item) for item in sorted(value.items, key=lambda item: item.position)
             ),
             value.version,
         )
+
+    def complete(
+        self, owner_id: UUID, week_start: date, *, expected_version: int
+    ) -> GroceryListRead:
+        with self._session_factory.begin() as session:
+            grocery_list = GroceryRepository(session).get_for_week(
+                owner_id, week_start, for_update=True
+            )
+            require_version(expected_version, grocery_list.version)
+            if grocery_list.status == "completed":
+                return self._list_read(grocery_list)
+            if grocery_list.status != "current":
+                raise DomainError(
+                    "grocery_list_not_current",
+                    "Refresh this list before finishing the shopping pass.",
+                    409,
+                )
+            if any(not item.checked for item in grocery_list.items):
+                raise DomainError(
+                    "grocery_items_remaining",
+                    "Check off every item before finishing this shopping pass.",
+                    422,
+                )
+            grocery_list.status = "completed"
+            grocery_list.completed_at = utc_now()
+            grocery_list.version += 1
+            session.flush()
+            return self._list_read(grocery_list)
+
+    def reopen(self, owner_id: UUID, week_start: date, *, expected_version: int) -> GroceryListRead:
+        with self._session_factory.begin() as session:
+            grocery_list = GroceryRepository(session).get_for_week(
+                owner_id, week_start, for_update=True
+            )
+            require_version(expected_version, grocery_list.version)
+            if grocery_list.status != "completed":
+                raise DomainError(
+                    "grocery_list_not_completed",
+                    "Only a completed shopping pass can be reopened.",
+                    409,
+                )
+            grocery_list.status = "current"
+            grocery_list.completed_at = None
+            grocery_list.version += 1
+            session.flush()
+            return self._list_read(grocery_list)
+
+    @staticmethod
+    def _ensure_active(grocery_list: GroceryList) -> None:
+        if grocery_list.status == "completed":
+            raise DomainError(
+                "grocery_list_completed", "Reopen this completed shopping pass to change it.", 409
+            )
+
+    @staticmethod
+    def _require_stop(session: Session, owner_id: UUID, stop_id: object) -> GroceryShoppingStop:
+        stop = session.get(GroceryShoppingStop, stop_id) if isinstance(stop_id, UUID) else None
+        if stop is None:
+            raise DomainError("shopping_stop_not_found", "Shopping stop was not found.", 404)
+        if stop.owner_id != owner_id:
+            raise DomainError("shopping_stop_not_found", "Shopping stop was not found.", 404)
+        return stop

@@ -90,6 +90,38 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /owner/onboarding:
+    get:
+      tags: [Owner]
+      operationId: getOwnerOnboarding
+      responses:
+        "200":
+          description: The owner's first-run journey state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerOnboarding"
+    put:
+      tags: [Owner]
+      operationId: putOwnerOnboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerOnboarding"
+      responses:
+        "200":
+          description: The resolved first-run journey state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerOnboarding"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /recipes:
     get:
       tags: [Recipes]
@@ -106,6 +138,15 @@ paths:
         - name: includeArchived
           in: query
           schema: { type: boolean, default: false }
+        - name: favorite
+          in: query
+          schema: { type: boolean }
+        - name: collectionId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: mealRole
+          in: query
+          schema: { type: string, enum: [breakfast, lunch, dinner, snack] }
       responses:
         "200":
           description: Cursor-paginated recipes.
@@ -204,6 +245,113 @@ paths:
       responses:
         "204":
           description: Recipe archived; historical snapshots remain.
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/collections:
+    get:
+      tags: [Recipes]
+      operationId: listRecipeCollections
+      responses:
+        "200":
+          description: Personal recipe collections in display order.
+          content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/RecipeCollection" } } } }
+    post:
+      tags: [Recipes]
+      operationId: createRecipeCollection
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RecipeCollectionWrite" } } }
+      responses:
+        "201":
+          description: Collection created.
+          content: { application/json: { schema: { $ref: "#/components/schemas/RecipeCollection" } } }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /recipes/{recipeId}/organization:
+    put:
+      tags: [Recipes]
+      operationId: replaceRecipeOrganization
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RecipeOrganizationWrite" } } }
+      responses:
+        "200":
+          description: Recipe after its optional organization is replaced.
+          content: { application/json: { schema: { $ref: "#/components/schemas/RecipeDetail" } } }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /recipes/collections/{collectionId}:
+    patch:
+      tags: [Recipes]
+      operationId: updateRecipeCollection
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RecipeCollectionWrite" } } }
+      responses:
+        "200":
+          description: Collection renamed or reordered.
+          content: { application/json: { schema: { $ref: "#/components/schemas/RecipeCollection" } } }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      tags: [Recipes]
+      operationId: deleteRecipeCollection
+      parameters:
+        - name: collectionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "204": { description: Collection deleted; recipe memberships only are removed. }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /recipes/{recipeId}/photo:
+    parameters:
+      - $ref: "#/components/parameters/RecipeId"
+    put:
+      tags: [Recipes]
+      operationId: replaceRecipePhoto
+      parameters:
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/RecipePhotoUpload"
+      responses:
+        "200":
+          description: Recipe with the normalized replacement photo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetail"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      tags: [Recipes]
+      operationId: removeRecipePhoto
+      parameters:
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "200":
+          description: Recipe after its optional photo is removed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeDetail"
         "409":
           $ref: "#/components/responses/Conflict"
 
@@ -534,6 +682,100 @@ paths:
                 $ref: "#/components/schemas/GroceryList"
         "409":
           $ref: "#/components/responses/Conflict"
+
+  /meal-plans/{weekStart}/grocery-list/complete:
+    post:
+      tags: [Grocery]
+      operationId: completeGroceryList
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "200":
+          description: Completed shopping pass retained with its source evidence.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryList" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /meal-plans/{weekStart}/grocery-list/reopen:
+    post:
+      tags: [Grocery]
+      operationId: reopenGroceryList
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "200":
+          description: Completed shopping pass made active explicitly.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryList" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /grocery-shopping-stops:
+    get:
+      tags: [Grocery]
+      operationId: listGroceryShoppingStops
+      responses:
+        "200":
+          description: The owner's shopping destinations in their chosen order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroceryShoppingStop" }
+    post:
+      tags: [Grocery]
+      operationId: createGroceryShoppingStop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GroceryShoppingStopWrite" }
+      responses:
+        "201":
+          description: Shopping destination created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryShoppingStop" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /grocery-shopping-stops/{stopId}:
+    patch:
+      tags: [Grocery]
+      operationId: updateGroceryShoppingStop
+      parameters:
+        - name: stopId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GroceryShoppingStopWrite" }
+      responses:
+        "200":
+          description: Shopping destination renamed or reordered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryShoppingStop" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      tags: [Grocery]
+      operationId: deleteGroceryShoppingStop
+      parameters:
+        - name: stopId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IfMatchVersion"
+      responses:
+        "204": { description: Stop deleted and assignments safely cleared. }
+        "409": { $ref: "#/components/responses/Conflict" }
 
   /grocery-items/{itemId}:
     patch:
@@ -1241,6 +1483,26 @@ components:
         timezone: { type: string, minLength: 1, maxLength: 100 }
         weekStartsOn: { type: integer, minimum: 1, maximum: 7 }
         version: { type: integer, minimum: 1 }
+    OwnerOnboarding:
+      type: object
+      additionalProperties: false
+      required: [state, version]
+      properties:
+        state: { type: string, enum: [pending, completed, dismissed] }
+        firstAction:
+          type: [string, "null"]
+          enum: [manual_recipe, import_recipe, view_plan, null]
+        resolvedAt: { type: [string, "null"], format: date-time }
+        version: { type: integer, minimum: 1 }
+    RecipePhotoUpload:
+      type: object
+      additionalProperties: false
+      required: [photo]
+      properties:
+        photo:
+          type: string
+          format: binary
+          description: JPEG, PNG, or WebP image no larger than 20 MB before normalization.
     Problem:
       type: object
       required: [type, title, status, code]
@@ -1420,6 +1682,31 @@ components:
           type: array
           maxItems: 500
           items: { type: string, minLength: 1, maxLength: 5000 }
+    RecipeCollectionWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        position: { type: integer, minimum: 0 }
+    RecipeCollection:
+      allOf:
+        - $ref: "#/components/schemas/RecipeCollectionWrite"
+        - type: object
+          required: [id, name, position, version, recipeCount]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            position: { type: integer, minimum: 0 }
+            version: { type: integer, minimum: 1 }
+            recipeCount: { type: integer, minimum: 0 }
+    RecipeOrganizationWrite:
+      type: object
+      additionalProperties: false
+      required: [favorite, collectionIds, mealRoles]
+      properties:
+        favorite: { type: boolean }
+        collectionIds: { type: array, items: { type: string, format: uuid } }
+        mealRoles: { type: array, items: { type: string, enum: [breakfast, lunch, dinner, snack] } }
     Recipe:
       type: object
       required: [id, title, yieldQuantity, yieldUnit, status, nutritionState, version]
@@ -1434,6 +1721,17 @@ components:
         archivedFromStatus: { type: [string, "null"], enum: [draft, ready, partial, failed, null] }
         nutritionState: { $ref: "#/components/schemas/NutritionState" }
         nutrition: { oneOf: [{ $ref: "#/components/schemas/ResolvedNutrition" }, { type: "null" }] }
+        favorite: { type: boolean, default: false }
+        collections:
+          type: array
+          items:
+            type: object
+            required: [id, name, position]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              position: { type: integer, minimum: 0 }
+        mealRoles: { type: array, items: { type: string, enum: [breakfast, lunch, dinner, snack] } }
         version: { type: integer, minimum: 1 }
         updatedAt: { type: string, format: date-time }
     RecipeDetail:
@@ -1602,6 +1900,24 @@ components:
         unit: { type: [string, "null"], maxLength: 80 }
         checked: { type: boolean }
         position: { type: integer, minimum: 0 }
+        shoppingStopId: { type: [string, "null"], format: uuid }
+        rememberPlacement: { type: boolean }
+    GroceryShoppingStopWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        position: { type: integer, minimum: 0 }
+    GroceryShoppingStop:
+      allOf:
+        - $ref: "#/components/schemas/GroceryShoppingStopWrite"
+        - type: object
+          required: [id, name, position, version]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+            position: { type: integer, minimum: 0 }
+            version: { type: integer, minimum: 1 }
     GroceryItemCreate:
       allOf:
         - $ref: "#/components/schemas/GroceryItemWrite"
@@ -1616,6 +1932,8 @@ components:
             id: { type: string, format: uuid }
             origin: { type: string, enum: [generated, manual] }
             needsReview: { type: boolean }
+            shoppingStop:
+              oneOf: [{ $ref: "#/components/schemas/GroceryShoppingStop" }, { type: "null" }]
             sources:
               type: array
               items:
@@ -1632,8 +1950,9 @@ components:
       properties:
         id: { type: string, format: uuid }
         weekStart: { type: string, format: date }
-        status: { type: string, enum: [current, dirty, generating, failed] }
+        status: { type: string, enum: [current, dirty, generating, failed, completed] }
         generatedAt: { type: [string, "null"], format: date-time }
+        completedAt: { type: [string, "null"], format: date-time }
         items: { type: array, items: { $ref: "#/components/schemas/GroceryItem" } }
         version: { type: integer, minimum: 1 }
     PantryItemWrite:

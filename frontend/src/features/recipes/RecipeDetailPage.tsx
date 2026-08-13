@@ -7,6 +7,7 @@ import { FoodPicker } from "../foods/FoodPicker";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
+import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import type { Job, NutritionCorrectionWrite, RecipeDetail } from "./types";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
@@ -146,6 +147,7 @@ export function RecipeDetailPage() {
       ) : null}
 
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
+      <RecipeOrganizationPanel recipe={recipe} onSaved={(value) => queryClient.setQueryData(["recipe", recipeId], value)} />
       <section className="recipe-detail-grid">
         <div className="recipe-content">
            <section className="ingredient-section"><div className="section-heading"><h2>Ingredients</h2><span>{recipe.ingredients.length} item{recipe.ingredients.length === 1 ? "" : "s"}</span></div><ul className="ingredient-list">{recipe.ingredients.map((item) => {

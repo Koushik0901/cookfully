@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { Buffer } from "node:buffer";
 
 const recipeId = "00000000-0000-4000-8000-000000000001";
 const jobId = "00000000-0000-4000-8000-000000000002";
@@ -56,6 +57,7 @@ async function mockApi(page: Page) {
   let pollCount = 0;
   let releaseImport = false;
   let deleted = false;
+  const collection = { id: "00000000-0000-4000-8000-000000000010", name: "Weeknight favourites", position: 0, version: 1, recipeCount: 0 };
   await page.context().addCookies([
     { name: "cookfully_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" },
   ]);
@@ -68,6 +70,8 @@ async function mockApi(page: Page) {
       route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
     if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
+    if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/recipes/collections" && method === "GET") return json([collection]);
     if (path === "/api/v1/recipes" && method === "GET") {
       return json({ items: deleted ? [] : [recipe], nextCursor: null });
     }
@@ -155,6 +159,19 @@ async function mockApi(page: Page) {
       });
       return json(recipe);
     }
+    if (path === `/api/v1/recipes/${recipeId}/organization` && method === "PUT") {
+      const body = request.postDataJSON();
+      recipe = detail({ ...recipe, favorite: body.favorite, collections: body.collectionIds.map((id: string) => ({ id, name: collection.name, position: collection.position })), mealRoles: body.mealRoles, version: Number(recipe.version) + 1 });
+      return json(recipe);
+    }
+    if (path === `/api/v1/recipes/${recipeId}/photo` && method === "PUT") {
+      recipe = detail({ ...recipe, imageUrl: "/api/v1/media/00000000-0000-4000-8000-000000000011", version: Number(recipe.version) + 1 });
+      return json(recipe);
+    }
+    if (path === `/api/v1/recipes/${recipeId}/photo` && method === "DELETE") {
+      recipe = detail({ ...recipe, imageUrl: null, version: Number(recipe.version) + 1 });
+      return json(recipe);
+    }
     if (path === `/api/v1/recipes/${recipeId}` && method === "DELETE") {
       recipe = detail({ ...recipe, status: "archived", archivedFromStatus: "ready", version: Number(recipe.version) + 1 });
       return route.fulfill({ status: 204 });
@@ -232,5 +249,52 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   await expect(page.getByText(/nutrition is stale/i)).toBeVisible({ timeout: 7_000 });
   await page.getByRole("button", { name: "Recalculate nutrition" }).click();
   await expect(page.getByText(/nutrition is pending/i)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("keeps optional favorites and meal moments out of recipe entry, but easy to add later", async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/app/recipes/${recipeId}`);
+  await page.getByText("Keep this easy to find").click();
+  await page.getByLabel("Favorite this recipe").check();
+  await page.getByRole("checkbox", { name: "Weeknight favourites", exact: true }).check();
+  await page.getByRole("checkbox", { name: "dinner", exact: true }).check();
+  await page.getByRole("button", { name: "Save organization" }).click();
+  await expect(page.getByRole("button", { name: "Save organization" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("makes a focused recipe-library view easy to understand and clear", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/app/recipes");
+  await expect(page.getByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
+  await page.getByText("Manage collections", { exact: true }).click();
+  await expect(page.getByLabel("Weeknight favourites collection name")).toBeVisible();
+  await page.getByText("Manage collections", { exact: true }).click();
+  await page.getByLabel("Favorites only").check();
+  await expect(page.getByRole("button", { name: /Favorites.*remove filter/i })).toBeVisible();
+  await page.getByLabel("Find by").selectOption({ label: "Weeknight favourites" });
+  await expect(page.getByRole("button", { name: /Collection: Weeknight favourites.*remove filter/i })).toBeVisible();
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(page.getByLabel("Favorites only")).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "Clear filters" })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("a handwritten recipe can gain and remove a representative photo", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/app/recipes/new");
+  await page.getByLabel("Recipe title").fill("Lemon lentils");
+  await page.getByLabel("Yield quantity").fill("2.000");
+  await page.getByLabel("Ingredients, one per line").fill("1 cup lentils");
+  await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
+  await expect(page.getByAltText("Preview of the selected recipe photo")).toBeVisible();
+  await page.getByRole("button", { name: "Save recipe" }).click();
+  await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
+  await page.getByRole("link", { name: "Edit recipe" }).click();
+  await expect(page.getByAltText("Current photo for Lemon lentils")).toBeVisible();
+  await page.getByRole("button", { name: "Remove photo" }).click();
+  await page.getByRole("button", { name: "Save recipe" }).click();
+  await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -10,6 +10,8 @@ export type JobAccepted = components["schemas"]["JobAccepted"];
 export type ResolvedNutrition = components["schemas"]["ResolvedNutrition"];
 export type NutritionCorrectionWrite = components["schemas"]["NutritionCorrectionWrite"];
 export type NutritionState = components["schemas"]["NutritionState"];
+export type RecipeCollection = components["schemas"]["RecipeCollection"];
+export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWrite"];
 
 export type Problem = components["schemas"]["Problem"];
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text
@@ -10,6 +11,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cookfully.domain.common import uuid7
 from cookfully.infrastructure.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from cookfully.infrastructure.models.grocery import GroceryShoppingStop
+    from cookfully.infrastructure.models.recipes import RecipeCollection
 
 
 class OwnerAccount(TimestampMixin, Base):
@@ -30,6 +35,35 @@ class OwnerAccount(TimestampMixin, Base):
 
     sessions: Mapped[list[SessionRecord]] = relationship(back_populates="owner")
     access_tokens: Mapped[list[AccessToken]] = relationship(back_populates="owner")
+    onboarding_state: Mapped[OwnerOnboardingState | None] = relationship(
+        back_populates="owner", cascade="all, delete-orphan", uselist=False
+    )
+    recipe_collections: Mapped[list[RecipeCollection]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+    grocery_shopping_stops: Mapped[list[GroceryShoppingStop]] = relationship(
+        back_populates="owner", cascade="all, delete-orphan"
+    )
+
+
+class OwnerOnboardingState(Base):
+    __tablename__ = "owner_onboarding_states"
+    __table_args__ = (
+        CheckConstraint("state IN ('pending', 'completed', 'dismissed')", name="valid_state"),
+        CheckConstraint("version > 0", name="positive_version"),
+    )
+
+    owner_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("owner_accounts.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    state: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    first_action: Mapped[str | None] = mapped_column(String(24))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    owner: Mapped[OwnerAccount] = relationship(back_populates="onboarding_state")
 
 
 class SessionRecord(Base):

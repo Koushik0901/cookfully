@@ -24,6 +24,10 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: ["./src/test/setup.ts"],
+    // Several UI suites replace global browser primitives such as fetch and
+    // cookies. Keep them isolated in time so a passing result is repeatable.
+    maxWorkers: 1,
+    fileParallelism: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

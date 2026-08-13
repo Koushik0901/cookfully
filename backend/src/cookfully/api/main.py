@@ -31,13 +31,17 @@ from cookfully.application.auth import AuthService
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.exports import ExportJobService
 from cookfully.application.grocery_lists import GroceryListService
+from cookfully.application.grocery_shopping_stops import GroceryShoppingStopService
 from cookfully.application.idempotency import IdempotencyService
 from cookfully.application.jobs import JobService
 from cookfully.application.meal_plans import GoalService, MealPlanService
+from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.application.pantry import PantryService
 from cookfully.application.pantry_deductions import PantryDeductionService
 from cookfully.application.pantry_search import PantrySearchService
+from cookfully.application.recipe_organization import RecipeOrganizationService
+from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
 from cookfully.application.suggestions import SuggestionService
@@ -47,6 +51,8 @@ from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.instance_lease import runtime_service_lease
 from cookfully.infrastructure.media_store import MediaStore
 from cookfully.infrastructure.observability import correlation_middleware
+from cookfully.infrastructure.recipe_images import RecipeImageService
+from cookfully.infrastructure.safe_fetch import SafeFetcher
 from cookfully.mcp.read_tools import ReadTools
 from cookfully.mcp.resources import McpResources
 from cookfully.mcp.security import (
@@ -65,13 +71,22 @@ _OPERATION_IDS = {
     "delete_session": "deleteSession",
     "get_preferences": "getOwnerPreferences",
     "update_preferences": "putOwnerPreferences",
+    "get_onboarding": "getOwnerOnboarding",
+    "resolve_onboarding": "putOwnerOnboarding",
     "get_current_job": "getCurrentJob",
     "get_job": "getJob",
     "list_recipes": "listRecipes",
+    "list_recipe_collections": "listRecipeCollections",
+    "create_recipe_collection": "createRecipeCollection",
+    "update_recipe_collection": "updateRecipeCollection",
+    "delete_recipe_collection": "deleteRecipeCollection",
+    "replace_recipe_organization": "replaceRecipeOrganization",
     "create_recipe": "createRecipe",
     "import_recipe": "importRecipe",
     "get_recipe": "getRecipe",
     "update_recipe": "updateRecipe",
+    "replace_recipe_photo": "replaceRecipePhoto",
+    "remove_recipe_photo": "removeRecipePhoto",
     "archive_recipe": "archiveRecipe",
     "restore_recipe": "restoreRecipe",
     "permanently_delete_recipe": "permanentlyDeleteRecipe",
@@ -89,6 +104,12 @@ _OPERATION_IDS = {
     "create_grocery_item": "createGroceryItem",
     "update_grocery_item": "updateGroceryItem",
     "delete_grocery_item": "deleteGroceryItem",
+    "list_shopping_stops": "listGroceryShoppingStops",
+    "create_shopping_stop": "createGroceryShoppingStop",
+    "update_shopping_stop": "updateGroceryShoppingStop",
+    "delete_shopping_stop": "deleteGroceryShoppingStop",
+    "complete_grocery_list": "completeGroceryList",
+    "reopen_grocery_list": "reopenGroceryList",
     "apply_pantry_deductions": "applyPantryDeductions",
     "reverse_pantry_deduction": "reversePantryDeduction",
     "list_pantry_items": "listPantryItems",
@@ -172,25 +193,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.auth_service = auth_service
             app.state.access_tokens = access_token_service
             app.state.owner_preferences = OwnerPreferenceService(sessions)
+            app.state.owner_onboarding = OwnerOnboardingService(sessions)
             app.state.jobs = JobService(sessions)
+            media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
+            app.state.media_store = media_store
             app.state.recipes = RecipeService(
                 sessions,
                 ErasureLedger(resolved.erasure_ledger_root),
                 source_instance_id=resolved.instance_id,
             )
+            app.state.recipe_photos = RecipePhotoService(
+                sessions,
+                RecipeImageService(SafeFetcher(max_bytes=20 * 1024 * 1024), media_store),
+                media_store,
+            )
+            app.state.recipe_organization = RecipeOrganizationService(sessions)
             app.state.recipe_queries = recipe_query_service
             app.state.corrections = CorrectionService(sessions)
             app.state.idempotency = idempotency_service
             app.state.goals = goal_service
             app.state.meal_plans = meal_plan_service
             app.state.grocery_lists = grocery_list_service
+            app.state.grocery_shopping_stops = GroceryShoppingStopService(sessions)
             app.state.pantry = PantryService(sessions)
             app.state.pantry_search = PantrySearchService(sessions)
             app.state.pantry_deductions = PantryDeductionService(sessions)
             app.state.suggestions = SuggestionService(sessions)
             app.state.sessions = sessions
-            media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
-            app.state.media_store = media_store
             app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
             try:
                 async with mcp_http.router.lifespan_context(mcp_http):

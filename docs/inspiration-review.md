@@ -581,3 +581,64 @@ Adapt the clear hierarchy rather than copying any source UI:
 Evidence: `frontend/src/app/App.tsx`, `frontend/src/styles/globals.css`, and the desktop/mobile
 browser suite under `frontend/e2e/`. Revisit if actual owner behavior shows that a specific System
 task is frequent enough to deserve a purpose-built, contextual entry point.
+
+## First recipe to finished shop — 2026-08-13
+
+### Problem being solved
+
+Cookfully's planning foundation is strong, but a first-time owner still lands in a recipe library
+that assumes they know the product's sequence. Manual recipes lack the visual recognition afforded
+to imported recipes. Grocery work ends at individual checkboxes, without a lightweight way to order
+the trip around real shopping stops or mark the weekly trip finished. Finally, the library has
+planning-readiness views but no intentionally small layer for keeping personally trusted recipes
+close at hand.
+
+### Sources inspected
+
+- [Mealie feature documentation](https://docs.mealie.io/documentation/getting-started/features/):
+  categories, free-form tags, cookbooks, meal-type planner rules, linked shopping-list recipes, and
+  reorderable shopping labels.
+- [Tandoor shopping documentation](https://docs.tandoor.dev/features/shopping/): recipe- and
+  meal-plan-derived shopping lists plus supermarket-specific ordering; Tandoor explicitly labels
+  the shopping feature as work in progress.
+- [Tandoor documentation](https://docs.tandoor.dev/): cookbooks, tags, recipe-focused management,
+  and shopping lists attached to recipes or plans.
+- [Immich quick start](https://docs.immich.app/overview/quick-start/) and
+  [mobile backup](https://docs.immich.app/features/mobile-backup/): direct, status-visible media
+  transfer, explicit album selection, and duplicate-safe media handling.
+
+### Benefits and liabilities observed
+
+Mealie proves that collections, meal-type organization, and labelled shopping lists help a recipe
+library grow, but its separate categories, tags, tools, saved-search cookbooks, rules, label editor,
+and batch surfaces ask an owner to model their whole kitchen before they can cook. Tandoor confirms
+the practical value of generating shopping from recipes or meal plans and arranging it for a store,
+but its feature remains explicitly unfinished and should not be copied as an ever-expanding shopping
+configuration area. Immich makes uploads feel trustworthy through obvious progress and a distinction
+between local and saved media; its asset-library scale, bulk backup, sharing, and album synchronization
+are unnecessary for one representative recipe photo.
+
+### Local decision
+
+Adapt the useful hierarchy while rejecting metadata and administration sprawl:
+
+- make first run a non-blocking choice of the next useful action, not a questionnaire or empty
+  dashboard; the owner may start by writing/importing a recipe or seeing the week, and nutrition
+  guidance remains optional;
+- allow one optional, owner-controlled photo only for a manually created recipe. Show it consistently
+  where recipe imagery already exists, use visible progress/recovery states, and never infer nutrition
+  from it or force every recipe to look photographed;
+- introduce owner-named shopping stops, an explicit unassigned fallback, and opt-in remembered
+  placements for reliable repeated ingredients. Preserve the current plan-source, manual-edit,
+  completion, and pantry-deduction contracts on refresh. Finishing a fully checked list is an
+  intentional weekly-shop record, not a destructive clear action: it becomes read-only history
+  until the owner explicitly reopens it;
+- add favorites, named many-to-many collections, and the four standard meal roles. Keep them optional
+  and progressively disclosed, with focused filters rather than a permanent tag-management page;
+- reject arbitrary tags, cuisine/diet/occasion taxonomies, retailer catalogues, price tracking,
+  delivery/checkout, multiple or step photos, bulk photo backup, sharing, and automatic AI
+  categorization until user evidence establishes a specific need.
+
+Evidence is defined by `specs/003-onboard-recipe-library/spec.md`. Revisit the organization model if
+the app becomes shared or owners consistently need a type of retrieval that cannot be expressed by a
+favorite, one collection, or one standard meal role.

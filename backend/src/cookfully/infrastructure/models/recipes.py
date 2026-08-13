@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -21,6 +22,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from cookfully.domain.common import uuid7
 from cookfully.infrastructure.models.base import Base, TimestampMixin
 
+if TYPE_CHECKING:
+    from cookfully.infrastructure.models.identity import OwnerAccount
+
 
 class Recipe(TimestampMixin, Base):
     __tablename__ = "recipes"
@@ -34,6 +38,7 @@ class Recipe(TimestampMixin, Base):
             name="archive_state_consistent",
         ),
         Index("ix_recipes_status_title", "status", "title"),
+        Index("ix_recipes_favorite", "is_favorite"),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
@@ -56,6 +61,7 @@ class Recipe(TimestampMixin, Base):
         PGUUID(as_uuid=True), ForeignKey("media_assets.id", ondelete="SET NULL")
     )
     input_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     archived_from_status: Mapped[str | None] = mapped_column(String(24))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -66,6 +72,71 @@ class Recipe(TimestampMixin, Base):
     ingredients: Mapped[list[Ingredient]] = relationship(
         back_populates="recipe", cascade="all, delete-orphan", order_by="Ingredient.position"
     )
+    collection_memberships: Mapped[list[RecipeCollectionMembership]] = relationship(
+        back_populates="recipe", cascade="all, delete-orphan"
+    )
+    meal_roles: Mapped[list[RecipeMealRole]] = relationship(
+        back_populates="recipe", cascade="all, delete-orphan"
+    )
+
+
+class RecipeCollection(TimestampMixin, Base):
+    __tablename__ = "recipe_collections"
+    __table_args__ = (
+        CheckConstraint("position >= 0", name="nonnegative_position"),
+        CheckConstraint("version > 0", name="positive_version"),
+        Index("uq_recipe_collections_owner_name", "owner_id", "name", unique=True),
+        Index("uq_recipe_collections_owner_position", "owner_id", "position", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    owner_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("owner_accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    owner: Mapped[OwnerAccount] = relationship(back_populates="recipe_collections")
+    memberships: Mapped[list[RecipeCollectionMembership]] = relationship(
+        back_populates="collection", cascade="all, delete-orphan"
+    )
+
+
+class RecipeCollectionMembership(Base):
+    __tablename__ = "recipe_collection_memberships"
+    __table_args__ = (
+        Index("uq_recipe_collection_membership", "collection_id", "recipe_id", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    collection_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("recipe_collections.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    recipe_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False
+    )
+
+    collection: Mapped[RecipeCollection] = relationship(back_populates="memberships")
+    recipe: Mapped[Recipe] = relationship(back_populates="collection_memberships")
+
+
+class RecipeMealRole(Base):
+    __tablename__ = "recipe_meal_roles"
+    __table_args__ = (
+        CheckConstraint("role IN ('breakfast', 'lunch', 'dinner', 'snack')", name="valid_role"),
+        Index("uq_recipe_meal_role", "recipe_id", "role", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    recipe_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    recipe: Mapped[Recipe] = relationship(back_populates="meal_roles")
 
 
 class RecipeInstruction(Base):

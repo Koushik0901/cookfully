@@ -101,6 +101,9 @@ class RecipeRead:
     nutrition: NutritionRead | None
     version: int
     updated_at: datetime
+    favorite: bool = False
+    collections: tuple[RecipeCollectionRead, ...] = ()
+    meal_roles: tuple[str, ...] = ()
     ingredients: tuple[IngredientRead, ...] = ()
     instructions: tuple[str, ...] = ()
     active_job: JobProgress | None = None
@@ -112,6 +115,13 @@ class RecipePageRead:
     next_cursor: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class RecipeCollectionRead:
+    id: UUID
+    name: str
+    position: int
+
+
 class RecipeQueryService:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
@@ -121,6 +131,9 @@ class RecipeQueryService:
         *,
         query: str | None,
         nutrition_state: str | None,
+        favorite: bool | None = None,
+        collection_id: UUID | None = None,
+        meal_role: str | None = None,
         include_archived: bool,
         cursor: str | None,
         limit: int,
@@ -130,6 +143,9 @@ class RecipeQueryService:
             recipes = RecipeRepository(session).list_recipes(
                 query=query,
                 nutrition_state=nutrition_state,
+                favorite=favorite,
+                collection_id=collection_id,
+                meal_role=meal_role,
                 include_archived=include_archived,
                 limit=limit + 1,
                 after=after,
@@ -198,6 +214,16 @@ class RecipeQueryService:
             nutrition=nutrition,
             version=recipe.version,
             updated_at=recipe.updated_at,
+            favorite=recipe.is_favorite,
+            collections=tuple(
+                RecipeCollectionRead(
+                    item.collection.id, item.collection.name, item.collection.position
+                )
+                for item in sorted(
+                    recipe.collection_memberships, key=lambda item: item.collection.position
+                )
+            ),
+            meal_roles=tuple(sorted(item.role for item in recipe.meal_roles)),
             ingredients=ingredients,
             instructions=(tuple(item.text for item in recipe.instructions) if detail else ()),
             active_job=active_job,

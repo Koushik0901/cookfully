@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/owner/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOwnerOnboarding"];
+        put: operations["putOwnerOnboarding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes": {
         parameters: {
             query?: never;
@@ -100,6 +116,72 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateRecipe"];
+        trace?: never;
+    };
+    "/recipes/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecipeCollections"];
+        put?: never;
+        post: operations["createRecipeCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/{recipeId}/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceRecipeOrganization"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/collections/{collectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteRecipeCollection"];
+        options?: never;
+        head?: never;
+        patch: operations["updateRecipeCollection"];
+        trace?: never;
+    };
+    "/recipes/{recipeId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceRecipePhoto"];
+        post?: never;
+        delete: operations["removeRecipePhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/recipes/{recipeId}/restore": {
@@ -308,6 +390,70 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{weekStart}/grocery-list/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{weekStart}/grocery-list/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reopenGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grocery-shopping-stops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listGroceryShoppingStops"];
+        put?: never;
+        post: operations["createGroceryShoppingStop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grocery-shopping-stops/{stopId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteGroceryShoppingStop"];
+        options?: never;
+        head?: never;
+        patch: operations["updateGroceryShoppingStop"];
         trace?: never;
     };
     "/grocery-items/{itemId}": {
@@ -534,6 +680,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_sessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revoke_session"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["change_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/foods/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_foods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/foods/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_user_foods"];
+        put?: never;
+        post: operations["create_user_food"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/foods/user/{foodId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_user_food"];
+        post?: never;
+        delete: operations["delete_user_food"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/{recipeId}/ingredients/{ingredientId}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_ingredient_candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -552,11 +810,95 @@ export interface components {
             email: string;
             password: string;
         };
+        PasswordChangeRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
+        SessionItem: {
+            /** Format: uuid */
+            id: string;
+            clientLabel: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastSeenAt: string;
+            isCurrent: boolean;
+        };
+        SessionListResponse: {
+            sessions: components["schemas"]["SessionItem"][];
+        };
+        FoodSearchResponse: {
+            query: string;
+            candidates: components["schemas"]["FoodCandidateResponse"][];
+        };
+        FoodCandidateResponse: {
+            source: string;
+            /** Format: uuid */
+            id: string;
+            description: string;
+            brandOwner: string;
+            servingSizeG: string;
+            servingUnit: string;
+        };
+        OwnerFoodResponse: {
+            /** Format: uuid */
+            id: string;
+            displayName: string;
+            normalizedName: string;
+            brand?: string;
+            caloriesKcal: components["schemas"]["Decimal6"];
+            proteinG: components["schemas"]["Decimal6"];
+            carbohydrateG: components["schemas"]["Decimal6"];
+            fatG: components["schemas"]["Decimal6"];
+            basisGrams: components["schemas"]["Decimal6"];
+            typicalServingG: components["schemas"]["Decimal6"];
+            typicalServingUnit: string;
+            version: number;
+        };
+        OwnerFoodWriteRequest: {
+            displayName: string;
+            brand?: string;
+            caloriesKcal: components["schemas"]["Decimal6"];
+            proteinG: components["schemas"]["Decimal6"];
+            carbohydrateG: components["schemas"]["Decimal6"];
+            fatG: components["schemas"]["Decimal6"];
+            basisGrams?: components["schemas"]["Decimal6"];
+            typicalServingG?: components["schemas"]["Decimal6"];
+            typicalServingUnit?: string;
+        };
+        OwnerFoodUpdateRequest: {
+            displayName: string;
+            brand?: string;
+            caloriesKcal: components["schemas"]["Decimal6"];
+            proteinG: components["schemas"]["Decimal6"];
+            carbohydrateG: components["schemas"]["Decimal6"];
+            fatG: components["schemas"]["Decimal6"];
+            basisGrams?: components["schemas"]["Decimal6"];
+            typicalServingG?: components["schemas"]["Decimal6"];
+            typicalServingUnit?: string;
+            expectedVersion: number;
+        };
         OwnerPreferences: {
             displayName: string;
             timezone: string;
             weekStartsOn: number;
             version: number;
+        };
+        OwnerOnboarding: {
+            /** @enum {string} */
+            state: "pending" | "completed" | "dismissed";
+            /** @enum {string|null} */
+            firstAction?: "manual_recipe" | "import_recipe" | "view_plan" | null;
+            /** Format: date-time */
+            resolvedAt?: string | null;
+            version: number;
+        };
+        RecipePhotoUpload: {
+            /**
+             * Format: binary
+             * @description JPEG, PNG, or WebP image no larger than 20 MB before normalization.
+             */
+            photo: string;
         };
         Problem: {
             /** Format: uri-reference */
@@ -686,6 +1028,23 @@ export interface components {
             ingredients: components["schemas"]["IngredientWrite"][];
             instructions: string[];
         };
+        RecipeCollectionWrite: {
+            name?: string;
+            position?: number;
+        };
+        RecipeCollection: components["schemas"]["RecipeCollectionWrite"] & {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            position: number;
+            version: number;
+            recipeCount: number;
+        };
+        RecipeOrganizationWrite: {
+            favorite: boolean;
+            collectionIds: string[];
+            mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+        };
         Recipe: {
             /** Format: uuid */
             id: string;
@@ -702,6 +1061,15 @@ export interface components {
             archivedFromStatus?: "draft" | "ready" | "partial" | "failed" | null;
             nutritionState: components["schemas"]["NutritionState"];
             nutrition?: components["schemas"]["ResolvedNutrition"] | null;
+            /** @default false */
+            favorite: boolean;
+            collections?: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+                position: number;
+            }[];
+            mealRoles?: ("breakfast" | "lunch" | "dinner" | "snack")[];
             version: number;
             /** Format: date-time */
             updatedAt?: string;
@@ -850,6 +1218,20 @@ export interface components {
             unit?: string | null;
             checked?: boolean;
             position?: number;
+            /** Format: uuid */
+            shoppingStopId?: string | null;
+            rememberPlacement?: boolean;
+        };
+        GroceryShoppingStopWrite: {
+            name?: string;
+            position?: number;
+        };
+        GroceryShoppingStop: components["schemas"]["GroceryShoppingStopWrite"] & {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            position: number;
+            version: number;
         };
         GroceryItemCreate: components["schemas"]["GroceryItemWrite"] & Record<string, never>;
         GroceryItem: components["schemas"]["GroceryItemWrite"] & {
@@ -858,6 +1240,7 @@ export interface components {
             /** @enum {string} */
             origin: "generated" | "manual";
             needsReview: boolean;
+            shoppingStop?: components["schemas"]["GroceryShoppingStop"] | null;
             sources: {
                 /** Format: uuid */
                 mealPlanEntryId: string;
@@ -872,9 +1255,11 @@ export interface components {
             /** Format: date */
             weekStart: string;
             /** @enum {string} */
-            status: "current" | "dirty" | "generating" | "failed";
+            status: "current" | "dirty" | "generating" | "failed" | "completed";
             /** Format: date-time */
             generatedAt?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
             items: components["schemas"]["GroceryItem"][];
             version: number;
         };
@@ -1187,6 +1572,52 @@ export interface operations {
             422: components["responses"]["ValidationError"];
         };
     };
+    getOwnerOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's first-run journey state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerOnboarding"];
+                };
+            };
+        };
+    };
+    putOwnerOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerOnboarding"];
+            };
+        };
+        responses: {
+            /** @description The resolved first-run journey state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerOnboarding"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
     listRecipes: {
         parameters: {
             query?: {
@@ -1195,6 +1626,9 @@ export interface operations {
                 query?: string;
                 nutritionState?: components["schemas"]["NutritionState"];
                 includeArchived?: boolean;
+                favorite?: boolean;
+                collectionId?: string;
+                mealRole?: "breakfast" | "lunch" | "dinner" | "snack";
             };
             header?: never;
             path?: never;
@@ -1343,6 +1777,187 @@ export interface operations {
             };
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationError"];
+        };
+    };
+    listRecipeCollections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Personal recipe collections in display order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollection"][];
+                };
+            };
+        };
+    };
+    createRecipeCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeCollectionWrite"];
+            };
+        };
+        responses: {
+            /** @description Collection created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollection"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    replaceRecipeOrganization: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeOrganizationWrite"];
+            };
+        };
+        responses: {
+            /** @description Recipe after its optional organization is replaced. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteRecipeCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collection deleted; recipe memberships only are removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateRecipeCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeCollectionWrite"];
+            };
+        };
+        responses: {
+            /** @description Collection renamed or reordered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollection"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    replaceRecipePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["RecipePhotoUpload"];
+            };
+        };
+        responses: {
+            /** @description Recipe with the normalized replacement photo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    removeRecipePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recipe after its optional photo is removed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            409: components["responses"]["Conflict"];
         };
     };
     restoreRecipe: {
@@ -1766,6 +2381,154 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GroceryList"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    completeGroceryList: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                weekStart: components["parameters"]["WeekStart"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Completed shopping pass retained with its source evidence. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryList"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    reopenGroceryList: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                weekStart: components["parameters"]["WeekStart"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Completed shopping pass made active explicitly. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryList"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listGroceryShoppingStops: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's shopping destinations in their chosen order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryShoppingStop"][];
+                };
+            };
+        };
+    };
+    createGroceryShoppingStop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroceryShoppingStopWrite"];
+            };
+        };
+        responses: {
+            /** @description Shopping destination created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryShoppingStop"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteGroceryShoppingStop: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                stopId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stop deleted and assignments safely cleared. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateGroceryShoppingStop: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                stopId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroceryShoppingStopWrite"];
+            };
+        };
+        responses: {
+            /** @description Shopping destination renamed or reordered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryShoppingStop"];
                 };
             };
             409: components["responses"]["Conflict"];
@@ -2237,6 +3000,220 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    list_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active sessions with the current session flagged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    revoke_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked; the current session is also signed out. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Password changed; all other sessions revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    search_foods: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching reference and owner food candidates. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodSearchResponse"];
+                };
+            };
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    list_user_foods: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner-created foods, optionally filtered by name. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFoodResponse"][];
+                };
+            };
+        };
+    };
+    create_user_food: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerFoodWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created owner food. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFoodResponse"];
+                };
+            };
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    update_user_food: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                foodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerFoodUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated owner food. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFoodResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    delete_user_food: {
+        parameters: {
+            query: {
+                expectedVersion: number;
+            };
+            header?: never;
+            path: {
+                foodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Owner food deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    list_ingredient_candidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+                ingredientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching reference and owner food candidates for the ingredient. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodSearchResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
     };
 }

@@ -232,3 +232,66 @@ def test_grocery_rejects_numeric_json_and_bad_versions(
             headers={**headers, "Idempotency-Key": "missing-version-01"},
         )
         assert missing_version.status_code == 428
+
+
+def test_shopping_stops_placements_and_completed_pass_contract(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        seed_plan(client, isolated_database_url, headers)
+        grocery = client.post(
+            "/api/v1/meal-plans/2026-03-09/grocery-list",
+            headers={**headers, "Idempotency-Key": "grocery-stops-generate"},
+        ).json()
+        first = client.post(
+            "/api/v1/grocery-shopping-stops", json={"name": "Market"}, headers=headers
+        )
+        second = client.post(
+            "/api/v1/grocery-shopping-stops", json={"name": "Bakery"}, headers=headers
+        )
+        assert first.status_code == second.status_code == 201
+        assert [value["name"] for value in client.get("/api/v1/grocery-shopping-stops").json()] == [
+            "Market",
+            "Bakery",
+        ]
+
+        item = grocery["items"][0]
+        assigned = client.patch(
+            f"/api/v1/grocery-items/{item['id']}",
+            json={"shoppingStopId": first.json()["id"], "checked": True},
+            headers={
+                **headers,
+                "If-Match": f'"{item["version"]}"',
+                "Idempotency-Key": "grocery-stop-place-01",
+            },
+        )
+        assert assigned.status_code == 200
+        assert assigned.json()["shoppingStop"]["name"] == "Market"
+
+        current = client.get("/api/v1/meal-plans/2026-03-09/grocery-list").json()
+        completed = client.post(
+            "/api/v1/meal-plans/2026-03-09/grocery-list/complete",
+            headers={**headers, "If-Match": f'"{current["version"]}"'},
+        )
+        assert completed.status_code == 200
+        assert completed.json()["status"] == "completed"
+        assert completed.json()["completedAt"] is not None
+
+        completed_item = completed.json()["items"][0]
+        blocked_edit = client.patch(
+            f"/api/v1/grocery-items/{completed_item['id']}",
+            json={"checked": False},
+            headers={
+                **headers,
+                "If-Match": f'"{completed_item["version"]}"',
+                "Idempotency-Key": "grocery-completed-edit",
+            },
+        )
+        assert blocked_edit.status_code == 409
+        reopened = client.post(
+            "/api/v1/meal-plans/2026-03-09/grocery-list/reopen",
+            headers={**headers, "If-Match": f'"{completed.json()["version"]}"'},
+        )
+        assert reopened.status_code == 200
+        assert reopened.json()["status"] == "current"

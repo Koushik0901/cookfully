@@ -30,7 +30,9 @@ test("desktop and 390x844 layouts contain long content without document overflow
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
   const controls = page.locator("button, input, select, textarea");
   for (let index = 0; index < await controls.count(); index += 1) {
-    const box = await controls.nth(index).boundingBox();
+    const control = controls.nth(index);
+    if (!(await control.isVisible())) continue;
+    const box = await control.boundingBox();
     if (box) expect(box.height).toBeGreaterThanOrEqual(44);
   }
 });

@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session, sessionmaker
+
+from cookfully.domain.common import DomainError, require_version
+from cookfully.infrastructure.media_store import MediaStore, StoredMedia
+from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.recipe_images import RecipeImageService
+from cookfully.infrastructure.repositories.recipes import RecipeRepository
+
+
+class RecipePhotoService:
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        images: RecipeImageService,
+        media: MediaStore,
+    ) -> None:
+        self._session_factory = session_factory
+        self._images = images
+        self._media = media
+
+    def replace(
+        self,
+        recipe_id: UUID,
+        *,
+        content: bytes,
+        content_type: str,
+        expected_version: int,
+    ) -> Recipe:
+        stored = self._images.capture_bytes(content, content_type)
+        try:
+            stale_storage_key: str | None = None
+            with self._session_factory.begin() as session:
+                recipe = RecipeRepository(session).get(recipe_id, for_update=True)
+                if recipe.status == "archived":
+                    raise DomainError(
+                        "recipe_archived", "Restore the recipe before changing its photo.", 409
+                    )
+                require_version(expected_version, recipe.version)
+                old_asset_id = recipe.image_asset_id
+                recipe.image_asset_id = self._persist_image(session, recipe.id, stored)
+                recipe.version += 1
+                stale_storage_key = self._detach_asset_if_unused(
+                    session,
+                    old_asset_id,
+                    active_asset_id=recipe.image_asset_id,
+                    excluding_recipe_id=recipe.id,
+                )
+                session.flush()
+            if stale_storage_key is not None:
+                self._media.delete(stale_storage_key)
+            return recipe
+        except Exception:
+            self._discard_storage_if_unreferenced(stored)
+            raise
+
+    def remove(self, recipe_id: UUID, *, expected_version: int) -> Recipe:
+        stale_storage_key: str | None = None
+        with self._session_factory.begin() as session:
+            recipe = RecipeRepository(session).get(recipe_id, for_update=True)
+            if recipe.status == "archived":
+                raise DomainError(
+                    "recipe_archived", "Restore the recipe before changing its photo.", 409
+                )
+            require_version(expected_version, recipe.version)
+            old_asset_id = recipe.image_asset_id
+            recipe.image_asset_id = None
+            recipe.version += 1
+            stale_storage_key = self._detach_asset_if_unused(
+                session,
+                old_asset_id,
+                active_asset_id=None,
+                excluding_recipe_id=recipe.id,
+            )
+            session.flush()
+        if stale_storage_key is not None:
+            self._media.delete(stale_storage_key)
+        return recipe
+
+    @staticmethod
+    def _persist_image(session: Session, recipe_id: UUID, stored: StoredMedia) -> UUID:
+        existing = session.scalar(
+            select(MediaAsset).where(MediaAsset.storage_key == stored.storage_key)
+        )
+        if existing is not None:
+            return existing.id
+        asset = MediaAsset(
+            recipe_id=recipe_id,
+            kind="recipe_image",
+            storage_key=stored.storage_key,
+            content_type="image/webp",
+            byte_size=stored.byte_size,
+            sha256=stored.sha256,
+            source_url=None,
+            encrypted=False,
+            expires_at=None,
+        )
+        session.add(asset)
+        session.flush()
+        return asset.id
+
+    @staticmethod
+    def _detach_asset_if_unused(
+        session: Session,
+        asset_id: UUID | None,
+        *,
+        active_asset_id: UUID | None,
+        excluding_recipe_id: UUID,
+    ) -> str | None:
+        if asset_id is None or asset_id == active_asset_id:
+            return None
+        still_used = session.scalar(
+            select(Recipe.id).where(
+                Recipe.image_asset_id == asset_id, Recipe.id != excluding_recipe_id
+            )
+        )
+        if still_used is not None:
+            return None
+        asset = session.get(MediaAsset, asset_id)
+        if asset is None:
+            return None
+        storage_key = asset.storage_key
+        session.execute(delete(MediaAsset).where(MediaAsset.id == asset.id))
+        return storage_key
+
+    def _discard_storage_if_unreferenced(self, stored: StoredMedia) -> None:
+        with self._session_factory() as session:
+            existing = session.scalar(
+                select(MediaAsset.id).where(MediaAsset.storage_key == stored.storage_key)
+            )
+        if existing is None:
+            self._media.delete(stored.storage_key)
