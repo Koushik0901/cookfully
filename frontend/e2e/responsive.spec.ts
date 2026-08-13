@@ -50,6 +50,22 @@ test("destructive dialog remains fully contained at every configured viewport", 
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
 });
 
+test("tablet keeps a compact kitchen rail instead of inheriting phone navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await mockAccessibleRecipeApi(page);
+  await page.goto(`/app/recipes/${accessibleRecipeId}`);
+
+  await expect(page.locator(".planner-nav")).toBeVisible();
+  await expect(page.locator(".mobile-nav")).toBeHidden();
+  await expect(page.getByRole("link", { name: "Recipes" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Goals" })).toBeVisible();
+
+  const content = await page.locator(".planner-shell__content").boundingBox();
+  expect(content).not.toBeNull();
+  expect(content!.x).toBe(80);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("cook mode takes over the viewport and adapts its ingredient checklist", async ({ page }, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}/cook`);

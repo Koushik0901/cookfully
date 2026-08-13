@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, Check, Gauge, Leaf, PencilLine, Sprout, TrendingDown, TrendingUp } from "lucide-react";
+import { Check, Gauge, Leaf, PencilLine, Sprout, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
@@ -11,7 +11,6 @@ import type { MealTarget, UserGoalWrite } from "../plans/types";
 import { formatCookingNumber } from "../recipes/formatCooking";
 
 const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
-const TIMEZONES = ["UTC", "America/Vancouver", "America/New_York", "Europe/London"];
 const decimal = /^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/;
 
 type TargetFields = Record<string, { caloriesKcal: string; proteinG: string; carbohydrateG: string; fatG: string }>;
@@ -30,8 +29,6 @@ export function GoalSettingsPage() {
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const currentGoal = useQuery({ queryKey: ["current-goal"], queryFn: () => planningApi.goal(), retry: false });
-  const [timezone, setTimezone] = useState("UTC");
-  const [weekStartsOn, setWeekStartsOn] = useState("1");
   const [mode, setMode] = useState<UserGoalWrite["mode"]>("maintain");
   const [maintenanceKcal, setMaintenanceKcal] = useState("");
   const [caloriesKcal, setCaloriesKcal] = useState("");
@@ -45,12 +42,6 @@ export function GoalSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [editingTargets, setEditingTargets] = useState(false);
   const [changed, setChanged] = useState(false);
-
-  useEffect(() => {
-    if (!preferences.data) return;
-    setTimezone(preferences.data.timezone);
-    setWeekStartsOn(String(preferences.data.weekStartsOn));
-  }, [preferences.data]);
 
   useEffect(() => {
     if (!currentGoal.data) return;
@@ -82,13 +73,7 @@ export function GoalSettingsPage() {
   }, [preferences.data, currentGoal.data, effectiveFrom]);
 
   const save = useMutation({
-    mutationFn: async (value: UserGoalWrite) => {
-      if (!preferences.data) throw new Error("Preferences are unavailable.");
-      if (timezone !== preferences.data.timezone || Number(weekStartsOn) !== preferences.data.weekStartsOn) {
-        await planningApi.updatePreferences({ timezone, weekStartsOn: Number(weekStartsOn), version: preferences.data.version });
-      }
-      return planningApi.updateGoal(value, currentGoal.data?.version);
-    },
+    mutationFn: (value: UserGoalWrite) => planningApi.updateGoal(value, currentGoal.data?.version),
     onSuccess: (value) => {
       queryClient.setQueryData(["current-goal"], value);
       void queryClient.invalidateQueries({ queryKey: ["owner-preferences"] });
@@ -178,7 +163,6 @@ export function GoalSettingsPage() {
 
         <section className="goal-advanced" aria-label="Advanced goal settings">
           <details className="goal-disclosure"><summary><span><Gauge aria-hidden="true" /><span><strong>Energy baseline and dates</strong><small>Maintenance estimate and when this guide applies</small></span></span></summary><div className="form-grid goal-disclosure__content"><Field label="Maintenance calories" error={errors.maintenanceKcal}><DecimalInput value={maintenanceKcal} onInput={(event) => { markChanged(); setMaintenanceKcal(event.currentTarget.value); }} /></Field><Field label="Effective from" error={errors.effectiveFrom}><input className="input" type="date" value={effectiveFrom} onChange={(event) => { markChanged(); setEffectiveFrom(event.target.value); }} /></Field><Field label="Effective to (optional)" error={errors.effectiveTo}><input className="input" type="date" value={effectiveTo} onChange={(event) => { markChanged(); setEffectiveTo(event.target.value); }} /></Field></div></details>
-          <details className="goal-disclosure"><summary><span><CalendarDays aria-hidden="true" /><span><strong>Calendar preferences</strong><small>Timezone and the first day of your planning week</small></span></span></summary><div className="form-grid goal-disclosure__content"><Field label="Timezone"><select className="input" value={timezone} onChange={(event) => { markChanged(); setTimezone(event.target.value); }}>{!TIMEZONES.includes(timezone) ? <option value={timezone}>{timezone}</option> : null}{TIMEZONES.map((value) => <option key={value} value={value}>{value}</option>)}</select></Field><Field label="Week starts on"><select className="input" value={weekStartsOn} onChange={(event) => { markChanged(); setWeekStartsOn(event.target.value); }}><option value="1">Monday</option><option value="7">Sunday</option><option value="6">Saturday</option></select></Field></div></details>
           <details className="goal-disclosure"><summary><span><Sprout aria-hidden="true" /><span><strong>Meal-by-meal targets</strong><small>Optional guidance for breakfast, lunch, dinner, or snacks</small></span></span></summary><div className="meal-targets goal-disclosure__content">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></details>
         </section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}

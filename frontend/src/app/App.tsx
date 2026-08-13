@@ -9,6 +9,7 @@ import {
   ListChecks,
   PackageOpen,
   ShoppingBasket,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { BrandMark, Button, EmptyState, Skeleton } from "../components";
@@ -23,6 +24,7 @@ const PantryPage = lazy(() => import("../features/pantry/PantryPage").then((modu
 const RecipeDetailPage = lazy(() => import("../features/recipes/RecipeDetailPage").then((module) => ({ default: module.RecipeDetailPage })));
 const RecipeEditorPage = lazy(() => import("../features/recipes/RecipeEditorPage").then((module) => ({ default: module.RecipeEditorPage })));
 const RecipeLibraryPage = lazy(() => import("../features/recipes/RecipeLibraryPage").then((module) => ({ default: module.RecipeLibraryPage })));
+const SettingsPage = lazy(() => import("../features/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const SuggestionPage = lazy(() => import("../features/suggestions/SuggestionPage").then((module) => ({ default: module.SuggestionPage })));
 const WeeklyPlannerPage = lazy(() => import("../features/plans/WeeklyPlannerPage").then((module) => ({ default: module.WeeklyPlannerPage })));
 
@@ -54,6 +56,11 @@ const PRIMARY_NAVIGATION = [
 const SECONDARY_NAVIGATION = [
   { to: "/app/foods", label: "Foods", Icon: Carrot },
   { to: "/app/goals", label: "Goals", Icon: ListChecks },
+] as const;
+
+const MORE_NAVIGATION = [
+  ...SECONDARY_NAVIGATION,
+  { to: "/app/settings", label: "Settings", Icon: SlidersHorizontal },
 ] as const;
 
 function LandingPage() {
@@ -121,7 +128,7 @@ function PlannerShell() {
         <nav aria-label="Kitchen">
           <p className="planner-nav__label">Kitchen</p>
           {PRIMARY_NAVIGATION.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+            <NavLink key={to} to={to} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
@@ -129,7 +136,7 @@ function PlannerShell() {
         <nav aria-label="Your space" className="planner-nav__secondary">
           <p className="planner-nav__label">Your space</p>
           {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+            <NavLink key={to} to={to} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
@@ -146,7 +153,7 @@ function PlannerShell() {
         <details className="mobile-nav__more">
           <summary><CircleEllipsis aria-hidden="true" /><span>More</span></summary>
           <div className="mobile-nav__menu">
-            {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+            {MORE_NAVIGATION.map(({ to, label, Icon }) => (
               <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span></NavLink>
             ))}
           </div>
@@ -168,6 +175,7 @@ function PlannerShell() {
             <Route path="foods" element={<OwnerFoodsPage />} />
             <Route path="suggestions" element={<SuggestionPage />} />
             <Route path="agent-access" element={<AgentAccessPage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
           </Routes>
         </Suspense>

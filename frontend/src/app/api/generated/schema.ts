@@ -553,6 +553,7 @@ export interface components {
             password: string;
         };
         OwnerPreferences: {
+            displayName: string;
             timezone: string;
             weekStartsOn: number;
             version: number;

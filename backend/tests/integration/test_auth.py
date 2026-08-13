@@ -182,3 +182,33 @@ def test_change_password_validates(session_factory: sessionmaker[Session]) -> No
             "short",
             token_hash(current.session_token),
         )
+
+
+def test_sweep_sessions_removes_expired_and_revoked(
+    session_factory: sessionmaker[Session],
+) -> None:
+    from cookfully.jobs.retention import sweep_sessions
+
+    service = AuthService(session_factory)
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    service.login("owner@example.com", "correct horse battery staple", client_label="Expired")
+    service.login("owner@example.com", "correct horse battery staple", client_label="Revoked")
+    active = service.login(
+        "owner@example.com", "correct horse battery staple", client_label="Active"
+    )
+
+    with session_factory.begin() as session:
+        expired = session.scalar(
+            select(SessionRecord).where(SessionRecord.client_label == "Expired")
+        )
+        assert expired is not None
+        expired.expires_at = datetime.now(UTC) - timedelta(days=31)
+        revoked = session.scalar(
+            select(SessionRecord).where(SessionRecord.client_label == "Revoked")
+        )
+        assert revoked is not None
+        revoked.revoked_at = datetime.now(UTC) - timedelta(days=31)
+
+    assert sweep_sessions(session_factory, now=datetime.now(UTC)) == 2
+    remaining = service.list_sessions(owner.id, token_hash(active.session_token))
+    assert [item.client_label for item in remaining] == ["Active"]

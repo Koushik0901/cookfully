@@ -21,9 +21,9 @@ mandatory; frontend unit tests cover the Settings page and 401 handling.
 
 **Purpose**: Configuration surface for the configurable session lifetime.
 
-- [ ] T001 [P] Add `session_ttl_days: int` field (default 400, `Field(ge=1, le=400)`) to `Settings` in `backend/src/cookfully/infrastructure/config.py`
-- [ ] T002 [P] Add `COOKFULLY_SESSION_TTL_DAYS: ${COOKFULLY_SESSION_TTL_DAYS:-400}` to the `backend-environment` anchor in `deploy/compose.yaml`
-- [ ] T003 [P] Add `COOKFULLY_SESSION_TTL_DAYS=400` to `.env.example`
+- [X] T001 [P] Add `session_ttl_days: int` field (default 400, `Field(ge=1, le=400)`) to `Settings` in `backend/src/cookfully/infrastructure/config.py`
+- [X] T002 [P] Add `COOKFULLY_SESSION_TTL_DAYS: ${COOKFULLY_SESSION_TTL_DAYS:-400}` to the `backend-environment` anchor in `deploy/compose.yaml`
+- [X] T003 [P] Add `COOKFULLY_SESSION_TTL_DAYS=400` to `.env.example`
 
 ---
 
@@ -33,8 +33,8 @@ mandatory; frontend unit tests cover the Settings page and 401 handling.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Add surrogate `id` UUIDv7 primary key (and make `id_hash` unique non-PK) to `SessionRecord` in `backend/src/cookfully/infrastructure/models/identity.py`, plus additive migration `backend/migrations/versions/0012_session_surrogate_id.py` (backfill ids, preserve `expires_at`)
-- [ ] T005 [P] Add `require_browser_session` dependency (returns owner + session record, enforces CSRF) in `backend/src/cookfully/api/dependencies/auth.py`
+- [X] T004 Add surrogate `id` UUIDv7 primary key (and make `id_hash` unique non-PK) to `SessionRecord` in `backend/src/cookfully/infrastructure/models/identity.py`, plus additive migration `backend/migrations/versions/0012_session_surrogate_id.py` (backfill ids, preserve `expires_at`)
+- [X] T005 [P] Add `require_browser_session` dependency (returns owner + session record, enforces CSRF) in `backend/src/cookfully/api/dependencies/auth.py`
 
 **Checkpoint**: Foundation ready — user story implementation can begin.
 
@@ -50,14 +50,14 @@ and confirm the session remains valid up to the configured TTL, with no re-login
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T006 [P] [US1] Integration test: login issues a session with `expires_at == created_at + session_ttl_days` and both cookies are `SameSite=lax` with the matching expiry, in `backend/tests/integration/test_auth.py`
-- [ ] T007 [P] [US1] Integration test: a session issued under one TTL is not retroactively extended when `AuthService` is later constructed with a different TTL, in `backend/tests/integration/test_auth.py`
+- [X] T006 [P] [US1] Integration test: login issues a session with `expires_at == created_at + session_ttl_days` and both cookies are `SameSite=lax` with the matching expiry, in `backend/tests/integration/test_auth.py`
+- [X] T007 [P] [US1] Integration test: a session issued under one TTL is not retroactively extended when `AuthService` is later constructed with a different TTL, in `backend/tests/integration/test_auth.py`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Construct `AuthService(sessions, session_ttl=timedelta(days=resolved.session_ttl_days))` in `backend/src/cookfully/api/main.py` (import `timedelta`)
-- [ ] T009 [US1] Change `cookfully_session` and `cookfully_csrf` cookies to `samesite="lax"` in `backend/src/cookfully/api/routes/auth.py`
-- [ ] T010 [US1] Populate `client_label` from the User-Agent: derive a short "Browser on OS" label and pass it through `AuthService.login` in `backend/src/cookfully/api/routes/auth.py` and `backend/src/cookfully/application/auth.py`
+- [X] T008 [US1] Construct `AuthService(sessions, session_ttl=timedelta(days=resolved.session_ttl_days))` in `backend/src/cookfully/api/main.py` (import `timedelta`)
+- [X] T009 [US1] Change `cookfully_session` and `cookfully_csrf` cookies to `samesite="lax"` in `backend/src/cookfully/api/routes/auth.py`
+- [X] T010 [US1] Populate `client_label` from the User-Agent: derive a short "Browser on OS" label and pass it through `AuthService.login` in `backend/src/cookfully/api/routes/auth.py` and `backend/src/cookfully/application/auth.py`
 
 **Checkpoint**: Persistent sign-in works and is testable independently of the settings UI.
 
@@ -74,17 +74,17 @@ reachable from Settings.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T011 [P] [US2] Unit test: Settings page renders Account/Security/API-access tabs and submits profile updates through the API in `frontend/src/features/settings/__tests__/SettingsPage.test.tsx`
-- [ ] T012 [P] [US2] Unit test: goal editor no longer renders timezone/week-start controls in `frontend/src/features/goals/__tests__/GoalSettingsPage.test.tsx`
+- [X] T011 [P] [US2] Unit test: Settings page renders Account/Security/API-access tabs and submits profile updates through the API in `frontend/src/features/settings/__tests__/SettingsPage.test.tsx`
+- [X] T012 [P] [US2] Unit test: goal editor no longer renders timezone/week-start controls in `frontend/src/features/goals/__tests__/GoalSettingsPage.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Add `display_name` to the owner preferences read/update path (`OwnerPreferences` schema + `OwnerPreferenceService.update`) in `backend/src/cookfully/api/routes/owner.py` and `backend/src/cookfully/application/owner_preferences.py`
-- [ ] T014 [P] [US2] Create `frontend/src/features/settings/SettingsPage.tsx` tabbed shell (Account / Security / API access)
-- [ ] T015 [P] [US2] Create `frontend/src/features/settings/AccountTab.tsx` (display name, timezone, week start, read-only email) reusing the owner-preferences API
-- [ ] T016 [P] [US2] Create `frontend/src/features/settings/SecurityTab.tsx` with a sign-out control calling `DELETE /api/v1/auth/session` (sessions list and password form arrive in US3/US4)
-- [ ] T017 [US2] Add Settings to `SECONDARY_NAVIGATION` and the route tree in `frontend/src/app/App.tsx`; relocate the `agent-access` route under Settings and render `AgentAccessPage` as the API access tab
-- [ ] T018 [US2] Remove the "Calendar preferences" disclosure from `frontend/src/features/goals/GoalSettingsPage.tsx`
+- [X] T013 [US2] Add `display_name` to the owner preferences read/update path (`OwnerPreferences` schema + `OwnerPreferenceService.update`) in `backend/src/cookfully/api/routes/owner.py` and `backend/src/cookfully/application/owner_preferences.py`
+- [X] T014 [P] [US2] Create `frontend/src/features/settings/SettingsPage.tsx` tabbed shell (Account / Security / API access)
+- [X] T015 [P] [US2] Create `frontend/src/features/settings/AccountTab.tsx` (display name, timezone, week start, read-only email) reusing the owner-preferences API
+- [X] T016 [P] [US2] Create `frontend/src/features/settings/SecurityTab.tsx` with a sign-out control calling `DELETE /api/v1/auth/session` (sessions list and password form arrive in US3/US4)
+- [X] T017 [US2] Add Settings to `SECONDARY_NAVIGATION` and the route tree in `frontend/src/app/App.tsx`; relocate the `agent-access` route under Settings and render `AgentAccessPage` as the API access tab
+- [X] T018 [US2] Remove the "Calendar preferences" disclosure from `frontend/src/features/goals/GoalSettingsPage.tsx`
 
 **Checkpoint**: Settings page is navigable and Account/API-access tabs are functional.
 
@@ -99,15 +99,15 @@ the other, and confirm it is signed out on its next request.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T019 [P] [US3] Integration test: two logins yield two listed sessions with exactly one `isCurrent` in `backend/tests/integration/test_auth.py`
-- [ ] T020 [P] [US3] Integration test: revoking another session invalidates it on next request while the current session stays valid; revoking the current session clears cookies, in `backend/tests/integration/test_auth.py`
-- [ ] T021 [P] [US3] Contract test: sessions list/revoke responses match the contract in `backend/tests/contract/test_account_session_api.py`
+- [X] T019 [P] [US3] Integration test: two logins yield two listed sessions with exactly one `isCurrent` in `backend/tests/integration/test_auth.py`
+- [X] T020 [P] [US3] Integration test: revoking another session invalidates it on next request while the current session stays valid; revoking the current session clears cookies, in `backend/tests/integration/test_auth.py`
+- [X] T021 [P] [US3] Contract test: sessions list/revoke responses match the contract in `backend/tests/contract/test_account_session_api.py`
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Add `AuthService.list_sessions(owner_id, current_id_hash)` and `AuthService.revoke_session(owner_id, session_id)` in `backend/src/cookfully/application/auth.py`
-- [ ] T023 [US3] Add `GET /api/v1/auth/sessions` and `DELETE /api/v1/auth/sessions/{sessionId}` in `backend/src/cookfully/api/routes/auth.py` (using `require_browser_session`; revoking current clears cookies)
-- [ ] T024 [US3] Add session-list UI (rows, current badge, revoke action) to `frontend/src/features/settings/SecurityTab.tsx` with helpers in `frontend/src/features/settings/api.ts`
+- [X] T022 [US3] Add `AuthService.list_sessions(owner_id, current_id_hash)` and `AuthService.revoke_session(owner_id, session_id)` in `backend/src/cookfully/application/auth.py`
+- [X] T023 [US3] Add `GET /api/v1/auth/sessions` and `DELETE /api/v1/auth/sessions/{sessionId}` in `backend/src/cookfully/api/routes/auth.py` (using `require_browser_session`; revoking current clears cookies)
+- [X] T024 [US3] Add session-list UI (rows, current badge, revoke action) to `frontend/src/features/settings/SecurityTab.tsx` with helpers in `frontend/src/features/settings/api.ts`
 
 **Checkpoint**: Session list and revocation are functional end-to-end.
 
@@ -123,14 +123,14 @@ password, and verify other sessions were invalidated.
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T025 [P] [US4] Integration test: password change revokes all other sessions and keeps the current one; wrong current password returns 401 and changes nothing; weak new password returns 422, in `backend/tests/integration/test_auth.py`
-- [ ] T026 [P] [US4] Contract test: password change request/response matches the contract in `backend/tests/contract/test_account_session_api.py`
+- [X] T025 [P] [US4] Integration test: password change revokes all other sessions and keeps the current one; wrong current password returns 401 and changes nothing; weak new password returns 422, in `backend/tests/integration/test_auth.py`
+- [X] T026 [P] [US4] Contract test: password change request/response matches the contract in `backend/tests/contract/test_account_session_api.py`
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Add `AuthService.change_password(owner_id, current_password, new_password)` (Argon2 verify + rehash, revoke all other sessions) in `backend/src/cookfully/application/auth.py`
-- [ ] T028 [US4] Add `POST /api/v1/auth/password` in `backend/src/cookfully/api/routes/auth.py`
-- [ ] T029 [US4] Add change-password form to `frontend/src/features/settings/SecurityTab.tsx` with a `changePassword` helper in `frontend/src/features/settings/api.ts`
+- [X] T027 [US4] Add `AuthService.change_password(owner_id, current_password, new_password)` (Argon2 verify + rehash, revoke all other sessions) in `backend/src/cookfully/application/auth.py`
+- [X] T028 [US4] Add `POST /api/v1/auth/password` in `backend/src/cookfully/api/routes/auth.py`
+- [X] T029 [US4] Add change-password form to `frontend/src/features/settings/SecurityTab.tsx` with a `changePassword` helper in `frontend/src/features/settings/api.ts`
 
 **Checkpoint**: All four user stories are independently functional.
 
@@ -140,12 +140,12 @@ password, and verify other sessions were invalidated.
 
 **Purpose**: Retention, global session-expiry handling, documentation, and verification.
 
-- [ ] T030 [P] Extend `sweep_retention` to delete expired/revoked `sessions` rows older than 30 days in `backend/src/cookfully/jobs/retention.py`, with an integration test in `backend/tests/integration/test_auth.py`
-- [ ] T031 Add global 401 handling: invalidate the `["owner-session"]` query on any 401 in `frontend/src/features/recipes/api.ts` so `RequireAuthentication` returns the owner to sign-in
-- [ ] T032 [P] Regenerate/verify the OpenAPI schema and `frontend/src/app/api/generated/schema.ts` for the new session/password/preferences endpoints
-- [ ] T033 [P] Update `AGENTS.md` "Recent Changes" (persistent 400-day sessions + tabbed Settings page)
-- [ ] T034 Run full verification: `uv run --directory backend ruff check .`, `mypy src`, `pytest`; `pnpm --dir frontend lint`, `typecheck`, `test --run`, `build`
-- [ ] T035 Validate `quickstart.md` (alembic upgrade, config, tests) and check desktop + 390x844 keyboard/contrast/overflow/loading/empty/error states on the Settings page
+- [X] T030 [P] Extend `sweep_retention` to delete expired/revoked `sessions` rows older than 30 days in `backend/src/cookfully/jobs/retention.py`, with an integration test in `backend/tests/integration/test_auth.py`
+- [X] T031 Add global 401 handling: invalidate the `["owner-session"]` query on any 401 in `frontend/src/features/recipes/api.ts` so `RequireAuthentication` returns the owner to sign-in
+- [X] T032 [P] Regenerate/verify the OpenAPI schema and `frontend/src/app/api/generated/schema.ts` for the new session/password/preferences endpoints
+- [X] T033 [P] Update `AGENTS.md` "Recent Changes" (persistent 400-day sessions + tabbed Settings page)
+- [X] T034 Run full verification: `uv run --directory backend ruff check .`, `mypy src`, `pytest`; `pnpm --dir frontend lint`, `typecheck`, `test --run`, `build`
+- [X] T035 Validate `quickstart.md` (alembic upgrade, config, tests) and check desktop + 390x844 keyboard/contrast/overflow/loading/empty/error states on the Settings page
 
 ---
 

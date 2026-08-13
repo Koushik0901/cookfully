@@ -8,6 +8,7 @@ import type {
   RecipeWrite,
   ResolvedNutrition,
 } from "./types";
+import { getSessionQueryClient } from "../../app/sessionStore";
 
 const API_ROOT = "/api/v1";
 
@@ -63,6 +64,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       code = problem.code;
     } catch {
       // Non-JSON failures retain the bounded generic message.
+    }
+    if (response.status === 401) {
+      getSessionQueryClient()?.invalidateQueries({ queryKey: ["owner-session"] });
     }
     throw new ApiProblem(response.status, message, code);
   }

@@ -11,7 +11,7 @@ import { MacroSummary } from "../MacroSummary";
 import { WeeklyPlannerPage } from "../WeeklyPlannerPage";
 import type { MealPlan, OwnerPreferences, UserGoal } from "../types";
 
-const preferences: OwnerPreferences = { timezone: "America/Vancouver", weekStartsOn: 1, version: 2 };
+const preferences: OwnerPreferences = { displayName: "Owner", timezone: "America/Vancouver", weekStartsOn: 1, version: 2 };
 const planMicronutrients = {
   ...unavailableMicronutrients,
   dietaryFiberG: { ...unavailableMicronutrients.dietaryFiberG, value: "12.5", coverageRatio: "0.95", source: "reference" as const },
@@ -95,11 +95,10 @@ describe("goal and weekly planning UI", () => {
     vi.unstubAllGlobals();
   });
 
-  it("edits required daily targets, optional meal targets, timezone, and week start", async () => {
+  it("edits required daily targets and optional meal targets", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
-      if (init?.method === "PUT" && path.includes("/owner/preferences")) return json({ ...preferences, timezone: "UTC", weekStartsOn: 7, version: 3 });
       if (init?.method === "PUT" && path.includes("/goals/current")) return json({ ...goal, caloriesKcal: "2300", version: 2 });
       if (path.includes("/owner/preferences")) return json(preferences);
       return json(goal);
@@ -111,15 +110,12 @@ describe("goal and weekly planning UI", () => {
     await user.click(screen.getByRole("button", { name: "Adjust daily guide" }));
     expect(await screen.findByDisplayValue("2200.000000")).toBeVisible();
     await user.click(screen.getByText("Meal-by-meal targets", { selector: "strong" }));
-    await user.click(screen.getByText("Calendar preferences", { selector: "strong" }));
-    await user.selectOptions(screen.getByLabelText("Timezone"), "UTC");
-    await user.selectOptions(screen.getByLabelText("Week starts on"), "7");
     await user.clear(screen.getByLabelText("Daily calories"));
     await user.type(screen.getByLabelText("Daily calories"), "2300.000000");
     expect(screen.getByText((_, element) => element?.tagName === "P" && /115 kcal below/i.test(element.textContent ?? ""))).toBeVisible();
     expect(screen.getByLabelText("Breakfast protein (optional)")).toHaveValue("");
     await user.click(screen.getByRole("button", { name: "Save my guide" }));
-    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(2));
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(1));
     const goalCall = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/goals/current") && init?.method === "PUT");
     expect(JSON.parse(String(goalCall?.[1]?.body))).toMatchObject({ caloriesKcal: "2300.000000", mealTargets: [{ proteinG: null }] });
     expect(new Headers(goalCall?.[1]?.headers).get("if-match")).toBe('"1"');

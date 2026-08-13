@@ -41,7 +41,7 @@ def test_login_sets_lax_long_lived_cookies(isolated_database_url: str, tmp_path:
             json={"email": "owner@example.com", "password": PASSWORD},
         )
         assert response.status_code == 204
-        set_cookie = response.headers.getlist("set-cookie")
+        set_cookie = response.headers.get_list("set-cookie")
         session_cookie = next(
             value for value in set_cookie if value.startswith("cookfully_session=")
         )

@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { BrandMark, ErrorRecovery, Skeleton } from "../components";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { LoginForm } from "./LoginForm";
+import { setSessionQueryClient } from "./sessionStore";
 
 async function verifySession(): Promise<boolean> {
   const response = await fetch("/api/v1/owner/preferences", {
@@ -63,6 +64,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         },
       }),
   );
+  setSessionQueryClient(queryClient);
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>

@@ -537,3 +537,47 @@ Adopt Immich's session model and reject its administration panel:
 Evidence is defined by `specs/002-persistent-sessions-settings/spec.md`. This decision should be
 reconsidered if the product becomes multi-user, because resource ownership, quotas, and delegated
 administration would then require the richer authorization model Immich already has.
+
+## Responsive navigation and owner controls — 2026-08-12
+
+### Sources inspected
+
+- [Tandoor configuration documentation](https://docs.tandoor.dev/system/configuration/), which
+  exposes extensive server, database, authentication, external-service, and debugging options for
+  a power-user deployment
+- [Immich search documentation](https://docs.immich.app/features/searching/), which keeps its
+  high-dimensional search facets within an explicit search experience instead of the ordinary
+  browsing flow
+- [Mealie feature documentation](https://docs.mealie.io/), which keeps recipe, planning, and
+  shopping capabilities central for household users
+
+### Objective comparison
+
+Tandoor's configuration breadth is appropriate for a mature, highly configurable Django service,
+but it demonstrates the cost of putting operator concepts beside routine recipe work: a person
+opening a food app must parse concerns such as database connection, proxy count, OAuth, debugging,
+and AI-provider choices. Immich supports powerful search but makes advanced facets contextual to
+finding assets rather than a permanent global form. Mealie's high-level feature framing is closer to
+Cookfully's everyday scope, while still not providing a nutrition-first boundary between household
+planning and owner administration.
+
+Responsive navigation adds a second constraint. A mobile bottom bar provides comfortably labelled,
+thumb-reachable destinations; carrying that full-width pattern into a tablet wastes vertical space
+and makes a 768–1023px planner read like an enlarged phone. Conversely, a permanent desktop rail at
+phone width would crowd recipe and planning content.
+
+### Local decision
+
+Adapt the clear hierarchy rather than copying any source UI:
+
+- desktop retains labelled Kitchen and Your space navigation;
+- tablets use a compact 80px icon rail with accessible text and hover labels, preserving canvas for
+  recipes and the weekly plan;
+- phones retain a labelled four-destination bottom bar and place Foods, Goals, and System under
+  `More`;
+- System exposes owner integration controls only from that deliberate secondary route, never as a
+  cooking or planning destination.
+
+Evidence: `frontend/src/app/App.tsx`, `frontend/src/styles/globals.css`, and the desktop/mobile
+browser suite under `frontend/e2e/`. Revisit if actual owner behavior shows that a specific System
+task is frequent enough to deserve a purpose-built, contextual entry point.

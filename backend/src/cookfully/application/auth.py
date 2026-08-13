@@ -177,6 +177,7 @@ class AuthService:
             ):
                 raise DomainError("csrf_invalid", "CSRF validation failed.", 403)
             record.last_seen_at = checked_at
+            _ = record.owner  # eager-load the relationship before the session closes
             return record
 
     def logout(self, session_token: str) -> None:

@@ -91,6 +91,10 @@ help someone plan, cook, and eat better food with less friction?"
 - 001-nutrition-recipe-planner: selected the fresh FastAPI/React architecture, PostgreSQL/Redis/Celery
   processing boundary, nutrition-first model, OpenAPI contracts, and phased P1-P6 delivery.
 
+- 002-persistent-sessions-settings: Immich-style persistent sessions (configurable `COOKFULLY_SESSION_TTL_DAYS`,
+  default 400 days), a session list/revoke + password-change API, and a tabbed Account/Security/API-access
+  Settings page. Session cookie switched to `SameSite=lax`; the retention sweep removes stale sessions.
+
 <!-- MANUAL ADDITIONS START -->
 - Treat Mealie, Tandoor Recipes, and Immich as recurring comparison points for relevant product,
   architecture, security, data-lifecycle, background-processing, and UI decisions. Inspect current
