@@ -35,7 +35,8 @@ class OwnerAccount(TimestampMixin, Base):
 class SessionRecord(Base):
     __tablename__ = "sessions"
 
-    id_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    id_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     owner_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("owner_accounts.id", ondelete="CASCADE"), nullable=False
     )

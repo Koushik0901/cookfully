@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
@@ -160,7 +161,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with runtime_service_lease(engine, resolved.erasure_ledger_root):
-            auth_service = AuthService(sessions)
+            auth_service = AuthService(
+                sessions, session_ttl=timedelta(days=resolved.session_ttl_days)
+            )
             auth_service.bootstrap_owner(
                 str(resolved.owner_email),
                 resolved.owner_bootstrap_password.get_secret_value(),

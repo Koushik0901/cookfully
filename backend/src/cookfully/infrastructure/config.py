@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     retention_sweep_interval_seconds: Annotated[int, Field(ge=300, le=21_600)] = 21_600
     backup_retention_days: int = 30
     cookie_secure: bool = False
+    session_ttl_days: Annotated[int, Field(ge=1, le=400)] = 400
 
     @field_validator("job_retry_delays_seconds", mode="before")
     @classmethod

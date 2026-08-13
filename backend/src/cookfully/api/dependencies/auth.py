@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, Request
 
@@ -10,6 +12,13 @@ from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
 
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+@dataclass(frozen=True, slots=True)
+class BrowserPrincipal:
+    owner: OwnerAccount
+    session_id: UUID
+    session_id_hash: str
 
 
 def get_auth_service(request: Request) -> AuthService:
@@ -52,6 +61,26 @@ def _authenticate_browser(request: Request, auth: AuthService) -> OwnerAccount:
         request.headers.get("x-csrf-token"),
         enforce_csrf=request.method not in SAFE_METHODS,
     )
+
+
+def require_browser_session(
+    request: Request,
+    auth: Annotated[AuthService, Depends(get_auth_service)],
+) -> BrowserPrincipal:
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        raise DomainError(
+            "browser_session_required", "This endpoint requires a browser session.", 403
+        )
+    session_token = request.cookies.get("cookfully_session")
+    if not session_token:
+        raise DomainError("authentication_required", "Authentication is required.", 401)
+    record = auth.authenticate_session_record(
+        session_token,
+        request.headers.get("x-csrf-token"),
+        enforce_csrf=request.method not in SAFE_METHODS,
+    )
+    return BrowserPrincipal(record.owner, record.id, record.id_hash)
 
 
 def require_scopes(*scopes: str) -> Callable[..., OwnerAccount]:

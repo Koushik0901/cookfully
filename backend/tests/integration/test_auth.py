@@ -1,12 +1,14 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.access_tokens import token_hash
 from cookfully.application.auth import ALL_TOKEN_SCOPES, AuthService
 from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.domain.common import DomainError
-from cookfully.infrastructure.models import OwnerAccount
+from cookfully.infrastructure.models import OwnerAccount, SessionRecord
 
 
 def test_bootstrap_session_csrf_expiry_and_logout(session_factory: sessionmaker[Session]) -> None:
@@ -50,7 +52,11 @@ def test_owner_timezone_week_start_and_optimistic_version(
     owner = auth.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
     preferences = OwnerPreferenceService(session_factory)
     updated = preferences.update(
-        owner.id, timezone="America/Vancouver", week_starts_on=7, expected_version=1
+        owner.id,
+        display_name="Owner",
+        timezone="America/Vancouver",
+        week_starts_on=7,
+        expected_version=1,
     )
     assert (updated.timezone, updated.week_starts_on, updated.version) == (
         "America/Vancouver",
@@ -58,9 +64,17 @@ def test_owner_timezone_week_start_and_optimistic_version(
         2,
     )
     with pytest.raises(DomainError, match="changed"):
-        preferences.update(owner.id, timezone="UTC", week_starts_on=1, expected_version=1)
+        preferences.update(
+            owner.id, display_name="Owner", timezone="UTC", week_starts_on=1, expected_version=1
+        )
     with pytest.raises(DomainError, match="timezone"):
-        preferences.update(owner.id, timezone="Mars/Base", week_starts_on=1, expected_version=2)
+        preferences.update(
+            owner.id,
+            display_name="Owner",
+            timezone="Mars/Base",
+            week_starts_on=1,
+            expected_version=2,
+        )
 
 
 def test_expired_session_is_rejected(session_factory: sessionmaker[Session]) -> None:
@@ -69,3 +83,102 @@ def test_expired_session_is_rejected(session_factory: sessionmaker[Session]) -> 
     issued = service.login("owner@example.com", "correct horse battery staple")
     with pytest.raises(DomainError, match="expired"):
         service.authenticate_session(issued.session_token, issued.csrf_token, now=datetime.now(UTC))
+
+
+def test_login_honors_configured_session_ttl(session_factory: sessionmaker[Session]) -> None:
+    service = AuthService(session_factory, session_ttl=timedelta(days=400))
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    service.login(
+        "owner@example.com",
+        "correct horse battery staple",
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0",
+    )
+    with session_factory() as session:
+        record = session.scalar(select(SessionRecord).where(SessionRecord.owner_id == owner.id))
+        assert record is not None
+        assert record.expires_at - record.created_at == timedelta(days=400)
+        assert record.client_label == "Chrome on Windows"
+
+
+def test_session_lifetime_is_fixed_at_issuance(session_factory: sessionmaker[Session]) -> None:
+    short = AuthService(session_factory, session_ttl=timedelta(hours=1))
+    short.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    issued = short.login("owner@example.com", "correct horse battery staple")
+    long = AuthService(session_factory, session_ttl=timedelta(days=400))
+    with pytest.raises(DomainError, match="expired"):
+        long.authenticate_session(
+            issued.session_token, issued.csrf_token, now=datetime.now(UTC) + timedelta(hours=2)
+        )
+
+
+def test_list_sessions_flags_current(session_factory: sessionmaker[Session]) -> None:
+    service = AuthService(session_factory)
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    service.login("owner@example.com", "correct horse battery staple", client_label="Device A")
+    second = service.login(
+        "owner@example.com", "correct horse battery staple", client_label="Device B"
+    )
+    sessions = service.list_sessions(owner.id, token_hash(second.session_token))
+    assert len(sessions) == 2
+    assert sum(1 for item in sessions if item.is_current) == 1
+    assert next(item for item in sessions if item.is_current).client_label == "Device B"
+
+
+def test_revoke_session_invalidates_other(session_factory: sessionmaker[Session]) -> None:
+    service = AuthService(session_factory)
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    first = service.login(
+        "owner@example.com", "correct horse battery staple", client_label="Device A"
+    )
+    second = service.login(
+        "owner@example.com", "correct horse battery staple", client_label="Device B"
+    )
+    sessions = service.list_sessions(owner.id, token_hash(second.session_token))
+    current_id = next(item for item in sessions if item.is_current).id
+    other = next(item for item in sessions if not item.is_current)
+    service.revoke_session(owner.id, other.id)
+    remaining = service.list_sessions(owner.id, token_hash(second.session_token))
+    assert [item.id for item in remaining] == [current_id]
+    with pytest.raises(DomainError, match="expired"):
+        service.authenticate_session(first.session_token, first.csrf_token)
+
+
+def test_change_password_revokes_other_sessions(session_factory: sessionmaker[Session]) -> None:
+    service = AuthService(session_factory)
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    current = service.login(
+        "owner@example.com", "correct horse battery staple", client_label="Current"
+    )
+    other = service.login("owner@example.com", "correct horse battery staple", client_label="Other")
+    service.change_password(
+        owner.id,
+        "correct horse battery staple",
+        "brand new horse battery staple",
+        token_hash(current.session_token),
+    )
+    assert service.authenticate_session(current.session_token, current.csrf_token).id == owner.id
+    with pytest.raises(DomainError, match="expired"):
+        service.authenticate_session(other.session_token, other.csrf_token)
+    with pytest.raises(DomainError, match="Email or password"):
+        service.login("owner@example.com", "correct horse battery staple")
+    assert service.login("owner@example.com", "brand new horse battery staple").session_token
+
+
+def test_change_password_validates(session_factory: sessionmaker[Session]) -> None:
+    service = AuthService(session_factory)
+    owner = service.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    current = service.login("owner@example.com", "correct horse battery staple")
+    with pytest.raises(DomainError, match="incorrect"):
+        service.change_password(
+            owner.id,
+            "wrong current password",
+            "brand new horse battery staple",
+            token_hash(current.session_token),
+        )
+    with pytest.raises(DomainError, match="12"):
+        service.change_password(
+            owner.id,
+            "correct horse battery staple",
+            "short",
+            token_hash(current.session_token),
+        )

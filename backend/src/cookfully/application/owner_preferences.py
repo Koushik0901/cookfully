@@ -15,10 +15,16 @@ class OwnerPreferenceService:
         self,
         owner_id: UUID,
         *,
+        display_name: str,
         timezone: str,
         week_starts_on: int,
         expected_version: int,
     ) -> OwnerAccount:
+        normalized_name = display_name.strip()
+        if not normalized_name or len(normalized_name) > 80:
+            raise DomainError(
+                "invalid_display_name", "Display name must be 1 to 80 characters.", 422
+            )
         try:
             ZoneInfo(timezone)
         except ZoneInfoNotFoundError as exc:
@@ -32,6 +38,7 @@ class OwnerPreferenceService:
             if owner is None:
                 raise DomainError("owner_not_found", "Owner account was not found.", 404)
             require_version(expected_version, owner.version)
+            owner.display_name = normalized_name
             owner.timezone = timezone
             owner.week_starts_on = week_starts_on
             owner.version += 1

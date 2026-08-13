@@ -479,3 +479,61 @@ Evidence: `frontend/src/app/App.tsx`, `frontend/src/features/plans/WeeklyPlanner
 `frontend/src/features/goals/GoalSettingsPage.tsx`,
 `frontend/src/features/grocery/GroceryListPage.tsx`, and
 `backend/src/cookfully/application/meal_plans.py`.
+
+## Persistent sessions and an administration surface — 2026-08-12
+
+### Sources inspected
+
+- [Immich auth service](https://github.com/immich-app/immich/blob/main/server/src/services/auth.service.ts)
+  and [auth controller](https://github.com/immich-app/immich/blob/main/server/src/controllers/auth.controller.ts):
+  `login` issues a 32-byte opaque token, SHA-256-hashed at rest in a `sessions` table; `validateSession`
+  has no expiry check — a session is valid until deleted. `logout` and password change are the only
+  revocation paths (password change invalidates other sessions).
+- [Immich cookie utility](https://github.com/immich-app/immich/blob/main/server/src/utils/response.ts):
+  `immich_access_token` is HttpOnly, `SameSite=lax`, with `maxAge` of 400 days (the browser cookie
+  ceiling), plus a non-HttpOnly `immich_is_authenticated` hint cookie.
+- [Immich user-management](https://immich.app/docs/administration/user-management),
+  [system-settings](https://immich.app/docs/administration/system-settings), and
+  [jobs-workers](https://immich.app/docs/administration/jobs-workers) documentation for the admin surface.
+
+### Objective comparison
+
+Immich's "stay signed in" behavior is not a client-side token trick: it is an opaque, server-side
+session that simply does not expire, delivered in a persistent cookie, with revocation and a session
+list as the compensating control. Cookfully already uses the same underlying mechanism (opaque token,
+SHA-256 hashed, PostgreSQL-backed, HttpOnly cookie) but imposes a 14-day hard expiry, no session list,
+no logout control, and no password change. The difference is therefore lifetime and the missing
+revocation surface, not a fundamentally different auth model.
+
+Immich's administration panel is justified by multi-tenancy: user creation, storage quotas, per-user
+server stats, and a broad machine-learning/video configuration. Cookfully is deliberately single-owner
+(constitution and spec FR-034), so none of that maps over. Filtering Immich's admin surfaces through
+Cookfully's persona test ("does this help plan, cook, and eat better food with less friction?") leaves
+only the account/security surface as genuinely useful — and that surface is forced once sessions become
+long-lived, because revocation replaces expiry as the security control. Instance stats, a jobs page,
+and a settings editor are operator tooling with no daily value for one owner who already knows their
+library and edits `.env` for configuration.
+
+### Local decision
+
+Adopt Immich's session model and reject its administration panel:
+
+- sessions last ~400 days by default (operator-configurable) and are valid until explicitly revoked;
+  the browser cookie expiry mirrors the session expiry;
+- a session list with a recognizable device label, sign-in and last-activity time, a current-session
+  marker, and per-session revocation is the compensating control;
+- a password-change endpoint invalidates all other sessions (Immich's `invalidateSessions` behavior);
+- switch the session cookie from `SameSite=strict` to `lax` to match Immich and avoid showing the
+  sign-in screen when the owner arrives from an external dashboard link, while the double-submit CSRF
+  header still protects mutations;
+- consolidate account and security controls into a single tabbed Settings page (Account, Security, API
+  access) rather than an Immich-style administration panel, and give the currently-unlinked Agent Access
+  page a home there (consistent with the earlier decision to keep Agent Access directly addressable but
+  out of kitchen navigation);
+- explicitly reject instance stats, background-job administration, and a database-backed settings
+  editor for now; revisit only if the product grows multi-user or the owner reports needing server
+  visibility.
+
+Evidence is defined by `specs/002-persistent-sessions-settings/spec.md`. This decision should be
+reconsidered if the product becomes multi-user, because resource ownership, quotas, and delegated
+administration would then require the richer authorization model Immich already has.

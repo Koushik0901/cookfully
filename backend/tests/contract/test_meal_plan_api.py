@@ -111,17 +111,27 @@ def test_required_goal_optional_meal_targets_preferences_and_canonical_decimals(
     with client_for(isolated_database_url, tmp_path) as client:
         headers = authenticate(client)
         preferences = client.get("/api/v1/owner/preferences")
-        assert preferences.json() == {"timezone": "UTC", "weekStartsOn": 1, "version": 1}
+        assert preferences.json() == {
+            "displayName": "Owner",
+            "timezone": "UTC",
+            "weekStartsOn": 1,
+            "version": 1,
+        }
         changed = client.put(
             "/api/v1/owner/preferences",
-            json={"timezone": "America/Vancouver", "weekStartsOn": 7, "version": 1},
+            json={
+                "displayName": "Owner",
+                "timezone": "America/Vancouver",
+                "weekStartsOn": 7,
+                "version": 1,
+            },
             headers=headers,
         )
         assert changed.status_code == 200
         assert changed.json()["weekStartsOn"] == 7
         stale_preferences = client.put(
             "/api/v1/owner/preferences",
-            json={"timezone": "UTC", "weekStartsOn": 1, "version": 1},
+            json={"displayName": "Owner", "timezone": "UTC", "weekStartsOn": 1, "version": 1},
             headers=headers,
         )
         assert stale_preferences.status_code == 409
@@ -156,7 +166,12 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
         headers = authenticate(client)
         client.put(
             "/api/v1/owner/preferences",
-            json={"timezone": "America/Vancouver", "weekStartsOn": 1, "version": 1},
+            json={
+                "displayName": "Owner",
+                "timezone": "America/Vancouver",
+                "weekStartsOn": 1,
+                "version": 1,
+            },
             headers=headers,
         )
         assert (
