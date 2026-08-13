@@ -894,6 +894,164 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /auth/sessions:
+    get:
+      operationId: list_sessions
+      responses:
+        "200":
+          description: Active sessions with the current session flagged.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionListResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/sessions/{session_id}:
+    delete:
+      operationId: revoke_session
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Session revoked; the current session is also signed out.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/password:
+    post:
+      operationId: change_password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordChangeRequest" }
+      responses:
+        "204":
+          description: Password changed; all other sessions revoked.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /foods/search:
+    get:
+      operationId: search_foods
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 256 }
+      responses:
+        "200":
+          description: Matching reference and owner food candidates.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /foods/user:
+    get:
+      operationId: list_user_foods
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Owner-created foods, optionally filtered by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/OwnerFoodResponse" }
+    post:
+      operationId: create_user_food
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OwnerFoodWriteRequest" }
+      responses:
+        "201":
+          description: Created owner food.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OwnerFoodResponse" }
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /foods/user/{foodId}:
+    put:
+      operationId: update_user_food
+      parameters:
+        - name: foodId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OwnerFoodUpdateRequest" }
+      responses:
+        "200":
+          description: Updated owner food.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OwnerFoodResponse" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    delete:
+      operationId: delete_user_food
+      parameters:
+        - name: foodId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: expectedVersion
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "204":
+          description: Owner food deleted.
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /recipes/{recipeId}/ingredients/{ingredientId}/candidates:
+    get:
+      operationId: list_ingredient_candidates
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Matching reference and owner food candidates for the ingredient.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     sessionCookie:
@@ -987,11 +1145,99 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 12, maxLength: 1024 }
+    PasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, minLength: 1, maxLength: 1024 }
+        newPassword: { type: string, minLength: 12, maxLength: 1024 }
+    SessionItem:
+      type: object
+      required: [id, clientLabel, createdAt, lastSeenAt, isCurrent]
+      properties:
+        id: { type: string, format: uuid }
+        clientLabel: { type: string }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        isCurrent: { type: boolean }
+    SessionListResponse:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items: { $ref: "#/components/schemas/SessionItem" }
+    FoodSearchResponse:
+      type: object
+      required: [query, candidates]
+      properties:
+        query: { type: string }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/FoodCandidateResponse" }
+    FoodCandidateResponse:
+      type: object
+      required: [source, id, description, brandOwner, servingSizeG, servingUnit]
+      properties:
+        source: { type: string }
+        id: { type: string, format: uuid }
+        description: { type: string }
+        brandOwner: { type: string }
+        servingSizeG: { type: string }
+        servingUnit: { type: string }
+    OwnerFoodResponse:
+      type: object
+      required:
+        [id, displayName, normalizedName, caloriesKcal, proteinG, carbohydrateG, fatG, basisGrams, typicalServingG, typicalServingUnit, version]
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string }
+        normalizedName: { type: string }
+        brand: { type: string }
+        caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
+        proteinG: { $ref: "#/components/schemas/Decimal6" }
+        carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
+        fatG: { $ref: "#/components/schemas/Decimal6" }
+        basisGrams: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingG: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingUnit: { type: string }
+        version: { type: integer, minimum: 1 }
+    OwnerFoodWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 500 }
+        brand: { type: string }
+        caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
+        proteinG: { $ref: "#/components/schemas/Decimal6" }
+        carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
+        fatG: { $ref: "#/components/schemas/Decimal6" }
+        basisGrams: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingG: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingUnit: { type: string }
+    OwnerFoodUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG, expectedVersion]
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 500 }
+        brand: { type: string }
+        caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
+        proteinG: { $ref: "#/components/schemas/Decimal6" }
+        carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
+        fatG: { $ref: "#/components/schemas/Decimal6" }
+        basisGrams: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingG: { $ref: "#/components/schemas/Decimal6" }
+        typicalServingUnit: { type: string }
+        expectedVersion: { type: integer, minimum: 1 }
     OwnerPreferences:
       type: object
       additionalProperties: false
-      required: [timezone, weekStartsOn, version]
+      required: [displayName, timezone, weekStartsOn, version]
       properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
         timezone: { type: string, minLength: 1, maxLength: 100 }
         weekStartsOn: { type: integer, minimum: 1, maximum: 7 }
         version: { type: integer, minimum: 1 }

@@ -281,7 +281,7 @@ def build_mcp_server(
         )
 
     @server.tool(
-        description="Return all pantry items for the owner.",
+        description=f"Return all pantry items for the owner. {PLANNING_NOTICE}",
         structured_output=True,
     )
     def list_pantry_items() -> dict[str, Any]:
@@ -294,7 +294,7 @@ def build_mcp_server(
         )
 
     @server.tool(
-        description="Add an item to the pantry idempotently.",
+        description=f"Add an item to the pantry idempotently. {PLANNING_NOTICE}",
         structured_output=True,
     )
     def create_pantry_item(
@@ -320,7 +320,7 @@ def build_mcp_server(
         )
 
     @server.tool(
-        description="Update a pantry item with version protection.",
+        description=f"Update a pantry item with version protection. {PLANNING_NOTICE}",
         structured_output=True,
     )
     def update_pantry_item(
@@ -350,7 +350,7 @@ def build_mcp_server(
         )
 
     @server.tool(
-        description="Remove a pantry item idempotently.",
+        description=f"Remove a pantry item idempotently. {PLANNING_NOTICE}",
         structured_output=True,
     )
     def remove_pantry_item(

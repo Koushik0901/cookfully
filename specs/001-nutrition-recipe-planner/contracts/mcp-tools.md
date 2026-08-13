@@ -81,6 +81,51 @@ canonical strings defined by OpenAPI; MCP results never convert them to binary f
 - **Output**: reconciled list with preserved manual/check state and review flags
 - **Errors**: `plan_not_found`, `version_conflict`, `idempotency_conflict`
 
+### `list_pantry_items`
+
+- **Scope**: `pantry:read`
+- **Input**: none
+- **Output**: owner pantry items with name, quantity, unit, food reference, and version
+- **Errors**: none beyond authentication and scope
+
+### `create_pantry_item`
+
+- **Scope**: `pantry:write`
+- **Input**: `display_name`, `quantity`, `unit_code`, required `idempotency_key`, optional
+  `food_reference_id`
+- **Output**: created pantry item
+- **Errors**: `invalid_quantity`, `invalid_identifier`, `idempotency_conflict`
+
+### `update_pantry_item`
+
+- **Scope**: `pantry:write`
+- **Input**: `pantry_item_id`, `display_name`, `quantity`, `unit_code`, required
+  `expected_version` and `idempotency_key`, optional `food_reference_id`
+- **Output**: updated pantry item
+- **Errors**: `pantry_item_not_found`, `version_conflict`, `idempotency_conflict`
+
+### `remove_pantry_item`
+
+- **Scope**: `pantry:write`
+- **Input**: `pantry_item_id`, `expected_version`, `idempotency_key`
+- **Output**: removal confirmation
+- **Errors**: `pantry_item_not_found`, `version_conflict`, `idempotency_conflict`
+
+### `request_suggestions`
+
+- **Scope**: `suggestions:write`
+- **Input**: `week_start`, `scope`, required `idempotency_key`, optional `meal_slot` and
+  `local_date`
+- **Output**: created suggestion run with status, target, and ranked items
+- **Errors**: `invalid_week_boundary`, `idempotency_conflict`
+
+### `get_suggestion_result`
+
+- **Scope**: `suggestions:read`
+- **Input**: `suggestion_id`
+- **Output**: the suggestion run, its target, status, and ranked items
+- **Errors**: `suggestion_not_found`, `invalid_identifier`
+
 ## Resources
 
 - `cookfully://methodology/nutrition` — versioned explanation of estimates, provenance, coverage,
