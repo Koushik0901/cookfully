@@ -22,7 +22,10 @@ const recipe: RecipeDetail = {
   yieldUnit: "servings",
   status: "ready",
   archivedFromStatus: null,
-  nutritionState: "estimated",
+      nutritionState: "estimated",
+      favorite: false,
+      collections: [],
+      mealRoles: [],
   nutrition: {
     status: "estimated",
     basisServings: "2.500",

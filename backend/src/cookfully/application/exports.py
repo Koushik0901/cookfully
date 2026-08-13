@@ -17,7 +17,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import DomainError, utc_now
 from cookfully.infrastructure.media_store import MediaStore
-from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
+from cookfully.infrastructure.models.grocery import (
+    GroceryItem,
+    GroceryItemSource,
+    GroceryList,
+    GroceryShoppingStop,
+    RememberedGroceryPlacement,
+)
+from cookfully.infrastructure.models.identity import OwnerOnboardingState
 from cookfully.infrastructure.models.jobs import ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import (
@@ -32,7 +39,14 @@ from cookfully.infrastructure.models.plans import (
     MealTarget,
     UserGoal,
 )
-from cookfully.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
+from cookfully.infrastructure.models.recipes import (
+    Ingredient,
+    Recipe,
+    RecipeCollection,
+    RecipeCollectionMembership,
+    RecipeInstruction,
+    RecipeMealRole,
+)
 from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
@@ -46,6 +60,10 @@ EXPORT_TABLES: tuple[Table, ...] = tuple(
         Recipe.__table__,
         RecipeInstruction.__table__,
         Ingredient.__table__,
+        RecipeCollection.__table__,
+        RecipeCollectionMembership.__table__,
+        RecipeMealRole.__table__,
+        OwnerOnboardingState.__table__,
         ReferenceDataset.__table__,
         FoodReference.__table__,
         FoodNutrient.__table__,
@@ -60,6 +78,8 @@ EXPORT_TABLES: tuple[Table, ...] = tuple(
         GroceryList.__table__,
         GroceryItem.__table__,
         GroceryItemSource.__table__,
+        GroceryShoppingStop.__table__,
+        RememberedGroceryPlacement.__table__,
         SuggestionRun.__table__,
         SuggestionItem.__table__,
         MediaAsset.__table__,
@@ -185,7 +205,14 @@ class PortableExportService:
         result: dict[str, list[dict[str, object]]] = {}
         for table in EXPORT_TABLES:
             statement: Select[Any] = select(table)
-            if table is UserGoal.__table__ or table is MealPlan.__table__:
+            if table in {
+                UserGoal.__table__,
+                MealPlan.__table__,
+                OwnerOnboardingState.__table__,
+                RecipeCollection.__table__,
+                GroceryShoppingStop.__table__,
+                RememberedGroceryPlacement.__table__,
+            }:
                 statement = statement.where(table.c.owner_id == owner_id)
             elif table is NutritionCorrection.__table__:
                 statement = statement.where(table.c.created_by == owner_id)

@@ -24,6 +24,7 @@ class ExistingGroceryItem:
     position: int
     version: int
     sources: tuple[GrocerySource, ...]
+    shopping_stop_id: UUID | None = None
 
 
 def _source_ids(sources: tuple[GrocerySource, ...]) -> frozenset[tuple[UUID, UUID | None]]:

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
@@ -233,6 +235,113 @@ def test_archive_restore_and_confirmed_permanent_delete_contract(
         )
         assert deleted_replay.status_code == 204
         assert client.get(f"/api/v1/recipes/{recipe_id}").status_code == 404
+
+
+def _png_bytes() -> bytes:
+    image = Image.new("RGB", (320, 180), color=(114, 145, 92))
+    payload = BytesIO()
+    image.save(payload, format="PNG")
+    return payload.getvalue()
+
+
+def test_recipe_photo_contract_is_versioned_and_keeps_recipe_content_intact(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        created = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers).json()
+        recipe_id = created["id"]
+
+        invalid = client.put(
+            f"/api/v1/recipes/{recipe_id}/photo",
+            files={"photo": ("recipe.gif", b"not-a-photo", "image/gif")},
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert invalid.status_code == 422
+
+        uploaded = client.put(
+            f"/api/v1/recipes/{recipe_id}/photo",
+            files={"photo": ("recipe.png", _png_bytes(), "image/png")},
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert uploaded.status_code == 200
+        assert uploaded.json()["imageUrl"].startswith("/api/v1/media/")
+        assert uploaded.json()["version"] == 2
+        assert uploaded.json()["nutritionState"] == created["nutritionState"]
+        assert (
+            uploaded.json()["ingredients"]
+            == client.get(f"/api/v1/recipes/{recipe_id}").json()["ingredients"]
+        )
+
+        stale = client.delete(
+            f"/api/v1/recipes/{recipe_id}/photo",
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert stale.status_code == 409
+        removed = client.delete(
+            f"/api/v1/recipes/{recipe_id}/photo",
+            headers={**headers, "If-Match": '"2"'},
+        )
+        assert removed.status_code == 200
+        assert removed.json()["imageUrl"] is None
+        assert removed.json()["version"] == 3
+
+
+def test_recipe_organization_is_optional_filterable_and_versioned(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        recipe = client.post(
+            "/api/v1/recipes", json=recipe_payload("Weeknight lentils"), headers=headers
+        ).json()
+        collection = client.post(
+            "/api/v1/recipes/collections", json={"name": "Weeknight"}, headers=headers
+        )
+        assert collection.status_code == 201
+
+        organized = client.put(
+            f"/api/v1/recipes/{recipe['id']}/organization",
+            json={
+                "favorite": True,
+                "collectionIds": [collection.json()["id"]],
+                "mealRoles": ["dinner"],
+            },
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert organized.status_code == 200
+        assert organized.json()["favorite"] is True
+        assert organized.json()["collections"][0]["name"] == "Weeknight"
+        assert organized.json()["mealRoles"] == ["dinner"]
+        assert organized.json()["version"] == 2
+
+        assert (
+            client.get("/api/v1/recipes", params={"favorite": True}).json()["items"][0]["id"]
+            == recipe["id"]
+        )
+        assert (
+            client.get("/api/v1/recipes", params={"collectionId": collection.json()["id"]}).json()[
+                "items"
+            ][0]["id"]
+            == recipe["id"]
+        )
+        assert (
+            client.get("/api/v1/recipes", params={"mealRole": "dinner"}).json()["items"][0]["id"]
+            == recipe["id"]
+        )
+
+        stale = client.put(
+            f"/api/v1/recipes/{recipe['id']}/organization",
+            json={"favorite": False, "collectionIds": [], "mealRoles": []},
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert stale.status_code == 409
+        deleted = client.delete(
+            f"/api/v1/recipes/collections/{collection.json()['id']}",
+            headers={**headers, "If-Match": f'"{collection.json()["version"]}"'},
+        )
+        assert deleted.status_code == 204
+        assert client.get(f"/api/v1/recipes/{recipe['id']}").json()["collections"] == []
 
 
 def test_import_auth_positive_serving_and_validation_problem_contract(

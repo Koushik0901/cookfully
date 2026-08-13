@@ -255,6 +255,8 @@ def test_mcp_stale_version_aborts_idempotency_and_rate_limit_revocation_fail_clo
             client.app.state.meal_plans,
             client.app.state.grocery_lists,
             client.app.state.idempotency,
+            client.app.state.suggestions,
+            client.app.state.pantry,
         )
         with pytest.raises(DomainError) as stale:
             tools.update_meal_plan_entry(

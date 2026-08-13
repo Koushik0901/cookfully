@@ -15,6 +15,10 @@ nutrition, weight change, performance, or simple organization.
   corrections.
 - Plan meals by week or day, adjust servings, and use suggestions where they solve a visible gap.
 - Generate an editable grocery list and optionally apply reviewed pantry deductions.
+- Start with one familiar recipe, optionally add a representative photo, and keep a growing library
+  findable with favorites, collections, and meal moments.
+- Shop a weekly list by the stops you actually visit; completed shopping passes remain an explicit
+  record until you reopen them.
 - Create owner foods for nutrition labels or staples that need a more faithful match.
 - Keep advanced integration access separate from everyday cooking flows.
 
@@ -24,6 +28,9 @@ Cookfully follows an **editorial kitchen utility** direction: warm, assured, and
 uses progressive disclosure so a person can start with a recipe or meal rather than confronting a
 wall of inputs or self-hosting settings. The authoritative UI rules—including accessibility,
 responsive behavior, nutrition language, and empty/error states—are in [DESIGN.md](DESIGN.md).
+
+The first-run guide is optional and intentionally contains no body measurements, diet labels, or
+mandatory targets. Nutrition guidance remains available beside planning when it is useful.
 
 ## Project layout
 

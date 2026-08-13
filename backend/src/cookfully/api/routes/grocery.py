@@ -13,8 +13,12 @@ from cookfully.api.schemas.grocery import (
     GroceryItemResponse,
     GroceryItemWriteRequest,
     GroceryListResponse,
+    GroceryShoppingStopCreateRequest,
+    GroceryShoppingStopResponse,
+    GroceryShoppingStopWriteRequest,
 )
 from cookfully.application.grocery_lists import GroceryListService
+from cookfully.application.grocery_shopping_stops import GroceryShoppingStopService
 from cookfully.application.idempotency import IdempotencyService
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -30,6 +34,69 @@ def grocery_service(request: Request) -> GroceryListService:
 def idempotency_service(request: Request) -> IdempotencyService:
     service: IdempotencyService = request.app.state.idempotency
     return service
+
+
+def shopping_stop_service(request: Request) -> GroceryShoppingStopService:
+    service: GroceryShoppingStopService = request.app.state.grocery_shopping_stops
+    return service
+
+
+@router.get("/grocery-shopping-stops", response_model=tuple[GroceryShoppingStopResponse, ...])
+def list_shopping_stops(
+    service: Annotated[GroceryShoppingStopService, Depends(shopping_stop_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:read"))],
+) -> tuple[GroceryShoppingStopResponse, ...]:
+    return tuple(GroceryShoppingStopResponse.from_read(value) for value in service.list(owner.id))
+
+
+@router.post(
+    "/grocery-shopping-stops",
+    response_model=GroceryShoppingStopResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_shopping_stop(
+    payload: GroceryShoppingStopCreateRequest,
+    service: Annotated[GroceryShoppingStopService, Depends(shopping_stop_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> GroceryShoppingStopResponse:
+    return GroceryShoppingStopResponse.from_read(
+        service.create(owner.id, name=payload.name, position=payload.position)
+    )
+
+
+@router.patch(
+    "/grocery-shopping-stops/{stopId}",
+    response_model=GroceryShoppingStopResponse,
+    response_model_by_alias=True,
+)
+def update_shopping_stop(
+    stop_id: Annotated[UUID, Path(alias="stopId")],
+    payload: GroceryShoppingStopWriteRequest,
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[GroceryShoppingStopService, Depends(shopping_stop_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> GroceryShoppingStopResponse:
+    return GroceryShoppingStopResponse.from_read(
+        service.update(
+            owner.id,
+            stop_id,
+            expected_version=version,
+            name=payload.name,
+            position=payload.position,
+        )
+    )
+
+
+@router.delete("/grocery-shopping-stops/{stopId}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_shopping_stop(
+    stop_id: Annotated[UUID, Path(alias="stopId")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[GroceryShoppingStopService, Depends(shopping_stop_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> Response:
+    service.remove(owner.id, stop_id, expected_version=version)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -82,6 +149,38 @@ def regenerate_grocery_list(
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response
+
+
+@router.post(
+    "/meal-plans/{weekStart}/grocery-list/complete",
+    response_model=GroceryListResponse,
+    response_model_by_alias=True,
+)
+def complete_grocery_list(
+    week_start: Annotated[date, Path(alias="weekStart")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[GroceryListService, Depends(grocery_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> GroceryListResponse:
+    return GroceryListResponse.from_read(
+        service.complete(owner.id, week_start, expected_version=version)
+    )
+
+
+@router.post(
+    "/meal-plans/{weekStart}/grocery-list/reopen",
+    response_model=GroceryListResponse,
+    response_model_by_alias=True,
+)
+def reopen_grocery_list(
+    week_start: Annotated[date, Path(alias="weekStart")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[GroceryListService, Depends(grocery_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> GroceryListResponse:
+    return GroceryListResponse.from_read(
+        service.reopen(owner.id, week_start, expected_version=version)
+    )
 
 
 @router.post(
@@ -148,7 +247,11 @@ def update_grocery_item(
     key: Annotated[str, Depends(idempotency_key)],
 ) -> GroceryItemResponse:
     values = payload.to_patch()
-    request_body = {"itemId": str(item_id), "version": version, **values}
+    request_body = {
+        "itemId": str(item_id),
+        "version": version,
+        **payload.model_dump(mode="json", by_alias=True, exclude_unset=True),
+    }
     decision = idempotency.begin(
         owner_id=owner.id, key=key, operation="grocery.item.update", payload=request_body
     )

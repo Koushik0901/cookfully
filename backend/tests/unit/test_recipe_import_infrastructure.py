@@ -180,3 +180,20 @@ def test_ingredient_mapping_preserves_original_and_fixed_values(
     assert str(result.quantity_max) == "0.666667"
     assert result.original_text.startswith("1/3-2/3")
     assert result.food_name == "rolled oats" and result.optional is True
+
+
+def test_manual_recipe_photo_reuses_safe_normalization(tmp_path: Path) -> None:
+    source = BytesIO()
+    Image.new("RGB", (2200, 1100), color=(120, 80, 45)).save(source, format="PNG")
+    store = MediaStore(tmp_path / "media", "secret")
+    images = RecipeImageService(SafeFetcher(resolver=public_resolver), store)
+
+    result = images.capture_bytes(source.getvalue(), "image/png")
+
+    assert result.byte_size > 0
+    with Image.open(BytesIO(store.read(result.storage_key))) as transformed:
+        assert transformed.format == "WEBP"
+        assert transformed.size == (1600, 800)
+
+    with pytest.raises(DomainError, match="JPEG, PNG, or WebP"):
+        images.capture_bytes(b"not an image", "image/gif")

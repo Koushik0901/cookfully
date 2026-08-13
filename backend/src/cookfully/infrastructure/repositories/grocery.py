@@ -19,7 +19,10 @@ class GroceryRepository:
         statement = (
             select(GroceryList)
             .where(GroceryList.meal_plan_id == meal_plan_id)
-            .options(selectinload(GroceryList.items).selectinload(GroceryItem.sources))
+            .options(
+                selectinload(GroceryList.items).selectinload(GroceryItem.sources),
+                selectinload(GroceryList.items).selectinload(GroceryItem.shopping_stop),
+            )
         )
         if for_update:
             statement = statement.with_for_update()
@@ -32,7 +35,10 @@ class GroceryRepository:
             select(GroceryList)
             .join(GroceryList.meal_plan)
             .where(MealPlan.owner_id == owner_id, MealPlan.week_start == week_start)
-            .options(selectinload(GroceryList.items).selectinload(GroceryItem.sources))
+            .options(
+                selectinload(GroceryList.items).selectinload(GroceryItem.sources),
+                selectinload(GroceryList.items).selectinload(GroceryItem.shopping_stop),
+            )
         )
         if for_update:
             statement = statement.with_for_update()
@@ -50,6 +56,7 @@ class GroceryRepository:
             .options(
                 selectinload(GroceryItem.sources),
                 selectinload(GroceryItem.grocery_list).selectinload(GroceryList.items),
+                selectinload(GroceryItem.shopping_stop),
             )
         )
         if for_update:

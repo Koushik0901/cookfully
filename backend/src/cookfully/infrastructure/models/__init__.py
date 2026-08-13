@@ -1,7 +1,18 @@
 from cookfully.infrastructure.models.base import Base
-from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
+from cookfully.infrastructure.models.grocery import (
+    GroceryItem,
+    GroceryItemSource,
+    GroceryList,
+    GroceryShoppingStop,
+    RememberedGroceryPlacement,
+)
 from cookfully.infrastructure.models.idempotency import IdempotencyRecord
-from cookfully.infrastructure.models.identity import AccessToken, OwnerAccount, SessionRecord
+from cookfully.infrastructure.models.identity import (
+    AccessToken,
+    OwnerAccount,
+    OwnerOnboardingState,
+    SessionRecord,
+)
 from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import (
@@ -9,6 +20,7 @@ from cookfully.infrastructure.models.nutrition import (
     NutritionCorrection,
     NutritionEstimate,
 )
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import (
     MealNutritionSnapshot,
@@ -17,7 +29,14 @@ from cookfully.infrastructure.models.plans import (
     MealTarget,
     UserGoal,
 )
-from cookfully.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
+from cookfully.infrastructure.models.recipes import (
+    Ingredient,
+    Recipe,
+    RecipeCollection,
+    RecipeCollectionMembership,
+    RecipeInstruction,
+    RecipeMealRole,
+)
 from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
@@ -33,6 +52,7 @@ __all__ = [
     "GroceryItem",
     "GroceryItemSource",
     "GroceryList",
+    "GroceryShoppingStop",
     "IdempotencyRecord",
     "Ingredient",
     "IngredientMatch",
@@ -45,12 +65,18 @@ __all__ = [
     "NutritionEstimate",
     "OutboxEvent",
     "OwnerAccount",
+    "OwnerFood",
+    "OwnerOnboardingState",
     "PantryDeduction",
     "PantryItem",
     "ProcessingJob",
     "Recipe",
+    "RecipeCollection",
+    "RecipeCollectionMembership",
     "RecipeInstruction",
+    "RecipeMealRole",
     "ReferenceDataset",
+    "RememberedGroceryPlacement",
     "SessionRecord",
     "SuggestionItem",
     "SuggestionRun",

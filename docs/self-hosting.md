@@ -114,6 +114,19 @@ only expired archives that have a newer verified replacement. Keep at least one 
 run a clean restore drill quarterly. Follow `docs/backup-restore.md`; archive creation is not proof of
 recoverability.
 
+## First kitchen and personal organization
+
+The welcome guide, recipe favorites, recipe collections, meal-role choices, shopping stops, remembered
+safe grocery placements, completed-list timestamps, and representative recipe photos are all owner data.
+They are included in normal portable export/restore ordering. Recipe images are normalized into the
+managed media volume; do not place files directly into that volume or remove individual files outside
+Cookfully, because their database relationship and cleanup lifecycle would no longer match.
+
+Shopping-stop memory is intentionally conservative: Cookfully remembers only an explicit placement for
+a clear generated ingredient. It never learns an automatic placement from a manual item, a renamed item,
+or something marked “Needs review.” A completed shopping pass is preserved and cannot be regenerated
+until explicitly reopened in the app.
+
 Replicate `erasure-ledger-data` separately to append-preserving storage in another failure domain,
 using credentials that the database/media backup job cannot use to rewrite history. Copy only after
 filesystem flush, verify the complete hash chain at the replica, monitor replication lag, and retain

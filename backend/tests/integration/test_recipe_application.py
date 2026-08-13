@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from sqlalchemy import select
@@ -51,11 +52,20 @@ def service(session_factory: sessionmaker[Session], tmp_path: Path) -> RecipeSer
     )
 
 
+def bootstrap_owner_id(session_factory: sessionmaker[Session]) -> UUID:
+    return (
+        AuthService(session_factory)
+        .bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+        .id
+    )
+
+
 def test_recipe_create_update_archive_restore_and_delete_are_transactional(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     recipes = service(session_factory, tmp_path)
-    created = recipes.create(recipe_write(), trace_id="trace-create")
+    owner_id = bootstrap_owner_id(session_factory)
+    created = recipes.create(recipe_write(), trace_id="trace-create", owner_id=owner_id)
     assert created.job is not None and created.job.status == "queued"
 
     with session_factory() as session:
@@ -69,6 +79,7 @@ def test_recipe_create_update_archive_restore_and_delete_are_transactional(
         recipe_write("Training bowl updated", "3.000"),
         expected_version=1,
         trace_id="trace-update",
+        owner_id=owner_id,
     )
     assert updated.recipe.version == 2
     with session_factory() as session:
@@ -103,6 +114,7 @@ def test_recipe_write_and_job_outbox_roll_back_together(
     session_factory: sessionmaker[Session], tmp_path: Path, monkeypatch
 ) -> None:
     recipes = service(session_factory, tmp_path)
+    owner_id = bootstrap_owner_id(session_factory)
 
     def fail_acceptance(*args, **kwargs):
         del args, kwargs
@@ -110,7 +122,7 @@ def test_recipe_write_and_job_outbox_roll_back_together(
 
     monkeypatch.setattr(recipes._jobs, "accept_in_session", fail_acceptance)
     with pytest.raises(RuntimeError, match="outbox unavailable"):
-        recipes.create(recipe_write(), trace_id="trace-rollback")
+        recipes.create(recipe_write(), trace_id="trace-rollback", owner_id=owner_id)
     with session_factory() as session:
         assert session.scalar(select(Recipe)) is None
         assert session.scalar(select(ProcessingJob)) is None
@@ -125,7 +137,7 @@ def test_typed_corrections_quantize_supersede_and_retain_reset_audit(
     )
     recipe = (
         service(session_factory, tmp_path)
-        .create(recipe_write(), trace_id="trace-corrections")
+        .create(recipe_write(), trace_id="trace-corrections", owner_id=owner.id)
         .recipe
     )
     corrections = CorrectionService(session_factory)
@@ -181,9 +193,10 @@ def test_typed_corrections_quantize_supersede_and_retain_reset_audit(
 def test_nutrition_repository_search_match_and_estimate_activation(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
+    owner_id = bootstrap_owner_id(session_factory)
     recipe = (
         service(session_factory, tmp_path)
-        .create(recipe_write(), trace_id="trace-nutrition-repository")
+        .create(recipe_write(), trace_id="trace-nutrition-repository", owner_id=owner_id)
         .recipe
     )
     with session_factory.begin() as session:

@@ -2,12 +2,20 @@ import { expect, type Page, test } from "@playwright/test";
 
 const weekStart = "2026-03-09";
 const listId = "00000000-0000-4000-8000-000000000070";
+type TestStop = { id: string; name: string; position: number; version: number };
+type TestItem = {
+  id: string; displayName: string; quantity: string | null; unit: string | null;
+  origin: string; checked: boolean; needsReview: boolean; position: number;
+  sources: Array<{ mealPlanEntryId: string; originalText: string; quantityContribution: string | null }>;
+  version: number; shoppingStop?: TestStop | null; shoppingStopId?: string | null;
+};
 
 async function mockGroceryApi(page: Page) {
   await page.clock.install({ time: new Date("2026-03-11T18:00:00Z") });
   let listVersion = 2;
   let status = "dirty";
-  let items = [
+  let stops: TestStop[] = [];
+  let items: TestItem[] = [
     {
       id: "00000000-0000-4000-8000-000000000071",
       displayName: "Red onion",
@@ -52,8 +60,40 @@ async function mockGroceryApi(page: Page) {
     const method = request.method();
     const grocery = () => ({ id: listId, weekStart, status, generatedAt: "2026-03-10T12:00:00Z", items, version: listVersion });
     if (path === "/api/v1/owner/preferences") return route.fulfill({ json: { timezone: "America/Vancouver", weekStartsOn: 1, version: 1 } });
+    if (path === "/api/v1/owner/onboarding") return route.fulfill({ json: { state: "completed", version: 1 } });
+    if (path === "/api/v1/grocery-shopping-stops" && method === "GET") return route.fulfill({ json: stops });
+    if (path === "/api/v1/grocery-shopping-stops" && method === "POST") {
+      const value = request.postDataJSON();
+      const stop = { id: `00000000-0000-4000-8000-${String(80 + stops.length).padStart(12, "0")}`, name: value.name, position: stops.length, version: 1 };
+      stops = [...stops, stop];
+      return route.fulfill({ status: 201, json: stop });
+    }
+    if (path.startsWith("/api/v1/grocery-shopping-stops/") && method === "PATCH") {
+      const id = path.split("/").at(-1);
+      const value = request.postDataJSON();
+      const index = stops.findIndex((stop) => stop.id === id);
+      stops[index] = { ...stops[index], ...value, version: stops[index].version + 1 };
+      if (typeof value.position === "number") stops = stops.map((stop, current) => ({ ...stop, position: current }));
+      return route.fulfill({ json: stops.find((stop) => stop.id === id) });
+    }
+    if (path.startsWith("/api/v1/grocery-shopping-stops/") && method === "DELETE") {
+      const id = path.split("/").at(-1);
+      stops = stops.filter((stop) => stop.id !== id);
+      items = items.map((item) => item.shoppingStop?.id === id ? { ...item, shoppingStop: null } : item);
+      return route.fulfill({ status: 204 });
+    }
     if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "GET") return route.fulfill({ json: grocery() });
     if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "POST") {
+      status = "current";
+      listVersion += 1;
+      return route.fulfill({ json: grocery() });
+    }
+    if (path === `/api/v1/meal-plans/${weekStart}/grocery-list/complete` && method === "POST") {
+      status = "completed";
+      listVersion += 1;
+      return route.fulfill({ json: grocery() });
+    }
+    if (path === `/api/v1/meal-plans/${weekStart}/grocery-list/reopen` && method === "POST") {
       status = "current";
       listVersion += 1;
       return route.fulfill({ json: grocery() });
@@ -67,7 +107,10 @@ async function mockGroceryApi(page: Page) {
     if (path.startsWith("/api/v1/grocery-items/") && method === "PATCH") {
       const id = path.split("/").at(-1);
       const index = items.findIndex((item) => item.id === id);
-      items[index] = { ...items[index], ...request.postDataJSON(), version: items[index].version + 1 };
+      const value = request.postDataJSON();
+      const shoppingStop = "shoppingStopId" in value ? stops.find((stop) => stop.id === value.shoppingStopId) ?? null : items[index].shoppingStop;
+      items[index] = { ...items[index], ...value, shoppingStop, version: items[index].version + 1 };
+      delete items[index].shoppingStopId;
       return route.fulfill({ json: items[index] });
     }
     if (path.startsWith("/api/v1/grocery-items/") && method === "DELETE") {
@@ -107,5 +150,30 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await page.getByRole("button", { name: "Remove Reusable bags" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);
   await expect(page.getByText("Needs review")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("groups a shopping pass by personal stops, then finishes and reopens it", async ({ page }) => {
+  await mockGroceryApi(page);
+  await page.goto("/app/grocery");
+  await page.getByText("Shop by stop", { exact: true }).click();
+  await page.getByLabel("New stop").fill("Market");
+  await page.getByRole("button", { name: "Add stop" }).click();
+  await page.getByLabel("New stop").fill("Corner shop");
+  await page.getByRole("button", { name: "Add stop" }).click();
+  await expect(page.getByLabel("Market stop name")).toBeVisible();
+  await page.getByText("Edit Red onion", { exact: true }).click();
+  await page.getByLabel("Shopping stop for Red onion").selectOption({ label: "Market" });
+  await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
+  await page.getByRole("checkbox", { name: "Salt to taste purchased" }).check();
+  await page.getByRole("button", { name: "Finish this shopping pass" }).click();
+  await expect(page.getByText("This shopping pass is complete")).toBeVisible();
+  await expect(page.getByText("Edit Red onion", { exact: true })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove Red onion" })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Reopen list" }).click();
+  await expect(page.getByText("Ready to shop")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -7,6 +7,11 @@ tokens, idempotency records, jobs, outbox events, media records/files, encrypted
 portable export archives. USDA reference releases are retained. The command is intentionally absent
 from HTTP, MCP, and the browser UI.
 
+This includes first-run state, favorites, recipe collections/memberships/meal roles, shopping stops,
+remembered grocery placements, completed-list state, and representative recipe-photo media. Deleting a
+collection or shopping stop in normal use is not erasure: memberships or assignments are safely cleared
+while recipes and grocery history remain intact.
+
 ## Preconditions
 
 Use a disposable restored instance for the first validation. Confirm a recent backup has passed

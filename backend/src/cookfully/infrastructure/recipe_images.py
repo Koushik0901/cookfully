@@ -19,10 +19,23 @@ class RecipeImageService:
 
     async def capture(self, url: str) -> StoredMedia:
         resource = await self._fetcher.fetch(url, allowed_content_types=IMAGE_TYPES)
+        return self.capture_bytes(resource.content, resource.content_type)
+
+    def capture_bytes(self, content: bytes, content_type: str) -> StoredMedia:
+        if content_type not in IMAGE_TYPES:
+            raise DomainError(
+                "media_type_blocked", "Recipe photos must be JPEG, PNG, or WebP.", 422
+            )
+        if not content or len(content) > 20 * 1024 * 1024:
+            raise DomainError(
+                "media_size_invalid",
+                "Recipe photos must be smaller than 20 MB.",
+                422,
+            )
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("error", Image.DecompressionBombWarning)
-                with Image.open(BytesIO(resource.content)) as image:
+                with Image.open(BytesIO(content)) as image:
                     if image.width * image.height > 40_000_000:
                         raise DomainError(
                             "image_dimensions_exceeded", "Recipe image is too large.", 422

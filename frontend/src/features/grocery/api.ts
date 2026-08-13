@@ -1,5 +1,5 @@
 import { apiRequest } from "../recipes/api";
-import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList } from "./types";
+import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList, GroceryShoppingStop, GroceryShoppingStopWrite } from "./types";
 
 export const groceryApi = {
   get(weekStart: string) {
@@ -10,6 +10,28 @@ export const groceryApi = {
       method: "POST",
       idempotent: true,
     });
+  },
+  complete(weekStart: string, version: number) {
+    return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list/complete`, {
+      method: "POST", version,
+    });
+  },
+  reopen(weekStart: string, version: number) {
+    return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list/reopen`, {
+      method: "POST", version,
+    });
+  },
+  stops() {
+    return apiRequest<GroceryShoppingStop[]>("/grocery-shopping-stops");
+  },
+  createStop(value: Required<Pick<GroceryShoppingStopWrite, "name">> & GroceryShoppingStopWrite) {
+    return apiRequest<GroceryShoppingStop>("/grocery-shopping-stops", { method: "POST", body: JSON.stringify(value) });
+  },
+  updateStop(stopId: string, version: number, value: GroceryShoppingStopWrite) {
+    return apiRequest<GroceryShoppingStop>(`/grocery-shopping-stops/${stopId}`, { method: "PATCH", version, body: JSON.stringify(value) });
+  },
+  removeStop(stopId: string, version: number) {
+    return apiRequest<void>(`/grocery-shopping-stops/${stopId}`, { method: "DELETE", version });
   },
   create(weekStart: string, value: GroceryItemCreate) {
     return apiRequest<GroceryItem>(`/meal-plans/${weekStart}/grocery-list/items`, {

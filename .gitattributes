@@ -1,0 +1,3 @@
+# Corpus snapshots are integrity-checked byte-for-byte. Keep their LF capture
+# form on every platform instead of applying Windows checkout conversion.
+backend/tests/fixtures/nutrition-corpus/html/** text eol=lf

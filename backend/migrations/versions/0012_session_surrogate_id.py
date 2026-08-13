@@ -16,13 +16,19 @@ def upgrade() -> None:
     op.add_column("sessions", sa.Column("id", postgresql.UUID(as_uuid=True), nullable=True))
     op.execute("UPDATE sessions SET id = gen_random_uuid() WHERE id IS NULL")
     op.alter_column("sessions", "id", nullable=False)
-    op.drop_constraint("sessions_pkey", "sessions", type_="primary")
+    existing_primary_key = sa.inspect(op.get_bind()).get_pk_constraint("sessions")["name"]
+    if existing_primary_key is None:
+        raise RuntimeError("sessions must have a primary key before adding its public id")
+    op.drop_constraint(existing_primary_key, "sessions", type_="primary")
     op.create_primary_key("sessions_pkey", "sessions", ["id"])
     op.create_unique_constraint("uq_sessions_id_hash", "sessions", ["id_hash"])
 
 
 def downgrade() -> None:
     op.drop_constraint("uq_sessions_id_hash", "sessions", type_="unique")
-    op.drop_constraint("sessions_pkey", "sessions", type_="primary")
+    existing_primary_key = sa.inspect(op.get_bind()).get_pk_constraint("sessions")["name"]
+    if existing_primary_key is None:
+        raise RuntimeError("sessions must have a primary key before restoring id_hash")
+    op.drop_constraint(existing_primary_key, "sessions", type_="primary")
     op.create_primary_key("sessions_pkey", "sessions", ["id_hash"])
     op.drop_column("sessions", "id")

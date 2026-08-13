@@ -150,6 +150,12 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
             "remove_meal_plan_entry",
             "get_grocery_list",
             "regenerate_grocery_list",
+            "request_suggestions",
+            "get_suggestion_result",
+            "list_pantry_items",
+            "create_pantry_item",
+            "update_pantry_item",
+            "remove_pantry_item",
         } == names
 
         added = mcp_call(

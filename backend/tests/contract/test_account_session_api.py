@@ -146,3 +146,43 @@ def test_change_password_validation(isolated_database_url: str, tmp_path: Path) 
             json={"currentPassword": PASSWORD, "newPassword": "short"},
         )
         assert weak.status_code == 422
+
+
+def test_onboarding_is_optional_and_resolves_once(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        pending = client.get("/api/v1/owner/onboarding")
+        assert pending.status_code == 200
+        assert pending.json() == {
+            "state": "pending",
+            "firstAction": None,
+            "resolvedAt": None,
+            "version": 1,
+        }
+
+        invalid = client.put(
+            "/api/v1/owner/onboarding",
+            headers=headers,
+            json={"state": "pending", "version": 1},
+        )
+        assert invalid.status_code == 422
+
+        resolved = client.put(
+            "/api/v1/owner/onboarding",
+            headers=headers,
+            json={"state": "completed", "firstAction": "manual_recipe", "version": 1},
+        )
+        assert resolved.status_code == 200
+        assert resolved.json()["state"] == "completed"
+        assert resolved.json()["firstAction"] == "manual_recipe"
+        assert resolved.json()["resolvedAt"] is not None
+        assert resolved.json()["version"] == 2
+
+        repeated = client.put(
+            "/api/v1/owner/onboarding",
+            headers=headers,
+            json={"state": "dismissed", "version": 2},
+        )
+        assert repeated.status_code == 409

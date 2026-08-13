@@ -6,6 +6,8 @@ import type {
   RecipeDetail,
   RecipePage,
   RecipeWrite,
+  RecipeCollection,
+  RecipeOrganizationWrite,
   ResolvedNutrition,
 } from "./types";
 import { getSessionQueryClient } from "../../app/sessionStore";
@@ -42,7 +44,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const headers = new Headers(options.headers);
   headers.set("accept", "application/json");
   const method = (options.method ?? "GET").toUpperCase();
-  if (options.body) headers.set("content-type", "application/json");
+  if (options.body && !(options.body instanceof FormData)) headers.set("content-type", "application/json");
   if (!new Set(["GET", "HEAD", "OPTIONS"]).has(method)) {
     const csrf = cookie("cookfully_csrf");
     if (csrf) headers.set("x-csrf-token", decodeURIComponent(csrf));
@@ -75,11 +77,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 export const recipesApi = {
-  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean } = {}) {
+  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string } = {}) {
     const params = new URLSearchParams();
     if (filters.query) params.set("query", filters.query);
     if (filters.nutritionState) params.set("nutritionState", filters.nutritionState);
     if (filters.includeArchived) params.set("includeArchived", "true");
+    if (filters.favorite) params.set("favorite", "true");
+    if (filters.collectionId) params.set("collectionId", filters.collectionId);
+    if (filters.mealRole) params.set("mealRole", filters.mealRole);
     const suffix = params.size ? `?${params.toString()}` : "";
     return apiRequest<RecipePage>(`/recipes${suffix}`);
   },
@@ -94,6 +99,28 @@ export const recipesApi = {
       method: "PATCH",
       version,
       body: JSON.stringify(value),
+    });
+  },
+  collections() { return apiRequest<RecipeCollection[]>("/recipes/collections"); },
+  createCollection(name: string) { return apiRequest<RecipeCollection>("/recipes/collections", { method: "POST", body: JSON.stringify({ name }) }); },
+  updateCollection(collectionId: string, version: number, value: { name?: string; position?: number }) { return apiRequest<RecipeCollection>(`/recipes/collections/${collectionId}`, { method: "PATCH", version, body: JSON.stringify(value) }); },
+  removeCollection(collectionId: string, version: number) { return apiRequest<void>(`/recipes/collections/${collectionId}`, { method: "DELETE", version }); },
+  organize(recipeId: string, version: number, value: RecipeOrganizationWrite) {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/organization`, { method: "PUT", version, body: JSON.stringify(value) });
+  },
+  uploadPhoto(recipeId: string, version: number, photo: File) {
+    const body = new FormData();
+    body.set("photo", photo);
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo`, {
+      method: "PUT",
+      version,
+      body,
+    });
+  },
+  removePhoto(recipeId: string, version: number) {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo`, {
+      method: "DELETE",
+      version,
     });
   },
   archive(recipeId: string, version: number) {

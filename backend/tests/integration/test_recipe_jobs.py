@@ -80,6 +80,14 @@ def recipe_service(session_factory: sessionmaker[Session], tmp_path: Path) -> Re
     )
 
 
+def bootstrap_owner_id(session_factory: sessionmaker[Session]) -> UUID:
+    return (
+        AuthService(session_factory)
+        .bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+        .id
+    )
+
+
 def envelope_for(session_factory: sessionmaker[Session], job_id: UUID) -> JobEnvelope:
     with session_factory() as session:
         job = session.get(ProcessingJob, job_id)
@@ -175,7 +183,9 @@ async def test_parse_match_rollup_chain_is_idempotent_and_preserves_corrections(
         "owner@example.com", "correct horse battery staple", "Owner"
     )
     started = perf_counter()
-    mutation = recipe_service(session_factory, tmp_path).create(write(), trace_id="trace-chain")
+    mutation = recipe_service(session_factory, tmp_path).create(
+        write(), trace_id="trace-chain", owner_id=owner.id
+    )
     assert perf_counter() - started < 1
     assert mutation.job is not None
     correction = CorrectionService(session_factory).activate(
@@ -268,7 +278,8 @@ async def test_input_change_and_archive_supersede_queued_work(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     recipes = recipe_service(session_factory, tmp_path)
-    changed = recipes.create(write(), trace_id="trace-changed")
+    owner_id = bootstrap_owner_id(session_factory)
+    changed = recipes.create(write(), trace_id="trace-changed", owner_id=owner_id)
     assert changed.job is not None
     with session_factory.begin() as session:
         stored = session.get(Recipe, changed.recipe.id)
@@ -281,7 +292,7 @@ async def test_input_change_and_archive_supersede_queued_work(
     stale = await worker.process(envelope_for(session_factory, changed.job.id))
     assert stale.status == "superseded"
 
-    archived = recipes.create(write(), trace_id="trace-archive")
+    archived = recipes.create(write(), trace_id="trace-archive", owner_id=owner_id)
     assert archived.job is not None
     recipes.archive(archived.recipe.id, expected_version=1)
     result = await worker.process(envelope_for(session_factory, archived.job.id))
@@ -292,7 +303,9 @@ async def test_input_change_and_archive_supersede_queued_work(
 async def test_missing_reference_data_finishes_partial_without_blocking_manual_use(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
-    mutation = recipe_service(session_factory, tmp_path).create(write(), trace_id="trace-degraded")
+    mutation = recipe_service(session_factory, tmp_path).create(
+        write(), trace_id="trace-degraded", owner_id=bootstrap_owner_id(session_factory)
+    )
     assert mutation.job is not None
     worker = pipeline(
         session_factory,

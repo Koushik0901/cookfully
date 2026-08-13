@@ -18,6 +18,7 @@ from pydantic import (
 )
 
 from cookfully.api.schemas.jobs import JobResponse
+from cookfully.application.recipe_organization import RecipeCollectionRead
 from cookfully.application.recipe_queries import (
     CorrectionRead,
     IngredientRead,
@@ -25,6 +26,9 @@ from cookfully.application.recipe_queries import (
     ProvenanceRead,
     RecipePageRead,
     RecipeRead,
+)
+from cookfully.application.recipe_queries import (
+    RecipeCollectionRead as RecipeOrganizationCollectionRead,
 )
 from cookfully.application.recipes import IngredientWrite, RecipeWrite
 from cookfully.domain.common import canonical_decimal, quantize_decimal
@@ -140,6 +144,37 @@ class RecalculateRequest(ApiModel):
 
 class PermanentDeleteRequest(ApiModel):
     confirmation: Literal["permanently-delete"]
+
+
+class RecipeCollectionWriteRequest(ApiModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    position: int | None = Field(default=None, ge=0)
+
+
+class RecipeCollectionResponse(ApiModel):
+    id: UUID
+    name: str
+    position: int
+    version: int
+    recipe_count: int = Field(alias="recipeCount")
+
+    @classmethod
+    def from_read(cls, value: RecipeCollectionRead) -> RecipeCollectionResponse:
+        return cls(
+            id=value.id,
+            name=value.name,
+            position=value.position,
+            version=value.version,
+            recipe_count=value.recipe_count,
+        )
+
+
+class RecipeOrganizationWriteRequest(ApiModel):
+    favorite: bool
+    collection_ids: tuple[UUID, ...] = Field(alias="collectionIds")
+    meal_roles: tuple[Literal["breakfast", "lunch", "dinner", "snack"], ...] = Field(
+        alias="mealRoles"
+    )
 
 
 CorrectionField = Literal[
@@ -350,6 +385,16 @@ class IngredientResponse(ApiModel):
         )
 
 
+class RecipeCollectionSummaryResponse(ApiModel):
+    id: UUID
+    name: str
+    position: int
+
+    @classmethod
+    def from_read(cls, value: RecipeOrganizationCollectionRead) -> RecipeCollectionSummaryResponse:
+        return cls(id=value.id, name=value.name, position=value.position)
+
+
 class RecipeResponse(ApiModel):
     id: UUID
     title: str
@@ -363,6 +408,11 @@ class RecipeResponse(ApiModel):
     nutrition: ResolvedNutritionResponse | None = None
     version: int = Field(ge=1)
     updated_at: datetime = Field(alias="updatedAt")
+    favorite: bool = False
+    collections: tuple[RecipeCollectionSummaryResponse, ...] = ()
+    meal_roles: tuple[Literal["breakfast", "lunch", "dinner", "snack"], ...] = Field(
+        alias="mealRoles", default=()
+    )
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeResponse:
@@ -381,6 +431,14 @@ class RecipeResponse(ApiModel):
             ),
             version=value.version,
             updated_at=value.updated_at,
+            favorite=value.favorite,
+            collections=tuple(
+                RecipeCollectionSummaryResponse.from_read(item) for item in value.collections
+            ),
+            meal_roles=tuple(
+                cast(Literal["breakfast", "lunch", "dinner", "snack"], item)
+                for item in value.meal_roles
+            ),
         )
 
 
