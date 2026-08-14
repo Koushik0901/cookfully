@@ -32,7 +32,7 @@ export function SettingsPage() {
             id={`settings-tab-${id}`}
             aria-selected={tab === id}
             aria-controls={`settings-panel-${id}`}
-            className={`settings-tab ${tab === id ? "settings-tab--active" : ""}`}
+            className="settings-tab"
             onClick={() => setTab(id)}
           >
             <Icon aria-hidden="true" /><span><strong>{label}</strong><small>{description}</small></span>

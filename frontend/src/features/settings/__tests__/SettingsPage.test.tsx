@@ -93,4 +93,11 @@ describe("settings page", () => {
     expect(screen.getByRole("button", { name: "Change password" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
   });
+
+  it("uses the shared settings-tabs structure without dead classes", () => {
+    renderPage();
+    const account = screen.getByRole("tab", { name: "Account" });
+    expect(account).toHaveAttribute("aria-selected", "true");
+    expect(account.className).not.toContain("settings-tab--active");
+  });
 });

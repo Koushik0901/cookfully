@@ -98,7 +98,7 @@ export function AgentAccessPage({ embedded = false }: { embedded?: boolean }) {
   const description = "Connect an external assistant with narrowly scoped tokens, then revoke access whenever you need to.";
   const frame = (content: ReactNode) => embedded
     ? <><div className="settings-system-intro"><p className="eyebrow">System connection</p><h2>Agent access</h2><p>{description}</p></div>{content}</>
-    : <main className="page-shell"><PageHeader eyebrow="System access" title="Agent access" description={description} />{content}</main>;
+    : <main className="page-shell settings-agent-page"><PageHeader eyebrow="System access" title="Agent access" description={description} />{content}</main>;
 
   if (tokens.isPending) return frame(<Skeleton label="Loading agent access" lines={8} />);
   if (tokens.isError) {
