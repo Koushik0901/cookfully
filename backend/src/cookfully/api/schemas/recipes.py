@@ -138,6 +138,14 @@ class ImportRecipeRequest(ApiModel):
     url: AnyHttpUrl = Field(max_length=2048)
 
 
+class RecipeSourceImageChoiceRequest(ApiModel):
+    url: AnyHttpUrl = Field(max_length=2048)
+
+
+class RecipeSourceImageResponse(ApiModel):
+    url: AnyHttpUrl
+
+
 class RecalculateRequest(ApiModel):
     reset_corrections: bool = Field(alias="resetCorrections", default=False)
 
@@ -189,6 +197,15 @@ CorrectionField = Literal[
     "protein_g",
     "carbohydrate_g",
     "fat_g",
+    "dietary_fiber_g",
+    "sodium_mg",
+    "potassium_mg",
+    "calcium_mg",
+    "iron_mg",
+    "magnesium_mg",
+    "vitamin_c_mg",
+    "vitamin_d_ug",
+    "vitamin_b12_ug",
 ]
 
 

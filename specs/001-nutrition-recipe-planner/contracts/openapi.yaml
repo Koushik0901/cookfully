@@ -355,6 +355,42 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /recipes/{recipeId}/source-images:
+    get:
+      tags: [Recipes]
+      operationId: listRecipeSourceImages
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+      responses:
+        "200":
+          description: Usable image choices discovered on the original recipe page.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RecipeSourceImage" }
+
+  /recipes/{recipeId}/photo/source:
+    put:
+      tags: [Recipes]
+      operationId: replaceRecipePhotoFromSource
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecipeSourceImage" }
+      responses:
+        "200":
+          description: Recipe with the selected source photo normalized and stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeDetail" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /recipes/{recipeId}/restore:
     post:
       tags: [Recipes, Nutrition]
@@ -1503,6 +1539,12 @@ components:
           type: string
           format: binary
           description: JPEG, PNG, or WebP image no larger than 20 MB before normalization.
+    RecipeSourceImage:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url: { type: string, format: uri, maxLength: 2048 }
     Problem:
       type: object
       required: [type, title, status, code]
@@ -1717,7 +1759,7 @@ components:
         imageUrl: { type: [string, "null"], format: uri-reference }
         yieldQuantity: { $ref: "#/components/schemas/ServingDecimal" }
         yieldUnit: { type: string }
-        status: { type: string, enum: [draft, processing, ready, partial, failed, archived] }
+        status: { type: string, enum: [draft, processing, ready, partial, failed, import_failed, archived] }
         archivedFromStatus: { type: [string, "null"], enum: [draft, ready, partial, failed, null] }
         nutritionState: { $ref: "#/components/schemas/NutritionState" }
         nutrition: { oneOf: [{ $ref: "#/components/schemas/ResolvedNutrition" }, { type: "null" }] }
@@ -1758,7 +1800,7 @@ components:
         ingredientId: { type: [string, "null"], format: uuid }
         field:
           type: string
-          enum: [quantity_min, quantity_max, unit, food_name, food_reference, grams, yield_quantity, calories_kcal, protein_g, carbohydrate_g, fat_g]
+          enum: [quantity_min, quantity_max, unit, food_name, food_reference, grams, yield_quantity, calories_kcal, protein_g, carbohydrate_g, fat_g, dietary_fiber_g, sodium_mg, potassium_mg, calcium_mg, iron_mg, magnesium_mg, vitamin_c_mg, vitamin_d_ug, vitamin_b12_ug]
         decimalValue: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
         textValue: { type: [string, "null"], maxLength: 500 }
         referenceIdValue: { type: [string, "null"], format: uuid }

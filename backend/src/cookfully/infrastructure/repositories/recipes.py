@@ -62,6 +62,14 @@ class RecipeRepository:
             ),
             selectinload(Recipe.meal_roles),
         )
+        # Import placeholders are workflow state, not recipes. Keep both new
+        # import_failed rows and legacy failed placeholders out of every library view.
+        statement = statement.where(
+            ~and_(
+                Recipe.title == "Importing recipe",
+                Recipe.status.in_(("failed", "import_failed")),
+            )
+        )
         if not include_archived:
             statement = statement.where(Recipe.status != "archived")
         if query:

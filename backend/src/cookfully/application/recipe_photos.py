@@ -10,7 +10,9 @@ from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.recipe_images import RecipeImageService
+from cookfully.infrastructure.recipe_importer import RecipeImporter
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
+from cookfully.infrastructure.safe_fetch import SafeFetcher
 
 
 class RecipePhotoService:
@@ -19,10 +21,12 @@ class RecipePhotoService:
         session_factory: sessionmaker[Session],
         images: RecipeImageService,
         media: MediaStore,
+        source_fetcher: SafeFetcher,
     ) -> None:
         self._session_factory = session_factory
         self._images = images
         self._media = media
+        self._source_fetcher = source_fetcher
 
     def replace(
         self,
@@ -33,6 +37,42 @@ class RecipePhotoService:
         expected_version: int,
     ) -> Recipe:
         stored = self._images.capture_bytes(content, content_type)
+        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+
+    async def source_candidates(self, recipe_id: UUID) -> tuple[str, ...]:
+        with self._session_factory() as session:
+            recipe = RecipeRepository(session).get(recipe_id)
+            source_url = recipe.source_url
+        if not source_url:
+            return ()
+        resource = await self._source_fetcher.fetch(source_url, max_bytes=3 * 1024 * 1024)
+        html = resource.content.decode("utf-8", errors="replace")
+        return RecipeImporter.image_candidates(html, resource.final_url)
+
+    async def replace_from_source(
+        self,
+        recipe_id: UUID,
+        *,
+        image_url: str,
+        expected_version: int,
+    ) -> Recipe:
+        candidates = await self.source_candidates(recipe_id)
+        if image_url not in candidates:
+            raise DomainError(
+                "source_image_invalid",
+                "Choose a photo found on the original recipe page.",
+                422,
+            )
+        stored = await self._images.capture(image_url)
+        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+
+    def _replace_stored(
+        self,
+        recipe_id: UUID,
+        *,
+        stored: StoredMedia,
+        expected_version: int,
+    ) -> Recipe:
         try:
             stale_storage_key: str | None = None
             with self._session_factory.begin() as session:

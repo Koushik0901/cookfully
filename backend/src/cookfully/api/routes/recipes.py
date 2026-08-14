@@ -30,6 +30,8 @@ from cookfully.api.schemas.recipes import (
     RecipeOrganizationWriteRequest,
     RecipePageResponse,
     RecipeResponse,
+    RecipeSourceImageChoiceRequest,
+    RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
 )
@@ -318,6 +320,42 @@ async def replace_recipe_photo(
         )
     finally:
         await photo.close()
+    return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.get(
+    "/{recipeId}/source-images",
+    response_model=tuple[RecipeSourceImageResponse, ...],
+    response_model_by_alias=True,
+)
+async def list_recipe_source_images(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> tuple[RecipeSourceImageResponse, ...]:
+    return tuple(
+        RecipeSourceImageResponse(url=value) for value in await photos.source_candidates(recipe_id)
+    )
+
+
+@router.put(
+    "/{recipeId}/photo/source",
+    response_model=RecipeDetailResponse,
+    response_model_by_alias=True,
+)
+async def replace_recipe_photo_from_source(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    payload: RecipeSourceImageChoiceRequest,
+    version: Annotated[int, Depends(expected_version)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeDetailResponse:
+    await photos.replace_from_source(
+        recipe_id,
+        image_url=str(payload.url),
+        expected_version=version,
+    )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
 

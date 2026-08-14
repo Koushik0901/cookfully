@@ -199,6 +199,13 @@ async function mockApi(page: Page) {
   return { releaseImport: () => { releaseImport = true; pollCount = 0; } };
 }
 
+async function openRecipeOptions(page: Page) {
+  const details = page.locator("details.danger-zone");
+  if (!(await details.evaluate((element: HTMLDetailsElement) => element.open))) {
+    await details.locator("summary").click();
+  }
+}
+
 test("manual create, edit, correction, archive, restore, and history-safe permanent delete", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/app/recipes/new");
@@ -223,24 +230,31 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await page.getByLabel("Yield quantity").fill("3.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await expect(page.getByText(/nutrition is stale/i)).toBeVisible();
+  await expect(page.getByText("stale", { exact: true })).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
-  await page.getByLabel("Nutrition field").selectOption("protein_g");
-  await page.getByLabel("Corrected decimal value").fill("40.000000");
-  await page.getByLabel("Correction reason").fill("Package label");
-  await page.getByRole("button", { name: "Apply correction" }).click();
+  await page.getByRole("link", { name: "Edit recipe" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  await page.getByText("Nutrition values").click();
+  await page.getByLabel("Protein (g)").fill("40.000000");
+  await page.getByLabel("Source or reason").fill("Package label");
+  await page.getByRole("button", { name: "Save recipe" }).click();
+  await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Package label")).toBeVisible();
   await captureUi(page, testInfo, "recipe-nutrition-correction", { focus: page.getByText("Package label") });
 
+  await openRecipeOptions(page);
   await page.getByRole("button", { name: "Archive recipe" }).click();
   await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await openRecipeOptions(page);
   await expect(page.getByRole("button", { name: "Restore recipe" })).toBeVisible();
   await page.getByRole("button", { name: "Restore recipe" }).click();
+  await openRecipeOptions(page);
   await expect(page.getByRole("button", { name: "Archive recipe" })).toBeVisible();
 
   await page.getByRole("button", { name: "Archive recipe" }).click();
   await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await openRecipeOptions(page);
   await page.getByRole("button", { name: "Permanently delete recipe" }).click();
   await expect(page.getByText(/historical plan and grocery records remain detached/i)).toBeVisible();
   await page.getByRole("button", { name: "Delete permanently" }).click();
@@ -254,19 +268,21 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   await page.goto("/app/recipes");
   await page.getByRole("button", { name: "Import recipe" }).click();
   await captureUi(page, testInfo, "recipe-import-dialog");
-  await page.getByLabel("Recipe URL").fill("https://example.com/protein-oats");
+  await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/protein-oats");
   await page.getByRole("button", { name: "Start import" }).click();
-  await expect(page.getByText("running")).toBeVisible();
+  await expect(page.getByText(/calculating nutrition/i)).toBeVisible();
 
   api.releaseImport();
   await page.reload();
+  await expect(page.getByText(/nutrition will retry automatically/i)).toBeVisible({ timeout: 5_000 });
+  await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText(/attempt 2 of 3/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/next retry/i)).toBeVisible();
   await expect(page.getByText(/deadline/i)).toBeVisible();
-  await expect(page.getByText(/nutrition is stale/i)).toBeVisible({ timeout: 7_000 });
+  await expect(page.getByText("stale", { exact: true })).toBeVisible({ timeout: 7_000 });
   await captureUi(page, testInfo, "recipe-import-stale");
   await page.getByRole("button", { name: "Recalculate nutrition" }).click();
-  await expect(page.getByText(/nutrition is pending/i)).toBeVisible();
+  await expect(page.getByText("pending", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -287,6 +303,13 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await mockApi(page);
   await page.goto("/app/recipes");
   await expect(page.getByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
+  if (testInfo.project.name !== "narrow-mobile") {
+    const sort = await page.getByLabel("Sort recipes").boundingBox();
+    const favorite = await page.getByText("Favorites only", { exact: true }).boundingBox();
+    expect(sort).not.toBeNull();
+    expect(favorite).not.toBeNull();
+    expect(Math.abs((sort!.y + sort!.height) - (favorite!.y + favorite!.height))).toBeLessThanOrEqual(1);
+  }
   await captureUi(page, testInfo, "recipes");
   await page.getByText("Refine recipes", { exact: true }).click();
   await captureUi(page, testInfo, "recipes-filters");
@@ -310,13 +333,13 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.getByLabel("Yield quantity").fill("2.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
   await page.getByLabel("Ingredients, one per line").fill("1 cup lentils");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Basics" }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
   await expect(page.getByAltText("Preview of the selected recipe photo")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Basics" }).click();
   await expect(page.getByAltText("Current photo for Lemon lentils")).toBeVisible();
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();

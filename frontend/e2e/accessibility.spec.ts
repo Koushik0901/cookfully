@@ -70,13 +70,16 @@ test("polling announcements and destructive confirmation preserve screen-reader 
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}`);
 
+  await page.getByText("Nutrition details and evidence").click();
   const status = page.getByLabel("Nutrition processing status").getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(status).toHaveText("running");
   await expect(page.locator("nav:visible").first()).toBeVisible();
   await expect(page.getByRole("main").first()).toBeVisible();
-  await expect(page.getByLabel("Nutrition field")).toBeVisible();
+  await expect(page.getByLabel("Nutrition field")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Edit nutrition" })).toBeVisible();
 
+  await page.getByText("More recipe options").click();
   const trigger = page.getByRole("button", { name: "Permanently delete recipe" });
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Permanently delete this recipe?" });

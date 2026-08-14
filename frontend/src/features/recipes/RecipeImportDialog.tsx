@@ -20,7 +20,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId } });
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
       }
     },
   });
@@ -43,11 +43,11 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog" aria-describedby="import-description">
-          <Dialog.Title>Import a recipe</Dialog.Title>
-          <Dialog.Description id="import-description">Paste a public recipe page. Import and nutrition processing continue in the background.</Dialog.Description>
+          <Dialog.Title>Import recipes</Dialog.Title>
+          <Dialog.Description id="import-description">Paste a public recipe page or a structured cookbook PDF. A cookbook can add several recipes; import and nutrition processing continue in the background.</Dialog.Description>
           <form className="stack" onSubmit={submit}>
-            <Field label="Recipe URL" error={validation || (mutation.error instanceof Error ? mutation.error.message : undefined)}>
-              <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe" required />
+            <Field label="Recipe or cookbook URL" error={validation || (mutation.error instanceof Error ? mutation.error.message : undefined)}>
+              <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe-or-cookbook.pdf" required />
             </Field>
             <div className="actions"><Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Starting…" : "Start import"}</Button></div>
           </form>

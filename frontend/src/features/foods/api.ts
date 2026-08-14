@@ -45,4 +45,22 @@ export const foodsApi = {
       `/recipes/${recipeId}/ingredients/${ingredientId}/candidates`
     );
   },
+
+  async selectIngredientFood(recipeId: string, ingredientId: string, foodReferenceId: string) {
+    await apiRequest(`/recipes/${recipeId}/nutrition/corrections`, {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify({
+        ingredientId,
+        field: "food_reference",
+        referenceIdValue: foodReferenceId,
+        reason: "Selected in recipe editor",
+      }),
+    });
+    return apiRequest(`/recipes/${recipeId}/nutrition/recalculate`, {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify({ resetCorrections: false }),
+    });
+  },
 };

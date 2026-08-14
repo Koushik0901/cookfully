@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import {
   BookOpenText,
@@ -7,12 +7,14 @@ import {
   Carrot,
   CircleEllipsis,
   ListChecks,
+  LogOut,
   PackageOpen,
   ShoppingBasket,
   SlidersHorizontal,
 } from "lucide-react";
 
 import { BrandMark, Button, EmptyState, Skeleton } from "../components";
+import { useSignOut } from "../features/settings/useSignOut";
 import { AppProviders, RequireAuthentication } from "./providers";
 
 const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
@@ -56,11 +58,6 @@ const PRIMARY_NAVIGATION = [
 const SECONDARY_NAVIGATION = [
   { to: "/app/foods", label: "Foods", Icon: Carrot },
   { to: "/app/goals", label: "Goals", Icon: ListChecks },
-] as const;
-
-const MORE_NAVIGATION = [
-  ...SECONDARY_NAVIGATION,
-  { to: "/app/settings", label: "Settings", Icon: SlidersHorizontal },
 ] as const;
 
 function LandingPage() {
@@ -118,6 +115,13 @@ function LandingPage() {
 }
 
 function PlannerShell() {
+  const signOut = useSignOut();
+  const location = useLocation();
+  const moreIsActive = [
+    ...SECONDARY_NAVIGATION.map(({ to }) => to),
+    "/app/settings",
+  ].some((path) => location.pathname.startsWith(path));
+
   return (
     <div className="planner-shell">
       <aside className="planner-nav">
@@ -141,6 +145,26 @@ function PlannerShell() {
             </NavLink>
           ))}
         </nav>
+        <nav aria-label="Account" className="planner-nav__account">
+          <p className="planner-nav__label">Account</p>
+          <NavLink
+            to="/app/settings"
+            title="Settings"
+            className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}
+          >
+            <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
+          </NavLink>
+          <button
+            type="button"
+            className="planner-nav__link planner-nav__button"
+            title="Sign out"
+            onClick={() => signOut.mutate()}
+            disabled={signOut.isPending}
+          >
+            <LogOut aria-hidden="true" /><span>{signOut.isPending ? "Signing out…" : "Sign out"}</span>
+          </button>
+          {signOut.isError ? <p className="planner-nav__error" role="alert">Couldn’t sign out. Try again.</p> : null}
+        </nav>
         <p className="planner-nav__promise">Your food stays on your server.</p>
       </aside>
       <div className="planner-shell__mobile-brand"><BrandMark /><strong>Cookfully</strong></div>
@@ -150,12 +174,22 @@ function PlannerShell() {
             <Icon aria-hidden="true" /><span>{label}</span>
           </NavLink>
         ))}
-        <details className="mobile-nav__more">
+        <details className={`mobile-nav__more ${moreIsActive ? "mobile-nav__more--active" : ""}`}>
           <summary><CircleEllipsis aria-hidden="true" /><span>More</span></summary>
           <div className="mobile-nav__menu">
-            {MORE_NAVIGATION.map(({ to, label, Icon }) => (
-              <NavLink key={to} to={to}><Icon aria-hidden="true" /><span>{label}</span></NavLink>
+            {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+              <NavLink key={to} to={to} onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}>
+                <Icon aria-hidden="true" /><span>{label}</span>
+              </NavLink>
             ))}
+            <div className="mobile-nav__menu-divider" role="separator" />
+            <NavLink to="/app/settings" onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}>
+              <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
+            </NavLink>
+            <button type="button" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
+              <LogOut aria-hidden="true" /><span>{signOut.isPending ? "Signing out…" : "Sign out"}</span>
+            </button>
+            {signOut.isError ? <p className="mobile-nav__error" role="alert">Couldn’t sign out. Try again.</p> : null}
           </div>
         </details>
       </nav>

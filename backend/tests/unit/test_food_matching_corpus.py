@@ -127,6 +127,20 @@ def test_plural_food_names_still_lead_to_the_singular_reference() -> None:
     assert best_food_id(decision) == "banana"
 
 
+def test_super_firm_tofu_resolves_to_the_generic_extra_firm_reference() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub(
+            [
+                food("branded-super-firm", "Vitasoy USA, Organic Nasoya Super Firm Cubed Tofu"),
+                food("generic-extra-firm", "Tofu, extra firm, prepared with nigari"),
+            ]
+        )
+    )
+    decision = matcher.decide("Super Firm Tofu")
+    assert decision.status == "matched"
+    assert best_food_id(decision) == "generic-extra-firm"
+
+
 def test_partial_token_coverage_never_auto_matches() -> None:
     matcher = FoodMatcher(  # type: ignore[arg-type]
         FoodRepositoryStub([food("soy-flour", "Flour, soy, defatted")])

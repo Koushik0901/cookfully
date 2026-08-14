@@ -33,6 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 nutrition = [
   "ingredient-parser-nlp>=2.3,<3",
+  "pypdf>=6.14,<7",
   "recipe-scrapers>=15,<16",
 ]
 suggestions = ["ortools>=9.15,<9.16"]

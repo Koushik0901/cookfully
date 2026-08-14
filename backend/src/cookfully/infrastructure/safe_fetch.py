@@ -50,7 +50,11 @@ class SafeFetcher:
         url: str,
         *,
         allowed_content_types: frozenset[str] = frozenset({"text/html", "application/xhtml+xml"}),
+        max_bytes: int | None = None,
     ) -> FetchedResource:
+        size_limit = max_bytes if max_bytes is not None else self._max_bytes
+        if size_limit <= 0:
+            raise ValueError("max_bytes must be positive")
         current = url
         async with httpx.AsyncClient(
             transport=self._transport,
@@ -97,14 +101,14 @@ class SafeFetcher:
                                 "Source returned an invalid content length.",
                                 422,
                             ) from exc
-                        if declared_size < 0 or declared_size > self._max_bytes:
+                        if declared_size < 0 or declared_size > size_limit:
                             raise DomainError(
                                 "source_too_large", "Source exceeds the import size limit.", 422
                             )
                     content = bytearray()
                     async for chunk in response.aiter_bytes():
                         content.extend(chunk)
-                        if len(content) > self._max_bytes:
+                        if len(content) > size_limit:
                             raise DomainError(
                                 "source_too_large", "Source exceeds the import size limit.", 422
                             )

@@ -69,6 +69,59 @@ async def test_fetch_pins_validated_address_and_rejects_malformed_length() -> No
 
 
 @pytest.mark.asyncio
+async def test_fetch_allows_bounded_pdf_when_the_importer_explicitly_requests_it() -> None:
+    content = b"%PDF" + b"x" * 16
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            200,
+            headers={"content-type": "application/pdf"},
+            content=content,
+            request=request,
+        )
+    )
+    fetcher = SafeFetcher(resolver=public_resolver, transport=transport, max_bytes=10)
+    resource = await fetcher.fetch(
+        "https://example.com/book.pdf",
+        allowed_content_types=frozenset({"application/pdf"}),
+        max_bytes=25,
+    )
+    assert resource.content == content
+
+
+def test_cookbook_pdf_pages_become_separate_structured_recipes() -> None:
+    pages = (
+        "V E G A N   B U R G E R\n\nIngredients:\n   1 cup TVP\n   1 tsp Salt",
+        "Directions:\n  1.Mix everything.\n  2.Form patties and cook.",
+        "I N S T A N T   M A C   &   C H E E S E\n\nIngredients:\n"
+        "Cheese Powder\n   1 cup Nutritional Yeast\nMac and Cheese\n   8 oz Macaroni",
+        "Directions:\n  1.Combine the powder.\n  2.Cook the macaroni.",
+    )
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages,
+        "https://example.com/book.pdf",
+        "https://example.com/book.pdf",
+    )
+    assert [item.title for item in recipes] == ["Vegan Burger", "Instant Mac & Cheese"]
+    assert recipes[0].instructions == ("Mix everything.", "Form patties and cook.")
+    assert recipes[1].ingredients == (
+        "1 cup Nutritional Yeast (for Cheese Powder)",
+        "8 oz Macaroni (for Mac and Cheese)",
+    )
+
+
+def test_recipe_image_candidates_are_ordered_and_deduplicated() -> None:
+    html = """
+      <meta property="og:image" content="/cover.jpg">
+      <main><img src="/cover.jpg"><img data-src="step.jpg"><img src="/second.jpg"></main>
+    """
+    assert RecipeImporter.image_candidates(html, "https://example.com/recipe") == (
+        "https://example.com/cover.jpg",
+        "https://example.com/step.jpg",
+        "https://example.com/second.jpg",
+    )
+
+
+@pytest.mark.asyncio
 async def test_importer_extracts_recipe_and_does_not_create_success_diagnostic(
     tmp_path: Path,
 ) -> None:
@@ -180,6 +233,19 @@ def test_ingredient_mapping_preserves_original_and_fixed_values(
     assert str(result.quantity_max) == "0.666667"
     assert result.original_text.startswith("1/3-2/3")
     assert result.food_name == "rolled oats" and result.optional is True
+
+
+@pytest.mark.parametrize(
+    ("line", "unit"),
+    [
+        ("1 Tbsp tomato paste", "tablespoon"),
+        ("2 tbsps nutritional yeast", "tablespoon"),
+        ("1 tsp garlic powder", "teaspoon"),
+        ("1/2 tsps onion powder", "teaspoon"),
+    ],
+)
+def test_ingredient_parser_normalizes_common_spoon_abbreviations(line: str, unit: str) -> None:
+    assert parse_ingredient_line(line).unit_code == unit
 
 
 def test_manual_recipe_photo_reuses_safe_normalization(tmp_path: Path) -> None:

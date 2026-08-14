@@ -184,6 +184,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/{recipeId}/source-images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRecipeSourceImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/{recipeId}/photo/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["replaceRecipePhotoFromSource"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes/{recipeId}/restore": {
         parameters: {
             query?: never;
@@ -900,6 +932,10 @@ export interface components {
              */
             photo: string;
         };
+        RecipeSourceImage: {
+            /** Format: uri */
+            url: string;
+        };
         Problem: {
             /** Format: uri-reference */
             type: string;
@@ -1056,7 +1092,7 @@ export interface components {
             yieldQuantity: components["schemas"]["ServingDecimal"];
             yieldUnit: string;
             /** @enum {string} */
-            status: "draft" | "processing" | "ready" | "partial" | "failed" | "archived";
+            status: "draft" | "processing" | "ready" | "partial" | "failed" | "import_failed" | "archived";
             /** @enum {string|null} */
             archivedFromStatus?: "draft" | "ready" | "partial" | "failed" | null;
             nutritionState: components["schemas"]["NutritionState"];
@@ -1088,7 +1124,7 @@ export interface components {
             /** Format: uuid */
             ingredientId?: string | null;
             /** @enum {string} */
-            field: "quantity_min" | "quantity_max" | "unit" | "food_name" | "food_reference" | "grams" | "yield_quantity" | "calories_kcal" | "protein_g" | "carbohydrate_g" | "fat_g";
+            field: "quantity_min" | "quantity_max" | "unit" | "food_name" | "food_reference" | "grams" | "yield_quantity" | "calories_kcal" | "protein_g" | "carbohydrate_g" | "fat_g" | "dietary_fiber_g" | "sodium_mg" | "potassium_mg" | "calcium_mg" | "iron_mg" | "magnesium_mg" | "vitamin_c_mg" | "vitamin_d_ug" | "vitamin_b12_ug";
             decimalValue?: components["schemas"]["Decimal6"] | null;
             textValue?: string | null;
             /** Format: uuid */
@@ -1958,6 +1994,58 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    listRecipeSourceImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usable image choices discovered on the original recipe page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeSourceImage"][];
+                };
+            };
+        };
+    };
+    replaceRecipePhotoFromSource: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+            };
+            path: {
+                recipeId: components["parameters"]["RecipeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeSourceImage"];
+            };
+        };
+        responses: {
+            /** @description Recipe with the selected source photo normalized and stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetail"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
         };
     };
     restoreRecipe: {

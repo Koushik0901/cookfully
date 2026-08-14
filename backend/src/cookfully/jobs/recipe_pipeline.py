@@ -22,7 +22,7 @@ from cookfully.application.recipes import (
     RecipeWrite,
     recipe_input_hash,
 )
-from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now
+from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now, uuid7
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
@@ -49,6 +49,7 @@ from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.observability import safe_log
 from cookfully.infrastructure.recipe_images import RecipeImageService
 from cookfully.infrastructure.recipe_importer import (
+    ImportedCookbook,
     ImportedRecipe,
     RecipeImporter,
     RecipeImportError,
@@ -59,6 +60,7 @@ from cookfully.infrastructure.safe_fetch import SafeFetcher
 
 logger = logging.getLogger(__name__)
 RETRYABLE_CODES = frozenset({"dns_failed", "source_unavailable", "network_timeout"})
+NUTRITION_PIPELINE_VERSION = "nutrition-v3"
 NEXT_KIND = {
     "recipe_import": "ingredient_parse",
     "ingredient_parse": "nutrition_match",
@@ -188,10 +190,11 @@ class RecipePipeline:
                     self._require_input(job, recipe)
                     self._persist_diagnostic(session, recipe.id, source_url, exc.diagnostic)
             raise
+        first_import = imported.recipes[0] if isinstance(imported, ImportedCookbook) else imported
         stored_image: StoredMedia | None = None
-        if imported.image_url:
+        if first_import.image_url:
             try:
-                stored_image = await self._image_service.capture(imported.image_url)
+                stored_image = await self._image_service.capture(first_import.image_url)
             except DomainError:
                 safe_log(
                     logger,
@@ -203,10 +206,10 @@ class RecipePipeline:
             job = self._running_job(session, job_id)
             recipe = self._recipe_for_job(session, job)
             self._require_input(job, recipe)
-            write = self._imported_write(imported)
+            write = self._imported_write(first_import)
             recipe.title = write.title
-            recipe.source_url = imported.source_url
-            recipe.canonical_source_url = imported.canonical_url
+            recipe.source_url = first_import.source_url
+            recipe.canonical_source_url = first_import.canonical_url
             recipe.source_name = write.source_name
             recipe.yield_quantity = write.yield_quantity
             recipe.yield_unit = write.yield_unit
@@ -231,9 +234,50 @@ class RecipePipeline:
             )
             if stored_image is not None:
                 recipe.image_asset_id = self._persist_image(
-                    session, recipe.id, imported.image_url, stored_image
+                    session, recipe.id, first_import.image_url, stored_image
                 )
-            self._persist_source_nutrition(session, recipe, imported)
+            self._persist_source_nutrition(session, recipe, first_import)
+            if isinstance(imported, ImportedCookbook):
+                for item in imported.recipes[1:]:
+                    extra_write = self._imported_write(item)
+                    extra_id = uuid7()
+                    extra_hash = recipe_input_hash(extra_id, extra_write)
+                    extra = Recipe(
+                        id=extra_id,
+                        title=extra_write.title,
+                        description=extra_write.description,
+                        source_url=item.source_url,
+                        canonical_source_url=item.canonical_url,
+                        source_name=extra_write.source_name,
+                        yield_quantity=extra_write.yield_quantity,
+                        yield_unit=extra_write.yield_unit,
+                        status="processing",
+                        nutrition_state="pending",
+                        input_hash=extra_hash,
+                        version=1,
+                        ingredients=[
+                            Ingredient(
+                                recipe_id=extra_id,
+                                position=index,
+                                original_text=value.original_text,
+                                optional=value.optional,
+                                parse_status="unparsed",
+                                version=1,
+                            )
+                            for index, value in enumerate(extra_write.ingredients)
+                        ],
+                        instructions=self._instructions(extra_id, extra_write.instructions),
+                    )
+                    RecipeRepository(session).add(extra)
+                    self._persist_source_nutrition(session, extra, item)
+                    self._jobs.accept_in_session(
+                        session,
+                        kind="ingredient_parse",
+                        aggregate_type="recipe",
+                        aggregate_id=extra.id,
+                        input_hash=extra_hash,
+                        trace_id=job.trace_id,
+                    )
             _, next_job = self._jobs.succeed_in_session(
                 session,
                 job.id,
@@ -417,7 +461,7 @@ class RecipePipeline:
                 select(NutritionEstimate).where(
                     NutritionEstimate.recipe_id == recipe.id,
                     NutritionEstimate.input_hash == recipe.input_hash,
-                    NutritionEstimate.pipeline_version == "nutrition-v1",
+                    NutritionEstimate.pipeline_version == NUTRITION_PIPELINE_VERSION,
                 )
             )
             estimate = existing or NutritionEstimate(
@@ -444,7 +488,7 @@ class RecipePipeline:
                 source_label="USDA FoodData Central",
                 assumptions_summary="; ".join(assumptions) or None,
                 input_hash=recipe.input_hash,
-                pipeline_version="nutrition-v1",
+                pipeline_version=NUTRITION_PIPELINE_VERSION,
                 calculated_at=utc_now(),
             )
             active = (
@@ -501,7 +545,7 @@ class RecipePipeline:
                         recipe.status = "partial"
                         recipe.nutrition_state = "partial"
                     else:
-                        recipe.status = "failed"
+                        recipe.status = "import_failed" if job.kind == "recipe_import" else "failed"
                         recipe.nutrition_state = "failed"
                     recipe.version += 1
             return PipelineResult(job.id, job.status)
@@ -536,6 +580,7 @@ class RecipePipeline:
             instructions=imported.instructions,
             source_url=imported.source_url,
             source_name=imported.canonical_url,
+            yield_unit="servings" if imported.yield_text else "batch",
         )
 
     @staticmethod
@@ -781,7 +826,7 @@ def get_recipe_pipeline() -> RecipePipeline:
     sessions = create_session_factory(engine)
     media_store = MediaStore(settings.media_root, settings.secret_key.get_secret_value())
     importer = RecipeImporter(
-        SafeFetcher(max_bytes=2 * 1024 * 1024),
+        SafeFetcher(max_bytes=25 * 1024 * 1024),
         media_store,
         diagnostics_enabled=settings.failed_import_diagnostics_enabled,
     )

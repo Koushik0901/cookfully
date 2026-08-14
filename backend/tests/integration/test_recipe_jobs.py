@@ -27,18 +27,23 @@ from cookfully.infrastructure.models.reference_foods import (
     FoodReference,
     ReferenceDataset,
 )
-from cookfully.infrastructure.recipe_importer import ImportedRecipe, RecipeImporter
+from cookfully.infrastructure.recipe_importer import (
+    ImportedCookbook,
+    ImportedRecipe,
+    RecipeImporter,
+)
+from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
 from cookfully.jobs.recipe_pipeline import JobEnvelope, RecipePipeline
 from cookfully.jobs.retention import sweep_retention
 
 
 class ImporterStub:
-    def __init__(self, result: ImportedRecipe | DomainError) -> None:
+    def __init__(self, result: ImportedRecipe | ImportedCookbook | DomainError) -> None:
         self.result = result
         self.calls = 0
 
-    async def import_url(self, url: str) -> ImportedRecipe:
+    async def import_url(self, url: str) -> ImportedRecipe | ImportedCookbook:
         del url
         self.calls += 1
         if isinstance(self.result, DomainError):
@@ -274,6 +279,59 @@ async def test_import_persists_source_result_and_chains_with_the_new_input_hash(
 
 
 @pytest.mark.asyncio
+async def test_cookbook_import_creates_each_recipe_and_queues_each_parse_atomically(
+    session_factory: sessionmaker[Session], tmp_path: Path
+) -> None:
+    mutation = recipe_service(session_factory, tmp_path).create_import_placeholder(
+        "https://example.com/book.pdf", trace_id="trace-cookbook"
+    )
+    assert mutation.job is not None
+    first = ImportedRecipe(
+        "First recipe",
+        "https://example.com/book.pdf",
+        "https://example.com/book.pdf",
+        None,
+        None,
+        None,
+        ("1 cup oats",),
+        ("Cook the oats.",),
+        {},
+    )
+    second = ImportedRecipe(
+        "Second recipe",
+        "https://example.com/book.pdf",
+        "https://example.com/book.pdf",
+        None,
+        None,
+        None,
+        ("1 cup rice",),
+        ("Cook the rice.",),
+        {},
+    )
+    worker = pipeline(
+        session_factory,
+        ImporterStub(
+            ImportedCookbook(
+                "Two recipes",
+                "https://example.com/book.pdf",
+                "https://example.com/book.pdf",
+                (first, second),
+            )
+        ),
+    )
+    result = await worker.process(envelope_for(session_factory, mutation.job.id))
+    assert result.status == "succeeded" and result.next_job_id is not None
+    with session_factory() as session:
+        recipes = list(session.scalars(select(Recipe).order_by(Recipe.title)))
+        parse_jobs = list(
+            session.scalars(select(ProcessingJob).where(ProcessingJob.kind == "ingredient_parse"))
+        )
+        assert [item.title for item in recipes] == ["First recipe", "Second recipe"]
+        assert all(item.yield_unit == "batch" for item in recipes)
+        assert len(parse_jobs) == 2
+
+
+@pytest.mark.asyncio
 async def test_input_change_and_archive_supersede_queued_work(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
@@ -388,6 +446,11 @@ async def test_failed_import_diagnostic_is_registered_and_expires_after_24_hours
     result = await worker.process(envelope_for(session_factory, mutation.job.id))
     assert result.status == "failed"
     with session_factory() as session:
+        failed_recipe = session.get(Recipe, mutation.recipe.id)
+        assert failed_recipe is not None and failed_recipe.status == "import_failed"
+        assert mutation.recipe.id not in {
+            item.id for item in RecipeRepository(session).list_recipes(include_archived=True)
+        }
         asset = session.scalar(select(MediaAsset).where(MediaAsset.recipe_id == mutation.recipe.id))
         assert asset is not None
         assert asset.kind == "failed_import_diagnostic" and asset.encrypted is True

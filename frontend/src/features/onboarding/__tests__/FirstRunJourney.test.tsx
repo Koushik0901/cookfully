@@ -37,7 +37,7 @@ describe("FirstRunJourney", () => {
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Import from the web" }));
-    expect(screen.getByRole("dialog", { name: "Import a recipe" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Import recipes" })).toBeVisible();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

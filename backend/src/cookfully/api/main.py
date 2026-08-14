@@ -206,6 +206,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 sessions,
                 RecipeImageService(SafeFetcher(max_bytes=20 * 1024 * 1024), media_store),
                 media_store,
+                SafeFetcher(max_bytes=3 * 1024 * 1024),
             )
             app.state.recipe_organization = RecipeOrganizationService(sessions)
             app.state.recipe_queries = recipe_query_service

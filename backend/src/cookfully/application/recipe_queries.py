@@ -292,6 +292,11 @@ class RecipeQueryService:
             ),
             None,
         )
+        micronutrient_corrections = {
+            item.field: item.decimal_value
+            for item in corrections
+            if item.field in MICRONUTRIENT_KEYS and item.decimal_value is not None
+        }
         return NutritionRead(
             status=status,
             basis_servings=(
@@ -302,7 +307,7 @@ class RecipeQueryService:
                 estimate.coverage_ratio if estimate is not None else Decimal("0.000000")
             ),
             macros=resolved.values,
-            micronutrients=RecipeQueryService._micronutrients(estimate),
+            micronutrients=RecipeQueryService._micronutrients(estimate, micronutrient_corrections),
             provenance=provenance,
             assumptions=tuple(
                 item.strip()
@@ -317,7 +322,9 @@ class RecipeQueryService:
     @staticmethod
     def _micronutrients(
         estimate: NutritionEstimate | None,
+        corrections: dict[MicronutrientKey, Decimal] | None = None,
     ) -> dict[MicronutrientKey, SupportedMicronutrientValue]:
+        corrections = corrections or {}
         values: MicronutrientAmounts = {
             "dietary_fiber_g": estimate.fiber_g if estimate is not None else None,
             "sodium_mg": estimate.sodium_mg if estimate is not None else None,
@@ -340,10 +347,14 @@ class RecipeQueryService:
         return {
             key: SupportedMicronutrientValue(
                 key=key,
-                value=values[key],
+                value=corrections.get(key, values[key]),
                 unit=USDA_MICRONUTRIENT_MANIFEST[key].unit,
-                explicit_zero=values[key] == 0 if values[key] is not None else False,
-                source=source,
+                explicit_zero=(
+                    corrections.get(key, values[key]) == 0
+                    if corrections.get(key, values[key]) is not None
+                    else False
+                ),
+                source="manual" if key in corrections else source,
                 source_release=None,
                 mapping_version=(
                     estimate.micronutrient_mapping_version

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "../../components";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
@@ -29,6 +29,14 @@ export function FoodPicker({
     enabled: open,
     staleTime: 60_000,
   });
+  const selectFood = useMutation({
+    mutationFn: (candidate: FoodCandidate) =>
+      foodsApi.selectIngredientFood(recipeId, ingredientId, candidate.id),
+    onSuccess: () => {
+      onSelected();
+      setOpen(false);
+    },
+  });
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -54,11 +62,22 @@ export function FoodPicker({
             <ul className="food-candidate-list">
               {candidates.data.candidates.map((cand) => (
                 <li key={`${cand.source}:${cand.id}`}>
-                  <FoodRow candidate={cand} />
+                  <button
+                    type="button"
+                    className="food-candidate-button"
+                    onClick={() => selectFood.mutate(cand)}
+                    disabled={selectFood.isPending || cand.source !== "usda"}
+                  >
+                    <FoodRow candidate={cand} />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
+
+          {selectFood.error instanceof Error ? (
+            <p className="error-text" role="alert">{selectFood.error.message}</p>
+          ) : null}
 
           <div className="actions">
             <Dialog.Close asChild>

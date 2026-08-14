@@ -276,6 +276,98 @@ wheels = [
 ]
 
 [[package]]
+name = "cookfully"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "argon2-cffi" },
+    { name = "celery", extra = ["redis"] },
+    { name = "cryptography" },
+    { name = "email-validator" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pillow" },
+    { name = "pint" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-multipart" },
+    { name = "redis" },
+    { name = "sqlalchemy" },
+    { name = "typer" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+mcp = [
+    { name = "mcp" },
+]
+nutrition = [
+    { name = "ingredient-parser-nlp" },
+    { name = "pypdf" },
+    { name = "recipe-scrapers" },
+]
+suggestions = [
+    { name = "ortools" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "hypothesis" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pyyaml" },
+    { name = "ruff" },
+    { name = "testcontainers", extra = ["redis"] },
+    { name = "types-redis" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.16,<2" },
+    { name = "argon2-cffi", specifier = ">=25.1,<26" },
+    { name = "celery", extras = ["redis"], specifier = ">=5.6,<6" },
+    { name = "cryptography", specifier = ">=50,<51" },
+    { name = "email-validator", specifier = ">=2.2,<3" },
+    { name = "fastapi", specifier = ">=0.116,<1" },
+    { name = "httpx", specifier = ">=0.28,<1" },
+    { name = "ingredient-parser-nlp", marker = "extra == 'nutrition'", specifier = ">=2.3,<3" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2,<3" },
+    { name = "ortools", marker = "extra == 'suggestions'", specifier = ">=9.15,<9.16" },
+    { name = "pillow", specifier = ">=12,<13" },
+    { name = "pint", specifier = ">=0.25,<1" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
+    { name = "pydantic", specifier = ">=2.11,<3" },
+    { name = "pydantic-settings", specifier = ">=2.10,<3" },
+    { name = "pypdf", marker = "extra == 'nutrition'", specifier = ">=6.14,<7" },
+    { name = "python-multipart", specifier = ">=0.0.20,<1" },
+    { name = "recipe-scrapers", marker = "extra == 'nutrition'", specifier = ">=15,<16" },
+    { name = "redis", specifier = ">=6,<7" },
+    { name = "sqlalchemy", specifier = ">=2.0,<3" },
+    { name = "typer", specifier = ">=0.16,<1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
+]
+provides-extras = ["nutrition", "suggestions", "mcp"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", extras = ["toml"], specifier = ">=7.10,<8" },
+    { name = "hypothesis", specifier = ">=6.138,<7" },
+    { name = "mypy", specifier = ">=1.17,<2" },
+    { name = "pytest", specifier = ">=8.4,<9" },
+    { name = "pytest-asyncio", specifier = ">=1.1,<2" },
+    { name = "pytest-cov", specifier = ">=6.2,<7" },
+    { name = "pyyaml", specifier = ">=6,<7" },
+    { name = "ruff", specifier = ">=0.12,<1" },
+    { name = "testcontainers", extras = ["postgres", "redis"], specifier = ">=4.12,<5" },
+    { name = "types-redis", specifier = ">=4.6,<5" },
+]
+
+[[package]]
 name = "coverage"
 version = "7.15.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1243,6 +1335,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pypdf"
+version = "6.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/7f/5bc369dedae6750e23fc9ce82f6396258f92ed80ae0137732738a6d4ffce/pypdf-6.16.0.tar.gz", hash = "sha256:dfc5b0afeb5e02e9ee1dce71c09071f062d1a4030d2925f03a5daee0ee975ed8", size = 7002332, upload-time = "2026-08-13T14:54:41.586Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/83/2b04a77f8de3c6d295e2687228b21152cb65a406511373ed06fd757634af/pypdf-6.16.0-py3-none-any.whl", hash = "sha256:8c47581faa1cba7006ac269da30075c929c251cc4ffbafb2bcbe260306631118", size = 382160, upload-time = "2026-08-13T14:54:39.734Z" },
+]
+
+[[package]]
 name = "pyrdfa3"
 version = "3.6.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1791,96 +1892,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/15/c0/0be24758891ef825f2065cd5db8741aaddabe3e248ee6acc5e8a80f04005/uvloop-0.22.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0530a5fbad9c9e4ee3f2b33b148c6a64d47bbad8000ea63704fa8260f4cf728e", size = 4366890, upload-time = "2025-10-16T22:16:40.547Z" },
     { url = "https://files.pythonhosted.org/packages/d2/53/8369e5219a5855869bcee5f4d317f6da0e2c669aecf0ef7d371e3d084449/uvloop-0.22.1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:bc5ef13bbc10b5335792360623cc378d52d7e62c2de64660616478c32cd0598e", size = 4119472, upload-time = "2025-10-16T22:16:41.694Z" },
     { url = "https://files.pythonhosted.org/packages/f8/ba/d69adbe699b768f6b29a5eec7b47dd610bd17a69de51b251126a801369ea/uvloop-0.22.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1f38ec5e3f18c8a10ded09742f7fb8de0108796eb673f30ce7762ce1b8550cad", size = 4239051, upload-time = "2025-10-16T22:16:43.224Z" },
-]
-
-[[package]]
-name = "cookfully"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "argon2-cffi" },
-    { name = "celery", extra = ["redis"] },
-    { name = "cryptography" },
-    { name = "email-validator" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "pillow" },
-    { name = "pint" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "python-multipart" },
-    { name = "redis" },
-    { name = "sqlalchemy" },
-    { name = "typer" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.optional-dependencies]
-mcp = [
-    { name = "mcp" },
-]
-nutrition = [
-    { name = "ingredient-parser-nlp" },
-    { name = "recipe-scrapers" },
-]
-suggestions = [
-    { name = "ortools" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "hypothesis" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pyyaml" },
-    { name = "ruff" },
-    { name = "testcontainers", extra = ["redis"] },
-    { name = "types-redis" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.16,<2" },
-    { name = "argon2-cffi", specifier = ">=25.1,<26" },
-    { name = "celery", extras = ["redis"], specifier = ">=5.6,<6" },
-    { name = "cryptography", specifier = ">=50,<51" },
-    { name = "email-validator", specifier = ">=2.2,<3" },
-    { name = "fastapi", specifier = ">=0.116,<1" },
-    { name = "httpx", specifier = ">=0.28,<1" },
-    { name = "ingredient-parser-nlp", marker = "extra == 'nutrition'", specifier = ">=2.3,<3" },
-    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=2,<3" },
-    { name = "ortools", marker = "extra == 'suggestions'", specifier = ">=9.15,<9.16" },
-    { name = "pillow", specifier = ">=12,<13" },
-    { name = "pint", specifier = ">=0.25,<1" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
-    { name = "pydantic", specifier = ">=2.11,<3" },
-    { name = "pydantic-settings", specifier = ">=2.10,<3" },
-    { name = "python-multipart", specifier = ">=0.0.20,<1" },
-    { name = "recipe-scrapers", marker = "extra == 'nutrition'", specifier = ">=15,<16" },
-    { name = "redis", specifier = ">=6,<7" },
-    { name = "sqlalchemy", specifier = ">=2.0,<3" },
-    { name = "typer", specifier = ">=0.16,<1" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
-]
-provides-extras = ["nutrition", "suggestions", "mcp"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "coverage", extras = ["toml"], specifier = ">=7.10,<8" },
-    { name = "hypothesis", specifier = ">=6.138,<7" },
-    { name = "mypy", specifier = ">=1.17,<2" },
-    { name = "pytest", specifier = ">=8.4,<9" },
-    { name = "pytest-asyncio", specifier = ">=1.1,<2" },
-    { name = "pytest-cov", specifier = ">=6.2,<7" },
-    { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "ruff", specifier = ">=0.12,<1" },
-    { name = "testcontainers", extras = ["postgres", "redis"], specifier = ">=4.12,<5" },
-    { name = "types-redis", specifier = ">=4.6,<5" },
 ]
 
 [[package]]

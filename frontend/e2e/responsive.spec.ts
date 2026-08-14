@@ -20,8 +20,7 @@ test("desktop and 390x844 layouts contain long content without document overflow
     expect(viewport!.width).toBeGreaterThanOrEqual(1000);
   }
 
-  await expect(page.getByText("100 g extra firm tofu")).toBeVisible();
-  await page.getByText("Ingredient matching and assumptions").click();
+  await expect(page.getByText(/200 g extra-firm tofu/)).toBeVisible();
   await expect(page.getByText(/deliberately-long-unbroken-preparation-token/)).toBeVisible();
   await captureUi(page, testInfo, "recipe-evidence", { focus: page.getByText(/deliberately-long-unbroken-preparation-token/) });
 
@@ -56,6 +55,7 @@ test("desktop and 390x844 layouts contain long content without document overflow
 test("destructive dialog remains fully contained at every configured viewport", async ({ page }, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}`);
+  await page.getByText("More recipe options").click();
   await page.getByRole("button", { name: "Permanently delete recipe" }).click();
   await captureUi(page, testInfo, "recipe-delete-dialog");
 
@@ -78,6 +78,8 @@ test("tablet keeps a compact kitchen rail instead of inheriting phone navigation
   await expect(page.locator(".mobile-nav")).toBeHidden();
   await expect(page.getByRole("link", { name: "Recipes" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Goals" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   const content = await page.locator(".planner-shell__content").boundingBox();
   expect(content).not.toBeNull();
@@ -95,6 +97,7 @@ test("mobile keeps secondary places in a deliberate More menu", async ({ page },
   await expect(more).toHaveAttribute("open", "");
   await expect(more.getByRole("link", { name: "Goals" })).toBeVisible();
   await expect(more.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(more.getByRole("button", { name: "Sign out" })).toBeVisible();
   await captureUi(page, testInfo, "mobile-more-menu");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

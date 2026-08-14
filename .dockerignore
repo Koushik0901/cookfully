@@ -15,6 +15,7 @@ coverage/
 htmlcov/
 playwright-report/
 test-results/
+tmp/
 *.log*
 .env
 .env.*

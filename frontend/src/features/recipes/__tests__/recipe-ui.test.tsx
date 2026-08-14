@@ -218,19 +218,18 @@ describe("recipe UI", () => {
   it("discloses provenance, assumptions, corrections, and planning limitations", async () => {
     renderRoute(<RecipeDetailPage />);
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
+    expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
+    expect(screen.queryByLabelText("Nutrition field")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText("Nutrition details and evidence"));
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();
-    expect(screen.getByText("Basis: 2.5 servings · Coverage: 88%")).toBeVisible();
-    await userEvent.click(screen.getByText(/what the nutrition status means/i));
+    expect(screen.getByText("Basis: 2.5 servings · 88% ingredient coverage")).toBeVisible();
+    await userEvent.click(screen.getByText(/what does this status mean/i));
     expect(screen.getByText(/calculated from matched ingredients/i)).toBeVisible();
     expect(screen.getByText(/percentage of quantified ingredients/i)).toBeVisible();
     expect(screen.getByText("USDA Foundation Foods")).toBeVisible();
     expect(screen.getByText("8.5 g")).toBeVisible();
-    expect(screen.getByText(/0 mg · source-reported zero/i)).toBeVisible();
-    expect(screen.getAllByText(/USDA 1079/).length).toBeGreaterThan(0);
-    await userEvent.click(screen.getByText("Ingredient matching and assumptions"));
     expect(screen.getByText(/level tablespoon/i)).toBeVisible();
     expect(screen.getByText(/package label/i)).toBeVisible();
-    expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
   });
 
   it("confirms a saved recipe with the one-shot companion moment", async () => {
@@ -240,33 +239,40 @@ describe("recipe UI", () => {
     expect(document.querySelector('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
   });
 
-  it("creates and resets a correction with CSRF and idempotency headers", async () => {
+  it("edits macro and micronutrient values through the common recipe editor", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
+      if (String(input).endsWith(`/recipes/${recipe.id}`) && init?.method === "PUT") {
+        return response(recipe);
+      }
       if (String(input).includes("/nutrition/corrections") && init?.method === "POST") {
         return response({ ...recipe.nutrition, status: "manual" });
       }
-      if (String(input).includes("/nutrition/corrections/") && init?.method === "DELETE") {
-        return response({ ...recipe.nutrition, corrections: [] });
-      }
-      return response({ ...recipe, nutritionState: "stale" });
+      return response(recipe);
     });
-    renderRoute(<RecipeDetailPage />);
+    renderRoute(<RecipeEditorPage />, `/app/recipes/${recipe.id}/edit`);
     const user = userEvent.setup();
-    await screen.findByRole("heading", { name: "Exact oats" });
-    await user.selectOptions(screen.getByLabelText("Nutrition field"), "protein_g");
-    await user.type(screen.getByLabelText("Corrected decimal value"), "32.000000");
-    await user.type(screen.getByLabelText("Correction reason"), "Updated label");
-    await user.click(screen.getByRole("button", { name: "Apply correction" }));
+    await screen.findByDisplayValue("Exact oats");
+    await user.click(screen.getByText("Nutrition values"));
+    await user.clear(screen.getByLabelText("Protein (g)"));
+    await user.type(screen.getByLabelText("Protein (g)"), "32.000000");
+    await user.click(screen.getByText("Edit micronutrients"));
+    await user.clear(screen.getByLabelText("Sodium (mg)"));
+    await user.type(screen.getByLabelText("Sodium (mg)"), "125");
+    await user.type(screen.getByLabelText("Source or reason"), "Updated package label");
+    await user.click(screen.getByRole("button", { name: "Save recipe" }));
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
-      expect(new Headers(call?.[1]?.headers).get("x-csrf-token")).toBe("test-csrf-token");
-      expect(new Headers(call?.[1]?.headers).get("idempotency-key")).toBeTruthy();
-      expect(screen.getByText("stale", { selector: ".nutrition-state" })).toBeVisible();
-      expect(screen.getByText(/nutrition is stale because/i)).toBeVisible();
+      const corrections = fetchMock.mock.calls.filter(([input, init]) => String(input).includes("/nutrition/corrections") && init?.method === "POST");
+      expect(corrections).toHaveLength(2);
+      expect(corrections.map(([, init]) => JSON.parse(String(init?.body)))).toEqual(expect.arrayContaining([
+        expect.objectContaining({ field: "protein_g", decimalValue: "32.000000", reason: "Updated package label" }),
+        expect.objectContaining({ field: "sodium_mg", decimalValue: "125", reason: "Updated package label" }),
+      ]));
+      for (const [, init] of corrections) {
+        expect(new Headers(init?.headers).get("x-csrf-token")).toBe("test-csrf-token");
+        expect(new Headers(init?.headers).get("idempotency-key")).toBeTruthy();
+      }
     });
-    await user.click(screen.getByRole("button", { name: /reset protein correction/i }));
-    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
 
   it("polls visible work after two seconds and recovers authoritative state after reload", async () => {
@@ -298,7 +304,7 @@ describe("recipe UI", () => {
     );
     renderRoute(<RecipeDetailPage />);
     await act(async () => vi.advanceTimersByTimeAsync(0));
-    expect(screen.getByText("running")).toBeVisible();
+    expect(screen.getByText(/calculating nutrition/i)).toBeVisible();
     const before = fetchMock.mock.calls.length;
     await act(async () => vi.advanceTimersByTimeAsync(2_000));
     expect(fetchMock.mock.calls.length).toBeGreaterThan(before);
@@ -362,11 +368,15 @@ describe("recipe UI", () => {
       pollAfterSeconds: 2,
       recoveryActions: ["wait", "edit_recipe"],
     };
-    vi.mocked(fetch).mockImplementation(() =>
-      response({ ...recipe, nutritionState: "stale", activeJob: retryJob }),
+    vi.mocked(fetch).mockImplementation((input) =>
+      String(input).includes("/jobs/")
+        ? response(retryJob)
+        : response({ ...recipe, nutritionState: "stale", activeJob: retryJob }),
     );
     renderRoute(<RecipeDetailPage />);
-    expect(await screen.findByText(/attempt 2 of 3/i)).toBeVisible();
+    expect(await screen.findByText(/nutrition will retry automatically/i)).toBeVisible();
+    await userEvent.click(screen.getByText("Nutrition details and evidence"));
+    expect(screen.getByText(/attempt 2 of 3/i)).toBeVisible();
     expect(screen.getByText(/next retry/i)).toBeVisible();
     expect(screen.getByText(/deadline/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /recalculate nutrition/i })).toBeVisible();
@@ -382,6 +392,7 @@ describe("recipe UI", () => {
     });
     renderRoute(<RecipeDetailPage />);
     await screen.findByRole("heading", { name: "Exact oats" });
+    await userEvent.click(screen.getByText("More recipe options"));
     await userEvent.click(screen.getByRole("button", { name: "Restore recipe" }));
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/restore"));
@@ -399,6 +410,7 @@ describe("recipe UI", () => {
     renderRoute(<RecipeDetailPage />);
     await screen.findByRole("heading", { name: "Exact oats" });
     const user = userEvent.setup();
+    await user.click(screen.getByText("More recipe options"));
     await user.click(screen.getByRole("button", { name: "Permanently delete recipe" }));
     expect(screen.getByText(/historical plan and grocery records remain detached/i)).toBeVisible();
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);

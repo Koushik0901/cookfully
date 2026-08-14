@@ -123,6 +123,16 @@ export const recipesApi = {
       version,
     });
   },
+  sourceImages(recipeId: string) {
+    return apiRequest<{ url: string }[]>(`/recipes/${recipeId}/source-images`);
+  },
+  useSourcePhoto(recipeId: string, version: number, url: string) {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo/source`, {
+      method: "PUT",
+      version,
+      body: JSON.stringify({ url }),
+    });
+  },
   archive(recipeId: string, version: number) {
     return apiRequest<void>(`/recipes/${recipeId}`, { method: "DELETE", version });
   },

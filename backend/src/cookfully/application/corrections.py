@@ -14,7 +14,9 @@ from cookfully.domain.common import (
     quantize_decimal,
     utc_now,
 )
-from cookfully.infrastructure.models.nutrition import NutritionCorrection
+from cookfully.domain.units import IngredientMeasure, to_grams
+from cookfully.domain.volume_assumptions import density_for
+from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionCorrection
 from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
@@ -29,6 +31,15 @@ DECIMAL_FIELDS = frozenset(
         "protein_g",
         "carbohydrate_g",
         "fat_g",
+        "dietary_fiber_g",
+        "sodium_mg",
+        "potassium_mg",
+        "calcium_mg",
+        "iron_mg",
+        "magnesium_mg",
+        "vitamin_c_mg",
+        "vitamin_d_ug",
+        "vitamin_b12_ug",
     }
 )
 TEXT_FIELDS = frozenset({"unit", "food_name"})
@@ -110,6 +121,46 @@ class CorrectionService:
                     created_by=created_by,
                 )
             )
+            if field == "food_reference" and ingredient is not None:
+                assert reference_id_value is not None
+                food = session.get(FoodReference, reference_id_value)
+                assert food is not None
+                grams_min: Decimal | None = None
+                grams_max: Decimal | None = None
+                conversion_method: str | None = None
+                assumption: str | None = None
+                try:
+                    converted = to_grams(
+                        IngredientMeasure(
+                            ingredient.quantity_min,
+                            ingredient.quantity_max,
+                            ingredient.unit_code,
+                            ingredient.optional,
+                        ),
+                        density_g_per_ml=density_for(food.description),
+                    )
+                    grams_min = converted.minimum
+                    grams_max = converted.maximum
+                    conversion_method = converted.method
+                    assumption = converted.assumption
+                except DomainError:
+                    pass
+                repository.activate_match(
+                    IngredientMatch(
+                        ingredient_id=ingredient.id,
+                        food_reference_id=food.id,
+                        status="manual",
+                        match_method="manual",
+                        match_score=None,
+                        grams_min=grams_min,
+                        grams_max=grams_max,
+                        conversion_method=conversion_method,
+                        assumption_text=assumption,
+                        source_release_id=food.dataset.release_id,
+                        input_hash=recipe.input_hash,
+                        active=True,
+                    )
+                )
             recipe.version += 1
             return correction
 

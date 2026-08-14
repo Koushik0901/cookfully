@@ -78,7 +78,11 @@ def _normalize_unit(value: str) -> str | None:
         "cups": "cup",
         "tablespoon": "tablespoon",
         "tablespoons": "tablespoon",
+        "tbsp": "tablespoon",
+        "tbsps": "tablespoon",
         "teaspoon": "teaspoon",
         "teaspoons": "teaspoon",
+        "tsp": "teaspoon",
+        "tsps": "teaspoon",
     }
     return aliases.get(normalized, normalized or None)

@@ -17,6 +17,7 @@ build/
 coverage/
 playwright-report/
 test-results/
+tmp/
 *.tsbuildinfo
 *.log
 

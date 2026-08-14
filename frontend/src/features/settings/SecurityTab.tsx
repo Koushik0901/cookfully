@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 
 import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
 import { accountApi } from "./api";
+import { useSignOut } from "./useSignOut";
 
 function dateLabel(value: string): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
@@ -41,12 +42,7 @@ export function SecurityTab() {
     onError: () => setNotice("The session could not be signed out. Reload and try again."),
   });
 
-  const signOut = useMutation({
-    mutationFn: accountApi.signOut,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["owner-session"] });
-    },
-  });
+  const signOut = useSignOut();
 
   function submitPassword(event: FormEvent) {
     event.preventDefault();
@@ -170,6 +166,7 @@ export function SecurityTab() {
             Sign out
           </Button>
         </div>
+        {signOut.isError ? <p className="error-text" role="alert">Couldn’t sign out. Try again.</p> : null}
       </section>
     </div>
   );

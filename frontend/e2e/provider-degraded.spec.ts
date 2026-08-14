@@ -120,16 +120,18 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await mockDegradedApi(page);
   await page.goto(`/app/recipes/${recipeId}`);
 
+  await expect(page.getByText(/deterministic work was kept/i).first()).toBeVisible();
+  await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByLabel("Nutrition processing status").getByText("failed")).toBeVisible();
-  await expect(page.getByText(/deterministic work was kept/i)).toBeVisible();
   await expect(page.getByText(/planning aid, not medical advice/i)).toBeVisible();
   await expect(page.getByRole("link", { name: "Edit recipe" })).toBeVisible();
-  await expect(page.getByLabel("Nutrition field")).toBeEnabled();
 
-  await page.getByLabel("Nutrition field").selectOption("protein_g");
-  await page.getByLabel("Corrected decimal value").fill("40.000000");
-  await page.getByLabel("Correction reason").fill("Package label after provider failure");
-  await page.getByRole("button", { name: "Apply correction" }).click();
+  await page.getByRole("link", { name: "Edit nutrition" }).click();
+  if (testInfo.project.name === "narrow-mobile") await expect(page.getByRole("button", { name: "Nutrition" })).toHaveAttribute("aria-current", "step");
+  await page.getByLabel("Protein (g)").fill("40.000000");
+  await page.getByLabel("Source or reason").fill("Package label after provider failure");
+  await page.getByRole("button", { name: "Save recipe" }).click();
+  await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
@@ -138,7 +140,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
-  await expect(page.getByText(/nutrition is stale/i)).toBeVisible();
+  await expect(page.getByText("stale", { exact: true })).toBeVisible();
 
   await expect(page.getByRole("link", { name: "Plan" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Grocery" })).toBeVisible();

@@ -77,6 +77,9 @@ export async function mockAccessibleRecipeApi(page: Page) {
       route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
     if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/auth/session" && route.request().method() === "DELETE") {
+      return route.fulfill({ status: 204 });
+    }
     if (path === `/api/v1/recipes/${accessibleRecipeId}`) return json(recipe);
     if (path === `/api/v1/jobs/${recipe.activeJob.id}`) return json(recipe.activeJob);
     if (path === `/api/v1/recipes/${accessibleRecipeId}/permanent`) {
