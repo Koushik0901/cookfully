@@ -153,10 +153,12 @@ describe("suggestion UI", () => {
     await user.click(await screen.findByRole("button", { name: "Find meal ideas" }));
     await screen.findByText("Here’s a plan that fits");
     await user.click(screen.getByLabelText("Accept Chicken rice bowl"));
-    await user.click(screen.getByRole("button", { name: "Accept 1 selected item" }));
-    expect(await screen.findByText(/1 meal is ready in your plan/i)).toBeVisible();
-    expect(document.querySelector('.suggestion-success [data-companion-moment="success"]')).toBeVisible();
-    expect(screen.getByText(/accepted day total: 1200 kcal.*matches the preview/i)).toBeVisible();
+await user.click(screen.getByRole("button", { name: "Accept 1 selected item" }));
+    const successPanel = await screen.findByTestId("success-panel");
+    expect(successPanel).toBeVisible();
+    expect(within(successPanel).getByText(/1 meal is ready in your plan/i)).toBeVisible();
+    expect(successPanel.querySelector('[data-companion-moment="success"]')).toBeVisible();
+    expect(within(successPanel).getByText(/accepted day total: 1200 kcal.*matches the preview/i)).toBeVisible();
     const acceptCall = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith("/accept") && init?.method === "POST");
     expect(JSON.parse(String(acceptCall?.[1]?.body))).toEqual({ selectedItemIds: [itemOne], expectedPlanVersion: 4 });
   });

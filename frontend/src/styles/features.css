@@ -916,9 +916,10 @@
 .objective-grid dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 650; }
 .accept-panel { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 0.75rem; background: var(--color-surface-container-low); }
 .accept-panel p { max-width: 26rem; font-size: 0.75rem; }
-.suggestion-success { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(14rem, 0.5fr); align-items: center; gap: 1.25rem; border-radius: var(--radius-xl); padding: 1.25rem; color: var(--color-on-primary-container); background: var(--color-primary-container); }
+.suggestion-success { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(14rem, 0.5fr); align-items: center; gap: 1.25rem; border-radius: var(--radius-xl); padding: 1.25rem; color: var(--status-success); background: var(--status-success-container); }
 .suggestion-success__copy { display: grid; gap: 0.4rem; }
-.suggestion-success__evidence { border-left: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent); padding-left: 1.25rem; font-size: 0.8rem; }
+.suggestion-success .eyebrow { color: var(--status-success); }
+.suggestion-success__evidence { border-left: 1px solid color-mix(in oklch, var(--status-success) 25%, transparent); padding-left: 1.25rem; font-size: 0.8rem; }
 
 /* Settings — quiet utility with a stable index. */
 .settings-workspace { display: grid; grid-template-columns: 15rem minmax(0, 1fr); align-items: start; gap: clamp(2rem, 5vw, 5rem); }
@@ -991,7 +992,7 @@
   .accept-panel { align-items: stretch; flex-direction: column; }
   .accept-panel .cf-button { width: 100%; }
   .suggestion-success { grid-template-columns: auto 1fr; }
-  .suggestion-success__evidence { grid-column: 1 / -1; border-top: 1px solid color-mix(in oklch, var(--color-primary) 25%, transparent); border-left: 0; padding-top: 0.75rem; padding-left: 0; }
+  .suggestion-success__evidence { grid-column: 1 / -1; border-top: 1px solid color-mix(in oklch, var(--status-success) 25%, transparent); border-left: 0; padding-top: 0.75rem; padding-left: 0; }
 
   .settings-workspace { grid-template-columns: 1fr; gap: 1.5rem; }
   .scope-picker { grid-template-columns: 1fr; }
