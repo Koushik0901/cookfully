@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import axe from "axe-core";
+import { captureUi } from "./support/visual-audit";
 
 async function mockPantryApi(page: Page) {
   let pantry = [
@@ -39,14 +40,16 @@ async function mockPantryApi(page: Page) {
   });
 }
 
-test("manages pantry quantities and shows explicit recipe gaps without mobile overflow", async ({ page }) => {
+test("manages pantry quantities and shows explicit recipe gaps without mobile overflow", async ({ page }, testInfo) => {
   await mockPantryApi(page);
   await page.goto("/app/pantry");
   await expect(page.getByRole("heading", { name: "What’s already at home?" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
+  await captureUi(page, testInfo, "pantry");
 
   await page.getByRole("button", { name: "Add item" }).click();
   const addDialog = page.getByRole("dialog", { name: "Add something on hand" });
+  await captureUi(page, testInfo, "pantry-add-dialog");
   await page.addScriptTag({ content: axe.source });
   const serious = await page.evaluate(async () => {
     const result = await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } });
@@ -62,6 +65,7 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await page.getByRole("button", { name: "Find recipes" }).click();
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("Partially makeable");
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("400 g chicken breast");
+  await captureUi(page, testInfo, "pantry-recipe-gaps", { focus: page.getByRole("article", { name: "Chicken rice" }) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

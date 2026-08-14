@@ -108,7 +108,7 @@ describe("goal and weekly planning UI", () => {
     expect(await screen.findByLabelText("Current daily nutrition guide")).toHaveTextContent("2,200 kcal");
     expect(screen.getByText((_, element) => element?.tagName === "P" && /guide adds up to about.*15 kcal below/i.test(element.textContent ?? ""))).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Adjust daily guide" }));
-    expect(await screen.findByDisplayValue("2200.000000")).toBeVisible();
+    expect(await screen.findByDisplayValue("2200")).toBeVisible();
     await user.click(screen.getByText("Meal-by-meal targets", { selector: "strong" }));
     await user.clear(screen.getByLabelText("Daily calories"));
     await user.type(screen.getByLabelText("Daily calories"), "2300.000000");
@@ -125,7 +125,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<GoalSettingsPage />, "/app/goals");
     const user = userEvent.setup();
     await user.click(await screen.findByRole("button", { name: "Adjust daily guide" }));
-    await screen.findByDisplayValue("2200.000000");
+    await screen.findByDisplayValue("2200");
     await user.clear(screen.getByLabelText("Daily protein"));
     await user.click(screen.getByRole("button", { name: "Save my guide" }));
     expect(await screen.findByText("Daily protein is required.")).toBeVisible();
@@ -226,10 +226,12 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Add nutrition guide" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Add nutrition guide" })).toHaveLength(1);
 
     await user.click(screen.getByRole("tab", { name: "Day" }));
+    expect(screen.queryByRole("link", { name: "Guide my ideas" })).not.toBeInTheDocument();
+    expect(document.querySelector(".plan-nutrition")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add a recipe to Lunch" }));
     await user.click(await screen.findByRole("button", { name: "Add Protein oats to Lunch" }));
 

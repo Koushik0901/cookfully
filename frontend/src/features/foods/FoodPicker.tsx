@@ -62,12 +62,12 @@ export function FoodPicker({
 
           <div className="actions">
             <Dialog.Close asChild>
-              <Button className="button--secondary">Cancel</Button>
+              <Button variant="secondary">Cancel</Button>
             </Dialog.Close>
             <CreateFoodDialog
               ingredientName={ingredientName}
               trigger={
-                <Button className="button--text">Create your own</Button>
+                <Button variant="ghost">Create your own</Button>
               }
               onCreated={() => {
                 onSelected();

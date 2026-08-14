@@ -84,11 +84,11 @@ function response(body: unknown, status = 200) {
   );
 }
 
-function renderRoute(element: React.ReactNode, path = "/app/recipes/00000000-0000-4000-8000-000000000001") {
+function renderRoute(element: React.ReactNode, path = "/app/recipes/00000000-0000-4000-8000-000000000001", state?: unknown) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[{ pathname: path, state }]}>
         <Routes>
           <Route path="/app/recipes/:recipeId" element={element} />
           <Route path="/app/recipes/:recipeId/cook" element={element} />
@@ -173,6 +173,7 @@ describe("recipe UI", () => {
     expect(screen.getByText("Chill and serve.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Finish cooking" }));
     expect(screen.getByRole("heading", { name: "Time to eat." })).toBeVisible();
+    expect(document.querySelector('.cook-mode__complete [data-companion-moment="milestone"]')).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Cook again" }));
     expect(screen.getByText("Mix the oats.")).toBeVisible();
@@ -232,6 +233,13 @@ describe("recipe UI", () => {
     expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
   });
 
+  it("confirms a saved recipe with the one-shot companion moment", async () => {
+    renderRoute(<RecipeDetailPage />, `/app/recipes/${recipe.id}`, { recipeSaved: true });
+
+    expect(await screen.findByText("Recipe saved")).toBeVisible();
+    expect(document.querySelector('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
+  });
+
   it("creates and resets a correction with CSRF and idempotency headers", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
@@ -257,7 +265,7 @@ describe("recipe UI", () => {
       expect(screen.getByText("stale", { selector: ".nutrition-state" })).toBeVisible();
       expect(screen.getByText(/nutrition is stale because/i)).toBeVisible();
     });
-    await user.click(screen.getByRole("button", { name: /reset protein_g correction/i }));
+    await user.click(screen.getByRole("button", { name: /reset protein correction/i }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
 

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { Button, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, ErrorRecovery, Field, Select, Skeleton } from "../../components";
 import { planningApi } from "../plans/api";
 
 const TIMEZONES = ["UTC", "America/Vancouver", "America/New_York", "Europe/London"];
@@ -70,8 +70,7 @@ export function AccountTab() {
           />
         </Field>
         <Field label="Timezone">
-          <select
-            className="input"
+          <Select
             value={timezone}
             onChange={(event) => setTimezone(event.target.value)}
           >
@@ -81,18 +80,17 @@ export function AccountTab() {
                 {value}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Week starts on">
-          <select
-            className="input"
+          <Select
             value={weekStartsOn}
             onChange={(event) => setWeekStartsOn(event.target.value)}
           >
             <option value="1">Monday</option>
             <option value="7">Sunday</option>
             <option value="6">Saturday</option>
-          </select>
+          </Select>
         </Field>
       </div>
       {save.error instanceof Error ? (

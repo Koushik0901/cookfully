@@ -1,26 +1,49 @@
 :root {
   color-scheme: light;
 
-  /* Cookfully 2.0 — editorial kitchen utility */
-  --color-surface: oklch(0.974 0.012 88);
-  --color-surface-dim: oklch(0.948 0.018 92);
-  --color-surface-bright: oklch(0.992 0.006 88);
-  --color-surface-lowest: oklch(0.992 0.006 88);
-  --color-surface-low: oklch(0.948 0.018 92);
-  --color-surface-container: oklch(0.985 0.009 88);
-  --color-surface-high: oklch(0.925 0.023 92);
-  --color-surface-highest: oklch(0.892 0.026 94);
-  --color-on-surface: oklch(0.255 0.032 148);
-  --color-on-surface-variant: oklch(0.475 0.028 145);
-  --color-outline: oklch(0.670 0.035 105);
-  --color-outline-variant: oklch(0.875 0.025 95);
-  --color-primary: oklch(0.445 0.105 148);
-  --color-on-primary: oklch(0.985 0.012 92);
-  --color-primary-container: oklch(0.445 0.105 148);
-  --color-on-primary-container: oklch(0.985 0.012 92);
-  --color-accent: oklch(0.790 0.145 76);
-  --color-error: oklch(0.490 0.180 28);
-  --color-on-error: oklch(0.985 0.012 92);
+  /* Cookfully 3.0 — bright editorial kitchen utility. */
+  --color-surface: oklch(0.985 0.007 92);
+  --color-surface-dim: oklch(0.954 0.014 94);
+  --color-surface-bright: oklch(0.998 0.002 92);
+  --color-surface-lowest: oklch(0.998 0.002 92);
+  --color-surface-low: oklch(0.968 0.011 94);
+  --color-surface-container: oklch(0.991 0.004 92);
+  --color-surface-high: oklch(0.932 0.020 96);
+  --color-surface-highest: oklch(0.888 0.028 98);
+  --color-on-surface: oklch(0.218 0.038 148);
+  --color-on-surface-variant: oklch(0.455 0.030 145);
+  --color-outline: oklch(0.610 0.042 105);
+  --color-outline-variant: oklch(0.858 0.027 96);
+  --color-primary: oklch(0.405 0.126 148);
+  --color-primary-hover: oklch(0.350 0.118 148);
+  --color-on-primary: oklch(0.988 0.008 92);
+  --color-primary-container: oklch(0.910 0.060 146);
+  --color-on-primary-container: oklch(0.278 0.075 148);
+  --color-accent: oklch(0.790 0.158 72);
+  --color-accent-soft: oklch(0.940 0.062 78);
+  --color-tomato: oklch(0.535 0.160 34);
+  --color-error: oklch(0.505 0.186 28);
+  --color-on-error: oklch(0.988 0.008 92);
+
+  /* Deliberate dark kitchen contexts: navigation, cook mode, and evidence. */
+  --color-herb-950: oklch(0.205 0.052 148);
+  --color-herb-900: oklch(0.235 0.060 148);
+  --color-herb-850: oklch(0.245 0.070 148);
+  --color-herb-800: oklch(0.285 0.075 148);
+  --color-herb-700: oklch(0.340 0.074 148);
+  --color-herb-650: oklch(0.360 0.090 148);
+  --color-herb-track: oklch(0.440 0.060 148);
+  --color-on-herb: oklch(0.920 0.025 105);
+  --color-on-herb-high: oklch(0.880 0.020 112);
+  --color-on-herb-muted: oklch(0.800 0.024 115);
+  --color-on-herb-subtle: oklch(0.720 0.022 112);
+  --color-on-herb-faint: oklch(0.650 0.020 112);
+  --color-on-dark-line: oklch(1 0 0 / 14%);
+  --color-on-dark-line-soft: oklch(1 0 0 / 10%);
+  --color-on-dark-line-strong: oklch(1 0 0 / 24%);
+  --color-on-dark-hover: oklch(1 0 0 / 8%);
+  --color-image-scrim: oklch(0.180 0.050 148 / 45%);
+  --color-overlay-scrim: oklch(0.160 0.025 148 / 58%);
 
   /* Interface state colors are separate from nutrient colors. */
   --status-success: oklch(0.470 0.110 148);
@@ -41,13 +64,13 @@
   --font-body: "Inclusive Sans Variable", "Inclusive Sans", sans-serif;
   --font-data: var(--font-body);
 
-  --text-display-lg: clamp(2.5rem, 1.95rem + 2.25vw, 3.5rem);
-  --text-headline-md: clamp(2.125rem, 1.95rem + 0.75vw, 2.625rem);
-  --text-headline-sm: clamp(1.5625rem, 1.45rem + 0.45vw, 1.75rem);
+  --text-display-lg: clamp(2.75rem, 2rem + 3vw, 4.75rem);
+  --text-headline-md: 2.25rem;
+  --text-headline-sm: 1.75rem;
   --text-headline-lg: var(--text-headline-md);
   --text-title-lg: var(--text-headline-md);
-  --text-title-md: 1.3125rem;
-  --text-body-lg: 1.125rem;
+  --text-title-md: 1.25rem;
+  --text-body-lg: 1.0625rem;
   --text-body-md: 1rem;
   --text-data-lg: 1.25rem;
   --text-data-sm: 0.875rem;
@@ -71,13 +94,40 @@
   --gutter: 1.25rem;
   --page-margin: 1rem;
 
-  --shadow-level-1: 0 1px 2px oklch(0.255 0.032 148 / 6%);
-  --shadow-level-2: 0 18px 50px oklch(0.255 0.032 148 / 16%);
+  --shadow-level-1: 0 1px 2px oklch(0.218 0.038 148 / 7%), 0 8px 22px oklch(0.218 0.038 148 / 4%);
+  --shadow-level-2: 0 20px 55px oklch(0.218 0.038 148 / 15%);
+  --shadow-level-3: 0 28px 76px oklch(0.218 0.038 148 / 20%);
+  --shadow-button: 0 1px 0 oklch(0.200 0.060 148 / 20%), 0 8px 18px oklch(0.405 0.126 148 / 14%);
+  --shadow-button-hover: 0 1px 0 oklch(0.200 0.060 148 / 20%), 0 12px 24px oklch(0.405 0.126 148 / 18%);
+  --shadow-control: 0 1px 0 oklch(0.218 0.038 148 / 5%);
+  --shadow-control-inset: inset 0 1px 0 oklch(0.218 0.038 148 / 2%);
+  --shadow-card-rest: 0 1px 3px oklch(0.218 0.038 148 / 10%);
+  --shadow-card-hover: 0 10px 28px oklch(0.218 0.038 148 / 8%);
+  --shadow-media-rest: 0 1px 8px oklch(0.218 0.038 148 / 12%);
+  --shadow-bottom-nav: 0 -10px 30px oklch(0.218 0.038 148 / 7%);
 
+  /* Semantic compatibility roles keep older feature surfaces inside the same
+     editorial palette while they share the current component foundation. */
+  --surface-raised: var(--color-surface-bright);
+  --surface-muted: var(--color-surface-low);
+  --border-subtle: var(--color-outline-variant);
+  --text-muted: var(--color-on-surface-variant);
+  --text-body: var(--text-body-md);
+  --text-body-sm: var(--text-data-sm);
+  --success: var(--status-success);
+  --danger: var(--color-error);
+  --radius-pill: var(--radius-full);
+  --motion-base: var(--motion-state);
+  --color-surface-container-low: var(--color-surface-low);
+
+  --motion-press: 110ms;
   --motion-fast: 160ms;
+  --motion-state: 220ms;
   --motion-disclosure: 220ms;
   --motion-entrance: 280ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (min-width: 48rem) {

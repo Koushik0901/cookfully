@@ -15,7 +15,11 @@ from cookfully.application.access_tokens import ALL_TOKEN_SCOPES as ALL_TOKEN_SC
 from cookfully.application.access_tokens import AccessTokenService, token_hash
 from cookfully.application.access_tokens import IssuedAccessToken as ManagedAccessToken
 from cookfully.domain.common import DomainError, utc_now
-from cookfully.infrastructure.models.identity import OwnerAccount, SessionRecord
+from cookfully.infrastructure.models.identity import (
+    OwnerAccount,
+    OwnerOnboardingState,
+    SessionRecord,
+)
 
 
 def _token_hash(token: str) -> str:
@@ -101,6 +105,12 @@ class AuthService:
                 password_hash=self._passwords.hash(password),
                 timezone="UTC",
                 week_starts_on=1,
+                onboarding_state=OwnerOnboardingState(
+                    state="pending",
+                    first_action=None,
+                    resolved_at=None,
+                    version=1,
+                ),
             )
             session.add(owner)
             session.flush()

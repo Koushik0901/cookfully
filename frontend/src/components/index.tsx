@@ -1,5 +1,4 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { CookingPot } from "lucide-react";
 import {
   type ComponentProps,
   type InputHTMLAttributes,
@@ -11,36 +10,29 @@ import {
 } from "react";
 
 import { decimal6 } from "../app/api/generated/decimal";
+import { KitchenCompanion } from "./cookfully/KitchenCompanion";
 import { Button as ShadcnButton } from "./ui/button";
+import { Select } from "./ui/select";
 import { MacroPreview, MacroRing } from "./MacroPreview";
-import "./shared.css";
 
-export function Button({ className = "", variant: explicitVariant, ...props }: ComponentProps<typeof ShadcnButton>) {
-  const variant = className.includes("button--danger")
-    ? "destructive"
-    : className.includes("button--text")
-      ? "ghost"
-      : className.includes("button--secondary")
-        ? "secondary"
-        : explicitVariant;
-  const cleanedClassName = className.replace(/button--(?:danger|text|secondary)/g, "").trim();
-  return <ShadcnButton className={`button ${cleanedClassName}`} variant={variant} {...props} />;
+export function Button(props: ComponentProps<typeof ShadcnButton>) {
+  return <ShadcnButton {...props} />;
 }
 
 export function BrandMark({ className = "" }: { className?: string }) {
   return <img className={`brand-mark ${className}`} src="/brand/cookfully-mark-512.png" alt="" aria-hidden="true" />;
 }
 
-export function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: ReactElement<{ "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
+export function Field({ label, error, hint, endAdornment, children }: { label: string; error?: string; hint?: string; endAdornment?: ReactNode; children: ReactElement<{ "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
   const fieldId = useId();
   const labelId = `${fieldId}-label`;
-  const descriptionId = hint || error ? `${fieldId}-description` : undefined;
+  const message = error ?? hint;
+  const descriptionId = message ? `${fieldId}-description` : undefined;
   return (
     <div className="field">
       <span id={labelId} className="field__label">{label}</span>
-      {cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}
-      {hint && !error ? <span id={descriptionId} className="field__hint">{hint}</span> : null}
-      {error ? <span id={descriptionId} className="field__error">{error}</span> : null}
+      {endAdornment ? <span className="field__control">{cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}{endAdornment}</span> : cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}
+      <span id={descriptionId} className={`field__message${error ? " field__error" : " field__hint"}`} aria-hidden={message ? undefined : true}>{message || "\u00a0"}</span>
     </div>
   );
 }
@@ -77,8 +69,8 @@ export function ConfirmDialog({ trigger, title, description, confirmLabel, onCon
           <Dialog.Title>{title}</Dialog.Title>
           <Dialog.Description id="confirm-description">{description}</Dialog.Description>
           <div className="actions">
-            <Dialog.Close asChild><Button>Cancel</Button></Dialog.Close>
-            <Dialog.Close asChild><Button className="button--danger" onClick={onConfirm}>{confirmLabel}</Button></Dialog.Close>
+            <Dialog.Close asChild><Button variant="secondary">Cancel</Button></Dialog.Close>
+            <Dialog.Close asChild><Button variant="destructive" onClick={onConfirm}>{confirmLabel}</Button></Dialog.Close>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -107,17 +99,19 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: 
 export function Skeleton({ label, lines = 2 }: { label: string; lines?: number }) {
   return (
     <div className="skeleton" role="status" aria-label={label}>
+      <KitchenCompanion moment="loading" size="sm" className="skeleton__companion" />
       <span className="skeleton__title" />
       {Array.from({ length: lines }, (_, index) => <span key={index} />)}
     </div>
   );
 }
 
-export function EmptyState({ title, description, action, motif = true }: { title: string; description: string; action?: ReactNode; motif?: boolean }) {
+export function EmptyState({ title, description, action, motif = true, headingLevel = "h2" }: { title: string; description: string; action?: ReactNode; motif?: boolean; headingLevel?: "h1" | "h2" }) {
+  const Heading = headingLevel;
   return (
     <section className="empty-state">
-      {motif ? <CookingPot className="empty-state__icon" aria-hidden="true" /> : null}
-      <h2>{title}</h2>
+      {motif ? <KitchenCompanion moment="empty" size="md" className="empty-state__companion" /> : null}
+      <Heading>{title}</Heading>
       <p>{description}</p>
       {action ? <div className="empty-state__action">{action}</div> : null}
     </section>
@@ -125,7 +119,9 @@ export function EmptyState({ title, description, action, motif = true }: { title
 }
 
 export function ErrorRecovery({ title, description = "Try again. If the problem continues, check service health.", actionLabel = "Try again", onRetry }: { title: string; description?: string; actionLabel?: string; onRetry: () => void }) {
-  return <section className="error-recovery" role="alert"><h2>{title}</h2><p>{description}</p><Button onClick={onRetry}>{actionLabel}</Button></section>;
+  return <section className="error-recovery" role="alert"><KitchenCompanion moment="error" size="sm" className="error-recovery__companion" /><div className="error-recovery__copy"><h2>{title}</h2><p>{description}</p></div><Button onClick={onRetry}>{actionLabel}</Button></section>;
 }
 
 export { MacroPreview, MacroRing };
+export { KitchenCompanion } from "./cookfully/KitchenCompanion";
+export { Select };

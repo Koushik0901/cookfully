@@ -127,9 +127,11 @@ describe("suggestion UI", () => {
     await user.click(screen.getByRole("button", { name: "Find meal ideas" }));
 
     expect(await screen.findByText("Here’s a plan that fits")).toBeVisible();
-    await user.click(screen.getByText("How Cookfully chose this", { selector: "summary" }));
-    expect(screen.getByRole("heading", { name: "How Cookfully chose this" })).toBeVisible();
-    expect(screen.getByText(/fewest unmet constraints.*weighted macro distance.*fewer entries.*recipe IDs/i)).toBeVisible();
+    await user.click(screen.getByText("Why this fits your plan", { selector: "summary" }));
+    expect(screen.getByRole("heading", { name: "A practical fit, explained" })).toBeVisible();
+    expect(screen.getByText(/protects the preferences you set.*nutrition fit.*repetition/i)).toBeVisible();
+    await user.click(screen.getByText("See planning details", { selector: "summary" }));
+    expect(screen.getByText(/favors fewer unmet preferences.*energy and protein/i)).toBeVisible();
     await user.click(screen.getByText("Nutrition fit for this day", { selector: "summary" }));
     expect(screen.getByText("1200 kcal")).toBeVisible();
     expect(screen.getByText("100.0 g protein")).toBeVisible();
@@ -153,6 +155,7 @@ describe("suggestion UI", () => {
     await user.click(screen.getByLabelText("Accept Chicken rice bowl"));
     await user.click(screen.getByRole("button", { name: "Accept 1 selected item" }));
     expect(await screen.findByText(/1 meal is ready in your plan/i)).toBeVisible();
+    expect(document.querySelector('.suggestion-success [data-companion-moment="success"]')).toBeVisible();
     expect(screen.getByText(/accepted day total: 1200 kcal.*matches the preview/i)).toBeVisible();
     const acceptCall = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith("/accept") && init?.method === "POST");
     expect(JSON.parse(String(acceptCall?.[1]?.body))).toEqual({ selectedItemIds: [itemOne], expectedPlanVersion: 4 });

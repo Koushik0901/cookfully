@@ -6,16 +6,22 @@ import { useNavigate } from "react-router-dom";
 import { Button, Field } from "../../components";
 import { recipesApi } from "./api";
 
-export function RecipeImportDialog({ trigger }: { trigger: React.ReactNode }) {
+export function RecipeImportDialog({ trigger, onImported }: { trigger: React.ReactNode; onImported?: () => void | Promise<unknown> }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [validation, setValidation] = useState("");
   const mutation = useMutation({
     mutationFn: recipesApi.import,
-    onSuccess: (accepted) => {
-      setOpen(false);
-      if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId } });
+    onSuccess: async (accepted) => {
+      try {
+        await onImported?.();
+      } catch {
+        // The recipe already exists; optional onboarding persistence must not turn that into a failure.
+      } finally {
+        setOpen(false);
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId } });
+      }
     },
   });
 
@@ -43,7 +49,7 @@ export function RecipeImportDialog({ trigger }: { trigger: React.ReactNode }) {
             <Field label="Recipe URL" error={validation || (mutation.error instanceof Error ? mutation.error.message : undefined)}>
               <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe" required />
             </Field>
-            <div className="actions"><Dialog.Close asChild><Button type="button" className="button--secondary">Cancel</Button></Dialog.Close><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Starting…" : "Start import"}</Button></div>
+            <div className="actions"><Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Starting…" : "Start import"}</Button></div>
           </form>
         </Dialog.Content>
       </Dialog.Portal>

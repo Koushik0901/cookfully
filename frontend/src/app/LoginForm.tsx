@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 import { Button, Field } from "../components";
@@ -8,6 +9,7 @@ export function LoginForm() {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const login = useMutation({
     mutationFn: () =>
       apiRequest<void>("/auth/session", {
@@ -35,10 +37,23 @@ export function LoginForm() {
           onChange={(event) => setEmail(event.target.value)}
         />
       </Field>
-      <Field label="Password">
+      <Field
+        label="Password"
+        endAdornment={
+          <button
+            type="button"
+            className="password-visibility"
+            aria-label={passwordVisible ? "Hide password" : "Show password"}
+            aria-pressed={passwordVisible}
+            onClick={() => setPasswordVisible((visible) => !visible)}
+          >
+            {passwordVisible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+          </button>
+        }
+      >
         <input
           className="input"
-          type="password"
+          type={passwordVisible ? "text" : "password"}
           autoComplete="current-password"
           required
           value={password}

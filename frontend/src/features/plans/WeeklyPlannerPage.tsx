@@ -11,7 +11,6 @@ import { DayTabs } from "./DayTabs";
 import { MacroSummary } from "./MacroSummary";
 import { MealPlanEntry } from "./MealPlanEntry";
 import { NutritionPulse } from "./NutritionPulse";
-import { NutritionGuideInvitation } from "./NutritionGuideInvitation";
 import { PrepOverview } from "./PrepOverview";
 import { RecipePickerSheet } from "./RecipePickerSheet";
 import { WeekOverview } from "./WeekOverview";
@@ -71,39 +70,39 @@ export function WeeklyPlannerPage() {
   const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
 
   return (
-    <main className="page-shell">
-      <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button className="button--secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button className="button--secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />
+    <main className="page-shell planner-page">
+      <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />
       <div className="planner-toolbar">
         <div className="planner-views" role="tablist" aria-label="Planning views">
           <button role="tab" aria-selected={view === "week"} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
           <button role="tab" aria-selected={view === "day"} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
           <button role="tab" aria-selected={view === "prep"} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
         </div>
-        {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
+        {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
       </div>
 
       {view === "week" ? <>
         <WeekOverview dates={dates} entries={entries} recipesById={recipesById} selectedDate={selectedDate} onOpenDay={(date) => { setSelectedDate(date); setAddMessage(""); setView("day"); }} />
-        {goal.data ? <NutritionPulse total={plan.data?.weekTotal} target={goal.data} plannedDays={plannedDays} /> : <NutritionGuideInvitation />}
+        {goal.data ? <NutritionPulse total={plan.data?.weekTotal} target={goal.data} plannedDays={plannedDays} /> : null}
       </> : null}
 
       {view === "day" ? <>
         <DayTabs dates={dates} selected={selectedDate} onSelect={(date) => { setSelectedDate(date); setAddMessage(""); }} totals={totals} entryCounts={entryCounts} />
-        <div className="plan-workspace">
+        <div className={`plan-workspace${goal.data ? "" : " plan-workspace--single"}`}>
         <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
           <div className="planner-day__heading"><div><p className="eyebrow">Selected day</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
           {addMessage ? <p className="planner-day__feedback success-text" role="status">{addMessage}</p> : null}
           {SLOTS.map((slot) => {
             const slotEntries = selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position);
             const slotLabel = slot[0].toUpperCase() + slot.slice(1);
-            return <section className="meal-slot" key={slot}><div className="section-heading"><h3>{slotLabel}</h3><span>{slotEntries.length ? `${slotEntries.length} planned` : "Open"}</span></div>{slotEntries.length ? <div className="entry-list">{slotEntries.map((entry) => <MealPlanEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} />)}</div> : <div className="meal-slot__empty"><div><strong>Nothing planned yet</strong><span>{goal.data ? "Choose a recipe you know, or ask Cookfully for a useful fit." : "Choose any recipe. Nutrition guidance can be added later."}</span></div><div className="meal-slot__empty-actions"><Button className="button--secondary" aria-label={`Add a recipe to ${slotLabel}`} onClick={() => { add.reset(); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a recipe</Button>{goal.data ? <Link to={`/app/suggestions?scope=meal&localDate=${selectedDate}&mealSlot=${slot}`}><Sparkles aria-hidden="true" />Find an idea</Link> : <Link to="/app/goals"><HeartPulse aria-hidden="true" />Guide my ideas</Link>}</div></div>}</section>;
+            return <section className="meal-slot" key={slot}><div className="section-heading"><h3>{slotLabel}</h3><span>{slotEntries.length ? `${slotEntries.length} planned` : "Open"}</span></div>{slotEntries.length ? <div className="entry-list">{slotEntries.map((entry) => <MealPlanEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} />)}</div> : <div className="meal-slot__empty"><div><strong>Nothing planned yet</strong><span>{goal.data ? "Choose a recipe you know, or ask Cookfully for a useful fit." : "Choose any recipe. Nutrition guidance can be added later."}</span></div><div className="meal-slot__empty-actions"><Button variant="secondary" aria-label={`Add a recipe to ${slotLabel}`} onClick={() => { add.reset(); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a recipe</Button>{goal.data ? <Link to={`/app/suggestions?scope=meal&localDate=${selectedDate}&mealSlot=${slot}`}><Sparkles aria-hidden="true" />Find an idea</Link> : null}</div></div>}</section>;
           })}
         </section>
         {goal.data ? <aside className="plan-nutrition" aria-label="Nutrition guidance">
           <div className="plan-nutrition__intro"><p className="eyebrow">Nutrition guidance</p><h2>Shape the day as you plan</h2><p>Use the remaining amounts to adjust servings or choose the next meal—not to grade the food you’ve already chosen.</p></div>
           <MacroSummary label="Nutrition balance" total={totals[selectedDate]} target={goal.data} />
-          <Button className="button--text" asChild><Link to="/app/goals">Adjust nutrition targets</Link></Button>
-        </aside> : <aside className="plan-nutrition"><NutritionGuideInvitation compact /></aside>}
+          <Button variant="ghost" asChild><Link to="/app/goals">Adjust nutrition targets</Link></Button>
+        </aside> : null}
         </div>
       </> : null}
 

@@ -4,6 +4,7 @@ import {
   accessibleRecipeId,
   mockAccessibleRecipeApi,
 } from "./support/mock-accessible-recipe";
+import { captureUi } from "./support/visual-audit";
 
 test("desktop and 390x844 layouts contain long content without document overflow", async ({
   page,
@@ -22,12 +23,27 @@ test("desktop and 390x844 layouts contain long content without document overflow
   await expect(page.getByText("100 g extra firm tofu")).toBeVisible();
   await page.getByText("Ingredient matching and assumptions").click();
   await expect(page.getByText(/deliberately-long-unbroken-preparation-token/)).toBeVisible();
+  await captureUi(page, testInfo, "recipe-evidence", { focus: page.getByText(/deliberately-long-unbroken-preparation-token/) });
 
   const dimensions = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
     viewportWidth: window.innerWidth,
   }));
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
+  if (testInfo.project.name === "narrow-mobile") {
+    const navItems = page.locator(
+      ".mobile-nav > .mobile-nav__link, .mobile-nav > .mobile-nav__more > summary",
+    );
+    await expect(navItems).toHaveCount(5);
+    for (let index = 0; index < await navItems.count(); index += 1) {
+      for (const element of [navItems.nth(index), navItems.nth(index).locator("svg"), navItems.nth(index).locator("span")]) {
+        const box = await element.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+      }
+    }
+  }
   const controls = page.locator("button, input, select, textarea");
   for (let index = 0; index < await controls.count(); index += 1) {
     const control = controls.nth(index);
@@ -37,10 +53,11 @@ test("desktop and 390x844 layouts contain long content without document overflow
   }
 });
 
-test("destructive dialog remains fully contained at every configured viewport", async ({ page }) => {
+test("destructive dialog remains fully contained at every configured viewport", async ({ page }, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}`);
   await page.getByRole("button", { name: "Permanently delete recipe" }).click();
+  await captureUi(page, testInfo, "recipe-delete-dialog");
 
   const box = await page.getByRole("dialog").boundingBox();
   const viewport = page.viewportSize();
@@ -68,6 +85,20 @@ test("tablet keeps a compact kitchen rail instead of inheriting phone navigation
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("mobile keeps secondary places in a deliberate More menu", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "narrow-mobile", "This navigation pattern is mobile-only.");
+  await mockAccessibleRecipeApi(page);
+  await page.goto(`/app/recipes/${accessibleRecipeId}`);
+
+  const more = page.locator(".mobile-nav__more");
+  await more.getByText("More", { exact: true }).click();
+  await expect(more).toHaveAttribute("open", "");
+  await expect(more.getByRole("link", { name: "Goals" })).toBeVisible();
+  await expect(more.getByRole("link", { name: "Settings" })).toBeVisible();
+  await captureUi(page, testInfo, "mobile-more-menu");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("cook mode takes over the viewport and adapts its ingredient checklist", async ({ page }, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}/cook`);
@@ -90,11 +121,15 @@ test("cook mode takes over the viewport and adapts its ingredient checklist", as
   expect(await ingredients.evaluate((element) => (element as HTMLDetailsElement).open)).toBe(shouldStartOpen);
   if (!shouldStartOpen) await page.locator(".cook-mode__ingredients summary").click();
 
+  await captureUi(page, testInfo, "cook-mode");
+
   await page.getByRole("checkbox").click();
   await expect(page.getByText("Everything’s ready to cook.")).toBeVisible();
   await page.getByRole("button", { name: "Finish cooking" }).click();
   await expect(page.getByRole("heading", { name: "Time to eat." })).toBeVisible();
+  await expect(page.locator('.cook-mode__complete [data-companion-moment="milestone"]')).toBeVisible();
   await expect(page.locator(".cook-mode__complete-media img")).toBeVisible();
+  await captureUi(page, testInfo, "cook-mode-complete");
   await page.getByRole("button", { name: "Cook again" }).click();
   await expect(page.getByText("Cook and portion.")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

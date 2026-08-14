@@ -41,14 +41,13 @@ class OwnerOnboardingService:
     ) -> OnboardingStateRead:
         with self._session_factory.begin() as session:
             value = session.get(OwnerOnboardingState, owner_id, with_for_update=True)
-            actual_version = value.version if value is not None else 1
-            require_version(expected_version, actual_version)
             if value is None:
-                # Column defaults are applied on INSERT/flush.  Set the initial
-                # values here because this request needs to inspect the state
-                # before that flush happens.
-                value = OwnerOnboardingState(owner_id=owner_id, state="pending", version=1)
-                session.add(value)
+                raise DomainError(
+                    "onboarding_not_available",
+                    "The welcome journey is only available to new kitchens.",
+                    409,
+                )
+            require_version(expected_version, value.version)
             if value.state != "pending":
                 raise DomainError(
                     "onboarding_already_resolved",
@@ -65,7 +64,9 @@ class OwnerOnboardingService:
     @staticmethod
     def _read(value: OwnerOnboardingState | None) -> OnboardingStateRead:
         if value is None:
-            return OnboardingStateRead("pending", None, None, 1)
+            # Accounts created before onboarding was introduced have no row.
+            # Fail closed so an established kitchen never appears brand new.
+            return OnboardingStateRead("dismissed", None, None, 1)
         return OnboardingStateRead(
             value.state, value.first_action, value.resolved_at, value.version
         )

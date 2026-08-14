@@ -53,6 +53,15 @@ test("keyboard focus, contrast, landmarks, and reduced motion meet the release b
   });
   expect(["0s", "0.00001s", "1e-05s"]).toContain(reducedMotion.animationDuration);
   expect(["0s", "0.00001s", "1e-05s"]).toContain(reducedMotion.transitionDuration);
+
+  await mockAccessibleRecipeApi(page);
+  await page.goto("/app/recipes/missing-recipe");
+  await expect(page.getByRole("heading", { name: "Recipe could not be loaded" })).toBeVisible();
+  const companionAnimations = await page.locator('[data-companion-moment="error"] *').evaluateAll((elements) =>
+    elements.map((element) => getComputedStyle(element).animationName),
+  );
+  expect(companionAnimations.every((animationName) => animationName === "none")).toBe(true);
+  expect(await seriousAxeViolations(page)).toEqual([]);
 });
 
 test("polling announcements and destructive confirmation preserve screen-reader and focus behavior", async ({

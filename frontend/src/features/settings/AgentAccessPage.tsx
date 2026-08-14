@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 
 import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,7 +24,7 @@ function dateLabel(value: string | null | undefined): string {
   );
 }
 
-export function AgentAccessPage() {
+export function AgentAccessPage({ embedded = false }: { embedded?: boolean }) {
   const queryClient = useQueryClient();
   const tokens = useQuery({ queryKey: ["access-tokens"], queryFn: agentAccessApi.list });
   const [name, setName] = useState("");
@@ -95,16 +95,19 @@ export function AgentAccessPage() {
     }
   }
 
-  if (tokens.isPending) return <main className="page-shell"><Skeleton label="Loading agent access" lines={8} /></main>;
+  const description = "Connect an external assistant with narrowly scoped tokens, then revoke access whenever you need to.";
+  const frame = (content: ReactNode) => embedded
+    ? <><div className="settings-system-intro"><p className="eyebrow">System connection</p><h2>Agent access</h2><p>{description}</p></div>{content}</>
+    : <main className="page-shell"><PageHeader eyebrow="System access" title="Agent access" description={description} />{content}</main>;
+
+  if (tokens.isPending) return frame(<Skeleton label="Loading agent access" lines={8} />);
   if (tokens.isError) {
-    return <main className="page-shell"><ErrorRecovery title="Agent access could not be loaded" onRetry={() => void tokens.refetch()} /></main>;
+    return frame(<ErrorRecovery title="Agent access could not be loaded" onRetry={() => void tokens.refetch()} />);
   }
   const activeTokens = tokens.data.filter((token) => !token.revokedAt);
 
-  return (
-    <main className="page-shell">
-      <PageHeader eyebrow="Owner settings" title="Agent access" description="Create narrowly scoped tokens for MCP clients and revoke them at any time." />
-
+  return frame(
+    <>
       {notice ? <p className="notice" role="status">{notice}</p> : null}
 
       {oneTimeToken ? (
@@ -117,7 +120,7 @@ export function AgentAccessPage() {
           <code className="token-secret">{oneTimeToken.secret}</code>
           <div className="actions">
             <Button type="button" onClick={() => void copySecret()}>Copy token</Button>
-            <Button type="button" className="button--secondary" onClick={() => { setOneTimeToken(null); setCopyStatus(""); }}>I have stored it</Button>
+            <Button type="button" variant="secondary" onClick={() => { setOneTimeToken(null); setCopyStatus(""); }}>I have stored it</Button>
           </div>
           {copyStatus ? <p role="status">{copyStatus}</p> : null}
         </section>
@@ -159,7 +162,7 @@ export function AgentAccessPage() {
                 <div className="section-heading">
                   <div><h3>{token.name}</h3><p className="muted">Created {dateLabel(token.createdAt)}</p></div>
                   <ConfirmDialog
-                    trigger={<Button type="button" className="button--danger">Revoke</Button>}
+                    trigger={<Button type="button" variant="destructive">Revoke</Button>}
                     title="Revoke access token?"
                     description={`${token.name} will stop working immediately. This cannot be undone.`}
                     confirmLabel="Revoke token"
@@ -176,6 +179,6 @@ export function AgentAccessPage() {
           </div>
         )}
       </section>
-    </main>
+    </>
   );
 }

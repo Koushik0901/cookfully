@@ -5,6 +5,13 @@ export function formatCookingNumber(value: string | number | null | undefined, m
   return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(number);
 }
 
+export function formatCookingInput(value: string | number | null | undefined) {
+  if (value == null || value === "") return "";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  return number.toFixed(6).replace(/\.?0+$/, "");
+}
+
 export function formatCookingText(value: string) {
   return value.replace(/-?\d+\.\d+/g, (match) => formatCookingNumber(match));
 }

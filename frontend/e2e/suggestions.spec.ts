@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { captureUi } from "./support/visual-audit";
 
 const suggestionId = "00000000-0000-4000-8000-000000000201";
 const recipeId = "00000000-0000-4000-8000-000000000101";
@@ -37,18 +38,22 @@ async function mockSuggestionApi(page: Page) {
 }
 
 for (const scope of ["day", "week"] as const) {
-  test(`${scope} suggestion preserves exact preview and accepted-total parity`, async ({ page }) => {
+  test(`${scope} suggestion preserves exact preview and accepted-total parity`, async ({ page }, testInfo) => {
     await mockSuggestionApi(page);
     await page.goto("/app/suggestions");
     await expect(page.getByRole("heading", { name: "What would make your plan easier?" })).toBeVisible();
+    if (scope === "week") await captureUi(page, testInfo, "suggestions-form");
     await page.getByRole("radio", { name: scope === "week" ? /Fill my week/i : /A full day/i }).click();
     await page.getByRole("button", { name: "Find meal ideas" }).click();
     await expect(page.getByText("Here’s a plan that fits")).toBeVisible();
     const expected = scope === "week" ? "8400 kcal" : "1200 kcal";
     await expect(page.getByTestId("preview-primary-total")).toContainText(expected);
+    if (scope === "week") await captureUi(page, testInfo, "suggestions-result", { focus: page.getByRole("heading", { name: "Meals for your plan" }) });
     await page.getByRole("button", { name: "Accept 1 selected item" }).click();
     await expect(page.getByTestId("accepted-primary-total")).toContainText(expected);
+    await expect(page.locator('.suggestion-success [data-companion-moment="success"]')).toBeVisible();
     await expect(page.getByText(/matches the preview/i)).toBeVisible();
+    if (scope === "week") await captureUi(page, testInfo, "suggestions-accepted", { focus: page.getByText(/matches the preview/i) });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 }

@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { Button, ErrorRecovery, Skeleton } from "../../components";
+import { Button, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { Checkbox } from "@/components/ui/checkbox";
 import { recipesApi } from "./api";
@@ -96,7 +96,7 @@ export function CookModePage() {
   return (
     <div className="cook-mode">
       <header className="cook-mode__header">
-        <Button asChild className="button--text cook-mode__back">
+        <Button asChild variant="ghost" className="cook-mode__back">
           <Link to={"/app/recipes/" + recipeId}><X aria-hidden="true" />Leave</Link>
         </Button>
         <div className="cook-mode__identity">
@@ -118,13 +118,13 @@ export function CookModePage() {
         <main className="cook-mode__complete">
           <div className="cook-mode__complete-media">{currentRecipe.imageUrl ? <img src={currentRecipe.imageUrl} alt="" /> : <RecipeFallbackArt title={currentRecipe.title} />}</div>
           <div className="cook-mode__complete-copy">
-            <span className="cook-mode__complete-mark"><Check aria-hidden="true" /></span>
+            <KitchenCompanion moment="milestone" size="lg" className="cook-mode__complete-companion" />
             <p className="eyebrow">Cooking complete</p>
             <h2>Time to eat.</h2>
             <p>{currentRecipe.title} is ready. Plate it, take a breath, and enjoy what you made.</p>
             <div className="cook-mode__complete-actions">
               <Button asChild><Link to={"/app/recipes/" + recipeId}>Back to recipe</Link></Button>
-              <Button className="button--secondary" onClick={() => { setCurrentStep(0); setComplete(false); }}><RotateCcw aria-hidden="true" />Cook again</Button>
+              <Button variant="secondary" onClick={() => { setCurrentStep(0); setComplete(false); }}><RotateCcw aria-hidden="true" />Cook again</Button>
             </div>
           </div>
         </main>
@@ -163,7 +163,7 @@ export function CookModePage() {
               <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
             </div>
             <div className="cook-mode__step-controls">
-              <Button className="button--secondary" disabled={currentStep === 0} onClick={prevStep}><ChevronLeft aria-hidden="true" />Previous</Button>
+              <Button variant="secondary" disabled={currentStep === 0} onClick={prevStep}><ChevronLeft aria-hidden="true" />Previous</Button>
               <Button onClick={nextStep}>{currentStep < total - 1 ? "Next step" : "Finish cooking"}<ChevronRight aria-hidden="true" /></Button>
             </div>
           </main>

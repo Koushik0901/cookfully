@@ -1,84 +1,69 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, BookOpenText, CalendarDays, X } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Button } from "../../components";
+import { Button, KitchenCompanion } from "../../components";
 import { RecipeImportDialog } from "../recipes/RecipeImportDialog";
 import { onboardingApi } from "./api";
-import type { OnboardingAction } from "./types";
+import type { OnboardingAction, OnboardingState } from "./types";
 
-const FIRST_STEPS: Array<{
-  action: OnboardingAction;
-  title: string;
-  body: string;
-  Icon: typeof BookOpenText;
-}> = [
-  {
-    action: "manual_recipe",
-    title: "Write a recipe you know",
-    body: "Start with dinner from memory, a notebook, or someone you love cooking for.",
-    Icon: BookOpenText,
-  },
-  {
-    action: "import_recipe",
-    title: "Bring in a web recipe",
-    body: "Save a recipe you already trust and keep its ingredients, method, and estimate together.",
-    Icon: ArrowRight,
-  },
-  {
-    action: "view_plan",
-    title: "See your week",
-    body: "Explore the planner first. A nutrition guide is there when you want it, never in the way.",
-    Icon: CalendarDays,
-  },
-];
-
-export function FirstRunJourney() {
+export function FirstRunJourney({ onboarding }: { onboarding: OnboardingState }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const onboarding = useQuery({ queryKey: ["owner-onboarding"], queryFn: onboardingApi.get, retry: 1 });
+  const [dismissed, setDismissed] = useState(false);
   const resolve = useMutation({
     mutationFn: onboardingApi.resolve,
-    onSuccess: (value) => queryClient.setQueryData(["owner-onboarding"], value),
   });
 
-  function choose(action: OnboardingAction) {
-    if (!onboarding.data) return;
-    resolve.mutate({ state: "completed", firstAction: action, version: onboarding.data.version });
-    if (action === "manual_recipe") navigate("/app/recipes/new");
-    if (action === "view_plan") navigate("/app/plan");
+  async function choose(action: OnboardingAction, destination: string) {
+    try {
+      await resolve.mutateAsync({ state: "completed", firstAction: action, version: onboarding.version });
+    } catch {
+      // The mutation retains the error for diagnostics; onboarding remains non-blocking.
+    } finally {
+      // Optional guidance must never block the real task if preference persistence fails.
+      navigate(destination);
+    }
   }
 
-  // The welcome guide is optional. Do not let a preferences read claim space
-  // or interrupt an established kitchen while it resolves or retries.
-  if (onboarding.isPending || onboarding.isError) return null;
-  if (onboarding.data?.state !== "pending") return null;
+  async function dismiss() {
+    try {
+      const value = await resolve.mutateAsync({ state: "dismissed", version: onboarding.version });
+      queryClient.setQueryData(["owner-onboarding"], value);
+      setDismissed(true);
+    } catch {
+      // Keep the surface visible with its inline recovery message.
+    }
+  }
+
+  if (dismissed) return null;
 
   return (
     <section className="first-run" aria-labelledby="first-run-title">
-      <div className="first-run__heading">
-        <div>
-          <p className="eyebrow">A calmer way to begin</p>
-          <h1 id="first-run-title">Start with the food you already know.</h1>
-          <p>You do not need a diet label, body measurements, or a perfect plan. Save one useful recipe, then let the week take shape around real life.</p>
+      <div className="first-run__illustration">
+        <KitchenCompanion moment="empty" size="lg" />
+        <p>Recipes first. Guidance when it is useful.</p>
+      </div>
+      <div className="first-run__content">
+        <div className="first-run__topline">
+          <p className="eyebrow">Your recipe library</p>
+          <Button variant="ghost" onClick={() => void dismiss()} disabled={resolve.isPending}>Skip welcome</Button>
         </div>
-        <Button className="button--text" onClick={() => resolve.mutate({ state: "dismissed", version: onboarding.data.version })} disabled={resolve.isPending}>
-          <X aria-hidden="true" />Skip for now
-        </Button>
+        <h1 id="first-run-title">Start with a recipe you already love.</h1>
+        <p>Write it from memory or bring it in from the web. Cookfully will keep the ingredients, method, and nutrition estimate together.</p>
+        <div className="first-run__actions">
+          <Button onClick={() => void choose("manual_recipe", "/app/recipes/new")} disabled={resolve.isPending}>Write a recipe</Button>
+          <RecipeImportDialog
+            trigger={<Button variant="secondary" disabled={resolve.isPending}>Import from the web</Button>}
+            onImported={() => resolve.mutateAsync({ state: "completed", firstAction: "import_recipe", version: onboarding.version })}
+          />
+        </div>
+        <div className="first-run__secondary-actions">
+          <Button variant="ghost" onClick={() => void choose("view_plan", "/app/plan")} disabled={resolve.isPending}>Explore the weekly planner <ArrowRight aria-hidden="true" /></Button>
+        </div>
+        {resolve.error instanceof Error ? <p className="error-text" role="alert">Your choice could not be saved. You can still use the kitchen normally.</p> : null}
       </div>
-      <div className="first-run__steps">
-        {FIRST_STEPS.map(({ action, title, body, Icon }) => {
-          const trigger = <Button className="button--secondary" onClick={() => choose(action)} disabled={resolve.isPending}>Choose this <ArrowRight aria-hidden="true" /></Button>;
-          return (
-            <article key={action} className="first-run__step">
-              <Icon aria-hidden="true" />
-              <div><h2>{title}</h2><p>{body}</p></div>
-              {action === "import_recipe" ? <RecipeImportDialog trigger={trigger} /> : trigger}
-            </article>
-          );
-        })}
-      </div>
-      {resolve.error instanceof Error ? <p className="error-text" role="alert">{resolve.error.message}</p> : null}
     </section>
   );
 }

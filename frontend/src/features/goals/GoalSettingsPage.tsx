@@ -3,12 +3,12 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Gauge, Leaf, PencilLine, Sprout, TrendingDown, TrendingUp } from "lucide-react";
 
-import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
 import { todayInTimezone } from "../plans/dates";
 import type { MealTarget, UserGoalWrite } from "../plans/types";
-import { formatCookingNumber } from "../recipes/formatCooking";
+import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 
 const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
 const decimal = /^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/;
@@ -47,20 +47,20 @@ export function GoalSettingsPage() {
     if (!currentGoal.data) return;
     const value = currentGoal.data;
     setMode(value.mode);
-    setMaintenanceKcal(value.maintenanceKcal);
-    setCaloriesKcal(value.caloriesKcal);
-    setProteinG(value.proteinG);
-    setCarbohydrateG(value.carbohydrateG);
-    setFatG(value.fatG);
+    setMaintenanceKcal(formatCookingInput(value.maintenanceKcal));
+    setCaloriesKcal(formatCookingInput(value.caloriesKcal));
+    setProteinG(formatCookingInput(value.proteinG));
+    setCarbohydrateG(formatCookingInput(value.carbohydrateG));
+    setFatG(formatCookingInput(value.fatG));
     setEffectiveFrom(value.effectiveFrom);
     setEffectiveTo(value.effectiveTo ?? "");
     const targets = emptyTargets();
     for (const target of value.mealTargets ?? []) {
       targets[target.mealSlot] = {
-        caloriesKcal: target.caloriesKcal ?? "",
-        proteinG: target.proteinG ?? "",
-        carbohydrateG: target.carbohydrateG ?? "",
-        fatG: target.fatG ?? "",
+        caloriesKcal: formatCookingInput(target.caloriesKcal),
+        proteinG: formatCookingInput(target.proteinG),
+        carbohydrateG: formatCookingInput(target.carbohydrateG),
+        fatG: formatCookingInput(target.fatG),
       };
     }
     setMealTargets(targets);
@@ -134,8 +134,8 @@ export function GoalSettingsPage() {
   const difference = macroEnergy == null ? null : macroEnergy - Number(caloriesKcal);
 
   return (
-    <main className="page-shell">
-      <PageHeader eyebrow="Your nutrition guide" title="Shape how Cookfully plans for you" description="Give Cookfully flexible daily guidance. It will use these numbers to shape meal plans—not to judge individual meals." actions={<Button className="button--secondary" asChild><Link to="/app/plan">Back to meal plan</Link></Button>} />
+    <main className="page-shell goals-page">
+      <PageHeader eyebrow="Your nutrition guide" title="Shape how Cookfully plans for you" description="Give Cookfully flexible daily guidance. It will use these numbers to shape meal plans—not to judge individual meals." actions={<Button variant="secondary" asChild><Link to="/app/plan">Back to meal plan</Link></Button>} />
       <form className="goal-form" onSubmit={submit} noValidate>
         <section className="goal-direction" aria-labelledby="direction-title">
           <div className="goal-section-heading"><div><p className="eyebrow">Energy direction</p><h2 id="direction-title">How should energy support you?</h2></div><p>You can change this whenever life changes.</p></div>
@@ -146,7 +146,7 @@ export function GoalSettingsPage() {
         </section>
 
         <section className="goal-targets" aria-labelledby="daily-guide-title">
-          <div className="goal-section-heading"><div><p className="eyebrow">Then, the daily guide</p><h2 id="daily-guide-title">Nutrition to plan around</h2></div><div className="goal-targets__heading-side"><p>Useful targets for balancing a day and week—not pass/fail scores.</p>{!showTargetInputs ? <Button type="button" className="button--secondary" onClick={() => { setSaved(false); setEditingTargets(true); }}><PencilLine aria-hidden="true" />Adjust daily guide</Button> : null}</div></div>
+          <div className="goal-section-heading"><div><p className="eyebrow">Then, the daily guide</p><h2 id="daily-guide-title">Nutrition to plan around</h2></div><div className="goal-targets__heading-side"><p>Useful targets for balancing a day and week—not pass/fail scores.</p>{!showTargetInputs ? <Button type="button" variant="secondary" onClick={() => { setSaved(false); setEditingTargets(true); }}><PencilLine aria-hidden="true" />Adjust daily guide</Button> : null}</div></div>
           {showTargetInputs ? <div className="target-grid">
             <div className="target-field target-field--calories"><span className="target-field__icon"><Gauge aria-hidden="true" /></span><Field label="Daily calories" error={errors.caloriesKcal}><DecimalInput value={caloriesKcal} onInput={(event) => onCaloriesChange(event.currentTarget.value)} /></Field><span className="target-field__unit">kcal</span></div>
             <div className="target-field target-field--protein"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily protein" error={errors.proteinG}><DecimalInput value={proteinG} onInput={(event) => { markChanged(); setProteinG(event.currentTarget.value); }} /></Field><span className="target-field__unit">grams</span></div>
@@ -166,7 +166,7 @@ export function GoalSettingsPage() {
           <details className="goal-disclosure"><summary><span><Sprout aria-hidden="true" /><span><strong>Meal-by-meal targets</strong><small>Optional guidance for breakfast, lunch, dinner, or snacks</small></span></span></summary><div className="meal-targets goal-disclosure__content">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></details>
         </section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
-        {saved ? <p className="success-text goal-saved-status" role="status">Your planning guide is saved.</p> : null}
+        {saved ? <p className="success-text goal-saved-status" role="status"><KitchenCompanion moment="success" size="sm" />Your planning guide is saved.</p> : null}
         {showSaveAction ? <div className="goal-save"><div><p><strong>Ready when you are.</strong><span>Your existing meal plan will use the updated guide.</span></p></div><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save my guide"}</Button></div> : null}
       </form>
     </main>

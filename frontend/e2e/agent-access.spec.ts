@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { captureUi } from "./support/visual-audit";
 
 const existingId = "00000000-0000-4000-8000-000000000101";
 
@@ -65,13 +66,14 @@ async function mockAgentAccessApi(page: Page) {
   });
 }
 
-test("creates, stores once, and revokes scoped agent tokens without overflow", async ({ page }) => {
+test("creates, stores once, and revokes scoped agent tokens without overflow", async ({ page }, testInfo) => {
   await mockAgentAccessApi(page);
   await page.goto("/app/agent-access");
   await expect(page.getByRole("heading", { name: "Agent access" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Read-only coach" })).toBeVisible();
   await expect(page.getByLabel("Read meal plans")).toBeChecked();
   await expect(page.getByLabel("Write meal plans")).not.toBeChecked();
+  await captureUi(page, testInfo, "agent-access");
 
   await page.getByLabel("Token name").fill("Workout assistant");
   await page.getByLabel("Write meal plans").check();
@@ -79,6 +81,8 @@ test("creates, stores once, and revokes scoped agent tokens without overflow", a
   const oneTime = page.getByRole("region", { name: "One-time token secret" });
   await expect(oneTime).toContainText("cookfully_once_only_e2e_secret_12345678901234567890");
   await expect(oneTime).toContainText(/shown only once/i);
+  await captureUi(page, testInfo, "agent-access-secret", { focus: oneTime });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await oneTime.getByRole("button", { name: "I have stored it" }).click();
   await expect(page.getByText("cookfully_once_only_e2e_secret_12345678901234567890")).toHaveCount(0);
 

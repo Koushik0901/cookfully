@@ -56,7 +56,7 @@ describe("settings page", () => {
     );
   }
 
-  it("renders Account, Security, and API access tabs and edits account details", async () => {
+  it("renders Account, Security, and System access tabs and edits account details", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
@@ -74,7 +74,7 @@ describe("settings page", () => {
 
     expect(screen.getByRole("tab", { name: "Account" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Security" })).toBeVisible();
-    expect(screen.getByRole("tab", { name: "API access" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "System access" })).toBeVisible();
 
     expect(await screen.findByLabelText("Display name")).toHaveValue("Owner");
     await user.clear(screen.getByLabelText("Display name"));

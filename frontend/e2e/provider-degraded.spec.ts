@@ -116,7 +116,7 @@ async function mockDegradedApi(page: Page) {
   });
 }
 
-test("provider failure stays explicit while edit and manual nutrition recovery remain usable", async ({ page }) => {
+test("provider failure stays explicit while edit and manual nutrition recovery remain usable", async ({ page }, testInfo) => {
   await mockDegradedApi(page);
   await page.goto(`/app/recipes/${recipeId}`);
 
@@ -133,7 +133,9 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
   await page.getByLabel("Ingredients, one per line").fill("250 g tofu");
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
   await expect(page.getByText(/nutrition is stale/i)).toBeVisible();

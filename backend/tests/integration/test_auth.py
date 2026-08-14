@@ -6,15 +6,19 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.access_tokens import token_hash
 from cookfully.application.auth import ALL_TOKEN_SCOPES, AuthService
+from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.domain.common import DomainError
-from cookfully.infrastructure.models import OwnerAccount, SessionRecord
+from cookfully.infrastructure.models import OwnerAccount, OwnerOnboardingState, SessionRecord
 
 
 def test_bootstrap_session_csrf_expiry_and_logout(session_factory: sessionmaker[Session]) -> None:
     service = AuthService(session_factory, session_ttl=timedelta(hours=1))
     owner = service.bootstrap_owner("Owner@Example.com", "correct horse battery staple", "Owner")
     assert owner.email == "owner@example.com"
+    with session_factory() as session:
+        onboarding = session.get(OwnerOnboardingState, owner.id)
+        assert onboarding is not None and onboarding.state == "pending"
 
     issued = service.login("owner@example.com", "correct horse battery staple")
     assert service.authenticate_session(issued.session_token, issued.csrf_token).id == owner.id
@@ -24,6 +28,27 @@ def test_bootstrap_session_csrf_expiry_and_logout(session_factory: sessionmaker[
     service.logout(issued.session_token)
     with pytest.raises(DomainError, match="expired"):
         service.authenticate_session(issued.session_token, issued.csrf_token)
+
+
+def test_legacy_owner_without_first_run_state_is_treated_as_established(
+    session_factory: sessionmaker[Session],
+) -> None:
+    auth = AuthService(session_factory)
+    owner = auth.bootstrap_owner("owner@example.com", "correct horse battery staple", "Owner")
+    with session_factory.begin() as session:
+        state = session.get(OwnerOnboardingState, owner.id)
+        assert state is not None
+        session.delete(state)
+
+    onboarding = OwnerOnboardingService(session_factory)
+    assert onboarding.get(owner.id).state == "dismissed"
+    with pytest.raises(DomainError, match="only available to new kitchens"):
+        onboarding.resolve(
+            owner.id,
+            state="completed",
+            first_action="manual_recipe",
+            expected_version=1,
+        )
 
 
 def test_token_is_hashed_scoped_expiring_and_returned_once(

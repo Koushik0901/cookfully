@@ -139,7 +139,7 @@ export function SecurityTab() {
                   </div>
                   {session.isCurrent ? null : (
                     <ConfirmDialog
-                      trigger={<Button type="button" className="button--danger">Sign out</Button>}
+                      trigger={<Button type="button" variant="destructive">Sign out</Button>}
                       title="Sign out this device?"
                       description="This session will stop working immediately. This cannot be undone."
                       confirmLabel="Sign out device"
@@ -163,7 +163,7 @@ export function SecurityTab() {
         <div className="actions">
           <Button
             type="button"
-            className="button--secondary"
+            variant="secondary"
             onClick={() => signOut.mutate()}
             disabled={signOut.isPending}
           >

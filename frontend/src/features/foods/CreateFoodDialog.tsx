@@ -145,7 +145,7 @@ export function CreateFoodDialog({
 
             <div className="food-dialog__actions">
               <Dialog.Close asChild>
-                <Button type="button" className="button--secondary">Cancel</Button>
+                <Button type="button" variant="secondary">Cancel</Button>
               </Dialog.Close>
               <Button type="submit" disabled={create.isPending}>
                 {create.isPending ? "Saving\u2026" : "Create food"}

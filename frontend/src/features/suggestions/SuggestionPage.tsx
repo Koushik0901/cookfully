@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CalendarDays, CalendarRange, Check, ChefHat, ShieldCheck, SlidersHorizontal, Soup, UtensilsCrossed } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, Select, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
@@ -41,18 +41,18 @@ function MacroTotals({ total, testId }: { total: PeriodTotal | undefined | null;
 function ResultExplanation({ result }: { result: SuggestionResult }) {
   return (
     <section className="suggestion-explanation" aria-labelledby="ranking-title">
-      <h2 id="ranking-title">How Cookfully chose this</h2>
-      <p>
-        Results minimize the fewest unmet constraints first, then weighted macro distance
-        (calories 4, protein 3, carbohydrates 1, fat 1, repetition 2, required recipes 5),
-        then fewer entries, then ordered recipe IDs. The same inputs therefore produce the same ranking.
-      </p>
-      <dl className="objective-grid">
-        <div><dt>Unmet constraints</dt><dd>{result.unmetConstraintCount ?? "—"}</dd></div>
-        <div><dt>Objective score</dt><dd>{result.objectiveScore ?? "—"}</dd></div>
-        <div><dt>Calorie distance</dt><dd>{result.distanceComponents?.calories ?? "—"}</dd></div>
-        <div><dt>Protein distance</dt><dd>{result.distanceComponents?.protein ?? "—"}</dd></div>
-      </dl>
+      <h2 id="ranking-title">A practical fit, explained</h2>
+      <p>Cookfully first protects the preferences you set, then looks for a useful nutrition fit with repetition that feels realistic for the week.</p>
+      <details className="suggestion-ranking-details">
+        <summary>See planning details</summary>
+        <p>When there are several possible plans, Cookfully consistently favors fewer unmet preferences, then balances energy and protein ahead of other nutrition targets, then avoids unnecessary repetition.</p>
+        <dl className="objective-grid">
+          <div><dt>Unmet preferences</dt><dd>{result.unmetConstraintCount ?? "—"}</dd></div>
+          <div><dt>Plan score</dt><dd>{result.objectiveScore ?? "—"}</dd></div>
+          <div><dt>Energy distance</dt><dd>{result.distanceComponents?.calories ?? "—"}</dd></div>
+          <div><dt>Protein distance</dt><dd>{result.distanceComponents?.protein ?? "—"}</dd></div>
+        </dl>
+      </details>
     </section>
   );
 }
@@ -159,7 +159,7 @@ export function SuggestionPage() {
 
   const previewTotal = result ? primaryTotal(result) : undefined;
   return (
-    <main className="page-shell">
+    <main className="page-shell suggestions-page">
       <PageHeader eyebrow="Cookfully ideas" title="What would make your plan easier?" description="Choose the gap you want to fill. Cookfully will look through your recipes and find a nutritionally useful fit." />
 
       <section className="suggestion-form" aria-labelledby="idea-size-title">
@@ -169,7 +169,7 @@ export function SuggestionPage() {
         </div>
         <div className="suggestion-when">
           {scope === "week" ? <Field label="Planning week"><input className="input data-value" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} /></Field> : <Field label="Day to plan"><input className="input data-value" type="date" value={localDate} onChange={(event) => setLocalDate(event.target.value)} /></Field>}
-          {scope === "meal" ? <Field label="Meal"><select className="input" value={mealSlot} onChange={(event) => setMealSlot(event.target.value)}>{MEAL_SLOTS.map((slot) => <option key={slot} value={slot}>{slot[0].toUpperCase()}{slot.slice(1)}</option>)}</select></Field> : null}
+          {scope === "meal" ? <Field label="Meal"><Select value={mealSlot} onChange={(event) => setMealSlot(event.target.value)}>{MEAL_SLOTS.map((slot) => <option key={slot} value={slot}>{slot[0].toUpperCase()}{slot.slice(1)}</option>)}</Select></Field> : null}
           <div className="suggestion-when__promise"><ShieldCheck aria-hidden="true" /><span><strong>Nothing changes yet</strong><small>You’ll preview every meal before it joins your plan.</small></span></div>
         </div>
         <details className="suggestion-tune"><summary><SlidersHorizontal aria-hidden="true" /><span><strong>Fine-tune the nutrition fit</strong><small>Optional tolerances and repetition limits</small></span></summary><div className="suggestion-tune__body"><Field label="Maximum recipe repetitions"><input className="input data-value" type="number" min="1" max="21" value={maxRepetitions} onChange={(event) => setMaxRepetitions(Number(event.target.value))} /></Field><fieldset className="tolerance-grid"><legend>How close should the plan get?</legend>
@@ -202,11 +202,11 @@ export function SuggestionPage() {
           </article>;
         })}</div></section> : null}
         <details className="suggestion-preview"><summary>Nutrition fit for this {result.request.scope === "week" ? "week" : "day"}</summary><div aria-label={`Projected ${result.request.scope === "week" ? "week" : "day"} total`}><MacroTotals total={previewTotal} testId="preview-primary-total" /></div></details>
-        <details className="structured-review"><summary>How Cookfully chose this</summary><ResultExplanation result={result} /></details>
+        <details className="structured-review"><summary>Why this fits your plan</summary><ResultExplanation result={result} /></details>
         {result.status === "feasible" && result.items.length ? <div className="accept-panel"><Button disabled={!selectedIds.length || accept.isPending} onClick={() => accept.mutate()}>Accept {selectedIds.length} selected {selectedIds.length === 1 ? "item" : "items"}</Button><p className="muted">Only checked entries are added. Your plan version is verified before any change.</p></div> : null}
       </section> : null}
 
-      {accept.isSuccess && accept.acceptedTotal ? <section className="success-panel suggestion-success" role="status"><p className="eyebrow">Plan updated</p><h2>{selectedIds.length} {selectedIds.length === 1 ? "meal is" : "meals are"} ready in your plan</h2><p>Cookfully added the selected dishes exactly where you previewed them.</p><div className="actions"><Button asChild><Link to="/app/plan">View meal plan</Link></Button><Button className="button--secondary" asChild><Link to="/app/grocery">Review groceries</Link></Button></div><div className="suggestion-success__evidence" data-testid="accepted-primary-total"><p>Accepted {result?.request.scope === "week" ? "week" : "day"} total: {accept.acceptedTotal.caloriesKcal} kcal, {accept.acceptedTotal.proteinG} g protein — matches the preview.</p></div></section> : null}
+      {accept.isSuccess && accept.acceptedTotal ? <section className="success-panel suggestion-success" role="status"><KitchenCompanion moment="success" size="md" className="suggestion-success__companion" /><div className="suggestion-success__copy"><p className="eyebrow">Plan updated</p><h2>{selectedIds.length} {selectedIds.length === 1 ? "meal is" : "meals are"} ready in your plan</h2><p>Cookfully added the selected dishes exactly where you previewed them.</p><div className="actions"><Button asChild><Link to="/app/plan">View meal plan</Link></Button><Button variant="secondary" asChild><Link to="/app/grocery">Review groceries</Link></Button></div></div><div className="suggestion-success__evidence" data-testid="accepted-primary-total"><p>Accepted {result?.request.scope === "week" ? "week" : "day"} total: {accept.acceptedTotal.caloriesKcal} kcal, {accept.acceptedTotal.proteinG} g protein — matches the preview.</p></div></section> : null}
       {accept.conflict ? <ErrorRecovery title="Plan changed before acceptance" description="Nothing was accepted. Create a fresh suggestion from the current plan so the preview and accepted totals remain identical." actionLabel="Create a fresh suggestion" onRetry={freshSuggestion} /> : null}
       {accept.error instanceof Error && !accept.conflict ? <p className="error-text" role="alert">{accept.error.message}</p> : null}
     </main>

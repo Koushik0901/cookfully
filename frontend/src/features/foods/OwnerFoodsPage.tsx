@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Barcode, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { Barcode, ChevronDown, CircleHelp, Search, ShieldCheck } from "lucide-react";
 import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader } from "../../components";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
@@ -75,6 +75,21 @@ export function OwnerFoodsPage() {
             </Field>
           </div>
 
+          <details className="owner-foods-help">
+            <summary>
+              <CircleHelp aria-hidden="true" />
+              <span><strong>When to save a food</strong><small>Use your own label when a generic reference is not specific enough.</small></span>
+              <ChevronDown aria-hidden="true" />
+            </summary>
+            <div className="owner-foods-help__content">
+              <p>Best for packaged foods you buy repeatedly. Fresh ingredients can continue using Cookfully’s reference library.</p>
+              <ul>
+                <li><Barcode aria-hidden="true" /><span><strong>Copy the label once</strong><small>Keep calories and macros with the product name.</small></span></li>
+                <li><ShieldCheck aria-hidden="true" /><span><strong>Keep the source clear</strong><small>Cookfully can distinguish your label from an estimate.</small></span></li>
+              </ul>
+            </div>
+          </details>
+
           {foods.length === 0 ? (
             <EmptyState
               title={search ? "No matching foods" : "Save your first label"}
@@ -83,7 +98,7 @@ export function OwnerFoodsPage() {
                   ? `Nothing matches “${search}”. Try a product or brand name.`
                   : "Packaged staples are a good place to start—protein powder, yogurt, bread, sauces, or anything whose label you want Cookfully to remember."
               }
-              action={search ? <Button className="button--secondary" onClick={() => setSearch("")}>Clear search</Button> : undefined}
+              action={search ? <Button variant="secondary" onClick={() => setSearch("")}>Clear search</Button> : undefined}
             />
           ) : (
             <ul className="owner-foods-list">
@@ -99,17 +114,6 @@ export function OwnerFoodsPage() {
           )}
         </section>
 
-        <aside className="owner-foods-guide" aria-labelledby="food-guide-heading">
-          <div className="owner-foods-guide__mark" aria-hidden="true"><Sparkles /></div>
-          <p className="eyebrow">A little more accurate</p>
-          <h2 id="food-guide-heading">Why save a food?</h2>
-          <p>Use the label you have in your kitchen when a generic nutrition reference is not specific enough.</p>
-          <ol>
-            <li><Barcode aria-hidden="true" /><span><strong>Copy the label once</strong><small>Keep calories and macros with the product name.</small></span></li>
-            <li><ShieldCheck aria-hidden="true" /><span><strong>Keep the source clear</strong><small>Cookfully can distinguish your label from an estimate.</small></span></li>
-          </ol>
-          <p className="owner-foods-guide__note">Best for foods you buy repeatedly. Fresh ingredients can continue using Cookfully’s reference library.</p>
-        </aside>
       </div>
     </div>
   );
@@ -138,7 +142,7 @@ function OwnerFoodRow({ food, onDeleted }: { food: OwnerFood; onDeleted: () => v
         </dl>
       </div>
       <ConfirmDialog
-        trigger={<Button className="button--text owner-food-row__remove">Remove</Button>}
+        trigger={<Button variant="ghost" className="owner-food-row__remove">Remove</Button>}
         title={`Remove ${food.displayName}?`}
         description="Future recipes that reference this food will need to be re-matched."
         confirmLabel="Remove"

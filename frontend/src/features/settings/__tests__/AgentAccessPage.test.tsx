@@ -86,7 +86,7 @@ describe("agent access settings", () => {
     renderPage();
     const user = userEvent.setup({ writeToClipboard: false });
     expect(await screen.findByRole("heading", { name: "Agent access" })).toBeVisible();
-    expect(screen.getByText("Meal planner read access")).toBeVisible();
+    expect(await screen.findByText("Meal planner read access")).toBeVisible();
     expect(screen.getByLabelText("Read meal plans")).toBeChecked();
     expect(screen.getByLabelText("Write meal plans")).not.toBeChecked();
 

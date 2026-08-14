@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Button, ConfirmDialog, ErrorRecovery, PageHeader, Skeleton } from "../../components";
+import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
+import { ArrowLeft, ChefHat, Pencil } from "lucide-react";
+import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { FoodPicker } from "../foods/FoodPicker";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
@@ -17,7 +19,9 @@ export function RecipeDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const routeJobId = (location.state as { jobId?: string } | null)?.jobId;
+  const routeState = location.state as { jobId?: string; recipeSaved?: boolean } | null;
+  const routeJobId = routeState?.jobId;
+  const [savedRecipeId] = useState(() => routeState?.recipeSaved ? recipeId : undefined);
   const [jobId, setJobId] = useState<string | undefined>(routeJobId);
   const detail = useQuery({
     queryKey: ["recipe", recipeId],
@@ -30,6 +34,11 @@ export function RecipeDetailPage() {
   useEffect(() => {
     if (detail.data?.activeJob?.id) setJobId(detail.data.activeJob.id);
   }, [detail.data?.activeJob?.id]);
+
+  useEffect(() => {
+    if (!savedRecipeId) return;
+    navigate(location.pathname, { replace: true, state: routeJobId ? { jobId: routeJobId } : null });
+  }, [location.pathname, navigate, routeJobId, savedRecipeId]);
 
   const recoveredJob = useQuery({
     queryKey: ["job-current", recipeId],
@@ -110,40 +119,52 @@ export function RecipeDetailPage() {
   const actionError = [correction.error, reset.error, recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
 
   return (
-    <main className="page-shell">
-      <PageHeader
-        eyebrow={recipe.status === "archived" ? "Archived recipe" : "Recipe"}
-        title={recipe.title}
-        description={recipe.description ?? undefined}
-        actions={
-          <>
-            <Button asChild className="button--secondary"><Link to="/app/recipes">Library</Link></Button>
-            <Button asChild className="button--secondary"><Link to={`/app/recipes/${recipe.id}/edit`}>Edit recipe</Link></Button>
-            {recipe.instructions.length > 0 && (
-              <Button asChild><Link to={`/app/recipes/${recipe.id}/cook`}>Start cooking</Link></Button>
-            )}
-          </>
-        }
-      />
-
-      {Number(recipe.yieldQuantity) > 0 ? (
-        <div className="portion-scale">
-          <label className="portion-scale__label">
-            <span>Servings</span>
-            <input
-              className="input portion-scale__input"
-              type="number"
-              min={0.25}
-              step={0.5}
-              value={scale}
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                if (v > 0) setScale(v);
-              }}
-            />
-          </label>
-          <span className="muted">(recipe makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)})</span>
+    <main className="page-shell recipe-detail-page">
+      <section className="recipe-hero" aria-labelledby="recipe-title">
+        <div className="recipe-hero__media">
+          {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.title} /> : <RecipeFallbackArt title={recipe.title} />}
         </div>
+        <div className="recipe-hero__copy">
+          <Button asChild variant="ghost" size="sm" className="recipe-hero__back"><Link to="/app/recipes"><ArrowLeft aria-hidden="true" />Recipe library</Link></Button>
+          <p className="eyebrow">{recipe.status === "archived" ? "Archived recipe" : recipe.mealRoles?.[0] ?? "From your kitchen"}</p>
+          <h1 id="recipe-title">{recipe.title}</h1>
+          {recipe.description ? <p className="lede">{recipe.description}</p> : null}
+          <div className="recipe-hero__facts">
+            <span>Makes <strong>{servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</strong></span>
+            <span><strong>{recipe.ingredients.length}</strong> ingredients</span>
+            <span><strong>{recipe.instructions.length}</strong> steps</span>
+          </div>
+          <div className="recipe-hero__actions">
+            {recipe.instructions.length > 0 ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
+            <Button asChild variant="secondary"><Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" />Edit</Link></Button>
+          </div>
+          {Number(recipe.yieldQuantity) > 0 ? (
+            <div className="portion-scale">
+              <label className="portion-scale__label">
+                <span>Scale ingredients to</span>
+                <input
+                  className="input portion-scale__input"
+                  type="number"
+                  min={0.25}
+                  step={0.5}
+                  value={scale}
+                  onChange={(event) => {
+                    const value = parseFloat(event.target.value);
+                    if (value > 0) setScale(value);
+                  }}
+                />
+                <span>servings</span>
+              </label>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {savedRecipeId === recipeId ? (
+        <section className="recipe-saved-moment" role="status">
+          <KitchenCompanion moment="success" size="sm" />
+          <div><strong>Recipe saved</strong><p>{recipe.title} is ready in your kitchen.</p></div>
+        </section>
       ) : null}
 
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
@@ -187,9 +208,9 @@ export function RecipeDetailPage() {
         <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={job.data ?? recipe.activeJob} servingsScale={scale} onCorrect={async (value) => { await correction.mutateAsync(value); }} onResetCorrection={async (id) => { await reset.mutateAsync(id); }} onRecalculate={async (resetCorrections = false) => { await recalculate.mutateAsync(resetCorrections); }} />
       </section>
 
-      <section className="danger-zone" aria-labelledby="lifecycle-heading"><h2 id="lifecycle-heading">Recipe lifecycle</h2>
-        {recipe.status === "archived" ? <><p>Restore this recipe for active planning, or permanently remove its recipe content.</p><div className="actions"><Button onClick={() => restore.mutate()}>Restore recipe</Button><ConfirmDialog trigger={<Button className="button--danger">Permanently delete recipe</Button>} title="Permanently delete this recipe?" description="Recipe content and media will be erased after the bounded recovery window. Historical plan and grocery records remain detached so their past facts stay accurate." confirmLabel="Delete permanently" onConfirm={() => permanentDelete.mutate()} /></div></> : <><p>Archiving hides the recipe from active planning without deleting it.</p><ConfirmDialog trigger={<Button className="button--secondary">Archive recipe</Button>} title="Archive this recipe?" description="You can restore it later from the archived recipe view." confirmLabel="Archive" onConfirm={() => archive.mutate()} /></>}
-      </section>
+      <details className="danger-zone" open><summary><span><strong>Recipe management</strong><small>Archive, restore, or permanently remove this recipe</small></span></summary><div className="danger-zone__body" aria-labelledby="lifecycle-heading"><h2 id="lifecycle-heading">Recipe management</h2>
+        {recipe.status === "archived" ? <><p>Restore this recipe for active planning, or permanently remove its recipe content.</p><div className="actions"><Button onClick={() => restore.mutate()}>Restore recipe</Button><ConfirmDialog trigger={<Button variant="destructive">Permanently delete recipe</Button>} title="Permanently delete this recipe?" description="Recipe content and media will be erased after the bounded recovery window. Historical plan and grocery records remain detached so their past facts stay accurate." confirmLabel="Delete permanently" onConfirm={() => permanentDelete.mutate()} /></div></> : <><p>Archiving hides the recipe from active planning without deleting it.</p><ConfirmDialog trigger={<Button variant="secondary">Archive recipe</Button>} title="Archive this recipe?" description="You can restore it later from the archived recipe view." confirmLabel="Archive" onConfirm={() => archive.mutate()} /></>}
+      </div></details>
     </main>
   );
 }

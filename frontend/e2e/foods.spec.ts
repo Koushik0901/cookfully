@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { captureUi } from "./support/visual-audit";
 import axe from "axe-core";
 
 const food = {
@@ -28,17 +29,24 @@ async function mockFoodsApi(page: Page) {
   });
 }
 
-test("food labels remain purposeful, accessible, and contained", async ({ page }) => {
+test("food labels remain purposeful, accessible, and contained", async ({ page }, testInfo) => {
   await mockFoodsApi(page);
   await page.goto("/app/foods");
 
   await expect(page.getByRole("heading", { name: "Foods you know best" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Whey Protein Powder" })).toBeVisible();
   await expect(page.getByLabel("Nutrition for Whey Protein Powder")).toContainText("24 g");
-  await expect(page.getByRole("complementary", { name: "Why save a food?" })).toBeVisible();
+  await captureUi(page, testInfo, "foods");
+  const help = page.locator("details.owner-foods-help");
+  await expect(help.getByText("When to save a food", { exact: true })).toBeVisible();
+  await expect(help.getByText("Copy the label once", { exact: true })).not.toBeVisible();
+  await help.getByText("When to save a food", { exact: true }).click();
+  await expect(help.getByText("Copy the label once", { exact: true })).toBeVisible();
+  await captureUi(page, testInfo, "foods-help", { focus: help });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await page.getByRole("button", { name: "New food" }).click();
+  await captureUi(page, testInfo, "foods-create-dialog");
   const dialog = page.getByRole("dialog", { name: "Add a food you know" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Identify the food")).toBeVisible();

@@ -12,10 +12,11 @@ import {
   ErrorRecovery,
   Field,
   PageHeader,
+  Select,
   Skeleton,
 } from "../../components";
 import { ApiProblem } from "../recipes/api";
-import { formatCookingNumber } from "../recipes/formatCooking";
+import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { pantryApi } from "./api";
 import type { PantryItem, PantryItemWrite } from "./types";
 
@@ -24,12 +25,12 @@ const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
 function PantryItemCard({ item }: { item: PantryItem }) {
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState(item.displayName);
-  const [quantity, setQuantity] = useState(item.quantity);
+  const [quantity, setQuantity] = useState(formatCookingInput(item.quantity));
   const [unit, setUnit] = useState(item.unit);
   const [referenceId, setReferenceId] = useState(item.foodReferenceId ?? "");
   useEffect(() => {
     setDisplayName(item.displayName);
-    setQuantity(item.quantity);
+    setQuantity(formatCookingInput(item.quantity));
     setUnit(item.unit);
     setReferenceId(item.foodReferenceId ?? "");
   }, [item]);
@@ -83,20 +84,20 @@ function PantryItemCard({ item }: { item: PantryItem }) {
           <DecimalInput value={quantity} onValueChange={setQuantity} />
         </Field>
         <Field label={`${item.displayName} unit`}>
-          <select className="input" value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
+          <Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
             {UNITS.map((value) => <option key={value}>{value}</option>)}
-          </select>
+          </Select>
         </Field>
         <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
           <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
         </Field>
-        <Button className="button--secondary" type="submit" disabled={!displayName.trim() || update.isPending}>Save {item.displayName}</Button>
+        <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending}>Save {item.displayName}</Button>
       </form></details>
       {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
       <div className="actions">
         {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
         <ConfirmDialog
-          trigger={<Button className="button--text">Remove {item.displayName}</Button>}
+          trigger={<Button variant="ghost">Remove {item.displayName}</Button>}
           title={`Remove ${item.displayName}?`}
           description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
           confirmLabel="Remove pantry item"
@@ -148,11 +149,11 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
             </Field>
             <div className="pantry-dialog__quantity">
               <Field label="Quantity"><DecimalInput value={draft.quantity} onValueChange={(quantity) => setDraft((value) => ({ ...value, quantity }))} placeholder="500" /></Field>
-              <Field label="Unit"><select className="input" value={draft.unit} onChange={(event) => { const unit = event.currentTarget.value; setDraft((value) => ({ ...value, unit })); }}>{UNITS.map((value) => <option key={value}>{value}</option>)}</select></Field>
+              <Field label="Unit"><Select value={draft.unit} onChange={(event) => { const unit = event.currentTarget.value; setDraft((value) => ({ ...value, unit })); }}>{UNITS.map((value) => <option key={value}>{value}</option>)}</Select></Field>
             </div>
             {create.error instanceof Error ? <p className="error-text pantry-dialog__error" role="alert">{create.error.message}</p> : null}
             <div className="pantry-dialog__actions">
-              <Dialog.Close asChild><Button type="button" className="button--secondary">Cancel</Button></Dialog.Close>
+              <Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close>
               <Button type="submit" disabled={!draft.displayName.trim() || !draft.quantity || create.isPending}>{create.isPending ? "Adding…" : "Add to pantry"}</Button>
             </div>
           </form>
@@ -175,14 +176,14 @@ export function PantryPage() {
   if (items.isError) return <ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} />;
 
   return (
-    <main className="page-shell">
-      <PageHeader eyebrow="Your kitchen" title="What’s already at home?" description="Keep a lightweight inventory of staples and ingredients so weekly prep starts with what you already have." actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild className="button--secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>} />
+    <main className="page-shell pantry-page">
+      <PageHeader eyebrow="Your kitchen" title="What’s already at home?" description="Keep a lightweight inventory of staples and ingredients so weekly prep starts with what you already have." actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild variant="secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>} />
 
       <section className="pantry-section pantry-section--inventory">
         <div className="section-heading"><div><p className="eyebrow">Your shelf</p><h2>On hand</h2></div><span className="data-value">{items.data.length} item{items.data.length === 1 ? "" : "s"}</span></div>
         {items.data.length ? <div className="pantry-grid">{items.data.map((item) => <PantryItemCard item={item} key={item.id} />)}</div> : <div className="pantry-empty">
           <div className="pantry-empty__intro"><CookingPot aria-hidden="true" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
-          <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button className="button--secondary">{name}</Button>} />)}</div></div>
+          <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
         </div>}
       </section>
 

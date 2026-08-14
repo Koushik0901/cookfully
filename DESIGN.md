@@ -7,16 +7,18 @@ fonts:
   display: Afacad Flux Variable
   body: Inclusive Sans Variable
 colors:
-  canvas: oklch(0.974 0.012 88)
-  surface: oklch(0.992 0.006 88)
-  surface-muted: oklch(0.948 0.018 92)
-  ink: oklch(0.255 0.032 148)
-  ink-muted: oklch(0.475 0.028 145)
-  line: oklch(0.875 0.025 95)
-  primary: oklch(0.445 0.105 148)
-  primary-hover: oklch(0.390 0.100 148)
-  on-primary: oklch(0.985 0.012 92)
-  accent: oklch(0.790 0.145 76)
+  canvas: oklch(0.985 0.007 92)
+  surface: oklch(0.985 0.007 92)
+  surface-muted: oklch(0.968 0.011 94)
+  ink: oklch(0.218 0.038 148)
+  ink-muted: oklch(0.455 0.030 145)
+  line: oklch(0.858 0.027 96)
+  primary: oklch(0.405 0.126 148)
+  primary-hover: oklch(0.350 0.118 148)
+  on-primary: oklch(0.988 0.008 92)
+  accent: oklch(0.790 0.158 72)
+  accent-soft: oklch(0.940 0.062 78)
+  tomato: oklch(0.535 0.160 34)
   destructive: oklch(0.555 0.195 28)
   protein: oklch(0.610 0.125 244)
   carbohydrate: oklch(0.740 0.145 78)
@@ -112,8 +114,8 @@ Self-host the variable faces. Do not load fonts from a third-party CDN.
 | Token | Desktop | Mobile | Weight | Use |
 |---|---:|---:|---:|---|
 | `display` | 56/58 | 40/43 | 650 | Marketing statement only |
-| `page-title` | 42/44 | 34/37 | 620 | One per page |
-| `section-title` | 28/32 | 25/29 | 600 | Major content section |
+| `page-title` | 36/39 | 30/34 | 620 | One per page |
+| `section-title` | 28/32 | 24/28 | 600 | Major content section |
 | `card-title` | 21/25 | 20/24 | 590 | Recipe and plan titles |
 | `body` | 16/24 | 16/24 | 430 | Default copy |
 | `body-small` | 14/20 | 14/20 | 440 | Metadata and helper text |
@@ -251,6 +253,14 @@ The compact evidence layer used on recipe, plan, and suggestion summaries:
 - Empty states teach the first action and show an illustrative food-related cue; they do not merely say
   `Nothing here`.
 - Loading uses skeletons shaped like the destination content. Never replace a whole page with a spinner.
+- First-run guidance may replace a relevant empty surface for an explicitly new account. It is never
+  mounted above the route outlet, repeated across pages, or inferred merely from a missing preference row.
+- Once a kitchen has existing data or the welcome has been resolved, ordinary contextual empty states
+  take over permanently. Returning users are never sent back through first-run guidance.
+- Educational guidance must stay attached to the state that makes it useful. Do not stack coach panels
+  below a complete empty state, repeat the same optional action in a toolbar and every empty row, or keep
+  introductory explanations open beside established content. Keep one clear action and put optional help
+  behind a user-controlled disclosure.
 
 ## shadcn component foundation
 
@@ -277,6 +287,21 @@ the visual identity.
 - Hover translation is at most 2px. No bounce, elastic easing, floating decoration, or decorative
   infinite motion.
 - Respect `prefers-reduced-motion` by removing non-essential movement and using instant state changes.
+
+### Illustration and companion language
+
+- The recurring Cookfully companion is a small bowl-and-sprig character: warm, food-specific, and
+  recognizable without becoming a named mascot or competing with recipe photography.
+- Use it only for genuine system moments: loading, instructive empty states, task-blocking errors,
+  successful saves, completed plans or shopping passes, and finishing cook mode. Ordinary clicks,
+  navigation, and inline selection changes do not trigger character animation.
+- Loading may loop a functional whisk-and-steam motion while shaped skeletons still communicate page
+  structure. Empty, error, success, and milestone variants animate once, then remain still.
+- Success uses a drawn check; milestones add a restrained saffron seed burst. Error states stay calm
+  and empathic—never comic, punitive, or alarmist.
+- Implement the companion as an inline, decorative SVG using semantic color tokens. Animation is CSS
+  transform, opacity, and stroke drawing only, with no network asset, video, GIF, or animation runtime.
+- Under `prefers-reduced-motion`, render the final illustrated state immediately and remove all movement.
 
 ## Content language
 

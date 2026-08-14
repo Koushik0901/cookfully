@@ -1,0 +1,256 @@
+.kitchen-companion {
+  --companion-size: 6rem;
+  display: inline-grid;
+  width: var(--companion-size);
+  height: calc(var(--companion-size) * 0.8);
+  flex: 0 0 auto;
+  place-items: center;
+  contain: layout paint;
+}
+
+.kitchen-companion--sm { --companion-size: 3.25rem; }
+.kitchen-companion--lg { --companion-size: 9rem; }
+
+.kitchen-companion svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.kitchen-companion__shadow {
+  fill: var(--color-surface-highest);
+  opacity: 0.52;
+}
+
+.kitchen-companion__saucer,
+.kitchen-companion__rim,
+.kitchen-companion__body,
+.kitchen-companion__mouth,
+.kitchen-companion__stem,
+.kitchen-companion__whisk path,
+.kitchen-companion__steam,
+.kitchen-companion__check,
+.kitchen-companion__celebration path,
+.kitchen-companion__error-mark path {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kitchen-companion__saucer {
+  fill: none;
+  stroke: var(--color-outline-variant);
+  stroke-width: 3;
+}
+
+.kitchen-companion__body {
+  fill: var(--color-surface-bright);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.kitchen-companion__rim {
+  fill: var(--color-surface-high);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.kitchen-companion__face {
+  fill: var(--color-on-surface);
+}
+
+.kitchen-companion__mouth {
+  fill: none;
+  stroke: var(--color-on-surface);
+  stroke-width: 2;
+}
+
+.kitchen-companion__mouth--rest { display: none; }
+
+.kitchen-companion__stem {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.kitchen-companion__leaf {
+  fill: var(--color-primary);
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+
+.kitchen-companion__whisk {
+  fill: none;
+  stroke: var(--color-on-surface-variant);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: 20% 85%;
+  animation: companion-stir 1.2s ease-in-out infinite alternate;
+}
+
+.kitchen-companion__steam {
+  fill: none;
+  stroke: var(--color-on-surface-variant);
+  stroke-width: 2;
+  opacity: 0;
+  animation: companion-steam 1.6s ease-out infinite;
+}
+
+.kitchen-companion__steam--two { animation-delay: 320ms; }
+
+.kitchen-companion__seeds,
+.kitchen-companion__celebration {
+  fill: var(--color-accent);
+}
+
+.kitchen-companion__seeds > * {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: companion-seed-in 420ms var(--ease-out) both;
+}
+
+.kitchen-companion__seeds > :nth-child(2) { animation-delay: 80ms; }
+.kitchen-companion__seeds > :nth-child(3) { animation-delay: 140ms; }
+
+.kitchen-companion__badge circle {
+  fill: var(--status-success-container);
+  stroke: var(--status-success);
+  stroke-width: 2;
+}
+
+.kitchen-companion__badge {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: companion-badge-in 420ms var(--ease-out) 80ms both;
+}
+
+.kitchen-companion__check {
+  fill: none;
+  stroke: var(--status-success);
+  stroke-width: 3;
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: companion-check-draw 440ms var(--ease-out) 220ms both;
+}
+
+.kitchen-companion__celebration > * {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: companion-seed-in 420ms var(--ease-out) 280ms both;
+}
+
+.kitchen-companion__celebration path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+}
+
+.kitchen-companion__celebration > :nth-child(2) { animation-delay: 340ms; }
+.kitchen-companion__celebration > :nth-child(3) { animation-delay: 400ms; }
+.kitchen-companion__celebration > :nth-child(4) { animation-delay: 300ms; }
+.kitchen-companion__celebration > :nth-child(5) { animation-delay: 380ms; }
+
+.kitchen-companion--empty .kitchen-companion__sprig {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: companion-sprout-in 520ms var(--ease-out) both;
+}
+
+.kitchen-companion--success .kitchen-companion__bowl,
+.kitchen-companion--milestone .kitchen-companion__bowl {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: companion-arrive 420ms var(--ease-out) both;
+}
+
+.kitchen-companion--error .kitchen-companion__sprig {
+  transform: rotate(12deg) translate(1px, 1px);
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: companion-settle 420ms var(--ease-out) both;
+}
+
+.kitchen-companion--error .kitchen-companion__mouth--smile { display: none; }
+.kitchen-companion--error .kitchen-companion__mouth--rest { display: block; }
+
+.kitchen-companion__error-mark circle:first-child {
+  fill: var(--status-error-container);
+  stroke: var(--color-error);
+  stroke-width: 2;
+}
+
+.kitchen-companion__error-mark path,
+.kitchen-companion__error-mark circle:last-child {
+  fill: var(--color-error);
+  stroke: var(--color-error);
+  stroke-width: 2.5;
+}
+
+.kitchen-companion__error-mark {
+  opacity: 0;
+  animation: companion-fade-in var(--motion-entrance) ease-out 100ms both;
+}
+
+@keyframes companion-stir {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(8deg); }
+}
+
+@keyframes companion-steam {
+  0% { opacity: 0; transform: translateY(4px); }
+  35% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-5px); }
+}
+
+@keyframes companion-seed-in {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes companion-badge-in {
+  from { opacity: 0; transform: scale(0.82); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes companion-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes companion-sprout-in {
+  from { opacity: 0; transform: translateY(7px) scaleY(0.7); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes companion-arrive {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes companion-settle {
+  from { opacity: 0; transform: rotate(3deg) translateY(-2px); }
+  to { opacity: 1; transform: rotate(12deg) translate(1px, 1px); }
+}
+
+@keyframes companion-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kitchen-companion *,
+  .kitchen-companion *::before,
+  .kitchen-companion *::after {
+    animation: none !important;
+  }
+
+  .kitchen-companion__steam { opacity: 0.35; }
+  .kitchen-companion__seeds > *,
+  .kitchen-companion__badge,
+  .kitchen-companion__celebration > *,
+  .kitchen-companion__error-mark { opacity: 1; }
+  .kitchen-companion__check { stroke-dashoffset: 0; }
+}

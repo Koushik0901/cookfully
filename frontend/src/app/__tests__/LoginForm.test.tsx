@@ -65,6 +65,18 @@ describe("owner login", () => {
     });
   });
 
+  it("lets someone reveal their password without changing the submitted value", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => json(null, 204)));
+    renderForm();
+    const user = userEvent.setup();
+    const password = screen.getByLabelText("Password");
+
+    expect(password).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("surfaces an invalid-credentials message without signing in", async () => {
     const problem = { detail: "Email or password is incorrect.", code: "invalid_credentials" };
     vi.stubGlobal(

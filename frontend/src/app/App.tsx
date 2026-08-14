@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { BrandMark, Button, EmptyState, Skeleton } from "../components";
-import { FirstRunJourney } from "../features/onboarding/FirstRunJourney";
 import { AppProviders, RequireAuthentication } from "./providers";
 
 const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
@@ -161,7 +160,6 @@ function PlannerShell() {
         </details>
       </nav>
       <main className="planner-shell__content">
-        <FirstRunJourney />
         <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
           <Routes>
             <Route index element={<Navigate to="recipes" replace />} />

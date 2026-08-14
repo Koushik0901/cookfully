@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { captureUi } from "./support/visual-audit";
 
 const recipeId = "00000000-0000-4000-8000-000000000001";
 const goalId = "00000000-0000-4000-8000-000000000010";
@@ -64,27 +65,34 @@ async function mockPlanningApi(page: Page) {
   });
 }
 
-test("starts food-first planning before a nutrition guide exists", async ({ page }) => {
+test("starts food-first planning before a nutrition guide exists", async ({ page }, testInfo) => {
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
   await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(1);
+  await captureUi(page, testInfo, "planner-week-empty");
 
   await page.getByRole("tab", { name: "Day" }).click();
+  await expect(page.getByRole("link", { name: "Guide my ideas" })).toHaveCount(0);
+  await expect(page.locator(".plan-nutrition")).toHaveCount(0);
+  await captureUi(page, testInfo, "planner-day-top");
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
 
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add nutrition guidance" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(1);
   await expect(page.getByText("Meal added to your plan.")).toBeVisible();
+  await captureUi(page, testInfo, "planner-day", { focus: page.getByRole("heading", { name: "Protein oats" }) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes snapshots", async ({ page }) => {
+test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes snapshots", async ({ page }, testInfo) => {
   await mockPlanningApi(page);
   await page.goto("/app/goals");
+  await expect(page.getByRole("heading", { name: "Shape how Cookfully plans for you" })).toBeVisible();
+  await captureUi(page, testInfo, "goals-new");
   await page.getByText("Energy baseline and dates", { exact: true }).click();
   await page.getByLabel("Maintenance calories").fill("2500.000000");
   await page.getByLabel("Daily calories").fill("2200.000000");
@@ -94,9 +102,11 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await page.getByLabel("Effective from").fill("2026-03-01");
   await page.getByRole("button", { name: "Save my guide" }).click();
   await expect(page.getByText("Your planning guide is saved.")).toBeVisible();
+  await expect(page.locator('.goal-saved-status [data-companion-moment="success"]')).toBeVisible();
   await expect(page.getByLabel("Current daily nutrition guide")).toContainText("2,200 kcal");
   await expect(page.getByRole("button", { name: "Adjust daily guide" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save my guide" })).toHaveCount(0);
+  await captureUi(page, testInfo, "goals-saved", { focus: page.getByLabel("Current daily nutrition guide") });
 
   await page.getByRole("main").getByRole("link", { name: "Back to meal plan" }).click();
   await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
@@ -135,8 +145,10 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await page.getByRole("tab", { name: "Week" }).click();
   await expect(page.getByRole("heading", { name: "See the food, not just the count" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Weekly nutrition guidance" })).toBeVisible();
+  await captureUi(page, testInfo, "planner-week-guided");
   await page.getByRole("tab", { name: "Prep" }).click();
   await expect(page.getByRole("heading", { name: "Cook 1 dish for 8 meals" })).toBeVisible();
   await expect(page.getByText("10 total servings")).toBeVisible();
+  await captureUi(page, testInfo, "planner-prep");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

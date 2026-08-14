@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { captureUi } from "./support/visual-audit";
 
 const weekStart = "2026-03-09";
 const listId = "00000000-0000-4000-8000-000000000070";
@@ -10,12 +11,12 @@ type TestItem = {
   version: number; shoppingStop?: TestStop | null; shoppingStopId?: string | null;
 };
 
-async function mockGroceryApi(page: Page) {
+async function mockGroceryApi(page: Page, { empty = false, missing = false }: { empty?: boolean; missing?: boolean } = {}) {
   await page.clock.install({ time: new Date("2026-03-11T18:00:00Z") });
   let listVersion = 2;
-  let status = "dirty";
+  let status = empty ? "current" : "dirty";
   let stops: TestStop[] = [];
-  let items: TestItem[] = [
+  let items: TestItem[] = empty ? [] : [
     {
       id: "00000000-0000-4000-8000-000000000071",
       displayName: "Red onion",
@@ -82,7 +83,7 @@ async function mockGroceryApi(page: Page) {
       items = items.map((item) => item.shoppingStop?.id === id ? { ...item, shoppingStop: null } : item);
       return route.fulfill({ status: 204 });
     }
-    if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "GET") return route.fulfill({ json: grocery() });
+    if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "GET") return missing ? route.fulfill({ status: 404, json: { code: "grocery_list_not_found", title: "Not found" } }) : route.fulfill({ json: grocery() });
     if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "POST") {
       status = "current";
       listVersion += 1;
@@ -122,10 +123,35 @@ async function mockGroceryApi(page: Page) {
   });
 }
 
-test("regenerates, traces, edits, checks, adds, and removes grocery items", async ({ page }) => {
+test("keeps a missing grocery list focused on one useful choice", async ({ page }, testInfo) => {
+  await mockGroceryApi(page, { missing: true });
+  await page.goto("/app/grocery");
+  await expect(page.getByRole("heading", { level: 1, name: "Your grocery list starts with your plan" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Start an empty list" })).toHaveCount(1);
+  await expect(page.getByText("Build the list from your plan")).toHaveCount(0);
+  await captureUi(page, testInfo, "grocery-missing");
+});
+
+test("does not call an empty grocery list ready to shop", async ({ page }, testInfo) => {
+  await mockGroceryApi(page, { empty: true });
+  await page.goto("/app/grocery");
+  await expect(page.getByRole("heading", { name: "Nothing to pick up yet" })).toBeVisible();
+  await expect(page.getByText("Ready to shop")).toHaveCount(0);
+  await expect(page.getByText("Shop by stop", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Back to meal plan" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Use pantry stock" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
+  await expect(page.getByText("Add something else", { exact: true })).toBeVisible();
+  await captureUi(page, testInfo, "grocery-empty");
+});
+
+test("regenerates, traces, edits, checks, adds, and removes grocery items", async ({ page }, testInfo) => {
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
   await expect(page.getByRole("heading", { name: "Everything you need this week" })).toBeVisible();
+  await captureUi(page, testInfo, "grocery-active");
   await expect(page.getByText(/meal plan changed.*refresh/i)).toBeVisible();
   await page.getByRole("button", { name: "Refresh from plan" }).click();
   await expect(page.getByText("Ready to shop")).toBeVisible();
@@ -150,10 +176,11 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await page.getByRole("button", { name: "Remove Reusable bags" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);
   await expect(page.getByText("Needs review")).toBeVisible();
+  await captureUi(page, testInfo, "grocery-edited", { focus: page.getByText("Needs review") });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("groups a shopping pass by personal stops, then finishes and reopens it", async ({ page }) => {
+test("groups a shopping pass by personal stops, then finishes and reopens it", async ({ page }, testInfo) => {
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
   await page.getByText("Shop by stop", { exact: true }).click();
@@ -162,6 +189,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByLabel("New stop").fill("Corner shop");
   await page.getByRole("button", { name: "Add stop" }).click();
   await expect(page.getByLabel("Market stop name")).toBeVisible();
+  await captureUi(page, testInfo, "grocery-stops", { focus: page.getByLabel("Market stop name") });
   await page.getByText("Edit Red onion", { exact: true }).click();
   await page.getByLabel("Shopping stop for Red onion").selectOption({ label: "Market" });
   await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
@@ -169,6 +197,8 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByRole("checkbox", { name: "Salt to taste purchased" }).check();
   await page.getByRole("button", { name: "Finish this shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
+  await expect(page.locator('.grocery-complete [data-companion-moment="milestone"]')).toBeVisible();
+  await captureUi(page, testInfo, "grocery-complete");
   await expect(page.getByText("Edit Red onion", { exact: true })).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Remove Red onion" })).toHaveCount(0);
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeDisabled();
