@@ -45,9 +45,9 @@ describe("App", () => {
     render(<App />);
     const user = userEvent.setup();
 
-    expect((await screen.findAllByRole("link", { name: "Settings" })).length).toBeGreaterThanOrEqual(2);
+    expect((await screen.findAllByRole("link", { name: "Settings" })).length).toBeGreaterThanOrEqual(1);
     const signOutButtons = screen.getAllByRole("button", { name: "Sign out" });
-    expect(signOutButtons.length).toBeGreaterThanOrEqual(2);
+    expect(signOutButtons.length).toBeGreaterThanOrEqual(1);
 
     await user.click(signOutButtons[0]);
 

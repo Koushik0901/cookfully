@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import {
@@ -17,7 +17,6 @@ import { BrandMark, Button, EmptyState, Skeleton } from "../components";
 import { useSignOut } from "../features/settings/useSignOut";
 import { AppProviders, RequireAuthentication } from "./providers";
 
-const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
 const CookModePage = lazy(() => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage })));
 const GoalSettingsPage = lazy(() => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage })));
 const GroceryListPage = lazy(() => import("../features/grocery/GroceryListPage").then((module) => ({ default: module.GroceryListPage })));
@@ -117,13 +116,41 @@ function LandingPage() {
 function PlannerShell() {
   const signOut = useSignOut();
   const location = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreIsActive = [
     ...SECONDARY_NAVIGATION.map(({ to }) => to),
     "/app/settings",
   ].some((path) => location.pathname.startsWith(path));
 
+  const toggleMore = useCallback(() => setMoreOpen((value) => !value), []);
+  const closeMore = useCallback(() => setMoreOpen(false), []);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeMore();
+        moreTriggerRef.current?.focus();
+      }
+    }
+    function handleClick(event: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node) && !moreTriggerRef.current?.contains(event.target as Node)) {
+        closeMore();
+      }
+    }
+    document.addEventListener("keydown", handleKey);
+    document.addEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [moreOpen, closeMore]);
+
   return (
     <div className="planner-shell">
+      <a href="#planner-content" className="skip-link">Skip to content</a>
       <aside className="planner-nav">
         <NavLink className="planner-nav__brand" to="/app/recipes">
           <BrandMark />
@@ -174,26 +201,37 @@ function PlannerShell() {
             <Icon aria-hidden="true" /><span>{label}</span>
           </NavLink>
         ))}
-        <details className={`mobile-nav__more ${moreIsActive ? "mobile-nav__more--active" : ""}`}>
-          <summary><CircleEllipsis aria-hidden="true" /><span>More</span></summary>
-          <div className="mobile-nav__menu">
-            {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
-              <NavLink key={to} to={to} onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}>
-                <Icon aria-hidden="true" /><span>{label}</span>
+        <div className={`mobile-nav__more ${moreIsActive ? "mobile-nav__more--active" : ""}`}>
+          <button
+            ref={moreTriggerRef}
+            type="button"
+            className="mobile-nav__more-trigger"
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            onClick={toggleMore}
+          >
+            <CircleEllipsis aria-hidden="true" /><span>More</span>
+          </button>
+          {moreOpen ? (
+            <div ref={moreMenuRef} className="mobile-nav__menu" role="menu" aria-label="More navigation">
+              {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+                <NavLink key={to} to={to} role="menuitem" onClick={closeMore}>
+                  <Icon aria-hidden="true" /><span>{label}</span>
+                </NavLink>
+              ))}
+              <div className="mobile-nav__menu-divider" role="separator" />
+              <NavLink to="/app/settings" role="menuitem" onClick={closeMore}>
+                <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
               </NavLink>
-            ))}
-            <div className="mobile-nav__menu-divider" role="separator" />
-            <NavLink to="/app/settings" onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}>
-              <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
-            </NavLink>
-            <button type="button" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
-              <LogOut aria-hidden="true" /><span>{signOut.isPending ? "Signing out…" : "Sign out"}</span>
-            </button>
-            {signOut.isError ? <p className="mobile-nav__error" role="alert">Couldn’t sign out. Try again.</p> : null}
-          </div>
-        </details>
+              <button type="button" role="menuitem" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
+                <LogOut aria-hidden="true" /><span>{signOut.isPending ? "Signing out…" : "Sign out"}</span>
+              </button>
+              {signOut.isError ? <p className="mobile-nav__error" role="alert">Couldn't sign out. Try again.</p> : null}
+            </div>
+          ) : null}
+        </div>
       </nav>
-      <main className="planner-shell__content">
+      <main id="planner-content" className="planner-shell__content">
         <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
           <Routes>
             <Route index element={<Navigate to="recipes" replace />} />
@@ -207,8 +245,7 @@ function PlannerShell() {
             <Route path="grocery" element={<GroceryListPage />} />
             <Route path="pantry" element={<PantryPage />} />
             <Route path="foods" element={<OwnerFoodsPage />} />
-            <Route path="suggestions" element={<SuggestionPage />} />
-            <Route path="agent-access" element={<AgentAccessPage />} />
+              <Route path="suggestions" element={<SuggestionPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
           </Routes>

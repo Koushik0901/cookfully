@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CookingPot, PackagePlus, Search, X } from "lucide-react";
+import { PackagePlus, Search, X } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -11,6 +11,7 @@ import {
   EmptyState,
   ErrorRecovery,
   Field,
+  KitchenCompanion,
   PageHeader,
   Select,
   Skeleton,
@@ -182,7 +183,7 @@ export function PantryPage() {
       <section className="pantry-section pantry-section--inventory">
         <div className="section-heading"><div><p className="eyebrow">Your shelf</p><h2>On hand</h2></div><span className="data-value">{items.data.length} item{items.data.length === 1 ? "" : "s"}</span></div>
         {items.data.length ? <div className="pantry-grid">{items.data.map((item) => <PantryItemCard item={item} key={item.id} />)}</div> : <div className="pantry-empty">
-          <div className="pantry-empty__intro"><CookingPot aria-hidden="true" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
+          <div className="pantry-empty__intro"><KitchenCompanion moment="empty" size="md" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
           <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
         </div>}
       </section>

@@ -107,25 +107,20 @@ export function RecipeLibraryPage() {
       />
 
       <section className="recipe-discovery" aria-label="Find recipes">
-        <div className="recipe-discovery__primary">
-          <div className="recipe-search"><Search aria-hidden="true" /><input className="input" aria-label="Search recipes" type="search" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-          <div className="recipe-organize">
-            <Field label="Sort recipes"><Select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="updated">Recently updated</option><option value="title-asc">Name A–Z</option><option value="title-desc">Name Z–A</option><option value="protein">Highest protein</option><option value="calories">Lowest calories</option></Select></Field>
-            <label className="recipe-favorite-filter"><Checkbox checked={favoriteOnly} onCheckedChange={(checked) => setFavoriteOnly(checked === true)} />Favorites only</label>
-          </div>
-        </div>
-        <div className="recipe-view-tabs" aria-label="Recipe views">
-          {([['all', 'All recipes'], ['ready', 'Ready to plan'], ['attention', 'Needs attention'], ['archived', 'Archived']] as const).map(([value, label]) => <button type="button" key={value} aria-pressed={libraryView === value} onClick={() => setLibraryView(value)}>{label}</button>)}
+        <div className="recipe-search"><Search aria-hidden="true" /><input className="input" aria-label="Search recipes" type="search" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+        <div className="recipe-view-tabs" role="tablist" aria-label="Recipe views">
+          {([['all', 'All recipes'], ['ready', 'Ready to plan'], ['attention', 'Needs attention'], ['archived', 'Archived']] as const).map(([value, label]) => <button type="button" key={value} role="tab" aria-selected={libraryView === value} onClick={() => setLibraryView(value)}>{label}</button>)}
         </div>
         <details className="recipe-filter-disclosure">
-          <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeFilters.length ? <b>{activeFilters.length}</b> : null}<ChevronDown aria-hidden="true" /></summary>
+          <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeFilters.length ? <b>{activeFilters.length}</b> : null}{sortBy !== "updated" || favoriteOnly ? <b>{([sortBy !== "updated", favoriteOnly].filter(Boolean).length)}</b> : null}<ChevronDown aria-hidden="true" /></summary>
           <div className="recipe-filter-disclosure__content">
-            <p>Filter by a collection or meal moment, then choose how the results are grouped.</p>
             <div className="recipe-filter-fields">
+              <Field label="Sort recipes"><Select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="updated">Recently updated</option><option value="title-asc">Name A–Z</option><option value="title-desc">Name Z–A</option><option value="protein">Highest protein</option><option value="calories">Lowest calories</option></Select></Field>
               <Field label="Collection"><Select value={collectionId} onChange={(event) => setCollectionId(event.target.value)}><option value="">Any collection</option>{(Array.isArray(collections.data) ? collections.data : []).map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}</Select></Field>
               <Field label="Meal moment"><Select value={mealRole} onChange={(event) => setMealRole(event.target.value)}><option value="">Any meal</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></Select></Field>
               <Field label="Group results"><Select value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)}><option value="none">No grouping</option><option value="readiness">Planning readiness</option></Select></Field>
             </div>
+            <label className="recipe-favorite-filter"><Checkbox checked={favoriteOnly} onCheckedChange={(checked) => setFavoriteOnly(checked === true)} />Favorites only</label>
             <RecipeCollectionManager collections={Array.isArray(collections.data) ? collections.data : []} />
           </div>
         </details>

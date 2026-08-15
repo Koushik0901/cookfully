@@ -141,7 +141,7 @@ describe("recipe UI", () => {
         <RecipeCard recipe={{ ...recipe, nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByText("manual", { selector: ".recipe-card__state" })).toBeVisible();
+    expect(screen.getByText("Manual", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
   it("keeps a real recipe image ahead of generated fallback art", () => {
@@ -185,7 +185,7 @@ describe("recipe UI", () => {
         <RecipeCard recipe={{ ...recipe, nutritionState: "stale", nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByText("stale", { selector: ".recipe-card__state" })).toBeVisible();
+    expect(screen.getByText("Outdated", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
   it("validates exact decimals and preserves original ingredient text in the editor", async () => {

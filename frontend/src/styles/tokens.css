@@ -105,6 +105,10 @@
   --shadow-card-hover: 0 10px 28px oklch(0.218 0.038 148 / 8%);
   --shadow-media-rest: 0 1px 8px oklch(0.218 0.038 148 / 12%);
   --shadow-bottom-nav: 0 -10px 30px oklch(0.218 0.038 148 / 7%);
+  --color-card-raised: oklch(0.992 0.006 92);
+  --color-card-raised-border: oklch(0.872 0.025 100);
+  --color-outline-strong: oklch(0.668 0.042 100);
+  --shadow-card-raised: 0 1px 2px oklch(0.218 0.038 148 / 6%), 0 14px 34px oklch(0.218 0.038 148 / 9%);
 
   /* Semantic compatibility roles keep older feature surfaces inside the same
      editorial palette while they share the current component foundation. */

@@ -9,7 +9,7 @@ import { SecurityTab } from "./SecurityTab";
 const TABS = [
   { id: "account", label: "Account", description: "Name and planning week", Icon: UserRound },
   { id: "security", label: "Security", description: "Password and sessions", Icon: ShieldCheck },
-  { id: "api", label: "System access", description: "Apps and agents", Icon: KeyRound },
+  { id: "api", label: "Connections", description: "Third-party apps and access keys", Icon: KeyRound },
 ] as const;
 
 export function SettingsPage() {

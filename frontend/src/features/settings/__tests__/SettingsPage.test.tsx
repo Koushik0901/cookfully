@@ -74,7 +74,7 @@ describe("settings page", () => {
 
     expect(screen.getByRole("tab", { name: "Account" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Security" })).toBeVisible();
-    expect(screen.getByRole("tab", { name: "System access" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Connections" })).toBeVisible();
 
     expect(await screen.findByLabelText("Display name")).toHaveValue("Owner");
     await user.clear(screen.getByLabelText("Display name"));

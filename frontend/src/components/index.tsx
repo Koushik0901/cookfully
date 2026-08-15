@@ -78,9 +78,19 @@ export function ConfirmDialog({ trigger, title, description, confirmLabel, onCon
   );
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  queued: "Queued",
+  running: "Working…",
+  retry_wait: "Retrying",
+  succeeded: "Done",
+  failed: "Failed",
+  cancelled: "Cancelled",
+  superseded: "Updated",
+};
+
 export function PollingStatusBadge({ status }: { status: "queued" | "running" | "retry_wait" | "succeeded" | "failed" | "cancelled" | "superseded" }) {
   const active = ["queued", "running", "retry_wait"].includes(status);
-  return <span className={`status status--${status}`} role="status" aria-live={active ? "polite" : "off"}>{status.replace("_", " ")}</span>;
+  return <span className={`status status--${status}`} role="status" aria-live={active ? "polite" : "off"}>{STATUS_LABELS[status] ?? status}</span>;
 }
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description?: string; actions?: ReactNode }) {

@@ -196,7 +196,6 @@ small {
 .nutrient-dot--fat { background: var(--macro-fat); }
 
 .disclosure,
-.ingredient-evidence,
 .nutrition-state-guide,
 .recipe-editor__extras,
 .goal-disclosure,
@@ -206,7 +205,6 @@ small {
 }
 
 .disclosure > summary,
-.ingredient-evidence > summary,
 .nutrition-state-guide > summary,
 .recipe-editor__extras > summary,
 .goal-disclosure > summary,
@@ -224,7 +222,6 @@ small {
 }
 
 .disclosure > summary::after,
-.ingredient-evidence > summary::after,
 .nutrition-state-guide > summary::after,
 .recipe-editor__extras > summary::after,
 .goal-disclosure > summary::after,
@@ -241,7 +238,6 @@ small {
 }
 
 .disclosure[open] > summary::after,
-.ingredient-evidence[open] > summary::after,
 .nutrition-state-guide[open] > summary::after,
 .recipe-editor__extras[open] > summary::after,
 .goal-disclosure[open] > summary::after,

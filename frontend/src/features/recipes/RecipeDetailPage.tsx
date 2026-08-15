@@ -197,16 +197,15 @@ export function RecipeDetailPage() {
         </section>
       </section>
 
-      {ingredientReviewCount ? (
-        <details className="ingredient-evidence">
-          <summary><span><strong>{ingredientReviewCount} nutrition match{ingredientReviewCount === 1 ? "" : "es"} could be improved</strong><small>The recipe is still usable. Review these only if you want a more complete estimate.</small></span></summary>
-          <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.matchStatus}</small></article>)}</div>
-          <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
-        </details>
-      ) : null}
-
       <details className="recipe-nutrition-drawer" id="nutrition-details">
         <summary><span><strong>Nutrition details and evidence</strong><small>Micronutrients, sources, assumptions, and processing status</small></span></summary>
+        {ingredientReviewCount ? (
+          <section className="ingredient-evidence--inline" style={{ borderTop: 0 }}>
+            <div><strong>{ingredientReviewCount} nutrition match{ingredientReviewCount === 1 ? "" : "es"} could be improved</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these only if you want a more complete estimate.</small></div>
+            <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.matchStatus}</small></article>)}</div>
+            <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
+          </section>
+        ) : null}
         <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} onRecalculate={async () => { await recalculate.mutateAsync(); }} />
       </details>
 
