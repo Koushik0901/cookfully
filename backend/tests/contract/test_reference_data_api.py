@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from cookfully.api.main import create_app
+from cookfully.cli import reference_data
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.jobs import ProcessingJob
 
@@ -35,8 +36,13 @@ def authenticate(client: TestClient) -> dict[str, str]:
 
 
 def test_reference_data_status_and_install_surface(
-    isolated_database_url: str, tmp_path: Path
+    isolated_database_url: str, tmp_path: Path, monkeypatch
 ) -> None:
+    monkeypatch.setattr(
+        reference_data,
+        "get_settings",
+        lambda: Settings(database_url=isolated_database_url, environment="test"),
+    )
     with client_for(isolated_database_url, tmp_path) as client:
         headers = authenticate(client)
         status = client.get("/api/v1/reference-data/status", headers=headers)
