@@ -52,7 +52,7 @@ export function SettingsPage() {
             <SecurityTab />
           </div>
         ) : null}
-{tab === "api" ? (
+        {tab === "api" ? (
           <div id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api">
             <AgentAccessPage embedded />
           </div>
