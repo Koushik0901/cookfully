@@ -23,6 +23,7 @@ tags:
   - name: Agent Access
   - name: Suggestions
   - name: Pantry
+  - name: Reference Data
 
 paths:
   /health:
@@ -1329,6 +1330,26 @@ paths:
               schema: { $ref: "#/components/schemas/FoodSearchResponse" }
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /reference-data/status:
+    get:
+      tags: [Reference Data]
+      operationId: get_reference_data_status
+      responses:
+        "200":
+          description: Reference data availability and latest install job.
+
+  /reference-data/install:
+    post:
+      tags: [Reference Data]
+      operationId: install_reference_data
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Install job accepted.
+        "409":
+          description: An install is already in flight.
 
 components:
   securitySchemes:

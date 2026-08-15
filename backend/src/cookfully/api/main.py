@@ -24,6 +24,7 @@ from cookfully.api.routes import (
     owner,
     pantry,
     recipes,
+    reference_data,
     suggestions,
 )
 from cookfully.application.access_tokens import AccessTokenService
@@ -44,6 +45,7 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
+from cookfully.application.reference_data import ReferenceDataInstallService
 from cookfully.application.suggestions import SuggestionService
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
@@ -222,6 +224,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.suggestions = SuggestionService(sessions)
             app.state.sessions = sessions
             app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
+            app.state.reference_data = ReferenceDataInstallService(sessions)
             try:
                 async with mcp_http.router.lifespan_context(mcp_http):
                     yield
@@ -264,6 +267,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(suggestions.router)
     versioned.include_router(media.router)
     versioned.include_router(foods.router)
+    versioned.include_router(reference_data.router)
     app.include_router(versioned)
     app.mount("/mcp", McpAuthenticationMiddleware(mcp_http, mcp_security), name="mcp")
     return app
