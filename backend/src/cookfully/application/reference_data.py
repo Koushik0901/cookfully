@@ -15,7 +15,7 @@ import httpx
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.jobs import JobService
+from cookfully.application.jobs import JobProgress, JobService
 from cookfully.cli.reference_data import activate_release, import_release, release_status
 from cookfully.domain.common import DomainError, utc_now, uuid7
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
@@ -260,7 +260,7 @@ class ReferenceDataInstallService:
                 is not None
             )
 
-    def status(self) -> tuple[dict[str, object], object | None]:
+    def status(self) -> tuple[dict[str, object], JobProgress | None]:
         releases = release_status()
         with self._session_factory() as session:
             latest = session.scalar(

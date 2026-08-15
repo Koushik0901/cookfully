@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Request, status
 
@@ -31,9 +31,7 @@ def idempotency_service(request: Request) -> IdempotencyService:
     return service
 
 
-@router.get(
-    "/status", response_model=ReferenceDataStatusResponse, response_model_by_alias=True
-)
+@router.get("/status", response_model=ReferenceDataStatusResponse, response_model_by_alias=True)
 def get_reference_data_status(
     service: Annotated[ReferenceDataInstallService, Depends(reference_data_service)],
     _: Annotated[OwnerAccount, Depends(require_browser_owner)],
@@ -41,8 +39,11 @@ def get_reference_data_status(
     releases, progress = service.status()
     return ReferenceDataStatusResponse(
         available=bool(releases["available"]),
-        missing=tuple(releases["missing"]),
-        releases=tuple(ReferenceRelease.model_validate(item) for item in releases["releases"]),
+        missing=tuple(cast(list[str], releases["missing"])),
+        releases=tuple(
+            ReferenceRelease.model_validate(item)
+            for item in cast(list[dict[str, object]], releases["releases"])
+        ),
         requestedDatasets=None,
         job=JobResponse.from_progress(progress) if progress is not None else None,
     )
