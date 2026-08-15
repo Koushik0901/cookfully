@@ -15,6 +15,8 @@ async function mockOnboarding(page: Page, { unavailable = false, hasRecipe = fal
     if (path === "/api/v1/owner/preferences") return route.fulfill({ json: { displayName: "Cook", timezone: "America/Vancouver", weekStartsOn: 1, version: 1 } });
     if (path === "/api/v1/recipes" && method === "GET") return route.fulfill({ json: { items: hasRecipe || hasArchivedRecipe ? [{ id: "00000000-0000-4000-8000-000000000001", title: "Tomato soup", imageUrl: null, yieldQuantity: "2", yieldUnit: "servings", status: hasArchivedRecipe ? "archived" : "ready", nutritionState: "estimated", favorite: false, collections: [], mealRoles: [], nutrition: null, version: 1, updatedAt: "2026-08-13T00:00:00Z" }] : [], nextCursor: null } });
     if (path === "/api/v1/recipes/collections" && method === "GET") return route.fulfill({ json: [] });
+    if (path === "/api/v1/reference-data/status") return route.fulfill({ json: { available: false, missing: ["foundation", "sr_legacy"], releases: [], requestedDatasets: null, job: null } });
+    if (path === "/api/v1/reference-data/install" && method === "POST") return route.fulfill({ status: 202, json: { jobId: "00000000-0000-4000-8000-000000000009", status: "queued" } });
     return route.fulfill({ status: 404, json: { code: "not_found", title: "Not found" } });
   });
 }
@@ -65,4 +67,15 @@ test("an unavailable welcome preference never interrupts an existing kitchen", a
   await expect(page.getByText("Preparing your kitchen")).toHaveCount(0);
   await expect(page.getByText("Your welcome guide could not be loaded")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("onboarding offers the nutrition data choice and continues after install", async ({ page }, testInfo) => {
+  await mockOnboarding(page);
+  await page.goto("/app/recipes");
+  await page.getByRole("button", { name: "Set up nutrition data" }).click();
+  await expect(page.getByRole("heading", { name: "Real nutrition numbers?" })).toBeVisible();
+  await captureUi(page, testInfo, "onboarding-nutrition-step");
+  await page.getByRole("button", { name: "Foundation + SR Legacy only" }).click();
+  await expect(page).toHaveURL(/\/app\/recipes$/);
+  await expect(page.getByRole("heading", { name: "No recipes yet" })).toBeVisible();
 });

@@ -41,11 +41,12 @@ export function FirstRunJourney({ onboarding }: { onboarding: OnboardingState })
 
   async function chooseNutrition(choice: ReferenceDataChoice) {
     try {
-      await resolve.mutateAsync({
+      const value = await resolve.mutateAsync({
         state: "completed",
         referenceDataChoice: choice,
         version: onboarding.version,
       });
+      queryClient.setQueryData(["owner-onboarding"], value);
     } catch {
       // The mutation retains the error for diagnostics; onboarding remains non-blocking.
     }

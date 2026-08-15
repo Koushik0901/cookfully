@@ -42,6 +42,17 @@ async function mockSettingsApi(page: Page) {
       return route.fulfill({ status: 204 });
     }
     if (path === "/api/v1/access-tokens") return route.fulfill({ json: [] });
+    if (path === "/api/v1/reference-data/status") {
+      return route.fulfill({
+        json: {
+          available: false,
+          missing: ["foundation", "sr_legacy"],
+          releases: [],
+          requestedDatasets: null,
+          job: null,
+        },
+      });
+    }
     return route.fulfill({ status: 404, json: { code: "not_found", title: "Not found" } });
   });
 }
@@ -58,9 +69,9 @@ test("settings sections keep distinct, contained workspaces", async ({ page }, t
   await expect(page.getByRole("heading", { name: "Change password" })).toBeVisible();
   await captureUi(page, testInfo, "settings-security");
 
-  await page.getByRole("tab", { name: "System access" }).click();
+  await page.getByRole("tab", { name: "Connections" }).click();
   await expect(page.getByRole("heading", { name: "Agent access" })).toBeVisible();
-  await captureUi(page, testInfo, "settings-system");
+  await captureUi(page, testInfo, "settings-connections");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -71,15 +82,15 @@ test("the shared shell exposes account settings and a complete sign-out flow", a
   if (testInfo.project.name === "narrow-mobile") {
     const more = page.locator(".mobile-nav__more");
     await more.getByText("More", { exact: true }).click();
-    await expect(more.getByRole("link", { name: "Settings" })).toBeVisible();
-    await expect(more.getByRole("button", { name: "Sign out" })).toBeVisible();
+    await expect(more.getByRole("menuitem", { name: "Settings" })).toBeVisible();
+    await expect(more.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
     await captureUi(page, testInfo, "shell-account-controls");
 
-    await more.getByRole("link", { name: "Settings" }).click();
+    await more.getByRole("menuitem", { name: "Settings" }).click();
     await expect(more).not.toHaveAttribute("open", "");
     await expect(more).toHaveClass(/mobile-nav__more--active/);
     await more.getByText("More", { exact: true }).click();
-    await more.getByRole("button", { name: "Sign out" }).click();
+    await more.getByRole("menuitem", { name: "Sign out" }).click();
   } else {
     const account = page.getByRole("navigation", { name: "Account" });
     await expect(account.getByRole("link", { name: "Settings" })).toBeVisible();
@@ -95,4 +106,12 @@ test("the shared shell exposes account settings and a complete sign-out flow", a
       .toBe(true);
   }
   await captureUi(page, testInfo, "signed-out");
+});
+
+test("settings Nutrition data tab shows install controls", async ({ page }) => {
+  await mockSettingsApi(page);
+  await page.goto("/app/settings");
+  await page.getByRole("tab", { name: "Nutrition data" }).click();
+  await expect(page.getByRole("button", { name: "Install Foundation + SR Legacy" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Install Branded foods" })).toBeVisible();
 });

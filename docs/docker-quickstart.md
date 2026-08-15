@@ -84,11 +84,17 @@ The API health endpoint is at <http://localhost:8080/api/v1/health>; the OpenAPI
 
 ## Nutrition reference data (optional)
 
-Nutrition estimates work without any setup: ingredients that cannot be matched to a reference food
-are simply excluded from the coverage ratio. To raise estimate quality, import the USDA FoodData
-Central Foundation and SR Legacy bulk files with the CLI (`cookfully reference-data import` +
-`activate`) — see the [development quickstart](../specs/001-nutrition-recipe-planner/quickstart.md)
-section 4, which requires a local Python 3.13 + `uv` environment.
+Nutrition estimates work without any setup: ingredients that cannot be matched to a reference
+food are simply excluded from the coverage ratio. To raise estimate quality, install the USDA
+FoodData Central datasets from inside the app:
+
+- On first run, the welcome journey offers a "Real nutrition numbers?" step (Foundation + SR
+  Legacy, optionally Branded foods).
+- Later, use Settings → Nutrition data.
+
+The app downloads the official bulk files, imports them into PostgreSQL, and activates them in the
+background — no local tools or manual files are needed. Operators who prefer the CLI can still use
+`cookfully reference-data import` + `activate` (see the development quickstart, section 4).
 
 ## Rebuilding after a code change
 
