@@ -9,6 +9,7 @@ from cookfully.infrastructure.media_store import MediaStore
 from cookfully.jobs.app import celery_app
 from cookfully.jobs.export import run_export_job
 from cookfully.jobs.recipe_pipeline import JobEnvelope, get_recipe_pipeline
+from cookfully.jobs.reference_data_install import run_reference_data_install_job
 from cookfully.jobs.suggestions import run_suggestion_job
 
 RECIPE_KINDS = frozenset(
@@ -54,6 +55,9 @@ def process_job(envelope: dict[str, Any]) -> dict[str, str | None] | None:
             return None
         if envelope["kind"] == "suggestion":
             run_suggestion_job(sessions, UUID(str(envelope["jobId"])))
+            return None
+        if envelope["kind"] == "reference_data_install":
+            run_reference_data_install_job(sessions, UUID(str(envelope["jobId"])))
             return None
         jobs = JobService(sessions)
         job = jobs.claim(

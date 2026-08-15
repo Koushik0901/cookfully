@@ -152,3 +152,32 @@ def test_run_fails_safely_on_download_error_leaving_zero_rows(
         assert job.failure_code == "download_failed"
         assert session.scalar(select(FoodReference).limit(1)) is None
     assert all(not destination.exists() for _, destination in downloads)
+
+
+def test_dispatcher_routes_install_kind_to_the_service(
+    isolated_database_url: str,
+    session_factory: sessionmaker[Session],
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    create_owner(session_factory)
+    monkeypatch.setattr(
+        cli_reference_data,
+        "get_settings",
+        lambda: Settings(database_url=isolated_database_url, environment="test"),
+    )
+    fixture = tmp_path / "foundation.zip"
+    write_fixture_zip(fixture, 1001, "Chicken breast")
+
+    def fake_download(url: str, destination: Path) -> None:
+        destination.write_bytes(fixture.read_bytes())
+
+    monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
+    service = ReferenceDataInstallService(session_factory)
+    accepted = service.request(OWNER, ("foundation_sr_legacy",), trace_id="trace-12345678")
+    from cookfully.jobs.reference_data_install import run_reference_data_install_job
+
+    run_reference_data_install_job(session_factory, accepted.job_id)
+    with session_factory() as session:
+        job = session.get(ProcessingJob, accepted.job_id)
+        assert job is not None and job.status == "succeeded"
