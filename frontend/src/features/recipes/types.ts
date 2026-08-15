@@ -1,17 +1,15 @@
 import type { components } from "../../app/api/generated/schema";
 
-export type Recipe = components["schemas"]["Recipe"];
-export type RecipeDetail = components["schemas"]["RecipeDetail"];
-export type RecipePage = components["schemas"]["RecipePage"];
-export type RecipeWrite = components["schemas"]["RecipeWrite"];
-export type IngredientWrite = components["schemas"]["IngredientWrite"];
-export type Job = components["schemas"]["Job"];
-export type JobAccepted = components["schemas"]["JobAccepted"];
-export type ResolvedNutrition = components["schemas"]["ResolvedNutrition"];
-export type NutritionCorrectionWrite = components["schemas"]["NutritionCorrectionWrite"];
-export type NutritionState = components["schemas"]["NutritionState"];
-export type RecipeCollection = components["schemas"]["RecipeCollection"];
-export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWrite"];
-
-export type Problem = components["schemas"]["Problem"];
+export type Recipe = components["schemas"]["RecipeResponse"];
+export type RecipeDetail = components["schemas"]["RecipeDetailResponse"];
+export type RecipePage = components["schemas"]["RecipePageResponse"];
+export type RecipeWrite = components["schemas"]["RecipeWriteRequest"];
+export type IngredientWrite = components["schemas"]["IngredientWriteRequest"];
+export type Job = components["schemas"]["JobResponse"];
+export type JobAccepted = components["schemas"]["JobAcceptedResponse"];
+export type ResolvedNutrition = components["schemas"]["ResolvedNutritionResponse"];
+export type NutritionCorrectionWrite = components["schemas"]["NutritionCorrectionWriteRequest"];
+export type NutritionState = components["schemas"]["NutritionSnapshotResponse"]["status"];
+export type RecipeCollection = components["schemas"]["RecipeCollectionResponse"];
+export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWriteRequest"];
 

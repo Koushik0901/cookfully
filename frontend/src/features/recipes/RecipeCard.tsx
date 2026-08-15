@@ -27,7 +27,7 @@ export function RecipeCard({
   const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
     ? recipe.nutritionState
     : nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
-  const displayNumber = (value: string | null, maximumFractionDigits: number) =>
+  const displayNumber = (value: string | null | undefined, maximumFractionDigits: number) =>
     value == null
       ? "—"
       : new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(Number(value));

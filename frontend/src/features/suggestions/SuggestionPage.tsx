@@ -26,7 +26,9 @@ const SCOPES = [
   { value: "week", title: "Fill my week", description: "Find a practical set of meals with sensible repetition.", Icon: CalendarRange },
 ] as const;
 
-function MacroTotals({ total, testId }: { total: PeriodTotal | undefined | null; testId?: string }) {
+type MacroTotalsValue = Pick<PeriodTotal, "caloriesKcal" | "proteinG" | "carbohydrateG" | "fatG">;
+
+function MacroTotals({ total, testId }: { total: MacroTotalsValue | undefined | null; testId?: string }) {
   if (!total) return <p className="muted">No projected total is available.</p>;
   return (
     <dl className="suggestion-macros" data-testid={testId}>

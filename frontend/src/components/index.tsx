@@ -88,7 +88,7 @@ const STATUS_LABELS: Record<string, string> = {
   superseded: "Updated",
 };
 
-export function PollingStatusBadge({ status }: { status: "queued" | "running" | "retry_wait" | "succeeded" | "failed" | "cancelled" | "superseded" }) {
+export function PollingStatusBadge({ status }: { status: string }) {
   const active = ["queued", "running", "retry_wait"].includes(status);
   return <span className={`status status--${status}`} role="status" aria-live={active ? "polite" : "off"}>{STATUS_LABELS[status] ?? status}</span>;
 }

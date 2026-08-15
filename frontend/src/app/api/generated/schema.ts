@@ -4,13 +4,14 @@
  */
 
 export interface paths {
-    "/health": {
+    "/api/v1/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** Health */
         get: operations["getHealth"];
         put?: never;
         post?: never;
@@ -20,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/session": {
+    "/api/v1/auth/session": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,696 +30,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Create Session */
         post: operations["createSession"];
+        /** Delete Session */
         delete: operations["deleteSession"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/owner/preferences": {
+    "/api/v1/auth/sessions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getOwnerPreferences"];
-        put: operations["putOwnerPreferences"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/owner/onboarding": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getOwnerOnboarding"];
-        put: operations["putOwnerOnboarding"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listRecipes"];
-        put?: never;
-        post: operations["createRecipe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["importRecipe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        get: operations["getRecipe"];
-        put?: never;
-        post?: never;
-        delete: operations["archiveRecipe"];
-        options?: never;
-        head?: never;
-        patch: operations["updateRecipe"];
-        trace?: never;
-    };
-    "/recipes/collections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listRecipeCollections"];
-        put?: never;
-        post: operations["createRecipeCollection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/organization": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["replaceRecipeOrganization"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/collections/{collectionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteRecipeCollection"];
-        options?: never;
-        head?: never;
-        patch: operations["updateRecipeCollection"];
-        trace?: never;
-    };
-    "/recipes/{recipeId}/photo": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["replaceRecipePhoto"];
-        post?: never;
-        delete: operations["removeRecipePhoto"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/source-images": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listRecipeSourceImages"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/photo/source": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["replaceRecipePhotoFromSource"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["restoreRecipe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/permanent": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["permanentlyDeleteRecipe"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/nutrition/recalculate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["recalculateRecipeNutrition"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/nutrition/corrections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createNutritionCorrection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/recipes/{recipeId}/nutrition/corrections/{correctionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["resetNutritionCorrection"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/jobs/current": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getCurrentJob"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/jobs/{jobId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getJob"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/media/{assetId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRecipeMedia"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/goals/current": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getCurrentGoal"];
-        put: operations["putCurrentGoal"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMealPlan"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/entries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addMealPlanEntry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plan-entries/{entryId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteMealPlanEntry"];
-        options?: never;
-        head?: never;
-        patch: operations["updateMealPlanEntry"];
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/grocery-list": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getGroceryList"];
-        put?: never;
-        post: operations["regenerateGroceryList"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/grocery-list/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["completeGroceryList"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/grocery-list/reopen": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["reopenGroceryList"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/grocery-shopping-stops": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listGroceryShoppingStops"];
-        put?: never;
-        post: operations["createGroceryShoppingStop"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/grocery-shopping-stops/{stopId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteGroceryShoppingStop"];
-        options?: never;
-        head?: never;
-        patch: operations["updateGroceryShoppingStop"];
-        trace?: never;
-    };
-    "/grocery-items/{itemId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteGroceryItem"];
-        options?: never;
-        head?: never;
-        patch: operations["updateGroceryItem"];
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/grocery-list/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createGroceryItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pantry-items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listPantryItems"];
-        put?: never;
-        post: operations["createPantryItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pantry-items/{itemId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deletePantryItem"];
-        options?: never;
-        head?: never;
-        patch: operations["updatePantryItem"];
-        trace?: never;
-    };
-    "/pantry/recipe-matches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["findMakeableRecipes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/meal-plans/{weekStart}/grocery-list/pantry-deductions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["applyPantryDeductions"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pantry-deductions/{deductionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["reversePantryDeduction"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/exports": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createPortableExport"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/exports/{jobId}/download": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["downloadPortableExport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access-tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listAccessTokens"];
-        put?: never;
-        post: operations["createAccessToken"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access-tokens/{tokenId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["revokeAccessToken"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/suggestions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createSuggestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/suggestions/{suggestionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSuggestion"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/suggestions/{suggestionId}/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["acceptSuggestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
+        /** List Sessions */
         get: operations["list_sessions"];
         put?: never;
         post?: never;
@@ -728,7 +56,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/sessions/{session_id}": {
+    "/api/v1/auth/sessions/{session_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -738,13 +66,14 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** Revoke Session */
         delete: operations["revoke_session"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/auth/password": {
+    "/api/v1/auth/password": {
         parameters: {
             query?: never;
             header?: never;
@@ -753,6 +82,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Change Password */
         post: operations["change_password"];
         delete?: never;
         options?: never;
@@ -760,13 +90,745 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/foods/search": {
+    "/api/v1/owner/preferences": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** Get Preferences */
+        get: operations["getOwnerPreferences"];
+        /** Update Preferences */
+        put: operations["putOwnerPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Onboarding */
+        get: operations["getOwnerOnboarding"];
+        /** Resolve Onboarding */
+        put: operations["putOwnerOnboarding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Access Tokens */
+        get: operations["listAccessTokens"];
+        put?: never;
+        /** Create Access Token */
+        post: operations["createAccessToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access-tokens/{tokenId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Access Token */
+        delete: operations["revokeAccessToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Job */
+        get: operations["getCurrentJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job */
+        get: operations["getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipe Collections */
+        get: operations["listRecipeCollections"];
+        put?: never;
+        /** Create Recipe Collection */
+        post: operations["createRecipeCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/collections/{collectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Recipe Collection */
+        delete: operations["deleteRecipeCollection"];
+        options?: never;
+        head?: never;
+        /** Update Recipe Collection */
+        patch: operations["updateRecipeCollection"];
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Recipe Organization */
+        put: operations["replaceRecipeOrganization"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipes */
+        get: operations["listRecipes"];
+        put?: never;
+        /** Create Recipe */
+        post: operations["createRecipe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Recipe */
+        post: operations["importRecipe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recipe */
+        get: operations["getRecipe"];
+        put?: never;
+        post?: never;
+        /** Archive Recipe */
+        delete: operations["archiveRecipe"];
+        options?: never;
+        head?: never;
+        /** Update Recipe */
+        patch: operations["updateRecipe"];
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Recipe Photo */
+        put: operations["replaceRecipePhoto"];
+        post?: never;
+        /** Remove Recipe Photo */
+        delete: operations["removeRecipePhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/source-images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Recipe Source Images */
+        get: operations["list_recipe_source_images"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/photo/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace Recipe Photo From Source */
+        put: operations["replace_recipe_photo_from_source"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Recipe */
+        post: operations["restoreRecipe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/permanent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Permanently Delete Recipe */
+        delete: operations["permanentlyDeleteRecipe"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/nutrition/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recalculate Recipe Nutrition */
+        post: operations["recalculateRecipeNutrition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/nutrition/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Nutrition Correction */
+        post: operations["createNutritionCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/nutrition/corrections/{correctionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Reset Nutrition Correction */
+        delete: operations["resetNutritionCorrection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/goals/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Goal */
+        get: operations["getCurrentGoal"];
+        /** Put Current Goal */
+        put: operations["putCurrentGoal"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Meal Plan */
+        get: operations["getMealPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Meal Plan Entry */
+        post: operations["addMealPlanEntry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plan-entries/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Meal Plan Entry */
+        delete: operations["deleteMealPlanEntry"];
+        options?: never;
+        head?: never;
+        /** Update Meal Plan Entry */
+        patch: operations["updateMealPlanEntry"];
+        trace?: never;
+    };
+    "/api/v1/grocery-shopping-stops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shopping Stops */
+        get: operations["listGroceryShoppingStops"];
+        put?: never;
+        /** Create Shopping Stop */
+        post: operations["createGroceryShoppingStop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/grocery-shopping-stops/{stopId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Shopping Stop */
+        delete: operations["deleteGroceryShoppingStop"];
+        options?: never;
+        head?: never;
+        /** Update Shopping Stop */
+        patch: operations["updateGroceryShoppingStop"];
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/grocery-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Grocery List */
+        get: operations["getGroceryList"];
+        put?: never;
+        /** Regenerate Grocery List */
+        post: operations["regenerateGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/grocery-list/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Grocery List */
+        post: operations["completeGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/grocery-list/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Grocery List */
+        post: operations["reopenGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/grocery-list/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Grocery Item */
+        post: operations["createGroceryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/grocery-items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Grocery Item */
+        delete: operations["deleteGroceryItem"];
+        options?: never;
+        head?: never;
+        /** Update Grocery Item */
+        patch: operations["updateGroceryItem"];
+        trace?: never;
+    };
+    "/api/v1/pantry-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Pantry Items */
+        get: operations["listPantryItems"];
+        put?: never;
+        /** Create Pantry Item */
+        post: operations["createPantryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pantry-items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Pantry Item */
+        delete: operations["deletePantryItem"];
+        options?: never;
+        head?: never;
+        /** Update Pantry Item */
+        patch: operations["updatePantryItem"];
+        trace?: never;
+    };
+    "/api/v1/pantry/recipe-matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find Makeable Recipes */
+        get: operations["findMakeableRecipes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/meal-plans/{weekStart}/grocery-list/pantry-deductions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply Pantry Deductions */
+        post: operations["applyPantryDeductions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pantry-deductions/{deductionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Reverse Pantry Deduction */
+        delete: operations["reversePantryDeduction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Portable Export */
+        post: operations["createPortableExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/{jobId}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Portable Export */
+        get: operations["downloadPortableExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Suggestion */
+        post: operations["createSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suggestions/{suggestionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Suggestion */
+        get: operations["getSuggestion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/suggestions/{suggestionId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Suggestion */
+        post: operations["acceptSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Recipe Media */
+        get: operations["getRecipeMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/foods/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Foods */
         get: operations["search_foods"];
         put?: never;
         post?: never;
@@ -776,15 +838,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/foods/user": {
+    "/api/v1/foods/user": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** List User Foods */
         get: operations["list_user_foods"];
         put?: never;
+        /** Create User Food */
         post: operations["create_user_food"];
         delete?: never;
         options?: never;
@@ -792,7 +856,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/foods/user/{foodId}": {
+    "/api/v1/foods/user/{foodId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -800,24 +864,61 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        /** Update User Food */
         put: operations["update_user_food"];
         post?: never;
+        /** Delete User Food */
         delete: operations["delete_user_food"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/recipes/{recipeId}/ingredients/{ingredientId}/candidates": {
+    "/api/v1/recipes/{recipeId}/ingredients/{ingredientId}/candidates": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        /** List Ingredient Candidates */
         get: operations["list_ingredient_candidates"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reference-data/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Reference Data Status */
+        get: operations["get_reference_data_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reference-data/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Install Reference Data */
+        post: operations["install_reference_data"];
         delete?: never;
         options?: never;
         head?: never;
@@ -828,673 +929,1377 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Health: {
-            /** @enum {string} */
-            status: "ok" | "degraded";
-            /** @enum {string} */
-            database: "ok" | "unavailable";
-            /** @enum {string} */
-            broker: "ok" | "unavailable";
-            version?: string;
-        };
-        LoginRequest: {
-            /** Format: email */
-            email: string;
-            password: string;
-        };
-        PasswordChangeRequest: {
-            currentPassword: string;
-            newPassword: string;
-        };
-        SessionItem: {
-            /** Format: uuid */
-            id: string;
-            clientLabel: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            lastSeenAt: string;
-            isCurrent: boolean;
-        };
-        SessionListResponse: {
-            sessions: components["schemas"]["SessionItem"][];
-        };
-        FoodSearchResponse: {
-            query: string;
-            candidates: components["schemas"]["FoodCandidateResponse"][];
-        };
-        FoodCandidateResponse: {
-            source: string;
-            /** Format: uuid */
-            id: string;
-            description: string;
-            brandOwner: string;
-            servingSizeG: string;
-            servingUnit: string;
-        };
-        OwnerFoodResponse: {
-            /** Format: uuid */
-            id: string;
-            displayName: string;
-            normalizedName: string;
-            brand?: string;
-            caloriesKcal: components["schemas"]["Decimal6"];
-            proteinG: components["schemas"]["Decimal6"];
-            carbohydrateG: components["schemas"]["Decimal6"];
-            fatG: components["schemas"]["Decimal6"];
-            basisGrams: components["schemas"]["Decimal6"];
-            typicalServingG: components["schemas"]["Decimal6"];
-            typicalServingUnit: string;
-            version: number;
-        };
-        OwnerFoodWriteRequest: {
-            displayName: string;
-            brand?: string;
-            caloriesKcal: components["schemas"]["Decimal6"];
-            proteinG: components["schemas"]["Decimal6"];
-            carbohydrateG: components["schemas"]["Decimal6"];
-            fatG: components["schemas"]["Decimal6"];
-            basisGrams?: components["schemas"]["Decimal6"];
-            typicalServingG?: components["schemas"]["Decimal6"];
-            typicalServingUnit?: string;
-        };
-        OwnerFoodUpdateRequest: {
-            displayName: string;
-            brand?: string;
-            caloriesKcal: components["schemas"]["Decimal6"];
-            proteinG: components["schemas"]["Decimal6"];
-            carbohydrateG: components["schemas"]["Decimal6"];
-            fatG: components["schemas"]["Decimal6"];
-            basisGrams?: components["schemas"]["Decimal6"];
-            typicalServingG?: components["schemas"]["Decimal6"];
-            typicalServingUnit?: string;
-            expectedVersion: number;
-        };
-        OwnerPreferences: {
-            displayName: string;
-            timezone: string;
-            weekStartsOn: number;
-            version: number;
-        };
-        OwnerOnboarding: {
-            /** @enum {string} */
-            state: "pending" | "completed" | "dismissed";
-            /** @enum {string|null} */
-            firstAction?: "manual_recipe" | "import_recipe" | "view_plan" | null;
-            /** Format: date-time */
-            resolvedAt?: string | null;
-            version: number;
-        };
-        RecipePhotoUpload: {
+        /** AccessTokenCreatedResponse */
+        AccessTokenCreatedResponse: {
             /**
-             * Format: binary
-             * @description JPEG, PNG, or WebP image no larger than 20 MB before normalization.
+             * Id
+             * Format: uuid
              */
-            photo: string;
-        };
-        RecipeSourceImage: {
-            /** Format: uri */
-            url: string;
-        };
-        Problem: {
-            /** Format: uri-reference */
-            type: string;
-            title: string;
-            status: number;
-            code: string;
-            detail?: string;
-            /** Format: uri-reference */
-            instance?: string;
-            fieldErrors?: {
-                field: string;
-                code: string;
-                message?: string;
-            }[];
-        };
-        /** @description Canonical non-negative fixed decimal with at most six fractional places and no exponent. */
-        Decimal6: string;
-        /** @description Canonical signed fixed decimal with at most six fractional places and no exponent. */
-        SignedDecimal6: string;
-        /** @description Positive serving quantity with at most three fractional places. */
-        ServingDecimal: string;
-        /** @description Canonical fixed decimal from zero through one. */
-        RatioDecimal: string;
-        /** @description Round-half-up whole-kilocalorie display value. */
-        DisplayCalories: string;
-        SignedDisplayCalories: string;
-        /** @description Round-half-up macro display value with exactly one fractional place. */
-        DisplayMacro: string;
-        SignedDisplayMacro: string;
-        /** @enum {string} */
-        NutritionState: "pending" | "source_provided" | "estimated" | "partial" | "failed" | "stale";
-        /** @enum {string} */
-        NutritionStatus: "source_provided" | "estimated" | "partial" | "manual";
-        MacroValues: {
-            caloriesKcal: components["schemas"]["Decimal6"] | null;
-            proteinG: components["schemas"]["Decimal6"] | null;
-            carbohydrateG: components["schemas"]["Decimal6"] | null;
-            fatG: components["schemas"]["Decimal6"] | null;
-        };
-        GoalMacroValues: {
-            caloriesKcal: components["schemas"]["Decimal6"];
-            proteinG: components["schemas"]["Decimal6"];
-            carbohydrateG: components["schemas"]["Decimal6"];
-            fatG: components["schemas"]["Decimal6"];
-        };
-        DisplayMacroValues: {
-            caloriesKcal: components["schemas"]["DisplayCalories"] | null;
-            proteinG: components["schemas"]["DisplayMacro"] | null;
-            carbohydrateG: components["schemas"]["DisplayMacro"] | null;
-            fatG: components["schemas"]["DisplayMacro"] | null;
-        };
-        SignedDisplayMacroValues: {
-            caloriesKcal: components["schemas"]["SignedDisplayCalories"] | null;
-            proteinG: components["schemas"]["SignedDisplayMacro"] | null;
-            carbohydrateG: components["schemas"]["SignedDisplayMacro"] | null;
-            fatG: components["schemas"]["SignedDisplayMacro"] | null;
-        };
-        MicronutrientValue: {
-            value: components["schemas"]["Decimal6"] | null;
-            /** @enum {string} */
-            unit: "g" | "mg" | "ug";
-            explicitZero: boolean;
-            coverageRatio: components["schemas"]["RatioDecimal"];
-            /** @enum {string} */
-            source: "reference" | "source" | "manual" | "unavailable";
-            mappingVersion: string;
-            usdaNutrientId: number;
-        };
-        Micronutrients: {
-            dietaryFiberG: components["schemas"]["MicronutrientValue"];
-            sodiumMg: components["schemas"]["MicronutrientValue"];
-            potassiumMg: components["schemas"]["MicronutrientValue"];
-            calciumMg: components["schemas"]["MicronutrientValue"];
-            ironMg: components["schemas"]["MicronutrientValue"];
-            magnesiumMg: components["schemas"]["MicronutrientValue"];
-            vitaminCMg: components["schemas"]["MicronutrientValue"];
-            vitaminDUg: components["schemas"]["MicronutrientValue"];
-            vitaminB12Ug: components["schemas"]["MicronutrientValue"];
-        };
-        ResolvedNutrition: components["schemas"]["MacroValues"] & {
-            status: components["schemas"]["NutritionStatus"];
-            basisServings: components["schemas"]["ServingDecimal"];
-            coverageRatio: components["schemas"]["RatioDecimal"];
-            provenance: {
-                /** @enum {string} */
-                kind: "source" | "reference" | "conversion" | "parser" | "provider";
-                label: string;
-                /** Format: uri */
-                sourceUrl?: string | null;
-                version?: string | null;
-            }[];
-            assumptions?: string[];
-            corrections: components["schemas"]["NutritionCorrection"][];
-            micronutrients: components["schemas"]["Micronutrients"];
-        };
-        IngredientWrite: {
-            /** Format: uuid */
-            id?: string | null;
-            originalText: string;
-            quantityMin?: components["schemas"]["Decimal6"] | null;
-            quantityMax?: components["schemas"]["Decimal6"] | null;
-            unit?: string | null;
-            food?: string | null;
-            preparation?: string | null;
-            /** @default false */
-            optional: boolean;
-        };
-        Ingredient: components["schemas"]["IngredientWrite"] & {
-            /** Format: uuid */
             id: string;
-            position: number;
-            /** @enum {string} */
-            parseStatus: "unparsed" | "parsed" | "low_confidence" | "manual" | "failed";
-            /** @enum {string} */
-            matchStatus?: "candidate" | "matched" | "ambiguous" | "unmatched" | "manual";
-            assumptions?: string[];
-        };
-        RecipeWrite: {
-            title: string;
-            description?: string | null;
-            /** Format: uri */
-            sourceUrl?: string | null;
-            yieldQuantity: components["schemas"]["ServingDecimal"];
-            /** @default servings */
-            yieldUnit: string;
-            ingredients: components["schemas"]["IngredientWrite"][];
-            instructions: string[];
-        };
-        RecipeCollectionWrite: {
-            name?: string;
-            position?: number;
-        };
-        RecipeCollection: components["schemas"]["RecipeCollectionWrite"] & {
-            /** Format: uuid */
-            id: string;
+            /** Name */
             name: string;
-            position: number;
-            version: number;
-            recipeCount: number;
-        };
-        RecipeOrganizationWrite: {
-            favorite: boolean;
-            collectionIds: string[];
-            mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
-        };
-        Recipe: {
-            /** Format: uuid */
-            id: string;
-            title: string;
-            /** Format: uri */
-            sourceUrl?: string | null;
-            /** Format: uri-reference */
-            imageUrl?: string | null;
-            yieldQuantity: components["schemas"]["ServingDecimal"];
-            yieldUnit: string;
-            /** @enum {string} */
-            status: "draft" | "processing" | "ready" | "partial" | "failed" | "import_failed" | "archived";
-            /** @enum {string|null} */
-            archivedFromStatus?: "draft" | "ready" | "partial" | "failed" | null;
-            nutritionState: components["schemas"]["NutritionState"];
-            nutrition?: components["schemas"]["ResolvedNutrition"] | null;
-            /** @default false */
-            favorite: boolean;
-            collections?: {
-                /** Format: uuid */
-                id: string;
-                name: string;
-                position: number;
-            }[];
-            mealRoles?: ("breakfast" | "lunch" | "dinner" | "snack")[];
-            version: number;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        RecipeDetail: components["schemas"]["Recipe"] & {
-            description?: string | null;
-            ingredients: components["schemas"]["Ingredient"][];
-            instructions: string[];
-            activeJob?: components["schemas"]["Job"] | null;
-        };
-        RecipePage: {
-            items: components["schemas"]["Recipe"][];
-            nextCursor?: string | null;
-        };
-        NutritionCorrectionWrite: {
-            /** Format: uuid */
-            ingredientId?: string | null;
-            /** @enum {string} */
-            field: "quantity_min" | "quantity_max" | "unit" | "food_name" | "food_reference" | "grams" | "yield_quantity" | "calories_kcal" | "protein_g" | "carbohydrate_g" | "fat_g" | "dietary_fiber_g" | "sodium_mg" | "potassium_mg" | "calcium_mg" | "iron_mg" | "magnesium_mg" | "vitamin_c_mg" | "vitamin_d_ug" | "vitamin_b12_ug";
-            decimalValue?: components["schemas"]["Decimal6"] | null;
-            textValue?: string | null;
-            /** Format: uuid */
-            referenceIdValue?: string | null;
-            reason?: string | null;
-        };
-        NutritionCorrection: components["schemas"]["NutritionCorrectionWrite"] & {
-            /** Format: uuid */
-            id: string;
-            active: boolean;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        JobAccepted: {
-            /** Format: uuid */
-            jobId: string;
-            /** Format: uuid */
-            resourceId?: string | null;
-            /** @constant */
-            status: "queued";
-        };
-        Job: {
-            /** Format: uuid */
-            id: string;
-            kind: string;
-            /** Format: uuid */
-            aggregateId: string;
-            /** @enum {string} */
-            status: "queued" | "running" | "retry_wait" | "succeeded" | "failed" | "cancelled" | "superseded";
-            attempt: number;
-            maxAttempts: number;
-            inputHash: string;
-            progressCurrent?: number | null;
-            progressTotal?: number | null;
-            /** Format: date-time */
-            nextRetryAt?: string | null;
-            /** Format: date-time */
-            terminalDeadlineAt: string;
-            failureCode?: string | null;
-            failureMessage?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            finishedAt?: string | null;
-            pollAfterSeconds: number | null;
-            recoveryActions: ("wait" | "retry" | "reload" | "edit_recipe" | "enter_manual_nutrition")[];
-        };
-        MealTarget: components["schemas"]["MacroValues"] & {
-            mealSlot: string;
-        };
-        UserGoalWrite: components["schemas"]["GoalMacroValues"] & {
-            /** @enum {string} */
-            mode: "cut" | "maintain" | "bulk";
-            maintenanceKcal: components["schemas"]["Decimal6"];
-            /** Format: date */
-            effectiveFrom: string;
-            /** Format: date */
-            effectiveTo?: string | null;
-            mealTargets?: components["schemas"]["MealTarget"][];
-        };
-        UserGoal: components["schemas"]["UserGoalWrite"] & {
-            /** Format: uuid */
-            id: string;
-            version: number;
-            macroCalorieDifference?: components["schemas"]["SignedDecimal6"] | null;
-        };
-        MealPlanEntryWrite: {
-            /** Format: date */
-            localDate: string;
-            mealSlot: string;
-            /** Format: uuid */
-            recipeId: string;
-            servings: components["schemas"]["ServingDecimal"];
-            position?: number;
-            /** @default false */
-            refreshNutrition: boolean;
-        };
-        MealPlanEntry: {
-            /** Format: uuid */
-            id: string;
-            /** Format: date */
-            localDate: string;
-            mealSlot: string;
-            /** Format: uuid */
-            recipeId: string | null;
-            recipeTitle: string;
-            servings: components["schemas"]["ServingDecimal"];
-            position: number;
-            /** @default false */
-            refreshNutrition: boolean;
-            nutrition: components["schemas"]["NutritionSnapshot"];
-            /** @enum {string} */
-            origin: "manual" | "suggestion" | "external";
-            version: number;
-        };
-        NutritionSnapshot: components["schemas"]["DisplayMacroValues"] & {
-            basisServings: components["schemas"]["ServingDecimal"];
-            status: components["schemas"]["NutritionStatus"];
-            coverageRatio: components["schemas"]["RatioDecimal"];
-            micronutrients: components["schemas"]["Micronutrients"];
-        };
-        PeriodTotal: components["schemas"]["DisplayMacroValues"] & {
-            status: components["schemas"]["NutritionStatus"];
-            coverageRatio: components["schemas"]["RatioDecimal"];
-            micronutrients: components["schemas"]["Micronutrients"];
-            targetDifference?: components["schemas"]["SignedDisplayMacroValues"];
-        };
-        MealPlan: {
-            /** Format: uuid */
-            id: string;
-            /** Format: date */
-            weekStart: string;
-            timezone: string;
-            goal?: components["schemas"]["UserGoal"];
-            entries: components["schemas"]["MealPlanEntry"][];
-            dayTotals: {
-                [key: string]: components["schemas"]["PeriodTotal"];
-            };
-            weekTotal: components["schemas"]["PeriodTotal"];
-            /** @enum {string} */
-            groceryStatus?: "current" | "dirty" | "generating" | "failed" | "absent";
-            version: number;
-        };
-        GroceryItemWrite: {
-            displayName?: string;
-            quantity?: components["schemas"]["Decimal6"] | null;
-            unit?: string | null;
-            checked?: boolean;
-            position?: number;
-            /** Format: uuid */
-            shoppingStopId?: string | null;
-            rememberPlacement?: boolean;
-        };
-        GroceryShoppingStopWrite: {
-            name?: string;
-            position?: number;
-        };
-        GroceryShoppingStop: components["schemas"]["GroceryShoppingStopWrite"] & {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            position: number;
-            version: number;
-        };
-        GroceryItemCreate: components["schemas"]["GroceryItemWrite"] & Record<string, never>;
-        GroceryItem: components["schemas"]["GroceryItemWrite"] & {
-            /** Format: uuid */
-            id: string;
-            /** @enum {string} */
-            origin: "generated" | "manual";
-            needsReview: boolean;
-            shoppingStop?: components["schemas"]["GroceryShoppingStop"] | null;
-            sources: {
-                /** Format: uuid */
-                mealPlanEntryId: string;
-                originalText: string;
-                quantityContribution?: components["schemas"]["Decimal6"] | null;
-            }[];
-            version: number;
-        };
-        GroceryList: {
-            /** Format: uuid */
-            id: string;
-            /** Format: date */
-            weekStart: string;
-            /** @enum {string} */
-            status: "current" | "dirty" | "generating" | "failed" | "completed";
-            /** Format: date-time */
-            generatedAt?: string | null;
-            /** Format: date-time */
-            completedAt?: string | null;
-            items: components["schemas"]["GroceryItem"][];
-            version: number;
-        };
-        PantryItemWrite: {
-            displayName: string;
-            quantity: components["schemas"]["Decimal6"];
-            unit: string;
-            /** Format: uuid */
-            foodReferenceId?: string | null;
-        };
-        PantryItem: components["schemas"]["PantryItemWrite"] & {
-            /** Format: uuid */
-            id: string;
-            normalizedFoodName: string;
-            /** @enum {string} */
-            matchStatus: "unmatched" | "proposed" | "matched" | "manual";
-            matchConfidence: components["schemas"]["RatioDecimal"] | null;
-            version: number;
-        };
-        PantryRecipeMatch: {
-            /** Format: uuid */
-            recipeId: string;
-            recipeTitle: string;
-            /** @enum {string} */
-            availability: "full" | "partial" | "none";
-            coverageRatio: components["schemas"]["RatioDecimal"];
-            missingIngredients: string[];
-        };
-        PantryDeductionApply: {
-            expectedGroceryListVersion: number;
-            groceryItemIds?: string[];
-        };
-        PantryDeduction: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            pantryItemId: string;
-            /** Format: uuid */
-            groceryItemId: string;
-            pantryQuantity: components["schemas"]["Decimal6"];
-            pantryUnit: string;
-            groceryQuantity: components["schemas"]["Decimal6"];
-            groceryUnit: string;
-            assumption: string;
-            /** @enum {string} */
-            status: "applied" | "reversed";
-            /** Format: date-time */
-            appliedAt?: string;
-            /** Format: date-time */
-            reversedAt?: string | null;
-            version: number;
-        };
-        SuggestionRequest: {
-            /** @enum {string} */
-            scope: "meal" | "day" | "week";
-            /** Format: date */
-            weekStart: string;
-            /** Format: date */
-            localDate?: string | null;
-            mealSlot?: string | null;
-            tolerances: components["schemas"]["MacroValues"];
-            excludedRecipeIds?: string[];
-            requiredRecipeIds?: string[];
-            maxRecipeRepetitions?: number;
-        };
-        SuggestionItem: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            recipeId: string;
-            recipeTitle: string;
-            /** Format: date */
-            localDate: string;
-            mealSlot: string;
-            servings: components["schemas"]["ServingDecimal"];
-            projectedNutrition: components["schemas"]["NutritionSnapshot"];
-            accepted: boolean;
-        };
-        SuggestionResult: {
-            /** Format: uuid */
-            id: string;
-            /** @enum {string} */
-            status: "queued" | "running" | "feasible" | "infeasible" | "failed" | "expired";
-            request: components["schemas"]["SuggestionRequest"];
-            target: components["schemas"]["MacroValues"];
-            items: components["schemas"]["SuggestionItem"][];
-            projectedDayTotals?: {
-                [key: string]: components["schemas"]["PeriodTotal"];
-            };
-            projectedWeekTotal?: components["schemas"]["PeriodTotal"] | null;
-            missedConstraints: string[];
-            unmetConstraintCount?: number | null;
-            objectiveScore?: components["schemas"]["Decimal6"] | null;
-            distanceComponents?: components["schemas"]["SuggestionDistanceComponents"] | null;
-            planVersion: number;
-            failureCode?: string | null;
-            /** @constant */
-            ranking: "fewest-unmet,weighted-4-3-1-1-2-5,fewer-entries,ordered-recipe-ids";
-            /** @constant */
-            planningNotice: "Planning aid only—not medical advice.";
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            expiresAt?: string | null;
-        };
-        SuggestionDistanceComponents: {
-            calories: components["schemas"]["Decimal6"];
-            protein: components["schemas"]["Decimal6"];
-            carbohydrates: components["schemas"]["Decimal6"];
-            fat: components["schemas"]["Decimal6"];
-            repetitionOverage: number;
-            missingRequiredRecipes: number;
-        };
-        SuggestionAcceptance: {
-            selectedItemIds: string[];
-            expectedPlanVersion: number;
-        };
-        AccessTokenWrite: {
-            name: string;
+            /** Scopes */
             scopes: ("recipes:read" | "goals:read" | "plans:read" | "plans:write" | "grocery:read" | "grocery:write")[];
-            /** Format: date-time */
-            expiresAt?: string | null;
-        };
-        AccessToken: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            scopes: string[];
-            /** Format: date-time */
+            /**
+             * Createdat
+             * Format: date-time
+             */
             createdAt: string;
-            /** Format: date-time */
-            expiresAt?: string | null;
-            /** Format: date-time */
-            lastUsedAt?: string | null;
-            /** Format: date-time */
-            revokedAt?: string | null;
-        };
-        AccessTokenCreated: components["schemas"]["AccessToken"] & {
-            /** @description Returned exactly once and never stored in recoverable form. */
+            /** Expiresat */
+            expiresAt: string | null;
+            /** Lastusedat */
+            lastUsedAt: string | null;
+            /** Revokedat */
+            revokedAt: string | null;
+            /** Secret */
             secret: string;
         };
-    };
-    responses: {
-        /** @description Request cannot be safely processed. */
-        BadRequest: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
+        /** AccessTokenResponse */
+        AccessTokenResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Scopes */
+            scopes: ("recipes:read" | "goals:read" | "plans:read" | "plans:write" | "grocery:read" | "grocery:write")[];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Expiresat */
+            expiresAt: string | null;
+            /** Lastusedat */
+            lastUsedAt: string | null;
+            /** Revokedat */
+            revokedAt: string | null;
         };
-        /** @description Authentication failed or is missing. */
-        Unauthorized: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
+        /** AccessTokenWriteRequest */
+        AccessTokenWriteRequest: {
+            /** Name */
+            name: string;
+            /** Scopes */
+            scopes: ("recipes:read" | "goals:read" | "plans:read" | "plans:write" | "grocery:read" | "grocery:write")[];
+            /** Expiresat */
+            expiresAt?: string | null;
         };
-        /** @description Resource not found or not visible. */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
+        /** Body_replaceRecipePhoto */
+        Body_replaceRecipePhoto: {
+            /** Photo */
+            photo: string;
         };
-        /** @description Stale version, duplicate idempotency key with different input, or invalid transition. */
-        Conflict: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
+        /** ExportRequest */
+        ExportRequest: {
+            /**
+             * Includemedia
+             * @default true
+             */
+            includeMedia: boolean;
         };
-        /** @description One or more fields are invalid. */
+        /** FoodCandidateResponse */
+        FoodCandidateResponse: {
+            /** Source */
+            source: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Description */
+            description: string;
+            /** Brandowner */
+            brandOwner: string | null;
+            /** Servingsizeg */
+            servingSizeG: string | null;
+            /** Servingunit */
+            servingUnit: string | null;
+        };
+        /** FoodSearchResponse */
+        FoodSearchResponse: {
+            /** Query */
+            query: string;
+            /** Candidates */
+            candidates: components["schemas"]["FoodCandidateResponse"][];
+        };
+        /** GroceryItemCreateRequest */
+        GroceryItemCreateRequest: {
+            /** Displayname */
+            displayName: string;
+            /** Quantity */
+            quantity?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /**
+             * Checked
+             * @default false
+             */
+            checked: boolean;
+            /** Position */
+            position?: number | null;
+        };
+        /** GroceryItemResponse */
+        GroceryItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Displayname */
+            displayName: string;
+            /** Quantity */
+            quantity: string | null;
+            /** Unit */
+            unit: string | null;
+            /** Origin */
+            origin: string;
+            /** Checked */
+            checked: boolean;
+            /** Needsreview */
+            needsReview: boolean;
+            /** Position */
+            position: number;
+            shoppingStop: components["schemas"]["GroceryShoppingStopResponse"] | null;
+            /** Sources */
+            sources: components["schemas"]["GrocerySourceResponse"][];
+            /** Version */
+            version: number;
+        };
+        /** GroceryItemWriteRequest */
+        GroceryItemWriteRequest: {
+            /** Displayname */
+            displayName?: string | null;
+            /** Quantity */
+            quantity?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Checked */
+            checked?: boolean | null;
+            /** Position */
+            position?: number | null;
+            /** Shoppingstopid */
+            shoppingStopId?: string | null;
+            /** Rememberplacement */
+            rememberPlacement?: boolean | null;
+        };
+        /** GroceryListResponse */
+        GroceryListResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Weekstart
+             * Format: date
+             */
+            weekStart: string;
+            /** Status */
+            status: string;
+            /** Generatedat */
+            generatedAt: string | null;
+            /** Completedat */
+            completedAt: string | null;
+            /** Items */
+            items: components["schemas"]["GroceryItemResponse"][];
+            /** Version */
+            version: number;
+        };
+        /** GroceryShoppingStopCreateRequest */
+        GroceryShoppingStopCreateRequest: {
+            /** Name */
+            name: string;
+            /** Position */
+            position?: number | null;
+        };
+        /** GroceryShoppingStopResponse */
+        GroceryShoppingStopResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: number;
+            /** Version */
+            version: number;
+        };
+        /** GroceryShoppingStopWriteRequest */
+        GroceryShoppingStopWriteRequest: {
+            /** Name */
+            name?: string | null;
+            /** Position */
+            position?: number | null;
+        };
+        /** GrocerySourceResponse */
+        GrocerySourceResponse: {
+            /**
+             * Mealplanentryid
+             * Format: uuid
+             */
+            mealPlanEntryId: string;
+            /** Originaltext */
+            originalText: string;
+            /** Quantitycontribution */
+            quantityContribution: string | null;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthResponse */
+        HealthResponse: {
+            /** Status */
+            status: string;
+            /** Database */
+            database: string;
+            /** Broker */
+            broker: string;
+            /** Version */
+            version: string;
+        };
+        /** ImportRecipeRequest */
+        ImportRecipeRequest: {
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+        };
+        /** IngredientResponse */
+        IngredientResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Originaltext */
+            originalText: string;
+            /** Quantitymin */
+            quantityMin?: string | null;
+            /** Quantitymax */
+            quantityMax?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Food */
+            food?: string | null;
+            /** Preparation */
+            preparation?: string | null;
+            /** Optional */
+            optional: boolean;
+            /** Parsestatus */
+            parseStatus: string;
+            /** Matchstatus */
+            matchStatus?: string | null;
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+        };
+        /** IngredientWriteRequest */
+        IngredientWriteRequest: {
+            /** Originaltext */
+            originalText: string;
+            /** Quantitymin */
+            quantityMin?: string | null;
+            /** Quantitymax */
+            quantityMax?: string | null;
+            /** Unit */
+            unit?: string | null;
+            /** Food */
+            food?: string | null;
+            /** Preparation */
+            preparation?: string | null;
+            /**
+             * Optional
+             * @default false
+             */
+            optional: boolean;
+        };
+        /** JobAcceptedResponse */
+        JobAcceptedResponse: {
+            /**
+             * Jobid
+             * Format: uuid
+             */
+            jobId: string;
+            /** Resourceid */
+            resourceId?: string | null;
+            /**
+             * Status
+             * @default queued
+             */
+            status: string;
+        };
+        /** JobResponse */
+        JobResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Aggregateid
+             * Format: uuid
+             */
+            aggregateId: string;
+            /** Status */
+            status: string;
+            /** Attempt */
+            attempt: number;
+            /** Maxattempts */
+            maxAttempts: number;
+            /** Inputhash */
+            inputHash: string;
+            /** Progresscurrent */
+            progressCurrent?: number | null;
+            /** Progresstotal */
+            progressTotal?: number | null;
+            /** Nextretryat */
+            nextRetryAt?: string | null;
+            /**
+             * Terminaldeadlineat
+             * Format: date-time
+             */
+            terminalDeadlineAt: string;
+            /** Failurecode */
+            failureCode?: string | null;
+            /** Failuremessage */
+            failureMessage?: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Finishedat */
+            finishedAt?: string | null;
+            /** Pollafterseconds */
+            pollAfterSeconds?: number | null;
+            /**
+             * Recoveryactions
+             * @default []
+             */
+            recoveryActions: string[];
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /** MealPlanEntryResponse */
+        MealPlanEntryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Localdate
+             * Format: date
+             */
+            localDate: string;
+            /** Mealslot */
+            mealSlot: string;
+            /** Recipeid */
+            recipeId: string | null;
+            /** Recipetitle */
+            recipeTitle: string;
+            /** Servings */
+            servings: string;
+            /** Position */
+            position: number;
+            /**
+             * Refreshnutrition
+             * @default false
+             */
+            refreshNutrition: boolean;
+            nutrition: components["schemas"]["NutritionSnapshotResponse"];
+            /** Origin */
+            origin: string;
+            /** Version */
+            version: number;
+        };
+        /** MealPlanEntryWriteRequest */
+        MealPlanEntryWriteRequest: {
+            /**
+             * Localdate
+             * Format: date
+             */
+            localDate: string;
+            /** Mealslot */
+            mealSlot: string;
+            /**
+             * Recipeid
+             * Format: uuid
+             */
+            recipeId: string;
+            /** Servings */
+            servings: string;
+            /** Position */
+            position?: number | null;
+            /**
+             * Refreshnutrition
+             * @default false
+             */
+            refreshNutrition: boolean;
+        };
+        /** MealPlanResponse */
+        MealPlanResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Weekstart
+             * Format: date
+             */
+            weekStart: string;
+            /** Timezone */
+            timezone: string;
+            goal?: components["schemas"]["UserGoalResponse"] | null;
+            /** Entries */
+            entries: components["schemas"]["MealPlanEntryResponse"][];
+            /** Daytotals */
+            dayTotals: {
+                [key: string]: components["schemas"]["PeriodTotalResponse"];
+            };
+            weekTotal: components["schemas"]["PeriodTotalResponse"];
+            /**
+             * Grocerystatus
+             * @default absent
+             */
+            groceryStatus: string;
+            /** Version */
+            version: number;
+        };
+        /** MealTargetRequest */
+        MealTargetRequest: {
+            /** Mealslot */
+            mealSlot: string;
+            /** Calorieskcal */
+            caloriesKcal?: string | null;
+            /** Proteing */
+            proteinG?: string | null;
+            /** Carbohydrateg */
+            carbohydrateG?: string | null;
+            /** Fatg */
+            fatG?: string | null;
+        };
+        /** MealTargetResponse */
+        MealTargetResponse: {
+            /** Mealslot */
+            mealSlot: string;
+            /** Calorieskcal */
+            caloriesKcal?: string | null;
+            /** Proteing */
+            proteinG?: string | null;
+            /** Carbohydrateg */
+            carbohydrateG?: string | null;
+            /** Fatg */
+            fatG?: string | null;
+        };
+        /** MicronutrientValueResponse */
+        MicronutrientValueResponse: {
+            /** Value */
+            value: string | null;
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "g" | "mg" | "ug";
+            /** Explicitzero */
+            explicitZero: boolean;
+            /** Coverageratio */
+            coverageRatio: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "reference" | "source" | "manual" | "unavailable";
+            /** Mappingversion */
+            mappingVersion: string;
+            /** Usdanutrientid */
+            usdaNutrientId: number;
+        };
+        /** MicronutrientsResponse */
+        MicronutrientsResponse: {
+            dietaryFiberG: components["schemas"]["MicronutrientValueResponse"];
+            sodiumMg: components["schemas"]["MicronutrientValueResponse"];
+            potassiumMg: components["schemas"]["MicronutrientValueResponse"];
+            calciumMg: components["schemas"]["MicronutrientValueResponse"];
+            ironMg: components["schemas"]["MicronutrientValueResponse"];
+            magnesiumMg: components["schemas"]["MicronutrientValueResponse"];
+            vitaminCMg: components["schemas"]["MicronutrientValueResponse"];
+            vitaminDUg: components["schemas"]["MicronutrientValueResponse"];
+            vitaminB12Ug: components["schemas"]["MicronutrientValueResponse"];
+        };
+        /** NutritionCorrectionResponse */
+        NutritionCorrectionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ingredientid */
+            ingredientId?: string | null;
+            /** Field */
+            field: string;
+            /** Decimalvalue */
+            decimalValue?: string | null;
+            /** Textvalue */
+            textValue?: string | null;
+            /** Referenceidvalue */
+            referenceIdValue?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Active */
+            active: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** NutritionCorrectionWriteRequest */
+        NutritionCorrectionWriteRequest: {
+            /** Ingredientid */
+            ingredientId?: string | null;
+            /**
+             * Field
+             * @enum {string}
+             */
+            field: "quantity_min" | "quantity_max" | "unit" | "food_name" | "food_reference" | "grams" | "yield_quantity" | "calories_kcal" | "protein_g" | "carbohydrate_g" | "fat_g" | "dietary_fiber_g" | "sodium_mg" | "potassium_mg" | "calcium_mg" | "iron_mg" | "magnesium_mg" | "vitamin_c_mg" | "vitamin_d_ug" | "vitamin_b12_ug";
+            /** Decimalvalue */
+            decimalValue?: string | null;
+            /** Textvalue */
+            textValue?: string | null;
+            /** Referenceidvalue */
+            referenceIdValue?: string | null;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** NutritionSnapshotResponse */
+        NutritionSnapshotResponse: {
+            /** Basisservings */
+            basisServings: string;
+            /** Calorieskcal */
+            caloriesKcal: string | null;
+            /** Proteing */
+            proteinG: string | null;
+            /** Carbohydrateg */
+            carbohydrateG: string | null;
+            /** Fatg */
+            fatG: string | null;
+            /** Status */
+            status: string;
+            /** Coverageratio */
+            coverageRatio: string;
+            micronutrients: components["schemas"]["MicronutrientsResponse"];
+        };
+        /** OwnerFoodResponse */
+        OwnerFoodResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Displayname */
+            displayName: string;
+            /** Normalizedname */
+            normalizedName: string;
+            /** Brand */
+            brand?: string | null;
+            /** Calorieskcal */
+            caloriesKcal: string;
+            /** Proteing */
+            proteinG: string;
+            /** Carbohydrateg */
+            carbohydrateG: string;
+            /** Fatg */
+            fatG: string;
+            /** Basisgrams */
+            basisGrams: string;
+            /** Typicalservingg */
+            typicalServingG: string | null;
+            /** Typicalservingunit */
+            typicalServingUnit: string | null;
+            /** Version */
+            version: number;
+        };
+        /** OwnerFoodUpdateRequest */
+        OwnerFoodUpdateRequest: {
+            /** Displayname */
+            displayName: string;
+            /** Brand */
+            brand?: string | null;
+            /** Calorieskcal */
+            caloriesKcal: number | string;
+            /** Proteing */
+            proteinG: number | string;
+            /** Carbohydrateg */
+            carbohydrateG: number | string;
+            /** Fatg */
+            fatG: number | string;
+            /**
+             * Basisgrams
+             * @default 100.000
+             */
+            basisGrams: number | string;
+            /** Typicalservingg */
+            typicalServingG?: number | string | null;
+            /** Typicalservingunit */
+            typicalServingUnit?: string | null;
+            /** Expectedversion */
+            expectedVersion: number;
+        };
+        /** OwnerFoodWriteRequest */
+        OwnerFoodWriteRequest: {
+            /** Displayname */
+            displayName: string;
+            /** Brand */
+            brand?: string | null;
+            /** Calorieskcal */
+            caloriesKcal: number | string;
+            /** Proteing */
+            proteinG: number | string;
+            /** Carbohydrateg */
+            carbohydrateG: number | string;
+            /** Fatg */
+            fatG: number | string;
+            /**
+             * Basisgrams
+             * @default 100.000
+             */
+            basisGrams: number | string;
+            /** Typicalservingg */
+            typicalServingG?: number | string | null;
+            /** Typicalservingunit */
+            typicalServingUnit?: string | null;
+        };
+        /** OwnerOnboarding */
+        OwnerOnboarding: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "completed" | "dismissed";
+            /** Firstaction */
+            firstAction?: ("manual_recipe" | "import_recipe" | "view_plan") | null;
+            /** Referencedatachoice */
+            referenceDataChoice?: ("both" | "foundation_sr_legacy" | "none") | null;
+            /** Resolvedat */
+            resolvedAt?: string | null;
+            /** Version */
+            version: number;
+        };
+        /** OwnerPreferences */
+        OwnerPreferences: {
+            /** Displayname */
+            displayName: string;
+            /** Timezone */
+            timezone: string;
+            /** Weekstartson */
+            weekStartsOn: number;
+            /** Version */
+            version: number;
+        };
+        /** PantryDeductionApplyRequest */
+        PantryDeductionApplyRequest: {
+            /** Expectedgrocerylistversion */
+            expectedGroceryListVersion: number;
+            /** Groceryitemids */
+            groceryItemIds?: string[] | null;
+        };
+        /** PantryDeductionResponse */
+        PantryDeductionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Pantryitemid
+             * Format: uuid
+             */
+            pantryItemId: string;
+            /**
+             * Groceryitemid
+             * Format: uuid
+             */
+            groceryItemId: string;
+            /** Pantryquantity */
+            pantryQuantity: string;
+            /** Pantryunit */
+            pantryUnit: string;
+            /** Groceryquantity */
+            groceryQuantity: string;
+            /** Groceryunit */
+            groceryUnit: string;
+            /** Assumption */
+            assumption: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "applied" | "reversed";
+            /**
+             * Appliedat
+             * Format: date-time
+             */
+            appliedAt: string;
+            /** Reversedat */
+            reversedAt: string | null;
+            /** Version */
+            version: number;
+        };
+        /** PantryItemResponse */
+        PantryItemResponse: {
+            /** Displayname */
+            displayName: string;
+            /** Quantity */
+            quantity: string;
+            /** Unit */
+            unit: string;
+            /** Foodreferenceid */
+            foodReferenceId?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Normalizedfoodname */
+            normalizedFoodName: string;
+            /**
+             * Matchstatus
+             * @enum {string}
+             */
+            matchStatus: "unmatched" | "proposed" | "matched" | "manual";
+            /** Matchconfidence */
+            matchConfidence: string | null;
+            /** Version */
+            version: number;
+        };
+        /** PantryItemWriteRequest */
+        PantryItemWriteRequest: {
+            /** Displayname */
+            displayName: string;
+            /** Quantity */
+            quantity: string;
+            /** Unit */
+            unit: string;
+            /** Foodreferenceid */
+            foodReferenceId?: string | null;
+        };
+        /** PantryRecipeMatchResponse */
+        PantryRecipeMatchResponse: {
+            /**
+             * Recipeid
+             * Format: uuid
+             */
+            recipeId: string;
+            /** Recipetitle */
+            recipeTitle: string;
+            /**
+             * Availability
+             * @enum {string}
+             */
+            availability: "full" | "partial" | "none";
+            /** Coverageratio */
+            coverageRatio: string;
+            /** Missingingredients */
+            missingIngredients: string[];
+        };
+        /** PasswordChangeRequest */
+        PasswordChangeRequest: {
+            /** Currentpassword */
+            currentPassword: string;
+            /** Newpassword */
+            newPassword: string;
+        };
+        /** PeriodTotalResponse */
+        PeriodTotalResponse: {
+            /** Calorieskcal */
+            caloriesKcal: string | null;
+            /** Proteing */
+            proteinG: string | null;
+            /** Carbohydrateg */
+            carbohydrateG: string | null;
+            /** Fatg */
+            fatG: string | null;
+            /** Status */
+            status: string;
+            /** Coverageratio */
+            coverageRatio: string;
+            micronutrients: components["schemas"]["MicronutrientsResponse"];
+            targetDifference?: components["schemas"]["SignedMacroResponse"] | null;
+        };
+        /** PermanentDeleteRequest */
+        PermanentDeleteRequest: {
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "permanently-delete";
+        };
+        /** ProvenanceResponse */
+        ProvenanceResponse: {
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Sourceurl */
+            sourceUrl?: string | null;
+            /** Version */
+            version?: string | null;
+        };
+        /** RecalculateRequest */
+        RecalculateRequest: {
+            /**
+             * Resetcorrections
+             * @default false
+             */
+            resetCorrections: boolean;
+        };
+        /** RecipeCollectionResponse */
+        RecipeCollectionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: number;
+            /** Version */
+            version: number;
+            /** Recipecount */
+            recipeCount: number;
+        };
+        /** RecipeCollectionSummaryResponse */
+        RecipeCollectionSummaryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Position */
+            position: number;
+        };
+        /** RecipeCollectionWriteRequest */
+        RecipeCollectionWriteRequest: {
+            /** Name */
+            name?: string | null;
+            /** Position */
+            position?: number | null;
+        };
+        /** RecipeDetailResponse */
+        RecipeDetailResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sourceurl */
+            sourceUrl?: string | null;
+            /** Imageurl */
+            imageUrl?: string | null;
+            /** Yieldquantity */
+            yieldQuantity: string;
+            /** Yieldunit */
+            yieldUnit: string;
+            /** Status */
+            status: string;
+            /** Archivedfromstatus */
+            archivedFromStatus?: string | null;
+            /** Nutritionstate */
+            nutritionState: string;
+            nutrition?: components["schemas"]["ResolvedNutritionResponse"] | null;
+            /** Version */
+            version: number;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /**
+             * Favorite
+             * @default false
+             */
+            favorite: boolean;
+            /**
+             * Collections
+             * @default []
+             */
+            collections: components["schemas"]["RecipeCollectionSummaryResponse"][];
+            /**
+             * Mealroles
+             * @default []
+             */
+            mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+            /** Description */
+            description?: string | null;
+            /** Ingredients */
+            ingredients: components["schemas"]["IngredientResponse"][];
+            /** Instructions */
+            instructions: string[];
+            activeJob?: components["schemas"]["JobResponse"] | null;
+        };
+        /** RecipeOrganizationWriteRequest */
+        RecipeOrganizationWriteRequest: {
+            /** Favorite */
+            favorite: boolean;
+            /** Collectionids */
+            collectionIds: string[];
+            /** Mealroles */
+            mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+        };
+        /** RecipePageResponse */
+        RecipePageResponse: {
+            /** Items */
+            items: components["schemas"]["RecipeResponse"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** RecipeResponse */
+        RecipeResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Sourceurl */
+            sourceUrl?: string | null;
+            /** Imageurl */
+            imageUrl?: string | null;
+            /** Yieldquantity */
+            yieldQuantity: string;
+            /** Yieldunit */
+            yieldUnit: string;
+            /** Status */
+            status: string;
+            /** Archivedfromstatus */
+            archivedFromStatus?: string | null;
+            /** Nutritionstate */
+            nutritionState: string;
+            nutrition?: components["schemas"]["ResolvedNutritionResponse"] | null;
+            /** Version */
+            version: number;
+            /**
+             * Updatedat
+             * Format: date-time
+             */
+            updatedAt: string;
+            /**
+             * Favorite
+             * @default false
+             */
+            favorite: boolean;
+            /**
+             * Collections
+             * @default []
+             */
+            collections: components["schemas"]["RecipeCollectionSummaryResponse"][];
+            /**
+             * Mealroles
+             * @default []
+             */
+            mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+        };
+        /** RecipeSourceImageChoiceRequest */
+        RecipeSourceImageChoiceRequest: {
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+        };
+        /** RecipeSourceImageResponse */
+        RecipeSourceImageResponse: {
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+        };
+        /** RecipeWriteRequest */
+        RecipeWriteRequest: {
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /** Sourceurl */
+            sourceUrl?: string | null;
+            /** Yieldquantity */
+            yieldQuantity: string;
+            /**
+             * Yieldunit
+             * @default servings
+             */
+            yieldUnit: string;
+            /** Ingredients */
+            ingredients: components["schemas"]["IngredientWriteRequest"][];
+            /**
+             * Instructions
+             * @default []
+             */
+            instructions: string[];
+        };
+        /** ReferenceDataInstallRequest */
+        ReferenceDataInstallRequest: {
+            /** Datasets */
+            datasets: ("foundation_sr_legacy" | "branded")[];
+        };
+        /** ReferenceDataStatusResponse */
+        ReferenceDataStatusResponse: {
+            /** Available */
+            available: boolean;
+            /** Missing */
+            missing: string[];
+            /** Releases */
+            releases: components["schemas"]["ReferenceRelease"][];
+            /** Requesteddatasets */
+            requestedDatasets?: string[] | null;
+            job?: components["schemas"]["JobResponse"] | null;
+        };
+        /** ReferenceRelease */
+        ReferenceRelease: {
+            /** Datasettype */
+            datasetType: string;
+            /** Releaseid */
+            releaseId: string;
+            /** Releasedon */
+            releasedOn: string;
+            /** Sourceurl */
+            sourceUrl: string;
+            /** License */
+            license: string;
+            /** Reviewoverdue */
+            reviewOverdue: boolean;
+        };
+        /** ResolvedNutritionResponse */
+        ResolvedNutritionResponse: {
+            /** Status */
+            status: string;
+            /** Basisservings */
+            basisServings: string;
+            /** Coverageratio */
+            coverageRatio: string;
+            /** Calorieskcal */
+            caloriesKcal?: string | null;
+            /** Proteing */
+            proteinG?: string | null;
+            /** Carbohydrateg */
+            carbohydrateG?: string | null;
+            /** Fatg */
+            fatG?: string | null;
+            micronutrients: components["schemas"]["MicronutrientsResponse"];
+            /** Provenance */
+            provenance: components["schemas"]["ProvenanceResponse"][];
+            /**
+             * Assumptions
+             * @default []
+             */
+            assumptions: string[];
+            /**
+             * Corrections
+             * @default []
+             */
+            corrections: components["schemas"]["NutritionCorrectionResponse"][];
+        };
+        /** SessionItem */
+        SessionItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Clientlabel */
+            clientLabel: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /**
+             * Lastseenat
+             * Format: date-time
+             */
+            lastSeenAt: string;
+            /** Iscurrent */
+            isCurrent: boolean;
+        };
+        /** SessionListResponse */
+        SessionListResponse: {
+            /** Sessions */
+            sessions: components["schemas"]["SessionItem"][];
+        };
+        /** SignedMacroResponse */
+        SignedMacroResponse: {
+            /** Calorieskcal */
+            caloriesKcal: string | null;
+            /** Proteing */
+            proteinG: string | null;
+            /** Carbohydrateg */
+            carbohydrateG: string | null;
+            /** Fatg */
+            fatG: string | null;
+        };
+        /** SuggestedNutrition */
+        SuggestedNutrition: {
+            /** Basisservings */
+            basisServings: string;
+            /** Calorieskcal */
+            caloriesKcal: string;
+            /** Proteing */
+            proteinG: string;
+            /** Carbohydrateg */
+            carbohydrateG: string;
+            /** Fatg */
+            fatG: string;
+            /** Status */
+            status: string;
+            /** Coverageratio */
+            coverageRatio: string;
+        };
+        /** SuggestionAcceptanceRequest */
+        SuggestionAcceptanceRequest: {
+            /** Selecteditemids */
+            selectedItemIds: string[];
+            /** Expectedplanversion */
+            expectedPlanVersion: number;
+        };
+        /** SuggestionDistanceResponse */
+        SuggestionDistanceResponse: {
+            /** Calories */
+            calories: string;
+            /** Protein */
+            protein: string;
+            /** Carbohydrates */
+            carbohydrates: string;
+            /** Fat */
+            fat: string;
+            /** Repetitionoverage */
+            repetitionOverage: number;
+            /** Missingrequiredrecipes */
+            missingRequiredRecipes: number;
+        };
+        /** SuggestionItemResponse */
+        SuggestionItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Recipeid */
+            recipeId: string | null;
+            /** Recipetitle */
+            recipeTitle: string;
+            /**
+             * Localdate
+             * Format: date
+             */
+            localDate: string;
+            /** Mealslot */
+            mealSlot: string;
+            /** Servings */
+            servings: string;
+            projectedNutrition: components["schemas"]["SuggestedNutrition"];
+            /** Accepted */
+            accepted: boolean;
+        };
+        /** SuggestionMacroValues */
+        SuggestionMacroValues: {
+            /** Calorieskcal */
+            caloriesKcal: string;
+            /** Proteing */
+            proteinG: string;
+            /** Carbohydrateg */
+            carbohydrateG: string;
+            /** Fatg */
+            fatG: string;
+        };
+        /** SuggestionRequest */
+        SuggestionRequest: {
+            /** Scope */
+            scope: string;
+            /**
+             * Weekstart
+             * Format: date
+             */
+            weekStart: string;
+            /** Localdate */
+            localDate?: string | null;
+            /** Mealslot */
+            mealSlot?: string | null;
+            tolerances: components["schemas"]["SuggestionMacroValues"];
+            /**
+             * Excludedrecipeids
+             * @default []
+             */
+            excludedRecipeIds: string[];
+            /**
+             * Requiredrecipeids
+             * @default []
+             */
+            requiredRecipeIds: string[];
+            /**
+             * Maxreciperepetitions
+             * @default 3
+             */
+            maxRecipeRepetitions: number;
+        };
+        /** SuggestionResultResponse */
+        SuggestionResultResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            request: components["schemas"]["SuggestionRequest"];
+            target: components["schemas"]["SuggestionMacroValues"];
+            /** Items */
+            items: components["schemas"]["SuggestionItemResponse"][];
+            /** Projecteddaytotals */
+            projectedDayTotals: {
+                [key: string]: unknown;
+            };
+            /** Projectedweektotal */
+            projectedWeekTotal: {
+                [key: string]: unknown;
+            } | null;
+            /** Missedconstraints */
+            missedConstraints: string[];
+            /** Unmetconstraintcount */
+            unmetConstraintCount: number | null;
+            /** Objectivescore */
+            objectiveScore: string | null;
+            distanceComponents: components["schemas"]["SuggestionDistanceResponse"] | null;
+            /** Planversion */
+            planVersion: number;
+            /** Failurecode */
+            failureCode: string | null;
+            /**
+             * Ranking
+             * @default fewest-unmet,weighted-4-3-1-1-2-5,fewer-entries,ordered-recipe-ids
+             */
+            ranking: string;
+            /**
+             * Planningnotice
+             * @default Planning aid only—not medical advice.
+             */
+            planningNotice: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Expiresat */
+            expiresAt: string | null;
+        };
+        /** UserGoalResponse */
+        UserGoalResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mode */
+            mode: string;
+            /** Maintenancekcal */
+            maintenanceKcal: string;
+            /** Calorieskcal */
+            caloriesKcal: string;
+            /** Proteing */
+            proteinG: string;
+            /** Carbohydrateg */
+            carbohydrateG: string;
+            /** Fatg */
+            fatG: string;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /** Effectiveto */
+            effectiveTo?: string | null;
+            /**
+             * Mealtargets
+             * @default []
+             */
+            mealTargets: components["schemas"]["MealTargetResponse"][];
+            /** Macrocaloriedifference */
+            macroCalorieDifference?: string | null;
+            /** Version */
+            version: number;
+        };
+        /** UserGoalWriteRequest */
+        UserGoalWriteRequest: {
+            /** Mode */
+            mode: string;
+            /** Maintenancekcal */
+            maintenanceKcal: string;
+            /** Calorieskcal */
+            caloriesKcal: string;
+            /** Proteing */
+            proteinG: string;
+            /** Carbohydrateg */
+            carbohydrateG: string;
+            /** Fatg */
+            fatG: string;
+            /**
+             * Effectivefrom
+             * Format: date
+             */
+            effectiveFrom: string;
+            /** Effectiveto */
+            effectiveTo?: string | null;
+            /**
+             * Mealtargets
+             * @default []
+             */
+            mealTargets: components["schemas"]["MealTargetRequest"][];
+        };
+        /** ValidationError */
         ValidationError: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["Problem"];
-            };
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
-    parameters: {
-        RecipeId: string;
-        EntryId: string;
-        WeekStart: string;
-        Cursor: string;
-        Limit: number;
-        IdempotencyKey: string;
-        IfMatchVersion: string;
-        IfMatchVersionOptional: string;
-    };
+    responses: never;
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -1510,13 +2315,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Process is healthy and required dependencies are reachable. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Health"];
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
         };
@@ -1534,14 +2339,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Session and CSRF cookies set. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            401: components["responses"]["Unauthorized"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     deleteSession: {
@@ -1553,12 +2366,92 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current session revoked. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+        };
+    };
+    revoke_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -1571,7 +2464,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Owner calendar preferences used for local plan dates. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1595,7 +2488,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated owner calendar preferences. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1604,8 +2497,15 @@ export interface operations {
                     "application/json": components["schemas"]["OwnerPreferences"];
                 };
             };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     getOwnerOnboarding: {
@@ -1617,7 +2517,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The owner's first-run journey state. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1641,7 +2541,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The resolved first-run journey state. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1650,40 +2550,38 @@ export interface operations {
                     "application/json": components["schemas"]["OwnerOnboarding"];
                 };
             };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    listRecipes: {
+    listAccessTokens: {
         parameters: {
-            query?: {
-                cursor?: components["parameters"]["Cursor"];
-                limit?: components["parameters"]["Limit"];
-                query?: string;
-                nutritionState?: components["schemas"]["NutritionState"];
-                includeArchived?: boolean;
-                favorite?: boolean;
-                collectionId?: string;
-                mealRole?: "breakfast" | "lunch" | "dinner" | "snack";
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Cursor-paginated recipes. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipePage"];
+                    "application/json": components["schemas"]["AccessTokenResponse"][];
                 };
             };
         };
     };
-    createRecipe: {
+    createAccessToken: {
         parameters: {
             query?: never;
             header?: never;
@@ -1692,507 +2590,59 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RecipeWrite"];
+                "application/json": components["schemas"]["AccessTokenWriteRequest"];
             };
         };
         responses: {
-            /** @description Recipe created; nutrition processing may be pending. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Recipe"];
+                    "application/json": components["schemas"]["AccessTokenCreatedResponse"];
                 };
             };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    importRecipe: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uri */
-                    url: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Import accepted. */
-            202: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobAccepted"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            400: components["responses"]["BadRequest"];
-            409: components["responses"]["Conflict"];
         };
     };
-    getRecipe: {
+    revokeAccessToken: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
-                recipeId: components["parameters"]["RecipeId"];
+                tokenId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Recipe with active resolved nutrition and provenance. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    archiveRecipe: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Recipe archived; historical snapshots remain. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    updateRecipe: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecipeWrite"];
-            };
-        };
-        responses: {
-            /** @description Updated recipe; stale nutrition is identified in the response. */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    listRecipeCollections: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Personal recipe collections in display order. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeCollection"][];
-                };
-            };
-        };
-    };
-    createRecipeCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecipeCollectionWrite"];
-            };
-        };
-        responses: {
-            /** @description Collection created. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeCollection"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    replaceRecipeOrganization: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecipeOrganizationWrite"];
-            };
-        };
-        responses: {
-            /** @description Recipe after its optional organization is replaced. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    deleteRecipeCollection: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                collectionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Collection deleted; recipe memberships only are removed. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    updateRecipeCollection: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                collectionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecipeCollectionWrite"];
-            };
-        };
-        responses: {
-            /** @description Collection renamed or reordered. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeCollection"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    replaceRecipePhoto: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["RecipePhotoUpload"];
-            };
-        };
-        responses: {
-            /** @description Recipe with the normalized replacement photo. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    removeRecipePhoto: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Recipe after its optional photo is removed. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    listRecipeSourceImages: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Usable image choices discovered on the original recipe page. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeSourceImage"][];
-                };
-            };
-        };
-    };
-    replaceRecipePhotoFromSource: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RecipeSourceImage"];
-            };
-        };
-        responses: {
-            /** @description Recipe with the selected source photo normalized and stored. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    restoreRecipe: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Recipe restored to its prior usable state or with stale nutrition and a recovery action. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecipeDetail"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    permanentlyDeleteRecipe: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @constant */
-                    confirmation: "permanently-delete";
-                };
-            };
-        };
-        responses: {
-            /** @description Archived recipe permanently deleted; historical snapshots and grocery provenance remain detached. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    recalculateRecipeNutrition: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /**
-                     * @description Must be explicitly true to reset active corrections.
-                     * @default false
-                     */
-                    resetCorrections?: boolean;
-                };
-            };
-        };
-        responses: {
-            /** @description Recalculation accepted; unchanged active corrections remain authoritative. */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JobAccepted"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    createNutritionCorrection: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NutritionCorrectionWrite"];
-            };
-        };
-        responses: {
-            /** @description Correction activated and resolved nutrition updated. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResolvedNutrition"];
-                };
-            };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    resetNutritionCorrection: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                recipeId: components["parameters"]["RecipeId"];
-                correctionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Correction reset; automatic resolved value is active. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResolvedNutrition"];
-                };
-            };
-            404: components["responses"]["NotFound"];
         };
     };
     getCurrentJob: {
@@ -2207,16 +2657,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Latest authoritative processing state for the aggregate, including terminal state. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Job"];
+                    "application/json": components["schemas"]["JobResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     getJob: {
@@ -2230,48 +2688,195 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Authoritative processing state. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Job"];
+                    "application/json": components["schemas"]["JobResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    getRecipeMedia: {
+    listRecipeCollections: {
         parameters: {
             query?: never;
             header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollectionResponse"][];
+                };
+            };
+        };
+    };
+    createRecipeCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeCollectionWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteRecipeCollection: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
             path: {
-                assetId: string;
+                collectionId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Owner-authorized transformed recipe image with immutable private caching. */
-            200: {
+            /** @description Successful Response */
+            204: {
                 headers: {
-                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "image/webp": string;
-                    "image/jpeg": string;
-                    "image/png": string;
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            404: components["responses"]["NotFound"];
         };
     };
-    getCurrentGoal: {
+    updateRecipeCollection: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeCollectionWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeCollectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replaceRecipeOrganization: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeOrganizationWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listRecipes: {
         parameters: {
             query?: {
-                onDate?: string;
+                cursor?: string | null;
+                limit?: number;
+                query?: string | null;
+                nutritionState?: string | null;
+                favorite?: boolean | null;
+                collectionId?: string | null;
+                mealRole?: string | null;
+                includeArchived?: boolean;
             };
             header?: never;
             path?: never;
@@ -2279,44 +2884,573 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Goal effective on the requested local date. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserGoal"];
+                    "application/json": components["schemas"]["RecipePageResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    putCurrentGoal: {
+    createRecipe: {
         parameters: {
             query?: never;
-            header?: {
-                "If-Match"?: components["parameters"]["IfMatchVersionOptional"];
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    importRecipe: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UserGoalWrite"];
+                "application/json": components["schemas"]["ImportRecipeRequest"];
             };
         };
         responses: {
-            /** @description Goal created or replaced for its effective period. */
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getRecipe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserGoal"];
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archiveRecipe: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateRecipe: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replaceRecipePhoto: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_replaceRecipePhoto"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    removeRecipePhoto: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_recipe_source_images: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeSourceImageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_recipe_photo_from_source: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeSourceImageChoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restoreRecipe: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    permanentlyDeleteRecipe: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermanentDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recalculateRecipeNutrition: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecalculateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createNutritionCorrection: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NutritionCorrectionWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedNutritionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resetNutritionCorrection: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                recipeId: string;
+                correctionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedNutritionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getCurrentGoal: {
+        parameters: {
+            query?: {
+                onDate?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGoalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    putCurrentGoal: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserGoalWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserGoalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     getMealPlan: {
@@ -2324,205 +3458,137 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                weekStart: components["parameters"]["WeekStart"];
+                weekStart: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Seven-day plan, resolved snapshots, totals, and target differences. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MealPlan"];
+                    "application/json": components["schemas"]["MealPlanResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     addMealPlanEntry: {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
-                weekStart: components["parameters"]["WeekStart"];
+                weekStart: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MealPlanEntryWrite"];
+                "application/json": components["schemas"]["MealPlanEntryWriteRequest"];
             };
         };
         responses: {
-            /** @description Entry created with an immutable resolved nutrition snapshot. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MealPlanEntry"];
+                    "application/json": components["schemas"]["MealPlanEntryResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     deleteMealPlanEntry: {
         parameters: {
             query?: never;
             header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
             };
             path: {
-                entryId: components["parameters"]["EntryId"];
+                entryId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Entry removed and grocery list marked dirty. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     updateMealPlanEntry: {
         parameters: {
             query?: never;
             header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
             };
             path: {
-                entryId: components["parameters"]["EntryId"];
+                entryId: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MealPlanEntryWrite"];
+                "application/json": components["schemas"]["MealPlanEntryWriteRequest"];
             };
         };
         responses: {
-            /** @description Entry updated; changed servings create a replacement snapshot. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MealPlanEntry"];
+                    "application/json": components["schemas"]["MealPlanEntryResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    getGroceryList: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                weekStart: components["parameters"]["WeekStart"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current or dirty grocery list with traceable sources. */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryList"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    regenerateGroceryList: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                weekStart: components["parameters"]["WeekStart"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List regenerated and manual/check state reconciled. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GroceryList"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    completeGroceryList: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                weekStart: components["parameters"]["WeekStart"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Completed shopping pass retained with its source evidence. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GroceryList"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    reopenGroceryList: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-            };
-            path: {
-                weekStart: components["parameters"]["WeekStart"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Completed shopping pass made active explicitly. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GroceryList"];
-                };
-            };
-            409: components["responses"]["Conflict"];
         };
     };
     listGroceryShoppingStops: {
@@ -2534,13 +3600,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The owner's shopping destinations in their chosen order. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryShoppingStop"][];
+                    "application/json": components["schemas"]["GroceryShoppingStopResponse"][];
                 };
             };
         };
@@ -2554,27 +3620,35 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GroceryShoppingStopWrite"];
+                "application/json": components["schemas"]["GroceryShoppingStopCreateRequest"];
             };
         };
         responses: {
-            /** @description Shopping destination created. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryShoppingStop"];
+                    "application/json": components["schemas"]["GroceryShoppingStopResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     deleteGroceryShoppingStop: {
         parameters: {
             query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
+            header?: {
+                "If-Match"?: string | null;
             };
             path: {
                 stopId: string;
@@ -2583,21 +3657,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Stop deleted and assignments safely cleared. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     updateGroceryShoppingStop: {
         parameters: {
             query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
+            header?: {
+                "If-Match"?: string | null;
             };
             path: {
                 stopId: string;
@@ -2606,103 +3688,265 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GroceryShoppingStopWrite"];
+                "application/json": components["schemas"]["GroceryShoppingStopWriteRequest"];
             };
         };
         responses: {
-            /** @description Shopping destination renamed or reordered. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryShoppingStop"];
+                    "application/json": components["schemas"]["GroceryShoppingStopResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    deleteGroceryItem: {
+    getGroceryList: {
         parameters: {
             query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
+            header?: never;
             path: {
-                itemId: string;
+                weekStart: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Manual or generated grocery item removed without changing recipe definitions. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    updateGroceryItem: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                itemId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GroceryItemWrite"];
-            };
-        };
-        responses: {
-            /** @description Grocery item updated without changing recipe ingredients. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryItem"];
+                    "application/json": components["schemas"]["GroceryListResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerateGroceryList: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                weekStart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    completeGroceryList: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                weekStart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopenGroceryList: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                weekStart: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     createGroceryItem: {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
-                weekStart: components["parameters"]["WeekStart"];
+                weekStart: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GroceryItemCreate"];
+                "application/json": components["schemas"]["GroceryItemCreateRequest"];
             };
         };
         responses: {
-            /** @description Manual grocery item created. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroceryItem"];
+                    "application/json": components["schemas"]["GroceryItemResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteGroceryItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
+            };
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    updateGroceryItem: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
+            };
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroceryItemWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     listPantryItems: {
@@ -2714,13 +3958,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Pantry inventory with exact quantities and reviewable matches. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryItem"][];
+                    "application/json": components["schemas"]["PantryItemResponse"][];
                 };
             };
         };
@@ -2729,35 +3973,43 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PantryItemWrite"];
+                "application/json": components["schemas"]["PantryItemWriteRequest"];
             };
         };
         responses: {
-            /** @description Pantry item created; ambiguous matches remain reviewable. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryItem"];
+                    "application/json": components["schemas"]["PantryItemResponse"];
                 };
             };
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     deletePantryItem: {
         parameters: {
             query?: never;
             header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
             };
             path: {
                 itemId: string;
@@ -2766,22 +4018,30 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Pantry item removed when no applied deduction depends on it. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     updatePantryItem: {
         parameters: {
             query?: never;
             header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
             };
             path: {
                 itemId: string;
@@ -2790,20 +4050,28 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PantryItemWrite"];
+                "application/json": components["schemas"]["PantryItemWriteRequest"];
             };
         };
         responses: {
-            /** @description Quantity or manual food-reference match updated. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryItem"];
+                    "application/json": components["schemas"]["PantryItemResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     findMakeableRecipes: {
@@ -2818,13 +4086,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Fully makeable recipes first, then partial matches with missing ingredients. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryRecipeMatch"][];
+                    "application/json": components["schemas"]["PantryRecipeMatchResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2833,37 +4110,45 @@ export interface operations {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
-                weekStart: components["parameters"]["WeekStart"];
+                weekStart: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PantryDeductionApply"];
+                "application/json": components["schemas"]["PantryDeductionApplyRequest"];
             };
         };
         responses: {
-            /** @description Only exact safe matches deducted; every result remains visible and reversible. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryDeduction"][];
+                    "application/json": components["schemas"]["PantryDeductionResponse"][];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     reversePantryDeduction: {
         parameters: {
             query?: never;
             header: {
-                "If-Match": components["parameters"]["IfMatchVersion"];
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "If-Match"?: string | null;
+                "Idempotency-Key": string;
             };
             path: {
                 deductionId: string;
@@ -2872,43 +4157,57 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Deducted pantry and grocery quantities restored exactly. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PantryDeduction"];
+                    "application/json": components["schemas"]["PantryDeductionResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     createPortableExport: {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": {
-                    /** @default true */
-                    includeMedia?: boolean;
-                };
+                "application/json": components["schemas"]["ExportRequest"];
             };
         };
         responses: {
-            /** @description Export accepted. */
+            /** @description Successful Response */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobAccepted"];
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2924,99 +4223,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description One-time portable export archive download. */
+            /** @description Successful Response */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/zip": string;
-                };
-            };
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-            /** @description The one-time download has already been consumed. */
-            410: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-        };
-    };
-    listAccessTokens: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Token metadata; raw token secrets are never returned. */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccessToken"][];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-        };
-    };
-    createAccessToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccessTokenWrite"];
-            };
-        };
-        responses: {
-            /** @description Token created; secret is returned exactly once. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccessTokenCreated"];
-                };
-            };
-            422: components["responses"]["ValidationError"];
-        };
-    };
-    revokeAccessToken: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                tokenId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Token revoked immediately. */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
         };
     };
     createSuggestion: {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path?: never;
             cookie?: never;
@@ -3027,13 +4256,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Deterministic optimization accepted. */
+            /** @description Successful Response */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["JobAccepted"];
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3049,23 +4287,31 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Suggestion progress or terminal feasible/infeasible result with projected totals. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuggestionResult"];
+                    "application/json": components["schemas"]["SuggestionResultResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     acceptSuggestion: {
         parameters: {
             query?: never;
             header: {
-                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                "Idempotency-Key": string;
             };
             path: {
                 suggestionId: string;
@@ -3074,87 +4320,59 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SuggestionAcceptance"];
+                "application/json": components["schemas"]["SuggestionAcceptanceRequest"];
             };
         };
         responses: {
-            /** @description Selected suggestion items accepted through normal plan mutations; totals equal the preview. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MealPlan"];
+                    "application/json": components["schemas"]["MealPlanResponse"];
                 };
             };
-            409: components["responses"]["Conflict"];
-        };
-    };
-    list_sessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Active sessions with the current session flagged. */
-            200: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionListResponse"];
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            401: components["responses"]["Unauthorized"];
         };
     };
-    revoke_session: {
+    getRecipeMedia: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                session_id: string;
+                assetId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Session revoked; the current session is also signed out. */
-            204: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": unknown;
+                };
             };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    change_password: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordChangeRequest"];
-            };
-        };
-        responses: {
-            /** @description Password changed; all other sessions revoked. */
-            204: {
+            /** @description Validation Error */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
-            401: components["responses"]["Unauthorized"];
-            422: components["responses"]["ValidationError"];
         };
     };
     search_foods: {
@@ -3168,7 +4386,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Matching reference and owner food candidates. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3177,13 +4395,21 @@ export interface operations {
                     "application/json": components["schemas"]["FoodSearchResponse"];
                 };
             };
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     list_user_foods: {
         parameters: {
             query?: {
-                q?: string;
+                q?: string | null;
             };
             header?: never;
             path?: never;
@@ -3191,13 +4417,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Owner-created foods, optionally filtered by name. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["OwnerFoodResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3215,7 +4450,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created owner food. */
+            /** @description Successful Response */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -3224,7 +4459,15 @@ export interface operations {
                     "application/json": components["schemas"]["OwnerFoodResponse"];
                 };
             };
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     update_user_food: {
@@ -3242,7 +4485,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated owner food. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3251,9 +4494,15 @@ export interface operations {
                     "application/json": components["schemas"]["OwnerFoodResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationError"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     delete_user_food: {
@@ -3269,15 +4518,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Owner food deleted. */
+            /** @description Successful Response */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     list_ingredient_candidates: {
@@ -3292,7 +4548,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Matching reference and owner food candidates for the ingredient. */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3301,7 +4557,70 @@ export interface operations {
                     "application/json": components["schemas"]["FoodSearchResponse"];
                 };
             };
-            404: components["responses"]["NotFound"];
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_reference_data_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferenceDataStatusResponse"];
+                };
+            };
+        };
+    };
+    install_reference_data: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceDataInstallRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
 }
