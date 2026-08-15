@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from cookfully.application.reference_data import (
     PINNED_RELEASES,
-    PinnedRelease,
     install_input_hash,
 )
 
