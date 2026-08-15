@@ -54,8 +54,10 @@ install path calls them from the worker with the same settings, which is already
 
 - `GET /reference-data/status` — owner-scoped. Returns `release_status()` output (available,
   missing, active releases with license/release date/review-overdue) plus the latest install job's
-  progress: phase (`downloading` | `importing` | `activating`), percent, state
-  (`running` | `succeeded` | `failed`).
+  progress: percent (0–100 via the shared `progress_current`/`progress_total` fields), status
+  (`running` | `succeeded` | `failed`), and failure message on failure. Phase granularity
+  (downloading/importing/activating) is intentionally not stored — the shared `processing_jobs`
+  table has no phase column, and percent progress communicates the same state to users.
 - `POST /reference-data/install` — owner-scoped. Body `{"datasets": ["foundation_sr_legacy",
   "branded"]}`. Creates one install job (aggregate type `reference_data` with a fixed sentinel
   aggregate id defined as a code constant, so `latest_for_aggregate` always finds the latest
@@ -66,13 +68,17 @@ install path calls them from the worker with the same settings, which is already
     existing job-hash rule.
 - Worker task (`cookfully.jobs.reference_data_install`):
   1. For each requested unit, in order: download the pinned zip via HTTPX (streamed to a temp
-     directory), report progress by phase.
+     directory), report progress by percent.
   2. `import_release(path, dataset_type=..., release_id=..., released_on=..., source_url=...)`
      for foundation and sr_legacy (or branded) — one transaction, so a malformed file leaves zero
      rows.
   3. `activate_release(dataset_id)` for each imported dataset (supersedes older active releases of
      the same type, existing behavior).
   4. Delete the temp zip in a `finally` block — after success and after failure (bounded disk).
+  - The shared job policy assumes short jobs: heartbeat staleness is 60 seconds and the terminal
+    deadline is 15 minutes. The install request therefore extends the job's `terminal_deadline_at`
+    to 6 hours (long downloads), and the handler calls `jobs.heartbeat` every 30 seconds while
+    downloading or importing so the job is never misread as stalled.
 - Auth: existing owner-scoped session auth; no new roles.
 
 ### Onboarding
