@@ -50,7 +50,7 @@ describe("FirstRunJourney", () => {
     renderJourney();
     const user = userEvent.setup();
 
-await user.click(screen.getByRole("button", { name: "Skip welcome" }));
+    await user.click(screen.getByRole("button", { name: "Skip welcome" }));
     await waitFor(() => expect(screen.queryByRole("heading", { name: "Start with a recipe you already love." })).not.toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/owner/onboarding"), expect.objectContaining({ method: "PUT" }));
   });

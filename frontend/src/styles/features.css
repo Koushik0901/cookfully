@@ -608,6 +608,13 @@
 .first-run__actions,
 .first-run__secondary-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; }
 .first-run__secondary-actions { border-top: 1px solid var(--color-outline-variant); padding-top: 0.65rem; }
+.first-run__actions--stacked { display: grid; grid-template-columns: 1fr; }
+.option-card { display: grid; gap: 0.35rem; width: 100%; border: 1px solid var(--color-card-raised-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-card-raised); box-shadow: var(--shadow-card-raised); text-align: left; cursor: pointer; transition: background-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
+.option-card:hover { background: var(--color-surface-bright); }
+.option-card:disabled { cursor: not-allowed; opacity: 0.62; }
+.option-card strong { font-size: 1rem; font-weight: 620; }
+.option-card span { color: var(--color-on-surface-variant); font-size: 0.8rem; }
+.badge { display: inline-flex; width: fit-content; align-items: center; border-radius: var(--radius-full); padding: 0.2rem 0.55rem; color: var(--color-on-primary-container); background: var(--color-primary-container); font-size: 0.72rem; font-weight: 650; line-height: 1; vertical-align: middle; }
 
 /* Cook mode — large, calm and built for the kitchen. */
 .cook-mode { position: fixed; z-index: 100; inset: 0; width: 100vw; height: 100dvh; min-height: 100dvh; overflow: auto; color: var(--color-on-primary); background: var(--color-herb-950); }
