@@ -37,6 +37,7 @@ from cookfully.infrastructure.models.recipes import (
     RecipeInstruction,
     RecipeMealRole,
 )
+from cookfully.infrastructure.models.reference_data_installs import ReferenceDataInstall
 from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
@@ -75,6 +76,7 @@ __all__ = [
     "RecipeCollectionMembership",
     "RecipeInstruction",
     "RecipeMealRole",
+    "ReferenceDataInstall",
     "ReferenceDataset",
     "RememberedGroceryPlacement",
     "SessionRecord",
