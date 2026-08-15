@@ -265,6 +265,11 @@ class JobService:
         self._terminal(job, "superseded", superseded_at)
         return job
 
+    def supersede(self, job_id: UUID, *, now: datetime | None = None) -> ProcessingJob:
+        superseded_at = now or utc_now()
+        with self._session_factory.begin() as session:
+            return self.supersede_in_session(session, job_id, now=superseded_at)
+
     def release_due_retries(self, *, now: datetime | None = None) -> list[UUID]:
         checked_at = now or utc_now()
         with self._session_factory.begin() as session:
