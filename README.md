@@ -45,6 +45,22 @@ client under `frontend/`, and Docker Compose deployment assets under `deploy/`.
 | `docs/` | Product, nutrition, operations, and integration documentation |
 | `specs/` | Contracts, plans, and the development quickstart |
 
+## Try it now (Docker)
+
+The fastest way to see Cookfully running is the Docker Compose stack — no Node or Python install
+required:
+
+```bash
+git clone https://github.com/Koushik0901/cookfully.git
+cd cookfully
+cp deploy/.env.example deploy/.env   # then fill in the three required secrets
+docker compose -f deploy/compose.yaml up -d --build
+```
+
+Then open <http://localhost:8080> and sign in with `owner@example.com` and the password you set in
+`deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). Full instructions, what to try, and
+troubleshooting are in [docs/docker-quickstart.md](docs/docker-quickstart.md).
+
 ## Develop and verify
 
 Install the required Python and Node toolchains, then use these checks from the repository root:
