@@ -158,6 +158,7 @@ def test_onboarding_is_optional_and_resolves_once(
         assert pending.json() == {
             "state": "pending",
             "firstAction": None,
+            "referenceDataChoice": None,
             "resolvedAt": None,
             "version": 1,
         }

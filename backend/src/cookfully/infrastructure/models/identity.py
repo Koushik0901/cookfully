@@ -60,6 +60,7 @@ class OwnerOnboardingState(Base):
     )
     state: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     first_action: Mapped[str | None] = mapped_column(String(24))
+    reference_data_choice: Mapped[str | None] = mapped_column(String(32))
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 

@@ -29,6 +29,9 @@ class OwnerOnboarding(BaseModel):
     first_action: Literal["manual_recipe", "import_recipe", "view_plan"] | None = Field(
         alias="firstAction", default=None
     )
+    reference_data_choice: Literal["both", "foundation_sr_legacy", "none"] | None = Field(
+        alias="referenceDataChoice", default=None
+    )
     resolved_at: datetime | None = Field(alias="resolvedAt", default=None)
     version: int = Field(ge=1)
 
@@ -55,6 +58,7 @@ def get_onboarding(
     return OwnerOnboarding(
         state=value.state,
         first_action=value.first_action,
+        reference_data_choice=value.reference_data_choice,
         resolved_at=value.resolved_at,
         version=value.version,
     )
@@ -77,11 +81,13 @@ def resolve_onboarding(
         owner.id,
         state=payload.state,
         first_action=payload.first_action,
+        reference_data_choice=payload.reference_data_choice,
         expected_version=payload.version,
     )
     return OwnerOnboarding(
         state=value.state,
         first_action=value.first_action,
+        reference_data_choice=value.reference_data_choice,
         resolved_at=value.resolved_at,
         version=value.version,
     )

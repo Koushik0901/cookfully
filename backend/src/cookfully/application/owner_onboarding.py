@@ -18,6 +18,7 @@ FirstAction = Literal["manual_recipe", "import_recipe", "view_plan"]
 class OnboardingStateRead:
     state: str
     first_action: str | None
+    reference_data_choice: str | None
     resolved_at: datetime | None
     version: int
 
@@ -37,6 +38,7 @@ class OwnerOnboardingService:
         *,
         state: OnboardingResolution,
         first_action: FirstAction | None,
+        reference_data_choice: str | None = None,
         expected_version: int,
     ) -> OnboardingStateRead:
         with self._session_factory.begin() as session:
@@ -56,6 +58,7 @@ class OwnerOnboardingService:
                 )
             value.state = state
             value.first_action = first_action
+            value.reference_data_choice = reference_data_choice
             value.resolved_at = utc_now()
             value.version += 1
             session.flush()
@@ -66,7 +69,11 @@ class OwnerOnboardingService:
         if value is None:
             # Accounts created before onboarding was introduced have no row.
             # Fail closed so an established kitchen never appears brand new.
-            return OnboardingStateRead("dismissed", None, None, 1)
+            return OnboardingStateRead("dismissed", None, None, None, 1)
         return OnboardingStateRead(
-            value.state, value.first_action, value.resolved_at, value.version
+            value.state,
+            value.first_action,
+            value.reference_data_choice,
+            value.resolved_at,
+            value.version,
         )
