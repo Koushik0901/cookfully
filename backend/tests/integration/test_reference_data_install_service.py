@@ -52,9 +52,7 @@ def test_request_creates_install_row_and_job_with_extended_deadline(
     assert job.kind == INSTALL_JOB_KIND
     assert job.aggregate_type == "reference_data"
     assert job.aggregate_id == install.id
-    assert job.terminal_deadline_at - job.accepted_at >= __import__(
-        "datetime"
-    ).timedelta(hours=6)
+    assert job.terminal_deadline_at - job.accepted_at >= __import__("datetime").timedelta(hours=6)
 
 
 def test_second_request_while_in_flight_is_rejected(session_factory) -> None:
