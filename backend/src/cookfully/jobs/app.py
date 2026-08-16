@@ -1,9 +1,11 @@
 from contextlib import AbstractContextManager
+from datetime import timedelta
 from typing import Any
 
 from celery import Celery, signals
 from sqlalchemy import Engine
 
+from cookfully.application.reference_data import INSTALL_JOB_DEADLINE
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.database import create_database_engine
 from cookfully.infrastructure.instance_lease import runtime_service_lease
@@ -28,8 +30,22 @@ celery_app.conf.update(
 )
 celery_app.autodiscover_tasks(["cookfully.jobs"])
 
+INSTALL_GRACE = timedelta(minutes=5)
+
 _runtime_engine: Engine | None = None
 _runtime_lease: AbstractContextManager[None] | None = None
+
+
+@signals.task_prerun.connect  # type: ignore[untyped-decorator]
+def adjust_reference_data_time_limit(task_id: str, task: Any, **_: Any) -> None:
+    if task.name != "cookfully.process_job":
+        return
+    envelope = task.request.kwargs.get("envelope") if task.request.kwargs else None
+    if isinstance(envelope, dict) and envelope.get("kind") == "reference_data_install":
+        task.request.soft_time_limit = int(INSTALL_JOB_DEADLINE.total_seconds())
+        task.request.time_limit = int(INSTALL_JOB_DEADLINE.total_seconds()) + int(
+            INSTALL_GRACE.total_seconds()
+        )
 
 
 @signals.worker_ready.connect  # type: ignore[untyped-decorator]

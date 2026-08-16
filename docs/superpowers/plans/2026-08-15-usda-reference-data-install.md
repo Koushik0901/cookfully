@@ -36,7 +36,6 @@
 from __future__ import annotations
 
 from cookfully.application.reference_data import (
-    INSTALL_JOB_KIND,
     PINNED_RELEASES,
     PinnedRelease,
     install_input_hash,
@@ -57,7 +56,6 @@ def test_pinned_releases_use_the_fdc_bulk_download_pattern() -> None:
             assert release.source_url.startswith("https://fdc.nal.usda.gov/fdc-datasets/")
             assert release.source_url.endswith(".zip")
             assert release.released_on is not None
-            assert release.license is None or True
 
 
 def test_install_input_hash_is_deterministic_and_order_independent() -> None:
@@ -346,7 +344,9 @@ def test_request_creates_install_row_and_job_with_extended_deadline(
     accepted = service.request(OWNER, ("foundation_sr_legacy",), trace_id="trace-12345678")
     assert accepted.status == "queued"
     with session_factory() as session:
-        install = session.get(ReferenceDataInstall, accepted.job_id)
+        install = session.scalar(
+            select(ReferenceDataInstall).where(ReferenceDataInstall.owner_id == OWNER)
+        )
         job = session.get(ProcessingJob, accepted.job_id)
     assert install is not None
     assert install.datasets == ["foundation_sr_legacy"]
