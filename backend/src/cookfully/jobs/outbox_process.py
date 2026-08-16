@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 import signal
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import FrameType
 
 from cookfully.application.jobs import JobService
+from cookfully.application.reference_data import INSTALL_JOB_DEADLINE
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
 from cookfully.infrastructure.instance_lease import runtime_service_lease
@@ -16,6 +17,7 @@ from cookfully.jobs.reconciler import reconcile_jobs
 
 logger = logging.getLogger(__name__)
 running = True
+INSTALL_GRACE = timedelta(minutes=5)
 
 
 def _stop(_: int, __: FrameType | None) -> None:
@@ -24,7 +26,16 @@ def _stop(_: int, __: FrameType | None) -> None:
 
 
 def publish(payload: dict[str, object]) -> None:
-    celery_app.send_task("cookfully.process_job", kwargs={"envelope": payload})
+    if payload.get("kind") == "reference_data_install":
+        celery_app.send_task(
+            "cookfully.process_job",
+            kwargs={"envelope": payload},
+            soft_time_limit=int(INSTALL_JOB_DEADLINE.total_seconds()),
+            time_limit=int(INSTALL_JOB_DEADLINE.total_seconds())
+            + int(INSTALL_GRACE.total_seconds()),
+        )
+    else:
+        celery_app.send_task("cookfully.process_job", kwargs={"envelope": payload})
 
 
 def run_once(

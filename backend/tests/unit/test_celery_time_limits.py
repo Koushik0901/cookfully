@@ -1,23 +1,16 @@
 from typing import Any
 
 from cookfully.application.reference_data import INSTALL_JOB_DEADLINE
-from cookfully.jobs.app import INSTALL_GRACE, adjust_reference_data_time_limit
+from cookfully.jobs.app import celery_app
+from cookfully.jobs.outbox_process import INSTALL_GRACE, publish
 
 
-class _FakeRequest:
+class _Captured:
     def __init__(self) -> None:
-        self.args: tuple[Any, ...] = ()
+        self.args: tuple[Any, ...] | None = None
         self.kwargs: dict[str, Any] = {}
-        self.soft_time_limit: int | None = 55
-        self.time_limit: int | None = 60
-
-
-class _FakeTask:
-    def __init__(self, name: str, envelope: dict[str, Any] | None = None) -> None:
-        self.name = name
-        self.request = _FakeRequest()
-        if envelope is not None:
-            self.request.kwargs = {"envelope": envelope}
+        self.options: dict[str, Any] = {}
+        self.name: str | None = None
 
 
 def _install_envelope() -> dict[str, Any]:
@@ -33,33 +26,42 @@ def _install_envelope() -> dict[str, Any]:
     }
 
 
-def test_install_envelope_gets_extended_limits() -> None:
-    task = _FakeTask("cookfully.process_job", _install_envelope())
-    adjust_reference_data_time_limit(task_id="1", task=task)
-    assert task.request.soft_time_limit == int(INSTALL_JOB_DEADLINE.total_seconds())
-    assert task.request.time_limit == int(INSTALL_JOB_DEADLINE.total_seconds()) + int(
+def test_install_envelope_carries_extended_message_time_limits(
+    monkeypatch: Any,
+) -> None:
+    captured = _Captured()
+
+    def fake_send_task(
+        name: str,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
+        **options: Any,
+    ) -> None:
+        captured.name = name
+        captured.args = args or ()
+        captured.kwargs = kwargs or {}
+        captured.options = options
+
+    monkeypatch.setattr(celery_app, "send_task", fake_send_task)
+    publish(_install_envelope())
+    assert captured.name == "cookfully.process_job"
+    assert captured.kwargs == {"envelope": _install_envelope()}
+    assert captured.options["soft_time_limit"] == int(INSTALL_JOB_DEADLINE.total_seconds())
+    assert captured.options["time_limit"] == int(INSTALL_JOB_DEADLINE.total_seconds()) + int(
         INSTALL_GRACE.total_seconds()
     )
 
 
-def test_other_kinds_keep_default_limits() -> None:
+def test_other_kinds_keep_default_time_limits(monkeypatch: Any) -> None:
+    captured = _Captured()
     envelope = _install_envelope()
     envelope["kind"] = "recipe_import"
-    task = _FakeTask("cookfully.process_job", envelope)
-    adjust_reference_data_time_limit(task_id="1", task=task)
-    assert task.request.soft_time_limit == 55
-    assert task.request.time_limit == 60
 
+    def fake_send(name: str, **options: Any) -> None:
+        captured.name = name
+        captured.options = options
 
-def test_other_task_names_untouched() -> None:
-    task = _FakeTask("cookfully.health")
-    adjust_reference_data_time_limit(task_id="1", task=task)
-    assert task.request.soft_time_limit == 55
-    assert task.request.time_limit == 60
-
-
-def test_missing_envelope_untouched() -> None:
-    task = _FakeTask("cookfully.process_job")
-    adjust_reference_data_time_limit(task_id="1", task=task)
-    assert task.request.soft_time_limit == 55
-    assert task.request.time_limit == 60
+    monkeypatch.setattr(celery_app, "send_task", fake_send)
+    publish(envelope)
+    assert captured.options.get("soft_time_limit") is None
+    assert captured.options.get("time_limit") is None
