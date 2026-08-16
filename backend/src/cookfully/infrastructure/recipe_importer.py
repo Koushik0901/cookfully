@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import base64
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from io import BytesIO
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
-from recipe_scrapers import scrape_html
+from recipe_scrapers import AbstractScraper, scrape_html
 
 from cookfully.domain.common import DomainError, quantize_decimal
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
@@ -25,8 +26,11 @@ class ImportedRecipe:
     yield_quantity: Decimal | None
     yield_text: str | None
     ingredients: tuple[str, ...]
+    ingredient_sections: tuple[int | None, ...]
+    sections: tuple[str, ...]
     instructions: tuple[str, ...]
     source_nutrition: dict[str, str]
+    image_candidates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,16 +93,19 @@ class RecipeImporter:
             )
             raw_nutrients = self._optional(scraper.nutrients)
             nutrients = raw_nutrients if isinstance(raw_nutrients, Mapping) else {}
-            raw_ingredients = scraper.ingredients()  # type: ignore[no-untyped-call]
+            ingredients, ingredient_sections, sections = self._ingredients_with_sections(scraper)
             raw_instructions = scraper.instructions()
             return ImportedRecipe(
                 title=scraper.title().strip(),  # type: ignore[no-untyped-call]
                 source_url=url,
                 canonical_url=resource.final_url,
                 image_url=image_url,
+                image_candidates=candidates,
                 yield_quantity=self._yield_quantity(yield_text),
                 yield_text=yield_text,
-                ingredients=tuple(item.strip() for item in raw_ingredients if item.strip()),
+                ingredients=ingredients,
+                ingredient_sections=ingredient_sections,
+                sections=sections,
                 instructions=tuple(
                     item.strip() for item in raw_instructions.splitlines() if item.strip()
                 ),
@@ -135,6 +142,44 @@ class RecipeImporter:
             return None
         match = re.search(r"\d+(?:\.\d+)?", value)
         return quantize_decimal(Decimal(match.group()), Decimal("0.001")) if match else None
+
+    @staticmethod
+    def _ingredients_with_sections(
+        scraper: AbstractScraper,
+    ) -> tuple[tuple[str, ...], tuple[int | None, ...], tuple[str, ...]]:
+        """Return (ingredients, per-ingredient section index, ordered section titles).
+
+        Recipe-scrapers exposes ``ingredient_groups()`` with a ``purpose`` label
+        when the source groups its list (e.g. "For the chicken"). Preserve those
+        groups as recipe sections; ungrouped lists stay flat.
+        """
+
+        try:
+            groups = list(scraper.ingredient_groups())
+        except Exception:
+            groups = []
+        if not groups or not any(getattr(group, "purpose", None) for group in groups):
+            flat = tuple(
+                item.strip() for item in scraper.ingredients() if item.strip()  # type: ignore[no-untyped-call]
+            )
+            return flat, (None,) * len(flat), ()
+        titles: list[str] = []
+        by_title: dict[str, int] = {}
+        ingredients: list[str] = []
+        sections: list[int | None] = []
+        for group in groups:
+            purpose = getattr(group, "purpose", None) or ""
+            if purpose and purpose not in by_title:
+                by_title[purpose] = len(titles)
+                titles.append(purpose)
+            section = by_title.get(purpose)
+            for item in group.ingredients:
+                text = item.strip()
+                if not text:
+                    continue
+                ingredients.append(text)
+                sections.append(section)
+        return tuple(ingredients), tuple(sections), tuple(titles)
 
     @classmethod
     def _import_pdf(cls, content: bytes, source_url: str, canonical_url: str) -> ImportedCookbook:
@@ -173,6 +218,17 @@ class RecipeImporter:
                 "This cookbook contains more than the 50-recipe import limit.",
             )
         metadata_title = str(reader.metadata.title or "").strip() if reader.metadata else ""
+        image_candidates = cls._pdf_image_candidates(content)
+        if image_candidates:
+            first = recipes[0]
+            recipes = (
+                replace(
+                    first,
+                    image_url=image_candidates[0],
+                    image_candidates=image_candidates,
+                ),
+                *recipes[1:],
+            )
         return ImportedCookbook(
             title=metadata_title or "Imported cookbook",
             source_url=source_url,
@@ -201,7 +257,7 @@ class RecipeImporter:
             if not marker:
                 continue
             title = cls._pdf_title(before)
-            ingredients = cls._pdf_ingredients(ingredient_text)
+            ingredients, ingredient_sections, sections = cls._pdf_ingredients(ingredient_text)
             instructions = cls._pdf_directions(direction_text)
             if not title or not ingredients or not instructions:
                 continue
@@ -214,6 +270,8 @@ class RecipeImporter:
                     yield_quantity=None,
                     yield_text=None,
                     ingredients=ingredients,
+                    ingredient_sections=ingredient_sections,
+                    sections=sections,
                     instructions=instructions,
                     source_nutrition={},
                 )
@@ -235,9 +293,14 @@ class RecipeImporter:
         return " ".join(words).title().replace("&", "&")
 
     @staticmethod
-    def _pdf_ingredients(value: str) -> tuple[str, ...]:
+    def _pdf_ingredients(
+        value: str,
+    ) -> tuple[tuple[str, ...], tuple[int | None, ...], tuple[str, ...]]:
         lines = [line.rstrip() for line in value.splitlines()]
         result: list[str] = []
+        sections: list[int | None] = []
+        titles: list[str] = []
+        by_title: dict[str, int] = {}
         group: str | None = None
         for index, line in enumerate(lines):
             stripped = line.strip(" \t•-\N{EN DASH}")
@@ -251,12 +314,14 @@ class RecipeImporter:
             )
             if is_group:
                 group = stripped.rstrip(":")
+                if group and group not in by_title:
+                    by_title[group] = len(titles)
+                    titles.append(group)
                 continue
             normalized = re.sub(r"\s{2,}", " ", stripped)
-            if group:
-                normalized = f"{normalized} (for {group})"
             result.append(normalized)
-        return tuple(result)
+            sections.append(by_title.get(group) if group else None)
+        return tuple(result), tuple(sections), tuple(titles)
 
     @staticmethod
     def _pdf_directions(value: str) -> tuple[str, ...]:
@@ -287,6 +352,32 @@ class RecipeImporter:
             if step:
                 steps.append(step)
         return tuple(steps)
+
+    @classmethod
+    def _pdf_image_candidates(cls, content: bytes) -> tuple[str, ...]:
+        """Return base64 data-URIs for raster images embedded in a cookbook PDF.
+
+        pypdf exposes ``page.images``; each ``image.image`` is a decoded PIL
+        image. Preview must not persist side-effect content, so we encode each
+        usable image to a JPEG data-URI the browser can render directly. The
+        confirm step captures the chosen image via the existing media path.
+        """
+
+        reader = PdfReader(BytesIO(content), strict=False)
+        urls: list[str] = []
+        for page in reader.pages:
+            for image in getattr(page, "images", ()):
+                try:
+                    source = image.image
+                except Exception:
+                    continue
+                if source is None or source.width < 96 or source.height < 96:
+                    continue
+                buffer = BytesIO()
+                source.convert("RGB").save(buffer, format="JPEG", quality=80)
+                encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+                urls.append(f"data:image/jpeg;base64,{encoded}")
+        return tuple(urls)
 
     @staticmethod
     def image_candidates(html: str, base_url: str) -> tuple[str, ...]:

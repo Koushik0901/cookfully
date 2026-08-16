@@ -104,9 +104,26 @@ def test_cookbook_pdf_pages_become_separate_structured_recipes() -> None:
     assert [item.title for item in recipes] == ["Vegan Burger", "Instant Mac & Cheese"]
     assert recipes[0].instructions == ("Mix everything.", "Form patties and cook.")
     assert recipes[1].ingredients == (
-        "1 cup Nutritional Yeast (for Cheese Powder)",
-        "8 oz Macaroni (for Mac and Cheese)",
+        "1 cup Nutritional Yeast",
+        "8 oz Macaroni",
     )
+    assert recipes[1].sections == ("Cheese Powder", "Mac and Cheese")
+    assert recipes[1].ingredient_sections == (0, 1)
+
+
+def test_grouped_html_ingredients_become_sections_in_source_order() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: ["1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth"],
+        ingredient_groups=lambda: [
+            SimpleNamespace(purpose="For the cheese", ingredients=["1 cup Nutritional Yeast"]),
+            SimpleNamespace(purpose="For the pasta", ingredients=["8 oz Macaroni"]),
+            SimpleNamespace(purpose=None, ingredients=["4 cups broth"]),
+        ],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth")
+    assert sections == (0, 1, None)
+    assert titles == ("For the cheese", "For the pasta")
 
 
 def test_recipe_image_candidates_are_ordered_and_deduplicated() -> None:
@@ -246,6 +263,37 @@ def test_ingredient_mapping_preserves_original_and_fixed_values(
 )
 def test_ingredient_parser_normalizes_common_spoon_abbreviations(line: str, unit: str) -> None:
     assert parse_ingredient_line(line).unit_code == unit
+
+
+def test_pdf_embedded_image_becomes_a_data_uri_candidate() -> None:
+    import pypdf
+    from pypdf.generic import DictionaryObject, NameObject, NumberObject, StreamObject
+
+    writer = pypdf.PdfWriter()
+    page = writer.add_blank_page(width=72, height=72)
+    jpg = BytesIO()
+    Image.new("RGB", (120, 120), (180, 40, 40)).save(jpg, format="JPEG")
+    jpg.seek(0)
+    stream = StreamObject()
+    stream.set_data(jpg.getvalue())
+    stream[NameObject("/Type")] = NameObject("/XObject")
+    stream[NameObject("/Subtype")] = NameObject("/Image")
+    stream[NameObject("/Width")] = NumberObject(120)
+    stream[NameObject("/Height")] = NumberObject(120)
+    stream[NameObject("/ColorSpace")] = NameObject("/DeviceRGB")
+    stream[NameObject("/BitsPerComponent")] = NumberObject(8)
+    stream[NameObject("/Filter")] = NameObject("/DCTDecode")
+    xo = writer._add_object(stream)
+    page[NameObject("/Resources")] = DictionaryObject(
+        {NameObject("/XObject"): DictionaryObject({NameObject("/Im0"): xo})}
+    )
+    out = BytesIO()
+    writer.write(out)
+
+    urls = RecipeImporter._pdf_image_candidates(out.getvalue())
+
+    assert len(urls) == 1
+    assert urls[0].startswith("data:image/jpeg;base64,")
 
 
 def test_manual_recipe_photo_reuses_safe_normalization(tmp_path: Path) -> None:
