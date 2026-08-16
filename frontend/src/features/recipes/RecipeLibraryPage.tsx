@@ -42,6 +42,10 @@ export function RecipeLibraryPage() {
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["recipes"] }),
   });
+  const remove = useMutation({
+    mutationFn: ({ id, version }: { id: string; version: number }) => recipesApi.permanentDelete(id, version),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["recipes"] }),
+  });
   const displayedRecipes = useMemo(() => {
     const items = recipes.data?.items.filter((recipe) => {
       const ready = recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState);
@@ -131,7 +135,7 @@ export function RecipeLibraryPage() {
       {recipes.isPending ? <Skeleton label="Loading recipe library" lines={6} /> : null}
       {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
       {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
-      {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe, index) => <RecipeCard key={recipe.id} recipe={recipe} featured={!group.title && displayedRecipes.length >= 4 && index === 0} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} />)}</div></section> : null)}
+      {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
     </main>
   );
 }

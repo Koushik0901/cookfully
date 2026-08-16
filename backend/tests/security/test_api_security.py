@@ -39,7 +39,7 @@ def test_csrf_token_scope_and_browser_only_token_management(
                 "yieldQuantity": "1.000",
                 "yieldUnit": "servings",
                 "ingredients": [{"originalText": "100 g oats"}],
-                "instructions": ["Mix."],
+                "instructions": [{"text": "Mix."}],
             },
         )
         assert rejected.status_code == 403
@@ -63,7 +63,7 @@ def test_csrf_token_scope_and_browser_only_token_management(
                 "yieldQuantity": "1.000",
                 "yieldUnit": "servings",
                 "ingredients": [{"originalText": "100 g oats"}],
-                "instructions": ["Mix."],
+                "instructions": [{"text": "Mix."}],
             },
         )
         assert scope_denied.status_code == 403

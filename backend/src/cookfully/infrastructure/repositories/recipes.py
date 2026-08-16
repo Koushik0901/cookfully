@@ -10,6 +10,7 @@ from cookfully.infrastructure.models.recipes import (
     RecipeCollectionMembership,
     RecipeInstruction,
     RecipeMealRole,
+    RecipeSection,
 )
 
 
@@ -27,6 +28,7 @@ class RecipeRepository:
             select(Recipe)
             .where(Recipe.id == recipe_id)
             .options(
+                selectinload(Recipe.sections),
                 selectinload(Recipe.ingredients),
                 selectinload(Recipe.instructions),
                 selectinload(Recipe.collection_memberships).selectinload(
@@ -101,15 +103,18 @@ class RecipeRepository:
     def replace_content(
         self,
         recipe: Recipe,
+        sections: list[RecipeSection],
         ingredients: list[Ingredient],
         instructions: list[RecipeInstruction],
     ) -> None:
+        recipe.sections.clear()
         recipe.ingredients.clear()
         recipe.instructions.clear()
         # Ordered children have a unique (recipe_id, position) key. Flush orphan
         # deletions before inserting replacements so a same-position edit cannot
         # collide with the row it replaces.
         self.session.flush()
+        recipe.sections.extend(sections)
         recipe.ingredients.extend(ingredients)
         recipe.instructions.extend(instructions)
         self.session.flush()

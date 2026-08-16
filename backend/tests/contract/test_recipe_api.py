@@ -25,7 +25,7 @@ def recipe_payload(title: str = "Training bowl", servings: str = "2.000") -> dic
                 "food": "chicken breast",
             }
         ],
-        "instructions": ["Cook the chicken.", "Serve."],
+        "instructions": [{"text": "Cook the chicken."}, {"text": "Serve."}],
     }
 
 

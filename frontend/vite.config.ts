@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    allowedHosts: ["127.0.0.1", "localhost", "host.docker.internal"],
     proxy: {
       "/api": {
         // Reuse the healthy Docker edge in local UI development so HMR can

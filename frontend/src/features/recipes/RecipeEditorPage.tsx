@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Plus } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
@@ -29,19 +30,28 @@ type NutritionField = typeof NUTRITION_FIELDS[number][0];
 type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
 
+interface EditorBlock {
+  key: string;
+  title: string;
+  ingredients: string;
+  instructions: string;
+}
+
+let blockSequence = 0;
+const newBlock = (title = ""): EditorBlock => ({ key: `block-${++blockSequence}`, title, ingredients: "", instructions: "" });
+
 export function RecipeEditorPage() {
   const { recipeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const detail = useQuery({ queryKey: ["recipe", recipeId], queryFn: () => recipesApi.get(recipeId!), enabled: Boolean(recipeId), retry: 1 });
-  const [title, setTitle] = useState("");
+const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [yieldQuantity, setYieldQuantity] = useState("1");
   const [yieldUnit, setYieldUnit] = useState("servings");
-  const [ingredients, setIngredients] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [blocks, setBlocks] = useState<EditorBlock[]>(() => [newBlock()]);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [matchesOpen, setMatchesOpen] = useState(location.hash === "#ingredient-matches");
   const [nutritionOpen, setNutritionOpen] = useState(location.hash === "#nutrition");
@@ -74,15 +84,28 @@ export function RecipeEditorPage() {
 
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!detail.data) return;
     setTitle(detail.data.title);
     setDescription(detail.data.description ?? "");
     setSourceUrl(detail.data.sourceUrl ?? "");
     setYieldQuantity(formatCookingInput(detail.data.yieldQuantity));
     setYieldUnit(detail.data.yieldUnit);
-    setIngredients(detail.data.ingredients.map((item) => item.originalText).join("\n"));
-    setInstructions(detail.data.instructions.join("\n"));
+    const ungrouped = detail.data.ingredients.filter((item) => item.sectionId == null).map((item) => item.originalText).join("\n");
+    const ungroupedSteps = detail.data.instructions.filter((item) => item.sectionId == null).map((item) => item.text).join("\n");
+    const blocks: EditorBlock[] = [newBlock()];
+    if (ungrouped || ungroupedSteps) blocks[0] = { ...blocks[0], ingredients: ungrouped, instructions: ungroupedSteps };
+    for (const section of detail.data.sections ?? []) {
+      const sectionIngredients = detail.data.ingredients.filter((item) => item.sectionId === section.id).map((item) => item.originalText).join("\n");
+      const sectionSteps = detail.data.instructions.filter((item) => item.sectionId === section.id).map((item) => item.text).join("\n");
+      blocks.push({
+        key: `section-${section.id}`,
+        title: section.title,
+        ingredients: sectionIngredients,
+        instructions: sectionSteps,
+      });
+    }
+    setBlocks(blocks);
     setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
     setRemovePhoto(false);
     const values = emptyNutrition();
@@ -132,18 +155,35 @@ export function RecipeEditorPage() {
       }
       if ("ingredients" in finalRecipe) queryClient.setQueryData(["recipe", finalRecipe.id], finalRecipe);
       else queryClient.removeQueries({ queryKey: ["recipe", finalRecipe.id], exact: true });
-      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+void queryClient.invalidateQueries({ queryKey: ["recipes"] });
       navigate(`/app/recipes/${finalRecipe.id}`, { state: { recipeSaved: true } });
     },
   });
 
-  function submit(event: FormEvent) {
+  function updateBlock(key: string, patch: Partial<Omit<EditorBlock, "key">>) {
+    setBlocks((current) => current.map((block) => block.key === key ? { ...block, ...patch } : block));
+  }
+
+  function removeBlock(key: string) {
+    setBlocks((current) => current.filter((block) => block.key !== key));
+  }
+
+  function addBlock() {
+    setBlocks((current) => [...current, newBlock("")]);
+    setErrors((current) => ({ ...current, sections: "" }));
+    setMobileStep("ingredients");
+  }
+
+function submit(event: FormEvent) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!title.trim()) nextErrors.title = "Recipe title is required.";
     if (!decimalPattern.test(yieldQuantity)) nextErrors.yieldQuantity = "Use a positive value with up to three decimal places (and no exponent).";
-    const ingredientLines = ingredients.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (!ingredientLines.length) nextErrors.ingredients = "Enter at least one ingredient.";
+    const titledBlocks = blocks.filter((block) => block.title.trim());
+    const sectionTitles = titledBlocks.map((block) => block.title.trim());
+    if (new Set(sectionTitles).size !== sectionTitles.length) nextErrors.sections = "Component names must be unique.";
+    const hasIngredients = blocks.some((block) => block.ingredients.split("\n").some((line) => line.trim()));
+    if (!hasIngredients) nextErrors.ingredients = "Enter at least one ingredient.";
     if (sourceUrl) {
       try { new URL(sourceUrl); } catch { nextErrors.sourceUrl = "Enter a complete source URL."; }
     }
@@ -159,14 +199,24 @@ export function RecipeEditorPage() {
       setMobileStep(nextErrors.title || nextErrors.yieldQuantity ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
       return;
     }
+    const sections = sectionTitles.map((section) => ({ title: section }));
+    const ingredients = blocks.flatMap((block) => {
+      const sectionIndex = block.title.trim() ? sectionTitles.indexOf(block.title.trim()) : null;
+      return block.ingredients.split("\n").filter((line) => line.trim()).map((originalText) => ({ originalText, optional: false, section: sectionIndex }));
+    });
+    const instructions = blocks.flatMap((block) => {
+      const sectionIndex = block.title.trim() ? sectionTitles.indexOf(block.title.trim()) : null;
+      return block.instructions.split("\n").filter((line) => line.trim()).map((text) => ({ text, section: sectionIndex }));
+    });
     save.mutate({
       title: title.trim(),
       description: description.trim() || null,
       sourceUrl: sourceUrl.trim() || null,
       yieldQuantity,
       yieldUnit: yieldUnit.trim() || "servings",
-      ingredients: ingredientLines.map((originalText) => ({ originalText, optional: false })),
-      instructions: instructions.split("\n").map((line) => line.trim()).filter(Boolean),
+      sections,
+      ingredients,
+      instructions,
     });
   }
 
@@ -186,15 +236,30 @@ export function RecipeEditorPage() {
           {(["basics", "ingredients", "method", "nutrition"] as const).map((step, index) => <button type="button" key={step} aria-current={mobileStep === step ? "step" : undefined} onClick={() => setMobileStep(step)}><span>{index + 1}</span>{step[0].toUpperCase() + step.slice(1)}</button>)}
         </nav>
 
-        <div className="recipe-editor__workbench">
-          <section className="recipe-editor__section recipe-editor__section--ingredients"><div className="recipe-editor__section-heading"><span>01</span><div><h2>Ingredients</h2><p>One ingredient per line, exactly as you would write it.</p></div></div>
-            <Field label="Ingredients, one per line" error={errors.ingredients} hint="Amounts and preparation notes can stay in the same line."><textarea aria-label="Ingredients, one per line" className="input textarea recipe-editor__textarea" value={ingredients} onChange={(event) => setIngredients(event.target.value)} placeholder={"2 chicken breasts\n1 lemon, juiced\n2 tbsp olive oil\nA handful of parsley"} /></Field>
-            {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched") ? <details className="structured-review" id="ingredient-matches" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}
-          </section>
-          <section className="recipe-editor__section recipe-editor__section--method"><div className="recipe-editor__section-heading"><span>02</span><div><h2>Method</h2><p>Write each cooking step on its own line.</p></div></div>
-            <Field label="Instructions, one step per line"><textarea className="input textarea recipe-editor__textarea" value={instructions} onChange={(event) => setInstructions(event.target.value)} placeholder={"Season the chicken generously.\nSear until golden on both sides.\nAdd lemon juice and finish in the oven."} /></Field>
-          </section>
+<div className="recipe-editor__workbench">
+          <div className="recipe-editor__blocks">
+            {blocks.map((block, blockIndex) => (
+              <section key={block.key} className={`recipe-editor__section recipe-editor__section--block${block.title.trim() ? " is-component" : ""}`}>
+                <div className="recipe-editor__section-heading">
+                  <span>{String(blockIndex === 0 ? 1 : blockIndex + 1).padStart(2, "0")}</span>
+                  <div>
+                    {blockIndex === 0 && !block.title.trim()
+                      ? <><h2>Ingredients & method</h2><p>Start with the main recipe. Add components for dishes with several parts.</p></>
+                      : <Field label="Component name" hint="For example: chicken, rice, or sauce"><input className="input" value={block.title} onChange={(event) => updateBlock(block.key, { title: event.target.value })} placeholder="For the chicken" aria-label={`Component ${blockIndex + 1} name`} /></Field>}
+                  </div>
+                </div>
+                <div className="recipe-editor__block-fields">
+                  <Field label="Ingredients, one per line" error={errors.ingredients} hint="Amounts and preparation notes can stay in the same line."><textarea aria-label={`Component ${blockIndex + 1} ingredients`} className="input textarea recipe-editor__textarea" value={block.ingredients} onChange={(event) => updateBlock(block.key, { ingredients: event.target.value })} placeholder={"2 chicken breasts\n1 lemon, juiced\n2 tbsp olive oil"} /></Field>
+                  <Field label="Method, one step per line"><textarea aria-label={`Component ${blockIndex + 1} method`} className="input textarea recipe-editor__textarea" value={block.instructions} onChange={(event) => updateBlock(block.key, { instructions: event.target.value })} placeholder={"Season the chicken generously.\nSear until golden on both sides."} /></Field>
+                </div>
+                {blockIndex > 0 ? <button type="button" className="text-link" onClick={() => removeBlock(block.key)}>Remove {block.title.trim() || "this component"}</button> : null}
+              </section>
+            ))}
+          </div>
+          <Button type="button" variant="secondary" onClick={addBlock}><Plus aria-hidden="true" />Add a component</Button>
         </div>
+
+        {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched") ? <details className="structured-review" id="ingredient-matches" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}
 
         <details className="recipe-editor__extras" open={extrasOpen} onToggle={(event) => setExtrasOpen(event.currentTarget.open)}><summary><span><strong>Add a description or source</strong><small>Optional context for remembering where this recipe came from</small></span></summary><div className="recipe-editor__extras-content"><Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="A quick weeknight dinner with bright lemon and herbs." /></Field><Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://…" /></Field></div></details>
         <details className="recipe-editor__nutrition" id="nutrition" open={nutritionOpen} onToggle={(event) => setNutritionOpen(event.currentTarget.open)}>

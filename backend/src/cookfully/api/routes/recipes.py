@@ -16,10 +16,17 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import JSONResponse
 
 from cookfully.api.dependencies.auth import require_browser_owner, require_scopes
 from cookfully.api.schemas.jobs import JobAcceptedResponse
 from cookfully.api.schemas.recipes import (
+    DuplicateSummary,
+    ImportConfirmRequest,
+    ImportPreviewIngredient,
+    ImportPreviewRequest,
+    ImportPreviewResponse,
+    ImportPreviewSection,
     ImportRecipeRequest,
     NutritionCorrectionWriteRequest,
     PermanentDeleteRequest,
@@ -37,6 +44,7 @@ from cookfully.api.schemas.recipes import (
 )
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.idempotency import IdempotencyService
+from cookfully.application.import_preview import ImportPreviewCoordinator
 from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
@@ -70,6 +78,11 @@ def idempotency_key(
 
 def recipe_service(request: Request) -> RecipeService:
     service: RecipeService = request.app.state.recipes
+    return service
+
+
+def import_preview_coordinator(request: Request) -> ImportPreviewCoordinator:
+    service: ImportPreviewCoordinator = request.app.state.import_previews
     return service
 
 
@@ -257,6 +270,98 @@ def import_recipe(
     try:
         mutation = recipes.create_import_placeholder(
             str(payload.url), trace_id=correlation_id.get()
+        )
+    except Exception:
+        idempotency.abort(owner_id=owner.id, key=key)
+        raise
+    assert mutation.job is not None
+    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=mutation.recipe.id)
+    idempotency.complete(
+        owner_id=owner.id,
+        key=key,
+        response_status=202,
+        resource_id=mutation.recipe.id,
+        job_id=mutation.job.id,
+        response_body=response.model_dump(mode="json", by_alias=True),
+    )
+    return response
+
+
+@router.post(
+    "/import/preview",
+    response_model=ImportPreviewResponse,
+    response_model_by_alias=True,
+)
+async def preview_recipe_import(
+    payload: ImportPreviewRequest,
+    coordinator: Annotated[ImportPreviewCoordinator, Depends(import_preview_coordinator)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> Response | ImportPreviewResponse:
+    try:
+        data = await coordinator.preview(
+            str(payload.url), owner_id=owner.id, trace_id=correlation_id.get()
+        )
+    except DomainError:
+        raise
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"ready": False}
+        )
+    return ImportPreviewResponse(
+        parse_id=data["parse_id"],
+        title=data["title"],
+        yield_quantity=data["yield_quantity"],
+        yield_text=data["yield_text"],
+        image_sources=tuple(data["image_sources"]),
+        duplicates=tuple(DuplicateSummary(**item) for item in data.get("duplicates", [])),
+        sections=tuple(
+            ImportPreviewSection(
+                title=section["title"],
+                ingredients=tuple(
+                    ImportPreviewIngredient(
+                        original_text=ingredient["original_text"],
+                        needs_quantity=ingredient["needs_quantity"],
+                    )
+                    for ingredient in section["ingredients"]
+                ),
+                instructions=tuple(section["instructions"]),
+            )
+            for section in data["sections"]
+        ),
+    )
+
+
+@router.post(
+    "/import/confirm",
+    response_model=JobAcceptedResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def confirm_recipe_import(
+    payload: ImportConfirmRequest,
+    coordinator: Annotated[ImportPreviewCoordinator, Depends(import_preview_coordinator)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> JobAcceptedResponse:
+    decision = idempotency.begin(
+        owner_id=owner.id,
+        key=key,
+        operation="recipe.import.confirm",
+        payload=payload.model_dump(mode="json", by_alias=True),
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        return JobAcceptedResponse.model_validate(decision.response_body)
+    try:
+        mutation = coordinator.confirm(
+            payload.parse_id,
+            payload.model_dump(mode="json", by_alias=True),
+            owner_id=owner.id,
+            trace_id=correlation_id.get(),
         )
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)

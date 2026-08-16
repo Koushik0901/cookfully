@@ -158,7 +158,7 @@ export function CookModePage() {
               </div>
               <div className="cook-mode__step">
                 <span className="cook-mode__step-number data-value" aria-hidden="true">{String(currentStep + 1).padStart(2, "0")}</span>
-                <p className="cook-mode__step-text">{steps[currentStep]}</p>
+                <p className="cook-mode__step-text">{steps[currentStep]?.text}</p>
               </div>
               <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
             </div>

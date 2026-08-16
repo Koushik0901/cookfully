@@ -71,7 +71,8 @@ const recipe: RecipeDetail = {
       assumptions: [],
     },
   ],
-  instructions: ["Mix and chill."],
+  instructions: [{ position: 0, text: "Mix and chill." }],
+  sections: [],
   activeJob: null,
 };
 
@@ -115,13 +116,24 @@ describe("recipe UI", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders a keyboard-accessible card with human-readable nutrition", async () => {
-    const onArchive = vi.fn();
-    render(
-      <MemoryRouter>
-        <RecipeCard recipe={recipe as Recipe} onArchive={onArchive} onRestore={vi.fn()} />
-      </MemoryRouter>,
+  function renderCard(value: Recipe = recipe as Recipe, handlers: Partial<{ onArchive: (id: string, version: number) => void; onRestore: (id: string, version: number) => void; onDelete: (id: string, version: number) => void }> = {}) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    return render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <RecipeCard
+            recipe={value}
+            onArchive={handlers.onArchive ?? vi.fn()}
+            onRestore={handlers.onRestore ?? vi.fn()}
+            onDelete={handlers.onDelete ?? vi.fn()}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
+  }
+
+  it("renders a keyboard-accessible card with human-readable nutrition", () => {
+    renderCard();
 
     expect(screen.getByRole("link", { name: "Exact oats" })).toHaveAttribute(
       "href",
@@ -130,26 +142,75 @@ describe("recipe UI", () => {
     expect(screen.getByText("512 kcal")).toBeVisible();
     expect(screen.getByText("31.1 g")).toBeVisible();
     expect(document.querySelector('[data-fallback-kind="breakfast"]')).toHaveAttribute("src", "/media/recipe-fallbacks/breakfast.jpg");
-    expect(screen.getByText("estimated", { selector: ".recipe-card__state" })).toBeVisible();
-    await userEvent.click(screen.getByRole("button", { name: /archive exact oats/i }));
+    expect(screen.getByText("Estimated", { selector: ".recipe-card__state" })).toBeVisible();
+  });
+
+  it("offers a compact action menu instead of a permanent archive pill", async () => {
+    const onArchive = vi.fn();
+    renderCard(recipe as Recipe, { onArchive });
+    const user = userEvent.setup();
+
+    expect(screen.queryByRole("button", { name: /archive exact oats/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "More actions for Exact oats" }));
+    expect(screen.getByRole("menuitem", { name: /edit recipe/i })).toHaveAttribute("href", `/app/recipes/${recipe.id}/edit`);
+    expect(screen.getByRole("menuitem", { name: /archive recipe/i })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: /delete recipe/i })).toBeVisible();
+    await user.click(screen.getByRole("menuitem", { name: /archive recipe/i }));
     expect(onArchive).toHaveBeenCalledWith(recipe.id, 3);
   });
 
+  it("shows restore instead of archive for archived recipes", async () => {
+    const onRestore = vi.fn();
+    renderCard({ ...recipe, status: "archived" } as Recipe, { onRestore });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "More actions for Exact oats" }));
+    expect(screen.queryByRole("menuitem", { name: /archive recipe/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: /restore recipe/i }));
+    expect(onRestore).toHaveBeenCalledWith(recipe.id, 3);
+  });
+
+  it("moves recipes between collections from the card menu without leaving the library", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      if (String(input).endsWith("/recipes/collections") && init?.method !== "POST") {
+        return response([{ id: "c1", name: "Weeknights", position: 0, version: 1, recipeCount: 0 }]);
+      }
+      if (String(input).endsWith("/organization") && init?.method === "PUT") {
+        return response({ ...recipe, collections: [{ id: "c1", name: "Weeknights", position: 0 }], version: 4 });
+      }
+      return response(recipe);
+    });
+    renderCard();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "More actions for Exact oats" }));
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Weeknights" })).toBeVisible());
+    await user.click(screen.getByRole("menuitem", { name: "Weeknights" }));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith("/organization") && init?.method === "PUT");
+      expect(call).toBeTruthy();
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+        favorite: false,
+        collectionIds: ["c1"],
+        mealRoles: [],
+      });
+    });
+  });
+
   it("labels manually corrected nutrition consistently on recipe cards", () => {
-    render(
-      <MemoryRouter>
-        <RecipeCard recipe={{ ...recipe, nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
-      </MemoryRouter>,
-    );
+    renderCard({ ...recipe, nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe);
     expect(screen.getByText("Manual", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
+  it("keeps nutrition state in the metadata line, not over the food image", () => {
+    renderCard();
+    expect(document.querySelector(".recipe-card__media .recipe-card__state")).not.toBeInTheDocument();
+    expect(document.querySelector(".recipe-card__body .recipe-card__state")).toBeVisible();
+  });
+
   it("keeps a real recipe image ahead of generated fallback art", () => {
-    render(
-      <MemoryRouter>
-        <RecipeCard recipe={{ ...recipe, imageUrl: "/media/actual-recipe.jpg" } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
-      </MemoryRouter>,
-    );
+    renderCard({ ...recipe, imageUrl: "/media/actual-recipe.jpg" } as Recipe);
     expect(document.querySelector(".recipe-card__media img")).toHaveAttribute("src", "/media/actual-recipe.jpg");
     expect(document.querySelector(".recipe-fallback-art")).not.toBeInTheDocument();
   });
@@ -157,7 +218,10 @@ describe("recipe UI", () => {
   it("guides cooking as a focused step flow with an ingredient checklist and completion moment", async () => {
     vi.mocked(fetch).mockImplementation(() => response({
       ...recipe,
-      instructions: ["Mix the oats.", "Chill and serve."],
+      instructions: [
+        { position: 0, text: "Mix the oats." },
+        { position: 1, text: "Chill and serve." },
+      ],
     }));
     renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
     const user = userEvent.setup();
@@ -180,12 +244,19 @@ describe("recipe UI", () => {
   });
 
   it("keeps stale lifecycle warnings ahead of manual provenance on recipe cards", () => {
-    render(
-      <MemoryRouter>
-        <RecipeCard recipe={{ ...recipe, nutritionState: "stale", nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe} onArchive={vi.fn()} onRestore={vi.fn()} />
-      </MemoryRouter>,
-    );
+    renderCard({ ...recipe, nutritionState: "stale", nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe);
     expect(screen.getByText("Outdated", { selector: ".recipe-card__state" })).toBeVisible();
+  });
+
+  it("attributes an imported recipe to its source with a prominent new-tab link", async () => {
+    renderRoute(<RecipeDetailPage />);
+    expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
+    const sourceLink = screen.getByRole("link", { name: /example\.com/i });
+    expect(sourceLink).toHaveAttribute("href", "https://example.com/oats");
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(document.querySelector(".recipe-hero__facts .recipe-source")).toBeTruthy();
+    expect(screen.queryByText("Original source")).not.toBeInTheDocument();
   });
 
   it("validates exact decimals and preserves original ingredient text in the editor", async () => {

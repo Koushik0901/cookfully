@@ -201,6 +201,59 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /recipes/import/preview:
+    post:
+      tags: [Recipes]
+      operationId: previewRecipeImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri, maxLength: 2048 }
+      responses:
+        "200":
+          description: Synchronous preview with a short-lived parseId.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreview"
+        "503":
+          description: Import preview unavailable; fall back to the async import path.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ready: { type: boolean, const: false }
+
+  /recipes/import/confirm:
+    post:
+      tags: [Recipes, Jobs]
+      operationId: confirmRecipeImport
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportConfirm"
+      responses:
+        "202":
+          description: Import confirmed and background processing accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "410":
+          $ref: "#/components/responses/Gone"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -1417,6 +1470,11 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
+    Gone:
+      description: Resource existed but its short-lived grant (e.g. an import preview) has expired.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
     Conflict:
       description: Stale version, duplicate idempotency key with different input, or invalid transition.
       content:
@@ -1715,6 +1773,7 @@ components:
         food: { type: [string, "null"], maxLength: 240 }
         preparation: { type: [string, "null"], maxLength: 240 }
         optional: { type: boolean, default: false }
+        section: { type: [integer, "null"], minimum: 0 }
     Ingredient:
       allOf:
         - $ref: "#/components/schemas/IngredientWrite"
@@ -1726,6 +1785,34 @@ components:
             parseStatus: { type: string, enum: [unparsed, parsed, low_confidence, manual, failed] }
             matchStatus: { type: string, enum: [candidate, matched, ambiguous, unmatched, manual] }
             assumptions: { type: array, items: { type: string } }
+            sectionId: { type: [string, "null"], format: uuid }
+    SectionWrite:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+    InstructionWrite:
+      type: object
+      additionalProperties: false
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 5000 }
+        section: { type: [integer, "null"], minimum: 0 }
+    Instruction:
+      type: object
+      required: [position, text]
+      properties:
+        position: { type: integer, minimum: 0 }
+        text: { type: string }
+        sectionId: { type: [string, "null"], format: uuid }
+    Section:
+      type: object
+      required: [id, position, title]
+      properties:
+        id: { type: string, format: uuid }
+        position: { type: integer, minimum: 0 }
+        title: { type: string }
     RecipeWrite:
       type: object
       additionalProperties: false
@@ -1744,7 +1831,11 @@ components:
         instructions:
           type: array
           maxItems: 500
-          items: { type: string, minLength: 1, maxLength: 5000 }
+          items: { $ref: "#/components/schemas/InstructionWrite" }
+        sections:
+          type: array
+          maxItems: 50
+          items: { $ref: "#/components/schemas/SectionWrite" }
     RecipeCollectionWrite:
       type: object
       additionalProperties: false
@@ -1805,7 +1896,8 @@ components:
           properties:
             description: { type: [string, "null"] }
             ingredients: { type: array, items: { $ref: "#/components/schemas/Ingredient" } }
-            instructions: { type: array, items: { type: string } }
+            instructions: { type: array, items: { $ref: "#/components/schemas/Instruction" } }
+            sections: { type: array, items: { $ref: "#/components/schemas/Section" } }
             activeJob: { oneOf: [{ $ref: "#/components/schemas/Job" }, { type: "null" }] }
     RecipePage:
       type: object
@@ -1842,6 +1934,73 @@ components:
         jobId: { type: string, format: uuid }
         resourceId: { type: [string, "null"], format: uuid }
         status: { type: string, const: queued }
+    ImportPreview:
+      type: object
+      additionalProperties: false
+      required: [parseId, title, imageSources, duplicates, sections]
+      properties:
+        parseId: { type: string }
+        title: { type: string }
+        yieldQuantity: { type: [string, "null"] }
+        yieldText: { type: [string, "null"] }
+        imageSources: { type: array, items: { type: string } }
+        duplicates:
+          type: array
+          items:
+            type: object
+            required: [id, title]
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+        sections:
+          type: array
+          items:
+            type: object
+            required: [ingredients, instructions]
+            properties:
+              title: { type: [string, "null"] }
+              ingredients:
+                type: array
+                items:
+                  type: object
+                  required: [originalText, needsQuantity]
+                  properties:
+                    originalText: { type: string }
+                    needsQuantity: { type: boolean }
+              instructions:
+                type: array
+                items: { type: string }
+    ImportConfirm:
+      type: object
+      additionalProperties: false
+      required: [parseId]
+      properties:
+        parseId: { type: string }
+        title: { type: [string, "null"] }
+        imageSource: { type: [string, "null"] }
+        yieldQuantity: { type: [string, "null"] }
+        components:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: [string, "null"] }
+              ingredients:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    originalText: { type: [string, "null"] }
+                    quantityOverride: { type: [string, "null"] }
+                    optional: { type: boolean, default: false }
+                    remove: { type: boolean, default: false }
+              instructions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    text: { type: string }
+                    remove: { type: boolean, default: false }
     Job:
       type: object
       required: [id, kind, aggregateId, status, attempt, maxAttempts, inputHash, terminalDeadlineAt, createdAt, pollAfterSeconds, recoveryActions]

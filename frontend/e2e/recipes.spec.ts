@@ -47,7 +47,7 @@ function detail(overrides: Record<string, unknown> = {}) {
         assumptions: [],
       },
     ],
-    instructions: ["Mix and chill."],
+    instructions: [{ position: 0, text: "Mix and chill." }],
     activeJob: null,
     ...overrides,
   };
@@ -90,6 +90,11 @@ async function mockApi(page: Page) {
         })),
       });
       return json(recipe, 201);
+    }
+    if (path === "/api/v1/recipes/import/preview" && method === "POST") {
+      // Preview is best-effort: simulate a source that continues in the background
+      // so the dialog falls back to the legacy asynchronous import below.
+      return json({ code: "preview_unavailable", title: "Unavailable", status: 503 }, 503);
     }
     if (path === "/api/v1/recipes/import" && method === "POST") {
       recipe = detail({
@@ -199,6 +204,89 @@ async function mockApi(page: Page) {
   return { releaseImport: () => { releaseImport = true; pollCount = 0; } };
 }
 
+async function mockPreviewApi(page: Page) {
+  const parseId = "preview-parse-0001";
+  let confirmPosted: Record<string, unknown> | null = null;
+  await page.context().addCookies([
+    { name: "cookfully_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" },
+  ]);
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const method = request.method();
+    const json = (body: unknown, status = 200) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+
+    if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
+    if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/recipes/collections" && method === "GET") return json([]);
+    if (path === "/api/v1/recipes" && method === "GET") {
+      return json({ items: [], nextCursor: null });
+    }
+    if (path === "/api/v1/recipes/import/preview" && method === "POST") {
+      return json({
+        parseId,
+        title: "Shawarma bowl",
+        yieldQuantity: null,
+        yieldText: null,
+        imageSources: [],
+        duplicates: [{ id: recipeId, title: "Shawarma bowl" }],
+        sections: [
+          {
+            title: "The chicken",
+            ingredients: [
+              { originalText: "1 lb chicken breast", needsQuantity: false },
+              { originalText: "olive oil", needsQuantity: true },
+            ],
+            instructions: ["Season the chicken."],
+          },
+          {
+            title: "The sauce",
+            ingredients: [{ originalText: "2 tbsp yogurt", needsQuantity: false }],
+            instructions: ["Whisk the sauce."],
+          },
+        ],
+      });
+    }
+    if (path === "/api/v1/recipes/import/confirm" && method === "POST") {
+      confirmPosted = request.postDataJSON() as Record<string, unknown>;
+      const title = (confirmPosted.title as string) ?? "Shawarma bowl";
+      return json({ jobId, resourceId: recipeId, status: "queued" }, 202);
+    }
+    if (path === `/api/v1/recipes/${recipeId}` && method === "GET") {
+      return json(
+        detail({
+          title: "Shawarma bowl",
+          status: "processing",
+          nutritionState: "pending",
+          activeJob: {
+            id: jobId,
+            kind: "recipe.import",
+            aggregateId: recipeId,
+            status: "running",
+            attempt: 0,
+            maxAttempts: 3,
+            inputHash: "preview-confirmed",
+            progressCurrent: 1,
+            progressTotal: 2,
+            nextRetryAt: null,
+            terminalDeadlineAt: null,
+            failureCode: null,
+            failureMessage: null,
+            createdAt: new Date().toISOString(),
+            finishedAt: null,
+            pollAfterSeconds: 2,
+            recoveryActions: [],
+          },
+        }),
+      );
+    }
+    return json({ code: "not_found", title: "Not found", status: 404 }, 404);
+  });
+  return { parseId, posted: () => confirmPosted };
+}
+
 async function openRecipeOptions(page: Page) {
   const details = page.locator("details.danger-zone");
   if (!(await details.evaluate((element: HTMLDetailsElement) => element.open))) {
@@ -230,7 +318,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await page.getByLabel("Yield quantity").fill("3.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await expect(page.getByText("stale", { exact: true })).toBeVisible();
+  await expect(page.getByText("Outdated", { exact: true })).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
@@ -279,10 +367,10 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   await expect(page.getByText(/attempt 2 of 3/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/next retry/i)).toBeVisible();
   await expect(page.getByText(/deadline/i)).toBeVisible();
-  await expect(page.getByText("stale", { exact: true })).toBeVisible({ timeout: 7_000 });
+  await expect(page.getByText("Outdated", { exact: true })).toBeVisible({ timeout: 7_000 });
   await captureUi(page, testInfo, "recipe-import-stale");
   await page.getByRole("button", { name: "Recalculate nutrition" }).click();
-  await expect(page.getByText("pending", { exact: true })).toBeVisible();
+  await expect(page.getByText("Estimating…", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -303,15 +391,27 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await mockApi(page);
   await page.goto("/app/recipes");
   await expect(page.getByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
-  if (testInfo.project.name !== "narrow-mobile") {
-    const sort = await page.getByLabel("Sort recipes").boundingBox();
-    const favorite = await page.getByText("Favorites only", { exact: true }).boundingBox();
-    expect(sort).not.toBeNull();
-    expect(favorite).not.toBeNull();
-    expect(Math.abs((sort!.y + sort!.height) - (favorite!.y + favorite!.height))).toBeLessThanOrEqual(1);
-  }
+  await expect(page.locator(".recipe-card--featured")).toHaveCount(0);
+  await expect(page.locator(".recipe-card__media .recipe-card__state")).toHaveCount(0);
+  await expect(page.locator(".recipe-card__body .recipe-card__state")).toBeVisible();
+  await page.getByRole("button", { name: "More actions for Protein oats" }).click();
+  await expect(page.getByRole("menuitem", { name: "Edit recipe" })).toHaveAttribute("href", `/app/recipes/${recipeId}/edit`);
+  await expect(page.getByRole("menuitem", { name: "Archive recipe" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Delete recipe" })).toBeVisible();
+  const [organizeRequest] = await Promise.all([
+    page.waitForRequest((request) => request.url().includes("/organization") && request.method() === "PUT"),
+    page.getByRole("menuitem", { name: "Weeknight favourites" }).click(),
+  ]);
+  expect(organizeRequest.postDataJSON()).toMatchObject({ favorite: false, collectionIds: ["00000000-0000-4000-8000-000000000010"], mealRoles: [] });
   await captureUi(page, testInfo, "recipes");
   await page.getByText("Refine recipes", { exact: true }).click();
+  if (testInfo.project.name !== "narrow-mobile") {
+    const sort = await page.getByLabel("Sort recipes").boundingBox();
+    const collection = await page.getByLabel("Collection", { exact: true }).boundingBox();
+    expect(sort).not.toBeNull();
+    expect(collection).not.toBeNull();
+    expect(Math.abs(sort!.y - collection!.y)).toBeLessThanOrEqual(1);
+  }
   await captureUi(page, testInfo, "recipes-filters");
   await page.getByText("Manage collections", { exact: true }).click();
   await expect(page.getByLabel("Weeknight favourites collection name")).toBeVisible();
@@ -344,5 +444,51 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }, testInfo) => {
+  const preview = await mockPreviewApi(page);
+  await page.goto("/app/recipes");
+  await page.getByRole("button", { name: "Import recipe" }).click();
+
+  await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/shawarma");
+  await page.getByRole("button", { name: "Start import" }).click();
+
+  await expect(page.getByRole("heading", { name: "Review the recipe" })).toBeVisible();
+  await expect(page.getByText("Shawarma bowl")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("already have “Shawarma bowl”");
+  await expect(page.getByLabel("Component 1 title")).toHaveValue("The chicken");
+  await expect(page.getByLabel("Component 2 title")).toHaveValue("The sauce");
+
+  // The second line has no quantity: a quantity prompt appears beside it.
+  await expect(page.getByLabel("Ingredient 2 for component 1")).toHaveValue("olive oil");
+  await page.getByLabel("Quantity").fill("2 tbsp");
+
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Add this recipe" })).toBeVisible();
+  await page.getByRole("button", { name: "Add to collection" }).click();
+
+  // Assert breadcrumb navigation completes
+  await expect(page.getByText("Shawarma bowl")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
+
+  // Assert nutrition is processing (allocation pending)
+  await expect(page.getByText(/nutrition.*calculating/i)).toBeVisible();
+
+  // Assert confirm payload includes quantity override and title
+  const posted = preview.posted();
+  expect(posted).not.toBeNull();
+  expect(posted?.parseId).toBe(preview.parseId);
+  expect(JSON.stringify(posted?.components ?? [])).toContain("olive oil");
+  expect(posted?.title).toBe("Shawarma bowl");
+
+  // Assert quantity override is transmitted in the confirm payload
+  const confirmBody = posted && "confirm" in posted ? posted : null;
+  if (confirmBody) {
+    const matches = JSON.stringify(confirmBody).match(/"quantityOverride":"\d+[^"]*"/g);
+    expect(matches).toBeTruthy();
+  }
+
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

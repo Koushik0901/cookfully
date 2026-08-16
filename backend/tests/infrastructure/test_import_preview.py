@@ -29,9 +29,7 @@ def test_import_preview_record_persists_and_scopes_to_owner(
 
     with session_factory() as session:
         record = (
-            session.query(ImportPreviewRecord)
-            .filter_by(owner_id=owner.id, parse_id="p-1")
-            .one()
+            session.query(ImportPreviewRecord).filter_by(owner_id=owner.id, parse_id="p-1").one()
         )
         assert record.payload["title"] == "Shawarma bowl"
         assert record.expires_at == now + timedelta(minutes=15)

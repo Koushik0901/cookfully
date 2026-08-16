@@ -12,4 +12,9 @@ export type NutritionCorrectionWrite = components["schemas"]["NutritionCorrectio
 export type NutritionState = components["schemas"]["NutritionSnapshotResponse"]["status"];
 export type RecipeCollection = components["schemas"]["RecipeCollectionResponse"];
 export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWriteRequest"];
+export type ImportPreview = components["schemas"]["ImportPreviewResponse"];
+export type ImportConfirmWrite = components["schemas"]["ImportConfirmRequest"];
+export type ImportPreviewSection = components["schemas"]["ImportPreviewSection"];
+export type ImportPreviewIngredient = components["schemas"]["ImportPreviewIngredient"];
+export type DuplicateSummary = components["schemas"]["DuplicateSummary"];
 

@@ -4,15 +4,90 @@ import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Button, Field } from "../../components";
-import { recipesApi } from "./api";
+import { ApiProblem, recipesApi } from "./api";
+import type { ImportPreview } from "./types";
+
+type Step = "url" | "preview" | "confirm";
+
+interface EditableIngredient {
+  originalText: string;
+  quantityOverride?: string;
+}
+interface EditableComponent {
+  title: string;
+  ingredients: EditableIngredient[];
+  instructions: string[];
+}
 
 export function RecipeImportDialog({ trigger, onImported }: { trigger: React.ReactNode; onImported?: () => void | Promise<unknown> }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<Step>("url");
   const [url, setUrl] = useState("");
   const [validation, setValidation] = useState("");
-  const mutation = useMutation({
-    mutationFn: recipesApi.import,
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [title, setTitle] = useState("");
+  const [imageSource, setImageSource] = useState<string | null>(null);
+  const [components, setComponents] = useState<EditableComponent[]>([]);
+
+  const previewMutation = useMutation({
+    mutationFn: recipesApi.preview,
+    onSuccess: (result) => {
+      setPreview(result);
+      setTitle(result.title);
+      setImageSource(result.imageSources[0] ?? null);
+      setComponents(
+        result.sections.map((section) => ({
+          title: section.title ?? "",
+          ingredients: section.ingredients.map((ingredient) => ({ originalText: ingredient.originalText })),
+          instructions: [...section.instructions],
+        })),
+      );
+      setStep("preview");
+    },
+    onError: async (error) => {
+      // Preview is best-effort. When the synchronous parse can't complete (timeout
+      // or an unsupported source), fall back to the legacy background import.
+      const fallback = error instanceof ApiProblem && error.status === 503;
+      try {
+        await onImported?.();
+      } catch {
+        // The recipe already exists; optional onboarding persistence must not turn
+        // that into a failure.
+      }
+      if (fallback) {
+        try {
+          const accepted = await recipesApi.import(url);
+          setOpen(false);
+          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
+        } catch {
+          setValidation("That page could not be imported. Check the address and try again.");
+          setStep("url");
+        }
+        return;
+      }
+      setValidation("That page could not be read for a preview. Try the address again.");
+      setStep("url");
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: (write: { parseId: string; title: string; imageSource?: string; components: EditableComponent[] }) =>
+      recipesApi.confirmImport({
+        parseId: write.parseId,
+        title: write.title,
+        imageSource: write.imageSource ?? undefined,
+        components: write.components.map((component) => ({
+          title: component.title || undefined,
+          ingredients: component.ingredients.map((ingredient) => ({
+            originalText: ingredient.originalText,
+            quantityOverride: ingredient.quantityOverride ?? undefined,
+            optional: false,
+            remove: false,
+          })),
+          instructions: component.instructions.map((text) => ({ text, remove: false })),
+        })),
+      }),
     onSuccess: async (accepted) => {
       try {
         await onImported?.();
@@ -25,35 +100,196 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
     },
   });
 
-  function submit(event: FormEvent) {
+  function submitUrl(event: FormEvent) {
     event.preventDefault();
     try {
       const parsed = new URL(url);
       if (!new Set(["http:", "https:"]).has(parsed.protocol)) throw new Error();
       setValidation("");
-      mutation.mutate(url);
+      previewMutation.mutate(url);
     } catch {
       setValidation("Enter a complete http or https recipe URL.");
     }
   }
 
+  function confirm() {
+    if (!preview) return;
+    confirmMutation.mutate({ parseId: preview.parseId, title, imageSource: imageSource ?? undefined, components });
+  }
+
+  function updateComponent(index: number, patch: Partial<EditableComponent>) {
+    setComponents((current) => current.map((component, i) => (i === index ? { ...component, ...patch } : component)));
+  }
+
+  function updateIngredient(componentIndex: number, ingredientIndex: number, patch: Partial<EditableIngredient>) {
+    setComponents((current) =>
+      current.map((component, i) =>
+        i === componentIndex
+          ? {
+              ...component,
+              ingredients: component.ingredients.map((ingredient, j) => (j === ingredientIndex ? { ...ingredient, ...patch } : ingredient)),
+            }
+          : component,
+      ),
+    );
+  }
+
+  function updateInstruction(componentIndex: number, instructionIndex: number, text: string) {
+    setComponents((current) =>
+      current.map((component, i) =>
+        i === componentIndex
+          ? { ...component, instructions: component.instructions.map((value, j) => (j === instructionIndex ? text : value)) }
+          : component,
+      ),
+    );
+  }
+
+  function removeComponent(componentIndex: number) {
+    setComponents((current) => current.filter((_, i) => i !== componentIndex));
+  }
+
+  const busy = previewMutation.isPending || confirmMutation.isPending;
+
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setStep("url");
+          setPreview(null);
+          setValidation("");
+        }
+      }}
+    >
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog" aria-describedby="import-description">
-          <Dialog.Title>Import recipes</Dialog.Title>
-          <Dialog.Description id="import-description">Paste a public recipe page or a structured cookbook PDF. A cookbook can add several recipes; import and nutrition processing continue in the background.</Dialog.Description>
-          <form className="stack" onSubmit={submit}>
-            <Field label="Recipe or cookbook URL" error={validation || (mutation.error instanceof Error ? mutation.error.message : undefined)}>
-              <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe-or-cookbook.pdf" required />
-            </Field>
-            <div className="actions"><Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Starting…" : "Start import"}</Button></div>
-          </form>
+        <Dialog.Content className="dialog import-wizard" aria-describedby="import-description">
+          {step === "url" ? (
+            <>
+              <Dialog.Title>Import recipes</Dialog.Title>
+              <Dialog.Description id="import-description">Paste a public recipe page or a structured cookbook PDF. You can review and edit what we find before it is saved.</Dialog.Description>
+              <form className="stack" onSubmit={submitUrl}>
+                <Field label="Recipe or cookbook URL" error={validation || (previewMutation.error instanceof Error ? previewMutation.error.message : undefined)}>
+                  <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe-or-cookbook.pdf" required />
+                </Field>
+                <div className="actions">
+                  <Dialog.Close asChild>
+                    <Button type="button" variant="secondary">Cancel</Button>
+                  </Dialog.Close>
+                  <Button type="submit" disabled={busy}>{previewMutation.isPending ? "Reading page…" : "Start import"}</Button>
+                </div>
+              </form>
+            </>
+          ) : step === "preview" && preview ? (
+            <>
+              <Dialog.Title>Review the recipe</Dialog.Title>
+              <Dialog.Description id="import-description">Make any changes before adding it to your collection. Nutrition is calculated after saving.</Dialog.Description>
+
+              {preview.duplicates.length > 0 ? (
+                <section className="import-wizard__duplicate" role="alert">
+                  <strong>It looks like you already have “{preview.duplicates[0].title}”.</strong>
+                  <p>You can still keep this import, discard it, or open the existing recipe to compare.</p>
+                  <div className="actions">
+                    <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Discard</Button>
+                    <Button type="button" variant="secondary" onClick={() => { setOpen(false); navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>
+                      Open existing
+                    </Button>
+                    <Button type="button" onClick={() => setStep("confirm")}>Keep this import</Button>
+                  </div>
+                </section>
+              ) : null}
+
+              <form className="stack" onSubmit={(event) => { event.preventDefault(); setStep("confirm"); }}>
+                <Field label="Title">
+                  <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} />
+                </Field>
+
+                {preview.imageSources.length > 0 ? (
+                  <fieldset className="import-wizard__images">
+                    <legend>Thumbnail</legend>
+                    <div className="import-wizard__image-grid">
+                      {preview.imageSources.map((source, index) => (
+                        <label key={source} className={imageSource === source ? "import-wizard__image is-selected" : "import-wizard__image"}>
+                          <input type="radio" name="thumbnail" checked={imageSource === source} onChange={() => setImageSource(source)} aria-label={`Thumbnail ${index + 1}`} />
+                          <img src={source} alt="" loading="lazy" />
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ) : null}
+
+                <div className="import-wizard__components">
+                  {components.map((component, componentIndex) => (
+                    <article className="import-wizard__component" key={componentIndex}>
+                      <div className="import-wizard__component-head">
+                        <Field label={`Component ${componentIndex + 1} title`}>
+                          <input className="input" value={component.title} onChange={(event) => updateComponent(componentIndex, { title: event.target.value })} placeholder="e.g. The chicken" />
+                        </Field>
+                        {components.length > 1 ? (
+                          <Button type="button" variant="ghost" onClick={() => removeComponent(componentIndex)}>Remove</Button>
+                        ) : null}
+                      </div>
+
+                      <div className="import-wizard__block">
+                        <h3>Ingredients</h3>
+                        {component.ingredients.map((ingredient, ingredientIndex) => {
+                          const needs = preview.sections[componentIndex]?.ingredients[ingredientIndex]?.needsQuantity;
+                          return (
+                            <div className="import-wizard__ingredient" key={ingredientIndex}>
+                              <input
+                                className="input"
+                                aria-label={`Ingredient ${ingredientIndex + 1} for component ${componentIndex + 1}`}
+                                value={ingredient.originalText}
+                                onChange={(event) => updateIngredient(componentIndex, ingredientIndex, { originalText: event.target.value })}
+                              />
+                              {needs ? (
+                                <Field label="Quantity" hint="This line has no amount. Add one or leave as written.">
+                                  <input className="input" placeholder="e.g. 2 cups" onChange={(event) => updateIngredient(componentIndex, ingredientIndex, { quantityOverride: event.target.value })} />
+                                </Field>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="import-wizard__block">
+                        <h3>Method</h3>
+                        {component.instructions.map((instruction, instructionIndex) => (
+                          <textarea
+                            key={instructionIndex}
+                            className="input textarea import-wizard__method"
+                            aria-label={`Step ${instructionIndex + 1} for component ${componentIndex + 1}`}
+                            value={instruction}
+                            onChange={(event) => updateInstruction(componentIndex, instructionIndex, event.target.value)}
+                          />
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="actions">
+                  <Button type="button" variant="secondary" onClick={() => setStep("url")}>Back</Button>
+                  <Button type="submit">Continue</Button>
+                </div>
+              </form>
+            </>
+          ) : preview ? (
+            <>
+              <Dialog.Title>Add this recipe</Dialog.Title>
+              <Dialog.Description id="import-description">Add “{title}” to your collection. Nutrition is calculated in the background.</Dialog.Description>
+              <form className="stack" onSubmit={(event) => { event.preventDefault(); confirm(); }}>
+                <div className="actions">
+                  <Button type="button" variant="secondary" onClick={() => setStep("preview")}>Back</Button>
+                  <Button type="submit" disabled={busy}>{confirmMutation.isPending ? "Adding…" : "Add to collection"}</Button>
+                </div>
+              </form>
+            </>
+          ) : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   );
 }
-

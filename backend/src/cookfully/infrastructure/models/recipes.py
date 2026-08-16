@@ -72,6 +72,9 @@ class Recipe(TimestampMixin, Base):
     ingredients: Mapped[list[Ingredient]] = relationship(
         back_populates="recipe", cascade="all, delete-orphan", order_by="Ingredient.position"
     )
+    sections: Mapped[list[RecipeSection]] = relationship(
+        back_populates="recipe", cascade="all, delete-orphan", order_by="RecipeSection.position"
+    )
     collection_memberships: Mapped[list[RecipeCollectionMembership]] = relationship(
         back_populates="recipe", cascade="all, delete-orphan"
     )
@@ -152,7 +155,30 @@ class RecipeInstruction(Base):
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    section_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("recipe_sections.id", ondelete="SET NULL")
+    )
     recipe: Mapped[Recipe] = relationship(back_populates="instructions")
+    section: Mapped[RecipeSection | None] = relationship(back_populates="instructions")
+
+
+class RecipeSection(Base):
+    __tablename__ = "recipe_sections"
+    __table_args__ = (
+        CheckConstraint("position >= 0", name="nonnegative_position"),
+        Index("uq_recipe_sections_position", "recipe_id", "position", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    recipe_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+
+    recipe: Mapped[Recipe] = relationship(back_populates="sections")
+    ingredients: Mapped[list[Ingredient]] = relationship(back_populates="section")
+    instructions: Mapped[list[RecipeInstruction]] = relationship(back_populates="section")
 
 
 class Ingredient(TimestampMixin, Base):
@@ -182,6 +208,9 @@ class Ingredient(TimestampMixin, Base):
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     original_text: Mapped[str] = mapped_column(Text, nullable=False)
+    section_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("recipe_sections.id", ondelete="SET NULL")
+    )
     quantity_min: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     quantity_max: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     unit_code: Mapped[str | None] = mapped_column(String(80))
@@ -197,3 +226,4 @@ class Ingredient(TimestampMixin, Base):
     parser_version: Mapped[str | None] = mapped_column(String(80))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     recipe: Mapped[Recipe] = relationship(back_populates="ingredients")
+    section: Mapped[RecipeSection | None] = relationship(back_populates="ingredients")

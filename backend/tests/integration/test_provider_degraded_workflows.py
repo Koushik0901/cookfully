@@ -74,7 +74,7 @@ def _manual_recipe_payload(title: str = "Provider-independent bowl") -> dict[str
         "yieldQuantity": "2.000",
         "yieldUnit": "servings",
         "ingredients": [{"originalText": "200 g tofu"}],
-        "instructions": ["Cook and portion."],
+        "instructions": [{"text": "Cook and portion."}],
     }
 
 

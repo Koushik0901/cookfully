@@ -59,10 +59,10 @@ export function DecimalInput({ onValueChange, ...props }: Omit<InputHTMLAttribut
   );
 }
 
-export function ConfirmDialog({ trigger, title, description, confirmLabel, onConfirm }: { trigger: ReactNode; title: string; description: string; confirmLabel: string; onConfirm: () => void }) {
+export function ConfirmDialog({ trigger, open, onOpenChange, title, description, confirmLabel, onConfirm }: { trigger?: ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void; title: string; description: string; confirmLabel: string; onConfirm: () => void }) {
   return (
-    <Dialog.Root>
-      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog" aria-describedby="confirm-description">

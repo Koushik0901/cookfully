@@ -283,6 +283,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipes/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Recipe Import */
+        post: operations["previewRecipeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/import/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Recipe Import */
+        post: operations["confirmRecipeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -328,7 +362,7 @@ export interface paths {
             cookie?: never;
         };
         /** List Recipe Source Images */
-        get: operations["list_recipe_source_images"];
+        get: operations["listRecipeSourceImages"];
         put?: never;
         post?: never;
         delete?: never;
@@ -346,7 +380,7 @@ export interface paths {
         };
         get?: never;
         /** Replace Recipe Photo From Source */
-        put: operations["replace_recipe_photo_from_source"];
+        put: operations["replaceRecipePhotoFromSource"];
         post?: never;
         delete?: never;
         options?: never;
@@ -991,6 +1025,16 @@ export interface components {
             /** Photo */
             photo: string;
         };
+        /** DuplicateSummary */
+        DuplicateSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+        };
         /** ExportRequest */
         ExportRequest: {
             /**
@@ -1163,6 +1207,117 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** ImportConfirmComponent */
+        ImportConfirmComponent: {
+            /** Title */
+            title?: string | null;
+            /**
+             * Ingredients
+             * @default []
+             */
+            ingredients: components["schemas"]["ImportConfirmIngredient"][];
+            /**
+             * Instructions
+             * @default []
+             */
+            instructions: components["schemas"]["ImportConfirmInstruction"][];
+        };
+        /** ImportConfirmIngredient */
+        ImportConfirmIngredient: {
+            /** Originaltext */
+            originalText?: string | null;
+            /** Quantityoverride */
+            quantityOverride?: string | null;
+            /**
+             * Optional
+             * @default false
+             */
+            optional: boolean;
+            /**
+             * Remove
+             * @default false
+             */
+            remove: boolean;
+        };
+        /** ImportConfirmInstruction */
+        ImportConfirmInstruction: {
+            /** Text */
+            text: string;
+            /**
+             * Remove
+             * @default false
+             */
+            remove: boolean;
+        };
+        /** ImportConfirmRequest */
+        ImportConfirmRequest: {
+            /** Parseid */
+            parseId: string;
+            /** Title */
+            title?: string | null;
+            /** Imagesource */
+            imageSource?: string | null;
+            /** Yieldquantity */
+            yieldQuantity?: string | null;
+            /**
+             * Components
+             * @default []
+             */
+            components: components["schemas"]["ImportConfirmComponent"][];
+        };
+        /** ImportPreviewIngredient */
+        ImportPreviewIngredient: {
+            /** Originaltext */
+            originalText: string;
+            /** Needsquantity */
+            needsQuantity: boolean;
+        };
+        /** ImportPreviewRequest */
+        ImportPreviewRequest: {
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+        };
+        /** ImportPreviewResponse */
+        ImportPreviewResponse: {
+            /** Parseid */
+            parseId: string;
+            /** Title */
+            title: string;
+            /** Yieldquantity */
+            yieldQuantity?: string | null;
+            /** Yieldtext */
+            yieldText?: string | null;
+            /** Imagesources */
+            imageSources: string[];
+            /**
+             * Duplicates
+             * @default []
+             */
+            duplicates: components["schemas"]["DuplicateSummary"][];
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["ImportPreviewSection"][];
+        };
+        /** ImportPreviewSection */
+        ImportPreviewSection: {
+            /** Title */
+            title?: string | null;
+            /**
+             * Ingredients
+             * @default []
+             */
+            ingredients: components["schemas"]["ImportPreviewIngredient"][];
+            /**
+             * Instructions
+             * @default []
+             */
+            instructions: string[];
+        };
         /** ImportRecipeRequest */
         ImportRecipeRequest: {
             /**
@@ -1203,6 +1358,8 @@ export interface components {
              * @default []
              */
             assumptions: string[];
+            /** Sectionid */
+            sectionId?: string | null;
         };
         /** IngredientWriteRequest */
         IngredientWriteRequest: {
@@ -1223,6 +1380,24 @@ export interface components {
              * @default false
              */
             optional: boolean;
+            /** Section */
+            section?: number | null;
+        };
+        /** InstructionResponse */
+        InstructionResponse: {
+            /** Position */
+            position: number;
+            /** Text */
+            text: string;
+            /** Sectionid */
+            sectionId?: string | null;
+        };
+        /** InstructionWriteRequest */
+        InstructionWriteRequest: {
+            /** Text */
+            text: string;
+            /** Section */
+            section?: number | null;
         };
         /** JobAcceptedResponse */
         JobAcceptedResponse: {
@@ -1862,7 +2037,12 @@ export interface components {
             /** Ingredients */
             ingredients: components["schemas"]["IngredientResponse"][];
             /** Instructions */
-            instructions: string[];
+            instructions: components["schemas"]["InstructionResponse"][];
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["SectionResponse"][];
             activeJob?: components["schemas"]["JobResponse"] | null;
         };
         /** RecipeOrganizationWriteRequest */
@@ -1965,7 +2145,12 @@ export interface components {
              * Instructions
              * @default []
              */
-            instructions: string[];
+            instructions: components["schemas"]["InstructionWriteRequest"][];
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["SectionWriteRequest"][];
         };
         /** ReferenceDataInstallRequest */
         ReferenceDataInstallRequest: {
@@ -2028,6 +2213,23 @@ export interface components {
              * @default []
              */
             corrections: components["schemas"]["NutritionCorrectionResponse"][];
+        };
+        /** SectionResponse */
+        SectionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Title */
+            title: string;
+        };
+        /** SectionWriteRequest */
+        SectionWriteRequest: {
+            /** Title */
+            title: string;
         };
         /** SessionItem */
         SessionItem: {
@@ -2972,6 +3174,74 @@ export interface operations {
             };
         };
     };
+    previewRecipeImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirmRecipeImport: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getRecipe: {
         parameters: {
             query?: never;
@@ -3141,7 +3411,7 @@ export interface operations {
             };
         };
     };
-    list_recipe_source_images: {
+    listRecipeSourceImages: {
         parameters: {
             query?: never;
             header?: never;
@@ -3172,7 +3442,7 @@ export interface operations {
             };
         };
     };
-    replace_recipe_photo_from_source: {
+    replaceRecipePhotoFromSource: {
         parameters: {
             query?: never;
             header?: {

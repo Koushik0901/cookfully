@@ -447,6 +447,87 @@
   .error-recovery .cf-button { grid-column: 1 / -1; width: 100%; }
 }
 
+.cf-menu__content {
+  z-index: 60;
+  display: grid;
+  min-width: 13rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius);
+  padding: 0.3rem;
+  background: var(--color-surface-bright);
+  box-shadow: var(--shadow-level-2);
+  animation: menu-arrive var(--motion-disclosure) var(--ease-out) both;
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+@keyframes menu-arrive {
+  from { opacity: 0; transform: translateY(-0.25rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cf-menu__item {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: calc(var(--radius) - 0.25rem);
+  padding: 0.5rem 0.75rem;
+  color: var(--color-on-surface);
+  font-size: 0.9rem;
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+  outline-offset: 2px;
+}
+
+.cf-menu__item:hover,
+.cf-menu__item:focus-visible,
+.cf-menu__item[data-highlighted] {
+  background: var(--color-surface-low);
+}
+
+.cf-menu__item[data-variant="destructive"] { color: var(--color-error); }
+.cf-menu__item[data-variant="destructive"]:hover,
+.cf-menu__item[data-variant="destructive"]:focus-visible,
+.cf-menu__item[data-variant="destructive"][data-highlighted] {
+  background: var(--status-error-container);
+}
+
+.cf-menu__item svg { width: 1rem; flex: 0 0 auto; }
+
+.cf-menu__label {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.2rem;
+  color: var(--color-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.cf-menu__check {
+  display: grid;
+  width: 1rem;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.cf-menu__check svg { width: 0.9rem; }
+
+.cf-menu__separator {
+  height: 1px;
+  margin: 0.3rem 0.5rem;
+  background: var(--color-outline-variant);
+}
+
+.cf-menu__empty {
+  max-width: 15rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  color: var(--color-on-surface-variant);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cf-button,
   .file-button,

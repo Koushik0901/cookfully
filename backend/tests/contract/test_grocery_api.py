@@ -57,7 +57,7 @@ def seed_plan(
             "yieldQuantity": "2.000",
             "yieldUnit": "servings",
             "ingredients": [{"originalText": "200 g red onion"}],
-            "instructions": ["Cook."],
+            "instructions": [{"text": "Cook."}],
         },
         headers=headers,
     ).json()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -19,7 +20,9 @@ from cookfully.application.food_matching import FoodMatcher
 from cookfully.application.jobs import JobService
 from cookfully.application.recipes import (
     IngredientWrite,
+    InstructionWrite,
     RecipeWrite,
+    SectionWrite,
     recipe_input_hash,
 )
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now, uuid7
@@ -44,7 +47,12 @@ from cookfully.infrastructure.models.jobs import TERMINAL_JOB_STATUSES, Processi
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionEstimate
 from cookfully.infrastructure.models.owner_foods import OwnerFood
-from cookfully.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
+from cookfully.infrastructure.models.recipes import (
+    Ingredient,
+    Recipe,
+    RecipeInstruction,
+    RecipeSection,
+)
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.observability import safe_log
 from cookfully.infrastructure.recipe_images import RecipeImageService
@@ -57,6 +65,18 @@ from cookfully.infrastructure.recipe_importer import (
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
+
+
+def _section_at(
+    sections: Sequence[RecipeSection], section_index: int | None
+) -> RecipeSection | None:
+    if section_index is None:
+        return None
+    try:
+        return sections[section_index]
+    except IndexError:
+        return None
+
 
 logger = logging.getLogger(__name__)
 RETRYABLE_CODES = frozenset({"dns_failed", "source_unavailable", "network_timeout"})
@@ -217,8 +237,13 @@ class RecipePipeline:
             recipe.status = "processing"
             recipe.nutrition_state = "pending"
             recipe.version += 1
+            sections = [
+                RecipeSection(recipe_id=recipe.id, position=index, title=item.title)
+                for index, item in enumerate(write.sections)
+            ]
             RecipeRepository(session).replace_content(
                 recipe,
+                sections,
                 [
                     Ingredient(
                         recipe_id=recipe.id,
@@ -226,11 +251,12 @@ class RecipePipeline:
                         original_text=item.original_text,
                         optional=item.optional,
                         parse_status="unparsed",
+                        section=_section_at(sections, item.section_index),
                         version=1,
                     )
                     for index, item in enumerate(write.ingredients)
                 ],
-                self._instructions(recipe.id, write.instructions),
+                self._instructions(recipe.id, write.instructions, sections),
             )
             if stored_image is not None:
                 recipe.image_asset_id = self._persist_image(
@@ -242,6 +268,10 @@ class RecipePipeline:
                     extra_write = self._imported_write(item)
                     extra_id = uuid7()
                     extra_hash = recipe_input_hash(extra_id, extra_write)
+                    extra_sections = [
+                        RecipeSection(recipe_id=extra_id, position=index, title=item.title)
+                        for index, item in enumerate(extra_write.sections)
+                    ]
                     extra = Recipe(
                         id=extra_id,
                         title=extra_write.title,
@@ -255,6 +285,7 @@ class RecipePipeline:
                         nutrition_state="pending",
                         input_hash=extra_hash,
                         version=1,
+                        sections=extra_sections,
                         ingredients=[
                             Ingredient(
                                 recipe_id=extra_id,
@@ -262,11 +293,14 @@ class RecipePipeline:
                                 original_text=value.original_text,
                                 optional=value.optional,
                                 parse_status="unparsed",
+                                section=_section_at(extra_sections, value.section_index),
                                 version=1,
                             )
                             for index, value in enumerate(extra_write.ingredients)
                         ],
-                        instructions=self._instructions(extra_id, extra_write.instructions),
+                        instructions=self._instructions(
+                            extra_id, extra_write.instructions, extra_sections
+                        ),
                     )
                     RecipeRepository(session).add(extra)
                     self._persist_source_nutrition(session, extra, item)
@@ -576,8 +610,14 @@ class RecipePipeline:
         return RecipeWrite(
             title=imported.title or "Imported recipe",
             yield_quantity=imported.yield_quantity or Decimal("1.000"),
-            ingredients=tuple(IngredientWrite(original_text=line) for line in imported.ingredients),
-            instructions=imported.instructions,
+            sections=tuple(SectionWrite(title=title) for title in imported.sections),
+            ingredients=tuple(
+                IngredientWrite(original_text=line, section_index=section)
+                for line, section in zip(
+                    imported.ingredients, imported.ingredient_sections, strict=True
+                )
+            ),
+            instructions=tuple(InstructionWrite(text=line) for line in imported.instructions),
             source_url=imported.source_url,
             source_name=imported.canonical_url,
             yield_unit="servings" if imported.yield_text else "batch",
@@ -811,11 +851,18 @@ class RecipePipeline:
         )
 
     @staticmethod
-    def _instructions(recipe_id: UUID, values: tuple[str, ...]) -> list[RecipeInstruction]:
+    def _instructions(
+        recipe_id: UUID, values: tuple[InstructionWrite, ...], sections: Sequence[RecipeSection]
+    ) -> list[RecipeInstruction]:
         return [
-            RecipeInstruction(recipe_id=recipe_id, position=index, text=value)
+            RecipeInstruction(
+                recipe_id=recipe_id,
+                position=index,
+                text=value.text.strip(),
+                section=_section_at(sections, value.section_index),
+            )
             for index, value in enumerate(values)
-            if value.strip()
+            if value.text.strip()
         ]
 
 

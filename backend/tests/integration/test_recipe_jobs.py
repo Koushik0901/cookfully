@@ -252,6 +252,8 @@ async def test_import_persists_source_result_and_chains_with_the_new_input_hash(
             yield_quantity=Decimal("2.000"),
             yield_text="2 servings",
             ingredients=("200 g chicken breast",),
+            ingredient_sections=(None,),
+            sections=(),
             instructions=("Cook.",),
             source_nutrition={
                 "calories": "165 kcal",
@@ -294,6 +296,8 @@ async def test_cookbook_import_creates_each_recipe_and_queues_each_parse_atomica
         None,
         None,
         ("1 cup oats",),
+        (None,),
+        (),
         ("Cook the oats.",),
         {},
     )
@@ -305,6 +309,8 @@ async def test_cookbook_import_creates_each_recipe_and_queues_each_parse_atomica
         None,
         None,
         ("1 cup rice",),
+        (None,),
+        (),
         ("Cook the rice.",),
         {},
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -30,7 +31,12 @@ from cookfully.infrastructure.models.nutrition import (
     NutritionEstimate,
 )
 from cookfully.infrastructure.models.owner_foods import OwnerFood
-from cookfully.infrastructure.models.recipes import Ingredient, Recipe, RecipeInstruction
+from cookfully.infrastructure.models.recipes import (
+    Ingredient,
+    Recipe,
+    RecipeInstruction,
+    RecipeSection,
+)
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.owner_foods import UserFoodRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
@@ -97,6 +103,17 @@ def _extract_food_from_text(original_text: str) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class SectionWrite:
+    title: str
+
+
+@dataclass(frozen=True, slots=True)
+class InstructionWrite:
+    text: str
+    section_index: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class IngredientWrite:
     original_text: str
     quantity_min: Decimal | None = None
@@ -108,6 +125,7 @@ class IngredientWrite:
     comment: str | None = None
     purpose: str | None = None
     optional: bool = False
+    section_index: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,13 +133,24 @@ class RecipeWrite:
     title: str
     yield_quantity: Decimal
     ingredients: tuple[IngredientWrite, ...]
-    instructions: tuple[str, ...]
+    instructions: tuple[InstructionWrite, ...]
+    sections: tuple[SectionWrite, ...] = ()
     description: str | None = None
     source_url: str | None = None
     source_name: str | None = None
     yield_unit: str = "servings"
     prep_minutes: int | None = None
     cook_minutes: int | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "instructions",
+            tuple(
+                item if isinstance(item, InstructionWrite) else InstructionWrite(text=item)
+                for item in self.instructions
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,7 +174,7 @@ def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
             )
             for item in write.ingredients
         ),
-        instructions=write.instructions,
+        instructions=tuple(item.text for item in write.instructions),
         status="draft",
         nutrition_state="pending",
     )
@@ -159,6 +188,17 @@ def _extract_unit_from_text(original_text: str) -> str | None:
     if len(tokens) < 2:
         return None
     return tokens[1].rstrip(".,;:()").casefold()
+
+
+def _section_at(
+    sections: Sequence[RecipeSection], section_index: int | None
+) -> RecipeSection | None:
+    if section_index is None:
+        return None
+    try:
+        return sections[section_index]
+    except IndexError:
+        return None
 
 
 class RecipeService:
@@ -179,6 +219,7 @@ class RecipeService:
         recipe_id = uuid7()
         input_hash = recipe_input_hash(recipe_id, write)
         with self._session_factory.begin() as session:
+            sections = self._sections(recipe_id, write.sections)
             recipe = Recipe(
                 id=recipe_id,
                 title=write.title.strip(),
@@ -193,8 +234,9 @@ class RecipeService:
                 nutrition_state="pending",
                 input_hash=input_hash,
                 version=1,
-                ingredients=self._ingredients(recipe_id, write.ingredients),
-                instructions=self._instructions(recipe_id, write.instructions),
+                sections=sections,
+                ingredients=self._ingredients(recipe_id, write.ingredients, sections),
+                instructions=self._instructions(recipe_id, write.instructions, sections),
             )
             RecipeRepository(session).add(recipe)
             self._pre_match_owner_foods(session, recipe, owner_id, input_hash)
@@ -269,10 +311,12 @@ class RecipeService:
             recipe.nutrition_state = "stale"
             recipe.status = "processing"
             recipe.version += 1
+            sections = self._sections(recipe_id, write.sections)
             repository.replace_content(
                 recipe,
-                self._ingredients(recipe_id, write.ingredients),
-                self._instructions(recipe_id, write.instructions),
+                sections,
+                self._ingredients(recipe_id, write.ingredients, sections),
+                self._instructions(recipe_id, write.instructions, sections),
             )
             self._supersede_jobs(session, recipe_id)
             self._pre_match_owner_foods(session, recipe, owner_id, recipe.input_hash)
@@ -521,7 +565,19 @@ class RecipeService:
             raise DomainError("time_invalid", "Cooking time cannot be negative.", 422)
 
     @staticmethod
-    def _ingredients(recipe_id: UUID, values: tuple[IngredientWrite, ...]) -> list[Ingredient]:
+    def _sections(recipe_id: UUID, values: tuple[SectionWrite, ...]) -> list[RecipeSection]:
+        return [
+            RecipeSection(recipe_id=recipe_id, position=position, title=value.title.strip())
+            for position, value in enumerate(values)
+            if value.title.strip()
+        ]
+
+    @staticmethod
+    def _ingredients(
+        recipe_id: UUID,
+        values: tuple[IngredientWrite, ...],
+        sections: Sequence[RecipeSection],
+    ) -> list[Ingredient]:
         return [
             Ingredient(
                 recipe_id=recipe_id,
@@ -537,15 +593,25 @@ class RecipeService:
                 purpose=item.purpose,
                 optional=item.optional,
                 parse_status="manual" if item.food_name else "unparsed",
+                section=_section_at(sections, item.section_index),
                 version=1,
             )
             for position, item in enumerate(values)
         ]
 
     @staticmethod
-    def _instructions(recipe_id: UUID, values: tuple[str, ...]) -> list[RecipeInstruction]:
+    def _instructions(
+        recipe_id: UUID,
+        values: tuple[InstructionWrite, ...],
+        sections: Sequence[RecipeSection],
+    ) -> list[RecipeInstruction]:
         return [
-            RecipeInstruction(recipe_id=recipe_id, position=position, text=value.strip())
+            RecipeInstruction(
+                recipe_id=recipe_id,
+                position=position,
+                text=value.text.strip(),
+                section=_section_at(sections, value.section_index),
+            )
             for position, value in enumerate(values)
-            if value.strip()
+            if value.text.strip()
         ]

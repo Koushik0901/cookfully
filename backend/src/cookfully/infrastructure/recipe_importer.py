@@ -160,7 +160,9 @@ class RecipeImporter:
             groups = []
         if not groups or not any(getattr(group, "purpose", None) for group in groups):
             flat = tuple(
-                item.strip() for item in scraper.ingredients() if item.strip()  # type: ignore[no-untyped-call]
+                item.strip()
+                for item in scraper.ingredients()  # type: ignore[no-untyped-call]
+                if item.strip()
             )
             return flat, (None,) * len(flat), ()
         titles: list[str] = []

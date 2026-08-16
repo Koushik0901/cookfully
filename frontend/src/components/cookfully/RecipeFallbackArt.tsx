@@ -8,10 +8,10 @@ const FALLBACKS = {
 type FallbackKind = keyof typeof FALLBACKS;
 
 const KEYWORDS: Array<[FallbackKind, RegExp]> = [
-  ["breakfast", /\b(oat|oats|yogurt|yoghurt|breakfast|porridge|granola|cereal|smoothie|pancake|waffle|toast|berry|berries)\b/i],
-  ["grain", /\b(rice|grain|bowl|quinoa|couscous|lentil|chickpea|bean|farro|barley|pilaf|burrito)\b/i],
-  ["fresh", /\b(salad|greens?|vegetable|veggie|tomato|cucumber|radish|citrus|slaw|fresh)\b/i],
-  ["savory", /\b(stir|fry|skillet|curry|stew|pasta|noodle|soup|chicken|beef|pork|fish|salmon|tofu|dinner)\b/i],
+  ["breakfast", /\b(oat|oats|yogurt|yoghurt|breakfast|porridge|granola|cereal|smoothie|pancake|waffle|toast|berry|berries|banana bread|muffin)\b/i],
+  ["grain", /\b(rice|grain|bowl|quinoa|couscous|lentil|chickpea|bean|farro|barley|pilaf|burrito|risotto)\b/i],
+  ["fresh", /\b(salad|greens?|vegetable|veggie|tomato|cucumber|radish|citrus|slaw|salsa|guacamole|coleslaw|pico)\b/i],
+  ["savory", /\b(stir|fry|skillet|curry|stew|pasta|noodle|soup|chicken|beef|pork|fish|salmon|tofu|dinner|burger|patty|seitan|steak|roast|meatball|lasagna|mac|cheese|bbq|taco|wrap|sandwich|bacon|wing|meatloaf|stroganoff|piccata|cutlet)\b/i],
 ];
 
 function recipeFallbackKind(title: string): FallbackKind {

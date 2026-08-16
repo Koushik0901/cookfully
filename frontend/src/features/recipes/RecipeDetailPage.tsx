@@ -7,7 +7,7 @@ import { ArrowLeft, ChefHat, ExternalLink, Pencil } from "lucide-react";
 import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { recipesApi } from "./api";
-import { formatCookingText, servingLabel } from "./formatCooking";
+import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
 import { RecipeNutritionSummary } from "./RecipeNutritionSummary";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
@@ -124,7 +124,7 @@ export function RecipeDetailPage() {
             <p className="eyebrow">Nothing was added to your library</p>
             <h1>This source could not be imported</h1>
             <p>{latestJob?.failureMessage ?? "Cookfully could not find a usable recipe in this source."}</p>
-            {recipe.sourceUrl ? <a href={recipe.sourceUrl} rel="noreferrer">Open the original source <ExternalLink aria-hidden="true" /></a> : null}
+            {recipe.sourceUrl ? <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">Open the original source <ExternalLink aria-hidden="true" /></a> : null}
             <div className="actions"><Button asChild><Link to="/app/recipes">Back to recipes</Link></Button><Button variant="secondary" asChild><Link to="/app/recipes/new">Write it manually</Link></Button></div>
           </div>
         </section>
@@ -134,12 +134,22 @@ export function RecipeDetailPage() {
 
   const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").length;
   const actionError = [recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
+  const ingredientGroups = new Map<string | null, typeof recipe.ingredients>();
+  for (const item of recipe.ingredients) {
+    const key = item.sectionId ?? null;
+    ingredientGroups.set(key, [...(ingredientGroups.get(key) ?? []), item]);
+  }
+  const instructionGroups = new Map<string | null, typeof recipe.instructions>();
+  for (const item of recipe.instructions) {
+    const key = item.sectionId ?? null;
+    instructionGroups.set(key, [...(instructionGroups.get(key) ?? []), item]);
+  }
+  const orderedSections = (recipe.sections ?? []).filter((section) => (ingredientGroups.get(section.id)?.length ?? 0) > 0 || (instructionGroups.get(section.id)?.length ?? 0) > 0);
 
   return (
     <main className="page-shell recipe-detail-page">
       <div className="recipe-detail__topline">
         <Button asChild variant="ghost" size="sm"><Link to="/app/recipes"><ArrowLeft aria-hidden="true" />All recipes</Link></Button>
-        {recipe.sourceUrl ? <a className="text-link" href={recipe.sourceUrl} rel="noreferrer">Original source <ExternalLink aria-hidden="true" /></a> : null}
       </div>
 
       <section className="recipe-hero" aria-labelledby="recipe-title">
@@ -154,6 +164,7 @@ export function RecipeDetailPage() {
             <span><strong>{servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</strong>{recipe.sourceUrl ? " · source yield" : ""}</span>
             <span><strong>{recipe.ingredients.length}</strong> ingredients</span>
             <span><strong>{recipe.instructions.length}</strong> steps</span>
+            {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
           </div>
           <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
           <div className="recipe-hero__actions">
@@ -181,19 +192,50 @@ export function RecipeDetailPage() {
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">
           <div className="section-heading"><h2 id="ingredients-heading">Ingredients</h2><span>{recipe.ingredients.length} items</span></div>
-          <ul className="ingredient-list">{recipe.ingredients.map((item) => {
-            const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-            const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-            const friendlyIngredient = scaleFactor !== 1 && scaledMin
-              ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
-              : formatCookingText(item.originalText);
-            return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
-          })}</ul>
+          {recipe.ingredients.length ? (
+            <ul className="ingredient-list">
+              {orderedSections.map((section) => (
+                <li key={section.id} className="ingredient-section" aria-label={`${section.title} ingredients`}>
+                  <h3>{section.title}</h3>
+                  <ul>
+                    {(ingredientGroups.get(section.id) ?? []).map((item) => {
+                      const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+                      const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+                      const friendlyIngredient = scaleFactor !== 1 && scaledMin
+                        ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
+                        : formatCookingText(item.originalText);
+                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                    })}
+                  </ul>
+                </li>
+              ))}
+              {(ingredientGroups.get(null) ?? []).map((item) => {
+                const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+                const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+                const friendlyIngredient = scaleFactor !== 1 && scaledMin
+                  ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
+                  : formatCookingText(item.originalText);
+                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+              })}
+            </ul>
+          ) : <p className="muted">No ingredients were provided.</p>}
         </section>
 
         <section className={`recipe-reading-panel recipe-reading-panel--method${mobilePanel === "method" ? " is-mobile-active" : ""}`} aria-labelledby="method-heading">
           <div className="section-heading"><h2 id="method-heading">Method</h2><span>{recipe.instructions.length} steps</span></div>
-          {recipe.instructions.length ? <ol className="instruction-list">{recipe.instructions.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol> : <p className="muted">No instructions were provided.</p>}
+          {recipe.instructions.length ? (
+            <ol className="instruction-list">
+              {orderedSections.map((section) => (
+                <li key={section.id} className="instruction-section" aria-label={`${section.title} instructions`}>
+                  <h3>{section.title}</h3>
+                  <ol>
+                    {(instructionGroups.get(section.id) ?? []).map((step) => <li key={`${step.position}-${step.text}`}>{step.text}</li>)}
+                  </ol>
+                </li>
+              ))}
+              {(instructionGroups.get(null) ?? []).map((step) => <li key={`${step.position}-${step.text}`}>{step.text}</li>)}
+            </ol>
+          ) : <p className="muted">No instructions were provided.</p>}
         </section>
       </section>
 

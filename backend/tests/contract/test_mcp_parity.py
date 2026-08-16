@@ -62,7 +62,7 @@ def seed_planning_state(client: TestClient, headers: dict[str, str]) -> dict[str
             "yieldQuantity": "2.000",
             "yieldUnit": "servings",
             "ingredients": [{"originalText": "200 g tofu"}],
-            "instructions": ["Cook."],
+            "instructions": [{"text": "Cook."}],
         },
     ).json()
     for index, (field, value) in enumerate(

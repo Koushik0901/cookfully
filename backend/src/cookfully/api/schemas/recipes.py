@@ -22,15 +22,22 @@ from cookfully.application.recipe_organization import RecipeCollectionRead
 from cookfully.application.recipe_queries import (
     CorrectionRead,
     IngredientRead,
+    InstructionRead,
     NutritionRead,
     ProvenanceRead,
     RecipePageRead,
     RecipeRead,
+    SectionRead,
 )
 from cookfully.application.recipe_queries import (
     RecipeCollectionRead as RecipeOrganizationCollectionRead,
 )
-from cookfully.application.recipes import IngredientWrite, RecipeWrite
+from cookfully.application.recipes import (
+    IngredientWrite,
+    InstructionWrite,
+    RecipeWrite,
+    SectionWrite,
+)
 from cookfully.domain.common import canonical_decimal, quantize_decimal
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
@@ -99,6 +106,7 @@ class IngredientWriteRequest(ApiModel):
     food: str | None = Field(default=None, max_length=240)
     preparation: str | None = Field(default=None, max_length=240)
     optional: bool = False
+    section: int | None = Field(default=None, ge=0)
 
     def to_write(self) -> IngredientWrite:
         return IngredientWrite(
@@ -110,7 +118,17 @@ class IngredientWriteRequest(ApiModel):
             food_name=self.food,
             preparation=self.preparation,
             optional=self.optional,
+            section_index=self.section,
         )
+
+
+class SectionWriteRequest(ApiModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+class InstructionWriteRequest(ApiModel):
+    text: str = Field(min_length=1, max_length=5000)
+    section: int | None = Field(default=None, ge=0)
 
 
 class RecipeWriteRequest(ApiModel):
@@ -120,7 +138,8 @@ class RecipeWriteRequest(ApiModel):
     yield_quantity: ServingDecimal = Field(alias="yieldQuantity")
     yield_unit: str = Field(alias="yieldUnit", default="servings", max_length=80)
     ingredients: tuple[IngredientWriteRequest, ...] = Field(min_length=1, max_length=500)
-    instructions: tuple[str, ...] = Field(default=(), max_length=500)
+    instructions: tuple[InstructionWriteRequest, ...] = Field(default=(), max_length=500)
+    sections: tuple[SectionWriteRequest, ...] = Field(default=(), max_length=50)
 
     def to_write(self) -> RecipeWrite:
         return RecipeWrite(
@@ -130,12 +149,72 @@ class RecipeWriteRequest(ApiModel):
             yield_quantity=self.yield_quantity,
             yield_unit=self.yield_unit,
             ingredients=tuple(item.to_write() for item in self.ingredients),
-            instructions=self.instructions,
+            instructions=tuple(
+                InstructionWrite(text=item.text, section_index=item.section)
+                for item in self.instructions
+            ),
+            sections=tuple(SectionWrite(title=item.title) for item in self.sections),
         )
 
 
 class ImportRecipeRequest(ApiModel):
     url: AnyHttpUrl = Field(max_length=2048)
+
+
+class ImportPreviewRequest(ApiModel):
+    url: AnyHttpUrl = Field(max_length=2048)
+
+
+class ImportPreviewIngredient(ApiModel):
+    original_text: str = Field(alias="originalText")
+    needs_quantity: bool = Field(alias="needsQuantity")
+
+
+class ImportPreviewSection(ApiModel):
+    title: str | None = Field(default=None, max_length=200)
+    ingredients: tuple[ImportPreviewIngredient, ...] = ()
+    instructions: tuple[str, ...] = ()
+
+
+class DuplicateSummary(ApiModel):
+    id: UUID
+    title: str
+
+
+class ImportPreviewResponse(ApiModel):
+    parse_id: str = Field(alias="parseId")
+    title: str = Field(max_length=240)
+    yield_quantity: str | None = Field(alias="yieldQuantity", default=None)
+    yield_text: str | None = Field(alias="yieldText", default=None)
+    image_sources: tuple[str, ...] = Field(alias="imageSources")
+    duplicates: tuple[DuplicateSummary, ...] = ()
+    sections: tuple[ImportPreviewSection, ...] = ()
+
+
+class ImportConfirmIngredient(ApiModel):
+    original_text: str | None = Field(alias="originalText", default=None, max_length=1000)
+    quantity_override: str | None = Field(alias="quantityOverride", default=None, max_length=200)
+    optional: bool = False
+    remove: bool = False
+
+
+class ImportConfirmInstruction(ApiModel):
+    text: str
+    remove: bool = False
+
+
+class ImportConfirmComponent(ApiModel):
+    title: str | None = Field(default=None, max_length=200)
+    ingredients: tuple[ImportConfirmIngredient, ...] = ()
+    instructions: tuple[ImportConfirmInstruction, ...] = ()
+
+
+class ImportConfirmRequest(ApiModel):
+    parse_id: str = Field(alias="parseId", max_length=64)
+    title: str | None = Field(default=None, min_length=1, max_length=240)
+    image_source: str | None = Field(alias="imageSource", default=None, max_length=2048)
+    yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
+    components: tuple[ImportConfirmComponent, ...] = ()
 
 
 class RecipeSourceImageChoiceRequest(ApiModel):
@@ -383,6 +462,7 @@ class IngredientResponse(ApiModel):
     parse_status: str = Field(alias="parseStatus")
     match_status: str | None = Field(alias="matchStatus", default=None)
     assumptions: tuple[str, ...] = ()
+    section_id: UUID | None = Field(alias="sectionId", default=None)
 
     @classmethod
     def from_read(cls, value: IngredientRead) -> IngredientResponse:
@@ -399,6 +479,35 @@ class IngredientResponse(ApiModel):
             parse_status=value.parse_status,
             match_status=value.match_status,
             assumptions=value.assumptions,
+            section_id=value.section_id,
+        )
+
+
+class InstructionResponse(ApiModel):
+    position: int = Field(ge=0)
+    text: str
+    section_id: UUID | None = Field(alias="sectionId", default=None)
+
+    @classmethod
+    def from_read(cls, value: InstructionRead) -> InstructionResponse:
+        return cls(
+            position=value.position,
+            text=value.text,
+            section_id=value.section_id,
+        )
+
+
+class SectionResponse(ApiModel):
+    id: UUID
+    position: int = Field(ge=0)
+    title: str
+
+    @classmethod
+    def from_read(cls, value: SectionRead) -> SectionResponse:
+        return cls(
+            id=value.id,
+            position=value.position,
+            title=value.title,
         )
 
 
@@ -462,7 +571,8 @@ class RecipeResponse(ApiModel):
 class RecipeDetailResponse(RecipeResponse):
     description: str | None = None
     ingredients: tuple[IngredientResponse, ...]
-    instructions: tuple[str, ...]
+    instructions: tuple[InstructionResponse, ...]
+    sections: tuple[SectionResponse, ...] = ()
     active_job: JobResponse | None = Field(alias="activeJob", default=None)
 
     @classmethod
@@ -472,7 +582,8 @@ class RecipeDetailResponse(RecipeResponse):
             **base.model_dump(),
             description=value.description,
             ingredients=tuple(IngredientResponse.from_read(item) for item in value.ingredients),
-            instructions=value.instructions,
+            instructions=tuple(InstructionResponse.from_read(item) for item in value.instructions),
+            sections=tuple(SectionResponse.from_read(item) for item in value.sections),
             active_job=(JobResponse.from_progress(value.active_job) if value.active_job else None),
         )
 

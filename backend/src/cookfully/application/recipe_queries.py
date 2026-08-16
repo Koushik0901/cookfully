@@ -84,6 +84,21 @@ class IngredientRead:
     parse_status: str
     match_status: str | None
     assumptions: tuple[str, ...]
+    section_id: UUID | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class InstructionRead:
+    position: int
+    text: str
+    section_id: UUID | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SectionRead:
+    id: UUID
+    position: int
+    title: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +120,8 @@ class RecipeRead:
     collections: tuple[RecipeCollectionRead, ...] = ()
     meal_roles: tuple[str, ...] = ()
     ingredients: tuple[IngredientRead, ...] = ()
-    instructions: tuple[str, ...] = ()
+    instructions: tuple[InstructionRead, ...] = ()
+    sections: tuple[SectionRead, ...] = ()
     active_job: JobProgress | None = None
 
 
@@ -225,7 +241,23 @@ class RecipeQueryService:
             ),
             meal_roles=tuple(sorted(item.role for item in recipe.meal_roles)),
             ingredients=ingredients,
-            instructions=(tuple(item.text for item in recipe.instructions) if detail else ()),
+            instructions=(
+                tuple(
+                    InstructionRead(
+                        position=item.position,
+                        text=item.text,
+                        section_id=item.section_id,
+                    )
+                    for item in recipe.instructions
+                )
+                if detail
+                else ()
+            ),
+            sections=(
+                tuple(SectionRead(item.id, item.position, item.title) for item in recipe.sections)
+                if detail
+                else ()
+            ),
             active_job=active_job,
         )
 
@@ -401,6 +433,7 @@ class RecipeQueryService:
             value.parse_status,
             match.status if match is not None else None,
             assumptions,
+            value.section_id,
         )
 
     @staticmethod

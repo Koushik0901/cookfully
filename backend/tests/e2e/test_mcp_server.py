@@ -86,7 +86,7 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
                 "yieldQuantity": "2.000",
                 "yieldUnit": "servings",
                 "ingredients": [{"originalText": "200 g tofu"}],
-                "instructions": ["Cook."],
+                "instructions": [{"text": "Cook."}],
             },
         ).json()
         for index, (field, value) in enumerate(

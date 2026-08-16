@@ -67,7 +67,7 @@ def seed_recipe(client: TestClient, headers: dict[str, str], title: str, key: st
             "yieldQuantity": "2.000",
             "yieldUnit": "servings",
             "ingredients": [{"originalText": "100 g tofu"}],
-            "instructions": ["Cook."],
+            "instructions": [{"text": "Cook."}],
         },
     ).json()
     for index, (field, value) in enumerate(

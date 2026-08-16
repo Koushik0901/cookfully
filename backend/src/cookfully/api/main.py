@@ -34,6 +34,7 @@ from cookfully.application.exports import ExportJobService
 from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.grocery_shopping_stops import GroceryShoppingStopService
 from cookfully.application.idempotency import IdempotencyService
+from cookfully.application.import_preview import ImportPreviewCoordinator
 from cookfully.application.jobs import JobService
 from cookfully.application.meal_plans import GoalService, MealPlanService
 from cookfully.application.owner_onboarding import OwnerOnboardingService
@@ -54,6 +55,7 @@ from cookfully.infrastructure.instance_lease import runtime_service_lease
 from cookfully.infrastructure.media_store import MediaStore
 from cookfully.infrastructure.observability import correlation_middleware
 from cookfully.infrastructure.recipe_images import RecipeImageService
+from cookfully.infrastructure.recipe_importer import RecipeImporter
 from cookfully.infrastructure.safe_fetch import SafeFetcher
 from cookfully.mcp.read_tools import ReadTools
 from cookfully.mcp.resources import McpResources
@@ -85,10 +87,14 @@ _OPERATION_IDS = {
     "replace_recipe_organization": "replaceRecipeOrganization",
     "create_recipe": "createRecipe",
     "import_recipe": "importRecipe",
+    "preview_recipe_import": "previewRecipeImport",
+    "confirm_recipe_import": "confirmRecipeImport",
     "get_recipe": "getRecipe",
     "update_recipe": "updateRecipe",
     "replace_recipe_photo": "replaceRecipePhoto",
     "remove_recipe_photo": "removeRecipePhoto",
+    "list_recipe_source_images": "listRecipeSourceImages",
+    "replace_recipe_photo_from_source": "replaceRecipePhotoFromSource",
     "archive_recipe": "archiveRecipe",
     "restore_recipe": "restoreRecipe",
     "permanently_delete_recipe": "permanentlyDeleteRecipe",
@@ -212,6 +218,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             app.state.recipe_organization = RecipeOrganizationService(sessions)
             app.state.recipe_queries = recipe_query_service
+            app.state.import_previews = ImportPreviewCoordinator(
+                sessions,
+                RecipeImporter(SafeFetcher(max_bytes=25 * 1024 * 1024), media_store),
+                app.state.recipes,
+                recipe_query_service,
+            )
             app.state.corrections = CorrectionService(sessions)
             app.state.idempotency = idempotency_service
             app.state.goals = goal_service

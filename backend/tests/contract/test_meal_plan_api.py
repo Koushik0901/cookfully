@@ -60,7 +60,7 @@ def recipe_payload() -> dict[str, object]:
         "yieldQuantity": "2.000",
         "yieldUnit": "servings",
         "ingredients": [{"originalText": "200 g tofu"}],
-        "instructions": ["Cook."],
+        "instructions": [{"text": "Cook."}],
     }
 
 

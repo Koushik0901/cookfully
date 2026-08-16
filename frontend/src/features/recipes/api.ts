@@ -1,4 +1,6 @@
 import type {
+  ImportConfirmWrite,
+  ImportPreview,
   Job,
   JobAccepted,
   NutritionCorrectionWrite,
@@ -156,6 +158,19 @@ export const recipesApi = {
       method: "POST",
       idempotent: true,
       body: JSON.stringify({ url }),
+    });
+  },
+  preview(url: string) {
+    return apiRequest<ImportPreview>("/recipes/import/preview", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    });
+  },
+  confirmImport(write: ImportConfirmWrite) {
+    return apiRequest<JobAccepted>("/recipes/import/confirm", {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify(write),
     });
   },
   recalculate(recipeId: string, resetCorrections = false) {

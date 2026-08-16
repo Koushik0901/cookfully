@@ -21,3 +21,12 @@ export function servingLabel(quantity: string | number, unit: string) {
   const friendlyUnit = amount === 1 && unit.toLowerCase() === "servings" ? "serving" : unit;
   return `${formatCookingNumber(quantity)} ${friendlyUnit}`;
 }
+
+export function sourceHost(url: string | null | undefined) {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
