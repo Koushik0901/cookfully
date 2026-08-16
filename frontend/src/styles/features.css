@@ -347,6 +347,37 @@
 .import-recovery a { display: inline-flex; width: fit-content; align-items: center; gap: 0.35rem; }
 .import-recovery a svg { width: 1rem; }
 
+/* Import preview — editorial kitchen utility, food-first. */
+.import-wizard { font-family: var(--font-display), var(--font-body); }
+.import-wizard .dialog-overlay { background: color-mix(in oklch, var(--color-surface) 96%, transparent); }
+.import-wizard__duplicate { background: var(--color-surface-low); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; }
+.import-wizard__duplicate strong { color: var(--color-on-primary); }
+.import-wizard__duplicate p { color: var(--color-on-surface-variant); font-size: 0.875rem; }
+.import-wizard__image-grid { display: grid; gap: 0.75rem; }
+.import-wizard__image { border: 2px solid var(--color-outline); border-radius: var(--radius-control); padding: 0.5rem; transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease; }
+.import-wizard__image.is-selected { border-color: var(--color-primary); background: var(--color-surface-bright); }
+.import-wizard__component { border: 1px solid var(--color-outline-variant); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; transition: box-shadow var(--motion-fast) ease; }
+.import-wizard__component:hover { box-shadow: var(--shadow-card-rest); }
+.import-wizard__component-head { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; margin-bottom: 0.75rem; }
+.import-wizard__block { margin-bottom: 1rem; }
+.import-wizard__block h3 { color: var(--color-primary); font-size: 0.875rem; font-weight: 620; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.import-wizard__ingredient input { border: 1px solid var(--color-outline); border-radius: var(--radius-control); padding: 0.4rem 0.5rem; width: 100%; transition: border-color var(--motion-fast) ease; }
+.import-wizard__ingredient input:focus { border-color: var(--color-primary); outline: none; }
+.import-wizard__ingredient .Field label { color: var(--color-on-surface-variant); font-size: 0.75rem; }
+.import-wizard__method textarea { width: 100%; min-height: 3rem; border: 1px solid var(--color-outline); border-radius: var(--radius-lg); padding: 0.5rem; font-family: var(--font-body); font-size: 0.875rem; line-height: 1.4; resize: vertical; transition: border-color var(--motion-fast) ease; }
+.import-wizard__method textarea:focus { border-color: var(--color-primary); outline: none; }
+.import-wizard__actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+.import-wizard__actions .Button { transition: background var(--motion-fast) ease, transform var(--motion-press) var(--ease-out-quart); }
+.import-wizard__actions .Button:hover { background: var(--color-surface-bright); }
+.import-wizard__actions .Button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+@media (max-width: 59.99rem) {
+  .import-wizard__component { padding: 0.75rem; }
+  .import-wizard__block h3 { font-size: 0.8rem; }
+  .import-wizard__ingredient input { padding: 0.3rem 0.4rem; }
+  .import-wizard__method textarea { min-height: 2rem; font-size: 0.75rem; }
+}
+
 .recipe-saved-moment {
   display: flex;
   width: fit-content;

@@ -447,7 +447,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }, testInfo) => {
+test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }) => {
   const preview = await mockPreviewApi(page);
   await page.goto("/app/recipes");
   await page.getByRole("button", { name: "Import recipe" }).click();
@@ -458,6 +458,8 @@ test("import preview shows components, prompts for missing quantities, warns on 
   await expect(page.getByRole("heading", { name: "Review the recipe" })).toBeVisible();
   await expect(page.getByText("Shawarma bowl")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("already have “Shawarma bowl”");
+  await expect(page.getByLabel("Component 1 title")).toHaveValue("The chicken");
+  await expect(page.getByLabel("Component 2 title")).toHaveValue("The sauce");
   await expect(page.getByLabel("Component 1 title")).toHaveValue("The chicken");
   await expect(page.getByLabel("Component 2 title")).toHaveValue("The sauce");
 
