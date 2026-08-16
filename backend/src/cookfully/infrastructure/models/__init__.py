@@ -7,6 +7,7 @@ from cookfully.infrastructure.models.grocery import (
     RememberedGroceryPlacement,
 )
 from cookfully.infrastructure.models.idempotency import IdempotencyRecord
+from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.identity import (
     AccessToken,
     OwnerAccount,
@@ -55,6 +56,7 @@ __all__ = [
     "GroceryList",
     "GroceryShoppingStop",
     "IdempotencyRecord",
+    "ImportPreviewRecord",
     "Ingredient",
     "IngredientMatch",
     "MealNutritionSnapshot",
