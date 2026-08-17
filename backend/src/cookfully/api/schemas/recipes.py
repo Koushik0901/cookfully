@@ -45,6 +45,7 @@ from cookfully.domain.nutrition import (
     MicronutrientKey,
     SupportedMicronutrientValue,
 )
+from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
 
 
 def _fixed_decimal(value: object, *, places: int, positive: bool = False) -> Decimal:
@@ -131,6 +132,41 @@ class InstructionWriteRequest(ApiModel):
     section: int | None = Field(default=None, ge=0)
 
 
+def _crop_fraction(value: object) -> Decimal:
+    parsed = _fixed_decimal(value, places=6)
+    if parsed > 1:
+        raise ValueError("crop position must be between 0 and 1")
+    return parsed
+
+
+def _crop_zoom(value: object) -> Decimal:
+    parsed = _fixed_decimal(value, places=6)
+    if parsed < 1 or parsed > 3:
+        raise ValueError("crop zoom must be between 1 and 3")
+    return parsed
+
+
+CropFraction = Annotated[
+    Decimal,
+    BeforeValidator(_crop_fraction),
+    PlainSerializer(lambda value: canonical_decimal(value), return_type=str),
+]
+CropZoom = Annotated[
+    Decimal,
+    BeforeValidator(_crop_zoom),
+    PlainSerializer(lambda value: canonical_decimal(value), return_type=str),
+]
+
+
+class ThumbnailCropRequest(ApiModel):
+    focal_x: CropFraction = Field(alias="focalX", default=Decimal("0.500000"))
+    focal_y: CropFraction = Field(alias="focalY", default=Decimal("0.500000"))
+    zoom: CropZoom = Field(default=Decimal("1.000000"))
+
+    def to_domain(self) -> ThumbnailCrop:
+        return ThumbnailCrop(self.focal_x, self.focal_y, self.zoom)
+
+
 class RecipeWriteRequest(ApiModel):
     title: str = Field(min_length=1, max_length=240)
     description: str | None = Field(default=None, max_length=5000)
@@ -140,6 +176,8 @@ class RecipeWriteRequest(ApiModel):
     ingredients: tuple[IngredientWriteRequest, ...] = Field(min_length=1, max_length=500)
     instructions: tuple[InstructionWriteRequest, ...] = Field(default=(), max_length=500)
     sections: tuple[SectionWriteRequest, ...] = Field(default=(), max_length=50)
+    thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
+    origin_kind: RecipeOrigin | None = Field(alias="originKind", default=None)
 
     def to_write(self) -> RecipeWrite:
         return RecipeWrite(
@@ -154,6 +192,8 @@ class RecipeWriteRequest(ApiModel):
                 for item in self.instructions
             ),
             sections=tuple(SectionWrite(title=item.title) for item in self.sections),
+            thumbnail_crop=self.thumbnail_crop.to_domain() if self.thumbnail_crop else None,
+            origin_kind=self.origin_kind,
         )
 
 
@@ -556,6 +596,8 @@ class RecipeResponse(ApiModel):
     meal_roles: tuple[Literal["breakfast", "lunch", "dinner", "snack"], ...] = Field(
         alias="mealRoles", default=()
     )
+    thumbnail_crop: ThumbnailCropRequest = Field(alias="thumbnailCrop")
+    origin_kind: RecipeOrigin = Field(alias="originKind")
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeResponse:
@@ -582,6 +624,12 @@ class RecipeResponse(ApiModel):
                 cast(Literal["breakfast", "lunch", "dinner", "snack"], item)
                 for item in value.meal_roles
             ),
+            thumbnail_crop=ThumbnailCropRequest(
+                focal_x=value.thumbnail_crop.focal_x,
+                focal_y=value.thumbnail_crop.focal_y,
+                zoom=value.thumbnail_crop.zoom,
+            ),
+            origin_kind=cast(RecipeOrigin, value.origin_kind),
         )
 
 

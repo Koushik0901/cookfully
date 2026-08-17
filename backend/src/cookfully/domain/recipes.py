@@ -11,6 +11,22 @@ from cookfully.domain.common import DomainError, canonical_decimal
 
 RecipeStatus = Literal["draft", "processing", "ready", "partial", "failed", "archived"]
 NutritionState = Literal["pending", "source_provided", "estimated", "partial", "failed", "stale"]
+RecipeOrigin = Literal["manual", "web_import", "cookbook_import"]
+
+
+@dataclass(frozen=True, slots=True)
+class ThumbnailCrop:
+    focal_x: Decimal = Decimal("0.500000")
+    focal_y: Decimal = Decimal("0.500000")
+    zoom: Decimal = Decimal("1.000000")
+
+    def __post_init__(self) -> None:
+        if not Decimal("0") <= self.focal_x <= Decimal("1"):
+            raise ValueError("thumbnail focal_x must be between 0 and 1")
+        if not Decimal("0") <= self.focal_y <= Decimal("1"):
+            raise ValueError("thumbnail focal_y must be between 0 and 1")
+        if not Decimal("1") <= self.zoom <= Decimal("3"):
+            raise ValueError("thumbnail zoom must be between 1 and 3")
 
 
 @dataclass(frozen=True, slots=True)

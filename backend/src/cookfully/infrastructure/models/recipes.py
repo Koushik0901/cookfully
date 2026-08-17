@@ -60,6 +60,16 @@ class Recipe(TimestampMixin, Base):
     image_asset_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("media_assets.id", ondelete="SET NULL")
     )
+    thumbnail_focal_x: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("0.500000")
+    )
+    thumbnail_focal_y: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("0.500000")
+    )
+    thumbnail_zoom: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("1.000000")
+    )
+    origin_kind: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
     input_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
