@@ -653,6 +653,16 @@
 .recipe-editor__save { display: flex; width: min(100%, 50rem); align-items: center; justify-content: space-between; gap: 1rem; justify-self: center; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 0.75rem 0.75rem 0.75rem 1rem; background: var(--color-card-raised); box-shadow: var(--shadow-level-1); }
 .recipe-editor__save p { display: grid; }
 .recipe-editor__save span { color: var(--color-on-surface-variant); font-size: 0.75rem; }
+.recipe-editor__view-toggle { display: inline-flex; gap: 0.25rem; margin-bottom: 1.5rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-control); padding: 0.25rem; background: var(--color-surface-low); }
+.recipe-editor__view-toggle button { border: 0; border-radius: calc(var(--radius-control) - 0.25rem); padding: 0.4rem 1rem; font-family: var(--font-body); font-size: 0.875rem; font-weight: 600; color: var(--color-on-surface-variant); background: transparent; cursor: pointer; transition: background var(--motion-fast) ease, color var(--motion-fast) ease; }
+.recipe-editor__view-toggle button[aria-pressed="true"] { color: var(--color-on-primary); background: var(--color-primary); }
+.recipe-editor__view-toggle button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.recipe-draft-preview { display: grid; gap: 1.5rem; }
+.recipe-draft-preview .recipe-hero { box-shadow: var(--shadow-level-1); }
+.recipe-draft-preview__macros { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+.recipe-draft-preview__macros div { border: 1px solid var(--color-outline-variant); border-radius: var(--radius); padding: 0.6rem 0.75rem; background: var(--color-card-raised); }
+.recipe-draft-preview__macros dt { color: var(--color-on-surface-variant); font-size: 0.75rem; }
+.recipe-draft-preview__macros dd { color: var(--color-on-surface); font-size: 1rem; font-weight: 620; }
 
 /* First kitchen — one-time, route-native and clearly actionable. */
 .first-kitchen-page { align-content: center; }

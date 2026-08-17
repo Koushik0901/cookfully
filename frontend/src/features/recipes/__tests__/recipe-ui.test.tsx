@@ -346,6 +346,30 @@ describe("recipe UI", () => {
     });
   });
 
+  it("switches between edit and a live preview of the draft recipe", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(() => response(recipe));
+    renderRoute(<RecipeEditorPage />, "/app/recipes/new");
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Recipe title"), "Sheet pan chicken");
+    await user.type(screen.getByLabelText("Ingredients, one per line"), "1 chicken breast\n2 cups rice");
+    await user.type(screen.getByLabelText("Method, one step per line"), "Roast the chicken.\nRest before serving.");
+
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(await screen.findByRole("heading", { name: "Sheet pan chicken" })).toBeVisible();
+    expect(screen.getByText("1 chicken breast")).toBeVisible();
+    expect(screen.getByText("2 cups rice")).toBeVisible();
+    expect(screen.getByText("Roast the chicken.")).toBeVisible();
+    expect(screen.getByText("Rest before serving.")).toBeVisible();
+    expect(screen.getByText("1 serving")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText("Recipe title")).toHaveValue("Sheet pan chicken");
+    expect(screen.getByLabelText("Ingredients, one per line")).toHaveValue("1 chicken breast\n2 cups rice");
+  });
+
   it("polls visible work after two seconds and recovers authoritative state after reload", async () => {
     vi.useFakeTimers();
     const running: Job = {

@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
+import { RecipeDraftPreview } from "./RecipeDraftPreview";
 import type { RecipeWrite } from "./types";
 
 const decimalPattern = /^(?!0(?:\.0{1,3})?$)(?:0|[1-9][0-9]*)(?:\.[0-9]{1,3})?$/;
@@ -56,6 +57,7 @@ const [title, setTitle] = useState("");
   const [matchesOpen, setMatchesOpen] = useState(location.hash === "#ingredient-matches");
   const [nutritionOpen, setNutritionOpen] = useState(location.hash === "#nutrition");
   const [mobileStep, setMobileStep] = useState<"basics" | "ingredients" | "method" | "nutrition">(location.hash === "#nutrition" ? "nutrition" : "basics");
+  const [view, setView] = useState<"edit" | "preview">("edit");
   const [photo, setPhoto] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -226,6 +228,22 @@ function submit(event: FormEvent) {
   return (
     <main className="page-shell recipe-editor-page">
       <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
+      <nav className="recipe-editor__view-toggle" aria-label="Recipe editor views">
+        <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}>Edit</button>
+        <button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}>Preview</button>
+      </nav>
+      {view === "preview" ? (
+        <RecipeDraftPreview
+          title={title}
+          description={description}
+          sourceUrl={sourceUrl}
+          yieldQuantity={yieldQuantity}
+          yieldUnit={yieldUnit}
+          photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
+          blocks={blocks}
+          macros={NUTRITION_FIELDS.slice(0, 4).filter(([field]) => nutritionValues[field].trim()).map(([field, label, unit]) => ({ label: `${label} (${unit})`, value: nutritionValues[field].trim() }))}
+        />
+      ) : (
       <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}`} onSubmit={submit} noValidate>
         <section className="recipe-editor__identity" aria-label="Recipe name and yield">
           <Field label="Recipe title" error={errors.title}><input className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
@@ -283,6 +301,7 @@ function submit(event: FormEvent) {
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
         <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
+      )}
     </main>
   );
 }
