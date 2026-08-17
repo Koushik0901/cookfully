@@ -1665,12 +1665,16 @@ components:
           type: string
           format: binary
           description: JPEG, PNG, or WebP image no larger than 20 MB before normalization.
+        thumbnailCrop:
+          type: string
+          description: Optional JSON object containing focalX, focalY, and zoom crop values.
     RecipeSourceImage:
       type: object
       additionalProperties: false
       required: [url]
       properties:
         url: { type: string, format: uri, maxLength: 2048 }
+        thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
     Problem:
       type: object
       required: [type, title, status, code]
@@ -1883,6 +1887,19 @@ components:
           type: array
           maxItems: 50
           items: { $ref: "#/components/schemas/SectionWrite" }
+        thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
+        originKind: { $ref: "#/components/schemas/RecipeOrigin" }
+    ThumbnailCrop:
+      type: object
+      additionalProperties: false
+      required: [focalX, focalY, zoom]
+      properties:
+        focalX: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
+        focalY: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
+        zoom: { type: string, pattern: "^(1|[12]\\.[0-9]{1,6}|3)$" }
+    RecipeOrigin:
+      type: string
+      enum: [manual, web_import, cookbook_import]
     RecipeCollectionWrite:
       type: object
       additionalProperties: false
@@ -1910,7 +1927,7 @@ components:
         mealRoles: { type: array, items: { type: string, enum: [breakfast, lunch, dinner, snack] } }
     Recipe:
       type: object
-      required: [id, title, yieldQuantity, yieldUnit, status, nutritionState, version]
+      required: [id, title, yieldQuantity, yieldUnit, status, nutritionState, version, thumbnailCrop, originKind]
       properties:
         id: { type: string, format: uuid }
         title: { type: string }
@@ -1935,6 +1952,8 @@ components:
         mealRoles: { type: array, items: { type: string, enum: [breakfast, lunch, dinner, snack] } }
         version: { type: integer, minimum: 1 }
         updatedAt: { type: string, format: date-time }
+        thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
+        originKind: { $ref: "#/components/schemas/RecipeOrigin" }
     RecipeDetail:
       allOf:
         - $ref: "#/components/schemas/Recipe"
@@ -1981,6 +2000,7 @@ components:
         jobId: { type: string, format: uuid }
         resourceId: { type: [string, "null"], format: uuid }
         status: { type: string, const: queued }
+        coverStatus: { type: [string, "null"], enum: [attached, not_selected, failed, null] }
     ImportPreview:
       type: object
       additionalProperties: false
@@ -2015,9 +2035,10 @@ components:
                   properties:
                     originalText: { type: string }
                     needsQuantity: { type: boolean }
-              instructions:
-                type: array
-                items: { type: string }
+                instructions:
+                  type: array
+                  items: { type: string }
+        originKind: { $ref: "#/components/schemas/RecipeOrigin" }
     ImportConfirm:
       type: object
       additionalProperties: false
@@ -2050,6 +2071,7 @@ components:
                   properties:
                     text: { type: string }
                     remove: { type: boolean, default: false }
+        thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
     ImportMerge:
       type: object
       additionalProperties: false
@@ -2088,6 +2110,7 @@ components:
       required: [imageSource]
       properties:
         imageSource: { type: string, minLength: 1, maxLength: 20000000 }
+        thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
     Job:
       type: object
       required: [id, kind, aggregateId, status, attempt, maxAttempts, inputHash, terminalDeadlineAt, createdAt, pollAfterSeconds, recoveryActions]

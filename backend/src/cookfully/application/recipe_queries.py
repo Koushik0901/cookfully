@@ -4,7 +4,7 @@ import base64
 import binascii
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import cast
@@ -124,7 +124,7 @@ class RecipeRead:
     instructions: tuple[InstructionRead, ...] = ()
     sections: tuple[SectionRead, ...] = ()
     active_job: JobProgress | None = None
-    thumbnail_crop: ThumbnailCrop = ThumbnailCrop()
+    thumbnail_crop: ThumbnailCrop = field(default_factory=ThumbnailCrop)
     origin_kind: str = "manual"
 
 

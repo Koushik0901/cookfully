@@ -230,6 +230,7 @@ class ImportPreviewResponse(ApiModel):
     image_sources: tuple[str, ...] = Field(alias="imageSources")
     duplicates: tuple[DuplicateSummary, ...] = ()
     sections: tuple[ImportPreviewSection, ...] = ()
+    origin_kind: RecipeOrigin = Field(alias="originKind", default="web_import")
 
 
 class ImportConfirmIngredient(ApiModel):
@@ -259,6 +260,7 @@ class ImportConfirmRequest(ApiModel):
     )
     yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
     components: tuple[ImportConfirmComponent, ...] = ()
+    thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
 
 
 class ImportMergeRequest(ApiModel):
@@ -272,10 +274,12 @@ class ImportMergeRequest(ApiModel):
 
 class RecipePhotoAttachRequest(ApiModel):
     image_source: str = Field(alias="imageSource", min_length=1, max_length=20_000_000)
+    thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
 
 
 class RecipeSourceImageChoiceRequest(ApiModel):
     url: AnyHttpUrl = Field(max_length=2048)
+    thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
 
 
 class RecipeSourceImageResponse(ApiModel):

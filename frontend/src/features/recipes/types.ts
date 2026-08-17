@@ -21,4 +21,6 @@ export type ImportPreviewSection = components["schemas"]["ImportPreviewSection"]
 export type ImportPreviewIngredient = components["schemas"]["ImportPreviewIngredient"];
 export type DuplicateSummary = components["schemas"]["DuplicateSummary"];
 export type RecipePhotoAttachWrite = components["schemas"]["RecipePhotoAttachRequest"];
+export type ThumbnailCrop = components["schemas"]["ThumbnailCropRequest-Output"];
+export type ThumbnailCropWrite = components["schemas"]["ThumbnailCropRequest-Input"];
 

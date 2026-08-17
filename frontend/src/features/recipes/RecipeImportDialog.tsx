@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 
 import { Button, Field } from "../../components";
 import { ApiProblem, recipesApi } from "./api";
-import type { ImportConfirmComponent, ImportPreview } from "./types";
+import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
+import type { ImportConfirmComponent, ImportPreview, ThumbnailCropWrite } from "./types";
 
 type Step = "url" | "preview" | "confirm";
 
@@ -18,6 +19,7 @@ interface EditableComponent {
   ingredients: EditableIngredient[];
   instructions: string[];
 }
+const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
 
 function componentsPayload(components: EditableComponent[]): ImportConfirmComponent[] {
   return components.map((component) => ({
@@ -41,6 +43,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [title, setTitle] = useState("");
   const [imageSource, setImageSource] = useState<string | null>(null);
+  const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
   const [components, setComponents] = useState<EditableComponent[]>([]);
 
   const previewMutation = useMutation({
@@ -49,6 +52,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
       setPreview(result);
       setTitle(result.title);
       setImageSource(result.imageSources[0] ?? null);
+      setThumbnailCrop(defaultThumbnailCrop());
       setComponents(
         result.sections.map((section) => ({
           title: section.title ?? "",
@@ -72,7 +76,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         try {
           const accepted = await recipesApi.import(url);
           setOpen(false);
-          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
+          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url, coverStatus: accepted.coverStatus } });
         } catch {
           setValidation("That page could not be imported. Check the address and try again.");
           setStep("url");
@@ -85,12 +89,13 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
   });
 
   const confirmMutation = useMutation({
-    mutationFn: (write: { parseId: string; title: string; imageSource?: string; imageSourceKind?: "url" | "pdf_thumbnail"; components: EditableComponent[] }) =>
+    mutationFn: (write: { parseId: string; title: string; imageSource?: string; imageSourceKind?: "url" | "pdf_thumbnail"; thumbnailCrop?: ThumbnailCropWrite; components: EditableComponent[] }) =>
       recipesApi.confirmImport({
         parseId: write.parseId,
         title: write.title,
         imageSource: write.imageSource ?? undefined,
         imageSourceKind: write.imageSourceKind ?? undefined,
+        thumbnailCrop: write.thumbnailCrop,
         components: componentsPayload(write.components),
       }),
     onSuccess: async (accepted) => {
@@ -100,7 +105,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url, coverStatus: accepted.coverStatus } });
       }
     },
   });
@@ -122,7 +127,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url } });
       }
     },
   });
@@ -145,7 +150,8 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
       parseId: preview.parseId,
       title,
       imageSource: imageSource ?? undefined,
-      imageSourceKind: imageSource?.startsWith("data:image/") ? "pdf_thumbnail" : "url",
+      imageSourceKind: imageSource ? (imageSource.startsWith("data:image/") ? "pdf_thumbnail" : "url") : undefined,
+      thumbnailCrop,
       components,
     });
   }
@@ -263,6 +269,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
                         </label>
                       ))}
                     </div>
+                    {imageSource ? <ThumbnailCropEditor imageUrl={imageSource} value={thumbnailCrop} onChange={setThumbnailCrop} /> : null}
                   </fieldset>
                 ) : null}
 

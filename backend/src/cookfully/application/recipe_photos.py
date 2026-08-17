@@ -8,6 +8,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.domain.common import DomainError, require_version
+from cookfully.domain.recipes import ThumbnailCrop
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.recipes import Recipe
@@ -37,9 +38,12 @@ class RecipePhotoService:
         content: bytes,
         content_type: str,
         expected_version: int,
+        crop: ThumbnailCrop | None = None,
     ) -> Recipe:
         stored = self._images.capture_bytes(content, content_type)
-        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+        return self._replace_stored(
+            recipe_id, stored=stored, expected_version=expected_version, crop=crop
+        )
 
     async def source_candidates(self, recipe_id: UUID) -> tuple[str, ...]:
         with self._session_factory() as session:
@@ -57,6 +61,7 @@ class RecipePhotoService:
         *,
         image_url: str,
         expected_version: int,
+        crop: ThumbnailCrop | None = None,
     ) -> Recipe:
         candidates = await self.source_candidates(recipe_id)
         if image_url not in candidates:
@@ -66,7 +71,9 @@ class RecipePhotoService:
                 422,
             )
         stored = await self._images.capture(image_url)
-        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+        return self._replace_stored(
+            recipe_id, stored=stored, expected_version=expected_version, crop=crop
+        )
 
     async def attach_url(
         self,
@@ -74,6 +81,7 @@ class RecipePhotoService:
         image_url: str,
         *,
         expected_version: int,
+        crop: ThumbnailCrop | None = None,
     ) -> Recipe:
         """Attach a photo from a remote URL or a base64 data-URI.
 
@@ -94,7 +102,9 @@ class RecipePhotoService:
             stored = self._images.capture_bytes(content, media_type)
         else:
             stored = await self._images.capture(image_url)
-        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+        return self._replace_stored(
+            recipe_id, stored=stored, expected_version=expected_version, crop=crop
+        )
 
     def _replace_stored(
         self,
@@ -102,6 +112,7 @@ class RecipePhotoService:
         *,
         stored: StoredMedia,
         expected_version: int,
+        crop: ThumbnailCrop | None = None,
     ) -> Recipe:
         try:
             stale_storage_key: str | None = None
@@ -114,6 +125,10 @@ class RecipePhotoService:
                 require_version(expected_version, recipe.version)
                 old_asset_id = recipe.image_asset_id
                 recipe.image_asset_id = self._persist_image(session, recipe.id, stored)
+                if crop is not None:
+                    recipe.thumbnail_focal_x = crop.focal_x
+                    recipe.thumbnail_focal_y = crop.focal_y
+                    recipe.thumbnail_zoom = crop.zoom
                 recipe.version += 1
                 stale_storage_key = self._detach_asset_if_unused(
                     session,

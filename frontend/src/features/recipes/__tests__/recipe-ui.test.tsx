@@ -55,6 +55,8 @@ const recipe: RecipeDetail = {
   },
   version: 3,
   updatedAt: "2026-08-10T10:00:00Z",
+  thumbnailCrop: { focalX: "0.5", focalY: "0.5", zoom: "1" },
+  originKind: "manual",
   ingredients: [
     {
       id: "00000000-0000-4000-8000-000000000002",
@@ -143,6 +145,7 @@ describe("recipe UI", () => {
     expect(screen.getByText("31.1 g")).toBeVisible();
     expect(document.querySelector('[data-fallback-kind="breakfast"]')).toHaveAttribute("src", "/media/recipe-fallbacks/breakfast.jpg");
     expect(screen.getByText("Estimated", { selector: ".recipe-card__state" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add Exact oats to favorites" })).toBeVisible();
   });
 
   it("offers a compact action menu instead of a permanent archive pill", async () => {
@@ -290,6 +293,9 @@ describe("recipe UI", () => {
     renderRoute(<RecipeDetailPage />);
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
     expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Nutrition at a glance" })).toBeVisible();
+    expect(screen.getByText("Ingredient coverage")).toBeVisible();
+    expect(screen.getByText("88%")).toBeVisible();
     expect(screen.queryByLabelText("Nutrition field")).not.toBeInTheDocument();
     await userEvent.click(screen.getByText("Nutrition details and evidence"));
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();

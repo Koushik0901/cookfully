@@ -8,6 +8,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     Header,
     Path,
     Query,
@@ -43,6 +44,7 @@ from cookfully.api.schemas.recipes import (
     RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
+    ThumbnailCropRequest,
 )
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.idempotency import IdempotencyService
@@ -330,6 +332,7 @@ async def preview_recipe_import(
             )
             for section in data["sections"]
         ),
+        origin_kind=data.get("origin_kind", "web_import"),
     )
 
 
@@ -369,7 +372,11 @@ async def confirm_recipe_import(
         idempotency.abort(owner_id=owner.id, key=key)
         raise
     assert mutation.job is not None
-    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=mutation.recipe.id)
+    response = JobAcceptedResponse(
+        job_id=mutation.job.id,
+        resource_id=mutation.recipe.id,
+        cover_status=mutation.cover_status,
+    )
     idempotency.complete(
         owner_id=owner.id,
         key=key,
@@ -467,13 +474,21 @@ async def replace_recipe_photo(
     photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    thumbnail_crop: Annotated[str | None, Form(alias="thumbnailCrop")] = None,
 ) -> RecipeDetailResponse:
+    crop = None
+    if thumbnail_crop:
+        try:
+            crop = ThumbnailCropRequest.model_validate_json(thumbnail_crop).to_domain()
+        except ValueError as exc:
+            raise DomainError("thumbnail_crop_invalid", "Thumbnail crop is invalid.", 422) from exc
     try:
         photos.replace(
             recipe_id,
             content=await photo.read(),
             content_type=photo.content_type or "",
             expected_version=version,
+            crop=crop,
         )
     finally:
         await photo.close()
@@ -512,6 +527,7 @@ async def replace_recipe_photo_from_source(
         recipe_id,
         image_url=str(payload.url),
         expected_version=version,
+        crop=payload.thumbnail_crop.to_domain() if payload.thumbnail_crop else None,
     )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
@@ -533,6 +549,7 @@ async def attach_recipe_photo(
         recipe_id,
         payload.image_source,
         expected_version=version,
+        crop=payload.thumbnail_crop.to_domain() if payload.thumbnail_crop else None,
     )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 

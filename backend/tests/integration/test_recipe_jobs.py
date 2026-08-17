@@ -209,10 +209,22 @@ async def test_parse_match_rollup_chain_is_idempotent_and_preserves_corrections(
 
     parsed = await worker.process(envelope_for(session_factory, mutation.job.id))
     assert parsed.status == "succeeded" and parsed.next_job_id is not None
+    with session_factory() as session:
+        parse_job = session.get(ProcessingJob, mutation.job.id)
+        assert parse_job is not None
+        assert (parse_job.progress_current, parse_job.progress_total) == (1, 1)
     matched = await worker.process(envelope_for(session_factory, parsed.next_job_id))
     assert matched.status == "succeeded" and matched.next_job_id is not None
+    with session_factory() as session:
+        match_job = session.get(ProcessingJob, parsed.next_job_id)
+        assert match_job is not None
+        assert (match_job.progress_current, match_job.progress_total) == (1, 1)
     rolled_up = await worker.process(envelope_for(session_factory, matched.next_job_id))
     assert rolled_up.status == "succeeded" and rolled_up.next_job_id is None
+    with session_factory() as session:
+        rollup_job = session.get(ProcessingJob, matched.next_job_id)
+        assert rollup_job is not None
+        assert (rollup_job.progress_current, rollup_job.progress_total) == (1, 1)
 
     duplicate = await worker.process(envelope_for(session_factory, matched.next_job_id))
     assert duplicate.status == "succeeded"

@@ -63,10 +63,10 @@ def owned_coordinator(session_factory, tmp_path):
 
     class StubPhotos:
         def __init__(self) -> None:
-            self.calls: list[tuple[object, str, int]] = []
+            self.calls: list[tuple[object, str, int, object]] = []
 
-        async def attach_url(self, recipe_id, image_url: str, *, expected_version: int):
-            self.calls.append((recipe_id, image_url, expected_version))
+        async def attach_url(self, recipe_id, image_url: str, *, expected_version: int, crop=None):
+            self.calls.append((recipe_id, image_url, expected_version, crop))
 
     photos = StubPhotos()
     coordinator = ImportPreviewCoordinator(
@@ -176,6 +176,7 @@ async def test_confirm_attaches_pdf_thumbnail_best_effort(
             "title": "Spiced Oats",
             "imageSource": thumbnail,
             "imageSourceKind": "pdf_thumbnail",
+            "thumbnailCrop": {"focalX": "0.25", "focalY": "0.75", "zoom": "1.5"},
         },
         owner_id=owner_id,
         trace_id="t",
@@ -183,9 +184,10 @@ async def test_confirm_attaches_pdf_thumbnail_best_effort(
     assert owned_coordinator.photos.calls[-1][0] == owned_coordinator.created[-1][3].id
     assert owned_coordinator.photos.calls[-1][1] == thumbnail
     assert owned_coordinator.photos.calls[-1][2] == 1
+    assert owned_coordinator.photos.calls[-1][3] is not None
 
 
-async def test_confirm_skips_attach_for_remote_url_images(
+async def test_confirm_attaches_selected_remote_url_image(
     owned_coordinator, owner_id: UUID
 ) -> None:
     parse_id = (
@@ -201,7 +203,7 @@ async def test_confirm_skips_attach_for_remote_url_images(
         owner_id=owner_id,
         trace_id="t",
     )
-    assert owned_coordinator.photos.calls == []
+    assert owned_coordinator.photos.calls[-1][1] == "https://example.com/cover.jpg"
 
 
 async def test_confirm_attach_failure_does_not_fail_confirmation(
@@ -225,6 +227,7 @@ async def test_confirm_attach_failure_does_not_fail_confirmation(
         trace_id="t",
     )
     assert mutation.recipe.title == "Spiced Oats"
+    assert mutation.cover_status == "failed"
 
 
 async def test_duplicate_detection_matches_same_normalized_title(

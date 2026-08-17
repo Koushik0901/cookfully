@@ -692,3 +692,44 @@ Evidence is defined by the merge (`POST /recipes/import/merge`), attach
 dialog, editor Preview toggle, and E2E coverage. Revisit if the product becomes multi-user, where
 duplicate resolution would need explicit per-owner confirmation and ownership checks.
 
+## Instant recipe feedback, provenance, and thumbnail framing — 2026-08-16
+
+### Problem being solved
+
+Recipe imports, nutrition jobs, favorites, deletion, and image selection previously made important
+state changes feel silent or technically opaque. A recipe could be usable while nutrition was still
+being resolved, and a selected image could be stored without preserving the owner's preferred framing.
+
+### Sources inspected
+
+- [Mealie maintained repository](https://github.com/mealie-recipes/mealie) for recipe organization and
+  import-oriented presentation patterns.
+- [Tandoor Recipes maintained repository](https://github.com/TandoorRecipes/recipes) for collections,
+  source metadata, and editable recipe identity.
+- [Immich asset and trash documentation](https://docs.immich.app/features/trash/) for reversible
+  destructive actions, durable media handling, and explicit recovery states.
+
+### Benefits and liabilities observed
+
+Collections and source context are useful retrieval aids in all three products, but their broader
+taxonomies and asset workflows would add unnecessary configuration to Cookfully. Immich's explicit
+trash boundary is safer than immediate erasure, but copying a large asset-management subsystem would
+be disproportionate here. None of the references provides nutrition-stage progress with Cookfully's
+serving-basis and coverage requirements.
+
+### Local decision
+
+Adapt the useful signals while keeping the nutrition-first scope narrow:
+
+- show human-readable recipe job stages and bounded progress from the authoritative persisted job;
+- make nutrition a visible result with coverage, basis, partial/manual states, and a path to review;
+- use optimistic favorite, collection, archive, and delete feedback with rollback and a recoverable
+  archived state when permanent deletion cannot finish;
+- expose origin, source, and collection context without introducing arbitrary tags or taxonomies;
+- store normalized focal-point and zoom metadata separately from original media, with keyboard-accessible
+  range controls and CSS framing rather than destructive image rewriting.
+
+Evidence is defined by the recipe crop/origin contract, `RecipeProcessingBanner`, nutrition overview,
+collection strip, optimistic organization mutations, and focused Vitest coverage. Revisit these choices
+if Cookfully becomes shared or gains a substantially larger media library.
+

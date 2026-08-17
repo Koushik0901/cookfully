@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -161,6 +161,7 @@ class RecipeWrite:
 class RecipeMutation:
     recipe: Recipe
     job: ProcessingJob | None
+    cover_status: str | None = None
 
 
 def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
