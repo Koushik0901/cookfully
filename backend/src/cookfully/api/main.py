@@ -95,6 +95,8 @@ _OPERATION_IDS = {
     "remove_recipe_photo": "removeRecipePhoto",
     "list_recipe_source_images": "listRecipeSourceImages",
     "replace_recipe_photo_from_source": "replaceRecipePhotoFromSource",
+    "attach_recipe_photo": "attachRecipePhoto",
+    "merge_recipe_import": "mergeRecipeImport",
     "archive_recipe": "archiveRecipe",
     "restore_recipe": "restoreRecipe",
     "permanently_delete_recipe": "permanentlyDeleteRecipe",

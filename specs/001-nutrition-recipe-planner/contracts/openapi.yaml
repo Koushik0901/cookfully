@@ -254,6 +254,32 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /recipes/import/merge:
+    post:
+      tags: [Recipes, Jobs]
+      operationId: mergeRecipeImport
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportMerge"
+      responses:
+        "202":
+          description: Import merged into the existing recipe and reprocessing accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobAccepted"
+        "410":
+          $ref: "#/components/responses/Gone"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -439,6 +465,27 @@ paths:
       responses:
         "200":
           description: Recipe with the selected source photo normalized and stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeDetail" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /recipes/{recipeId}/photo/attach:
+    put:
+      tags: [Recipes]
+      operationId: attachRecipePhoto
+      parameters:
+        - $ref: "#/components/parameters/RecipeId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecipePhotoAttach" }
+      responses:
+        "200":
+          description: Recipe with the remote or data-URI photo normalized and stored.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RecipeDetail" }
@@ -1948,10 +1995,11 @@ components:
           type: array
           items:
             type: object
-            required: [id, title]
+            required: [id, title, version]
             properties:
               id: { type: string, format: uuid }
               title: { type: string }
+              version: { type: integer, minimum: 1 }
         sections:
           type: array
           items:
@@ -1978,6 +2026,7 @@ components:
         parseId: { type: string }
         title: { type: [string, "null"] }
         imageSource: { type: [string, "null"] }
+        imageSourceKind: { type: [string, "null"], enum: [url, pdf_thumbnail] }
         yieldQuantity: { type: [string, "null"] }
         components:
           type: array
@@ -2001,6 +2050,44 @@ components:
                   properties:
                     text: { type: string }
                     remove: { type: boolean, default: false }
+    ImportMerge:
+      type: object
+      additionalProperties: false
+      required: [recipeId, parseId, expectedVersion]
+      properties:
+        recipeId: { type: string, format: uuid }
+        parseId: { type: string }
+        expectedVersion: { type: integer, minimum: 1 }
+        title: { type: [string, "null"] }
+        yieldQuantity: { type: [string, "null"] }
+        components:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: [string, "null"] }
+              ingredients:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    originalText: { type: [string, "null"] }
+                    quantityOverride: { type: [string, "null"] }
+                    optional: { type: boolean, default: false }
+                    remove: { type: boolean, default: false }
+              instructions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    text: { type: string }
+                    remove: { type: boolean, default: false }
+    RecipePhotoAttach:
+      type: object
+      additionalProperties: false
+      required: [imageSource]
+      properties:
+        imageSource: { type: string, minLength: 1, maxLength: 20000000 }
     Job:
       type: object
       required: [id, kind, aggregateId, status, attempt, maxAttempts, inputHash, terminalDeadlineAt, createdAt, pollAfterSeconds, recoveryActions]
