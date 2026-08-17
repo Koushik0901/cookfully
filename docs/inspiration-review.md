@@ -642,3 +642,53 @@ Adapt the useful hierarchy while rejecting metadata and administration sprawl:
 Evidence is defined by `specs/003-onboard-recipe-library/spec.md`. Revisit the organization model if
 the app becomes shared or owners consistently need a type of retrieval that cannot be expressed by a
 favorite, one collection, or one standard meal role.
+
+## Import duplicate merge, draft preview, and image persistence — 2026-08-16
+
+### Problem being solved
+
+Importing the same source twice left the owner with either a silent duplicate or a destructive
+overwrite decision. In-editor drafts could not be sanity-checked against the finished recipe
+presentation before saving, and a PDF import's generated thumbnail was dropped at confirm time so
+the saved recipe lost the image the owner had just approved.
+
+### Sources inspected
+
+- [Mealie recipe CRUD behavior](https://docs.mealie.io/documentation/getting-started/features/):
+  recipes can be duplicated and updated, but Mealie keeps creation and editing as separate primary
+  surfaces rather than a reviewed-import-then-replace flow.
+- [Tandoor Recipes repository](https://github.com/TandoorRecipes/recipes): import/update handling and
+  the ability to re-save a recipe while preserving the existing row's identity.
+- [Immich asset handling](https://docs.immich.app/features/backup/): media is written
+  asynchronously and survives retries, motivating best-effort, never-blocking persistence of an
+  already-approved image.
+
+### Benefits and liabilities observed
+
+Mealie and Tandoor both show that a recipe's editable content and its stable identity (collections,
+favorites, photo, source) are conceptually separate, and that replacing content on re-save is a
+normal, recoverable operation rather than a delete-plus-recreate. Neither reference implements a
+"merge imported content into the matching existing recipe" step from within an import review, and
+both are multi-user systems where a destructive global overwrite would be riskier. Immich's
+write-aside, retry-tolerant image pipeline supports attaching a chosen thumbnail after the recipe
+exists instead of coupling image persistence to the parse transaction.
+
+### Local decision
+
+Adopt the identity/content split and adapt it to the single-owner, reviewed-import flow:
+
+- detect probable duplicates during import preview by normalized title, return their id and content
+  version, and offer a per-duplicate **Merge into existing** action that replaces content fields
+  while preserving id, photo, collections, favorites, source URL, and description;
+- keep merge as one explicit API call that reuses the existing update path with a stale-version
+  guard, so a concurrent edit cannot be silently clobbered;
+- attach a confirmed PDF thumbnail after save on a best-effort path that can never fail the import,
+  and surface the attach explicitly in the confirm step;
+- reject the destructive alternatives: automatic overwrite of the nearest match, silent duplication,
+  or blocking the import on image storage.
+
+Evidence is defined by the merge (`POST /recipes/import/merge`), attach
+(`PUT /recipes/{recipeId}/photo/attach`), and version-gated `attach_url` contracts plus the import
+dialog, editor Preview toggle, and E2E coverage. Revisit if the product becomes multi-user, where
+duplicate resolution would need explicit per-owner confirmation and ownership checks.
+

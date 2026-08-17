@@ -62,6 +62,14 @@ help someone plan, cook, and eat better food with less friction?"
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Import merge + editor preview + PDF thumbnails** — Import review detects duplicate titles and
+  offers a per-duplicate **Merge into existing** action (`POST /recipes/import/merge`) that replaces
+  content while preserving id, photo, collections, favorites, source URL, and description; merge is
+  stale-version guarded. Editor has an Edit/Preview toggle (`RecipeDraftPreview`) mirroring the
+  recipe-detail presentation. A selected PDF thumbnail persists on confirm via best-effort
+  `PUT /recipes/{recipeId}/photo/attach` (`imageSourceKind: "pdf_thumbnail"`), surfaced in the
+  confirm step and never blocking the import.
+
 - **Food matching v2** — signal-based scoring (head/block/lead) with penalty lexicons for
   product forms, flavours, and plant parts. Exact-tie-only ambiguity. Variant-aware SQL
   containment ordering. Live-verified against 8.1k USDA corpus.
