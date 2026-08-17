@@ -85,11 +85,12 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
   });
 
   const confirmMutation = useMutation({
-    mutationFn: (write: { parseId: string; title: string; imageSource?: string; components: EditableComponent[] }) =>
+    mutationFn: (write: { parseId: string; title: string; imageSource?: string; imageSourceKind?: "url" | "pdf_thumbnail"; components: EditableComponent[] }) =>
       recipesApi.confirmImport({
         parseId: write.parseId,
         title: write.title,
         imageSource: write.imageSource ?? undefined,
+        imageSourceKind: write.imageSourceKind ?? undefined,
         components: componentsPayload(write.components),
       }),
     onSuccess: async (accepted) => {
@@ -140,7 +141,13 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
 
   function confirm() {
     if (!preview) return;
-    confirmMutation.mutate({ parseId: preview.parseId, title, imageSource: imageSource ?? undefined, components });
+    confirmMutation.mutate({
+      parseId: preview.parseId,
+      title,
+      imageSource: imageSource ?? undefined,
+      imageSourceKind: imageSource?.startsWith("data:image/") ? "pdf_thumbnail" : "url",
+      components,
+    });
   }
 
   function updateComponent(index: number, patch: Partial<EditableComponent>) {
@@ -319,6 +326,11 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
             <>
               <Dialog.Title>Add this recipe</Dialog.Title>
               <Dialog.Description id="import-description">Add “{title}” to your collection. Nutrition is calculated in the background.</Dialog.Description>
+              {imageSource?.startsWith("data:image/") ? (
+                <p className="import-wizard__cover-note" role="status">
+                  The cover photo will be attached to this recipe after it is saved.
+                </p>
+              ) : null}
               <form className="stack" onSubmit={(event) => { event.preventDefault(); confirm(); }}>
                 <div className="actions">
                   <Button type="button" variant="secondary" onClick={() => setStep("preview")}>Back</Button>

@@ -82,6 +82,35 @@ describe("recipe import merge", () => {
     vi.unstubAllGlobals();
   });
 
+  it("confirms with imageSourceKind pdf_thumbnail when the chosen cover is a data URI", async () => {
+    const confirm = { parseId: "", title: "", imageSource: null as string | null, imageSourceKind: null as string | null, components: [] as unknown[] };
+    const pdfThumbnail = `data:image/jpeg;base64,${btoa("fake-jpeg")}`;
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({ ...preview, imageSources: [pdfThumbnail] });
+      }
+      if (path.endsWith("/import/confirm") && init?.method === "POST") {
+        Object.assign(confirm, JSON.parse(String(init.body)));
+        return response({ jobId: "job-0001", resourceId: "00000000-0000-4000-8000-000000000001", status: "queued" }, 202);
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+    await screen.findByText(/It looks like you already have/);
+    await user.click(screen.getByRole("button", { name: "Keep this import" }));
+    await screen.findByText(/cover photo will be attached/i);
+
+    await user.click(screen.getByRole("button", { name: "Add to collection" }));
+
+    await waitFor(() => expect(confirm.imageSourceKind).toBe("pdf_thumbnail"));
+    expect(confirm.imageSource).toBe(pdfThumbnail);
+  });
+
   it("posts a merge with the existing recipe id, expected version, and reviewed draft", async () => {
     const merge = { recipeId: "", parseId: "", expectedVersion: 0, title: "", yieldQuantity: null as string | null, components: [] as unknown[] };
     renderDialog();
