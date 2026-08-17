@@ -37,6 +37,7 @@ from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.recipe_importer import ImportedCookbook, ImportedRecipe
+from cookfully.infrastructure.repositories.recipes import RecipeRepository
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,52 @@ class ImportPreviewCoordinator:
             await self._photos.attach_url(recipe.id, image_source, expected_version=recipe.version)
         except Exception:
             logger.exception("Skipped attaching PDF thumbnail for imported recipe %s", recipe.id)
+
+    def merge(
+        self,
+        recipe_id: UUID,
+        parse_id: str,
+        payload: dict[str, Any],
+        *,
+        owner_id: UUID,
+        expected_version: int,
+        trace_id: str,
+    ) -> RecipeMutation:
+        """Replace an existing recipe's content with the reviewed import.
+
+        Merge reuses ``RecipeService.update`` so the recipe keeps its identity:
+        id, photo, collections, favorites, source URL, and description all survive.
+        Only the reviewed content (title, yield, ingredients, method) is replaced,
+        and nutrition is recalculated via the existing stale→reprocess path.
+        """
+        with self._session_factory() as session:
+            record = session.scalar(
+                select(ImportPreviewRecord).where(
+                    ImportPreviewRecord.owner_id == owner_id,
+                    ImportPreviewRecord.parse_id == parse_id,
+                )
+            )
+            if record is None or record.expires_at < utc_now():
+                raise DomainError(
+                    "import_preview_expired",
+                    "This import preview has expired. Try the import again.",
+                    410,
+                )
+            stored = record.payload
+            existing = RecipeRepository(session).get(recipe_id)
+            existing_description = existing.description
+            existing_source_url = existing.source_url
+        write = self._build_write(stored, payload)
+        write = _with_identity(
+            write, description=existing_description, source_url=existing_source_url
+        )
+        return self._recipes.update(
+            recipe_id,
+            write,
+            expected_version=expected_version,
+            trace_id=trace_id,
+            owner_id=owner_id,
+        )
 
     # ---- payload builders ----
 
@@ -245,17 +292,39 @@ class ImportPreviewCoordinator:
         matches: list[dict[str, Any]] = []
         with self._session_factory() as session:
             rows = session.execute(
-                select(Recipe.id, Recipe.title).where(
+                select(Recipe.id, Recipe.title, Recipe.version).where(
                     Recipe.status != "archived", Recipe.title != "Importing recipe"
                 )
             ).all()
-        for recipe_id, recipe_title in rows:
+        for recipe_id, recipe_title, recipe_version in rows:
             if _normalize(recipe_title) == normalized:
-                matches.append({"id": recipe_id, "title": recipe_title})
+                matches.append({"id": recipe_id, "title": recipe_title, "version": recipe_version})
         return matches
 
 
 RECIPE_YIELD_DEFAULT = Decimal("1.000")
+
+
+def _with_identity(
+    write: RecipeWrite,
+    *,
+    description: str | None,
+    source_url: str | None,
+) -> RecipeWrite:
+    """Return the merge write with identity fields carried over from the existing recipe."""
+    return RecipeWrite(
+        title=write.title,
+        yield_quantity=write.yield_quantity,
+        ingredients=write.ingredients,
+        instructions=write.instructions,
+        sections=write.sections,
+        description=description,
+        source_url=source_url,
+        source_name=write.source_name,
+        yield_unit=write.yield_unit,
+        prep_minutes=write.prep_minutes,
+        cook_minutes=write.cook_minutes,
+    )
 
 
 def _normalize(value: str) -> str:
