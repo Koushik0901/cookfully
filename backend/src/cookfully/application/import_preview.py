@@ -15,7 +15,7 @@ import re
 import secrets
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -33,6 +33,7 @@ from cookfully.application.recipes import (
     _extract_food_from_text,
 )
 from cookfully.domain.common import DomainError, quantize_decimal, utc_now
+from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
@@ -71,13 +72,14 @@ class ImportPreviewCoordinator:
         imported = await self._importer.import_url(url)
         first = imported.recipes[0] if isinstance(imported, ImportedCookbook) else imported
         sections = self._build_sections(first)
+        origin_kind = "cookbook_import" if isinstance(imported, ImportedCookbook) else "web_import"
         duplicates = self._detect_duplicates(owner_id, first.title)
         parse_id = secrets.token_hex(16)
         now = utc_now()
         record = ImportPreviewRecord(
             owner_id=owner_id,
             parse_id=parse_id,
-            payload=self._payload(first, sections),
+            payload=self._payload(first, sections, origin_kind=origin_kind),
             created_at=now,
             expires_at=now + self._ttl,
         )
@@ -93,6 +95,7 @@ class ImportPreviewCoordinator:
             ),
             "yield_text": first.yield_text,
             "image_sources": list(first.image_candidates),
+            "origin_kind": origin_kind,
             "duplicates": duplicates,
             "sections": sections,
         }
@@ -125,19 +128,35 @@ class ImportPreviewCoordinator:
         # PDF thumbnails are base64 data-URIs that cannot be fetched again after the
         # preview, so the chosen image must persist at confirm time. Attachment is
         # best-effort: media failures must never roll back a confirmed import.
-        await self._attach_preview_image(mutation.recipe, payload)
-        return mutation
+        cover_status = await self._attach_preview_image(mutation.recipe, payload, stored)
+        return RecipeMutation(mutation.recipe, mutation.job, cover_status)
 
-    async def _attach_preview_image(self, recipe: Recipe, payload: dict[str, Any]) -> None:
-        if payload.get("imageSourceKind") != "pdf_thumbnail":
-            return
+    async def _attach_preview_image(
+        self, recipe: Recipe, payload: dict[str, Any], stored: dict[str, Any]
+    ) -> str:
+        image_source_kind = payload.get("imageSourceKind")
         image_source = payload.get("imageSource")
-        if not isinstance(image_source, str) or not image_source:
-            return
+        if (
+            image_source_kind not in {"url", "pdf_thumbnail"}
+            or not isinstance(image_source, str)
+            or not image_source
+        ):
+            return "not_selected"
+        if image_source_kind == "url" and image_source not in stored.get("imageSources", ()):
+            return "failed"
+        if image_source_kind == "pdf_thumbnail" and not image_source.startswith("data:image/"):
+            return "failed"
         try:
-            await self._photos.attach_url(recipe.id, image_source, expected_version=recipe.version)
+            await self._photos.attach_url(
+                recipe.id,
+                image_source,
+                expected_version=recipe.version,
+                crop=_thumbnail_crop(payload.get("thumbnailCrop")),
+            )
+            return "attached"
         except Exception:
-            logger.exception("Skipped attaching PDF thumbnail for imported recipe %s", recipe.id)
+            logger.exception("Skipped attaching selected cover for imported recipe %s", recipe.id)
+            return "failed"
 
     def merge(
         self,
@@ -175,7 +194,15 @@ class ImportPreviewCoordinator:
             existing_source_url = existing.source_url
         write = self._build_write(stored, payload)
         write = _with_identity(
-            write, description=existing_description, source_url=existing_source_url
+            write,
+            description=existing_description,
+            source_url=existing_source_url,
+            thumbnail_crop=ThumbnailCrop(
+                existing.thumbnail_focal_x,
+                existing.thumbnail_focal_y,
+                existing.thumbnail_zoom,
+            ),
+            origin_kind=cast(RecipeOrigin, existing.origin_kind),
         )
         return self._recipes.update(
             recipe_id,
@@ -188,7 +215,9 @@ class ImportPreviewCoordinator:
     # ---- payload builders ----
 
     @staticmethod
-    def _payload(imported: ImportedRecipe, sections: list[dict[str, Any]]) -> dict[str, Any]:
+    def _payload(
+        imported: ImportedRecipe, sections: list[dict[str, Any]], *, origin_kind: str
+    ) -> dict[str, Any]:
         return {
             "title": imported.title,
             "sourceUrl": imported.source_url,
@@ -198,6 +227,7 @@ class ImportPreviewCoordinator:
             ),
             "yieldText": imported.yield_text,
             "imageSources": list(imported.image_candidates),
+            "originKind": origin_kind,
             "sections": sections,
         }
 
@@ -262,6 +292,12 @@ class ImportPreviewCoordinator:
                 if edit.get("remove"):
                     continue
                 instructions.append(InstructionWrite(text=text, section_index=index))
+        stored_origin = stored.get("originKind")
+        origin_kind: RecipeOrigin | None = (
+            cast(RecipeOrigin, stored_origin)
+            if stored_origin in {"manual", "web_import", "cookbook_import"}
+            else None
+        )
         return RecipeWrite(
             title=title,
             yield_quantity=yield_quantity,
@@ -269,6 +305,8 @@ class ImportPreviewCoordinator:
             instructions=tuple(instructions),
             sections=tuple(sections),
             source_url=stored.get("sourceUrl"),
+            thumbnail_crop=_thumbnail_crop(edits.get("thumbnailCrop")),
+            origin_kind=origin_kind,
         )
 
     @staticmethod
@@ -310,6 +348,8 @@ def _with_identity(
     *,
     description: str | None,
     source_url: str | None,
+    thumbnail_crop: ThumbnailCrop | None = None,
+    origin_kind: RecipeOrigin | None = None,
 ) -> RecipeWrite:
     """Return the merge write with identity fields carried over from the existing recipe."""
     return RecipeWrite(
@@ -324,6 +364,18 @@ def _with_identity(
         yield_unit=write.yield_unit,
         prep_minutes=write.prep_minutes,
         cook_minutes=write.cook_minutes,
+        thumbnail_crop=thumbnail_crop,
+        origin_kind=origin_kind,
+    )
+
+
+def _thumbnail_crop(value: object) -> ThumbnailCrop | None:
+    if not isinstance(value, dict):
+        return None
+    return ThumbnailCrop(
+        Decimal(str(value.get("focalX", value.get("focal_x", "0.500000")))),
+        Decimal(str(value.get("focalY", value.get("focal_y", "0.500000")))),
+        Decimal(str(value.get("zoom", "1.000000"))),
     )
 
 

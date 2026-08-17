@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
@@ -21,6 +22,7 @@ export function RecipeDraftPreview({
   yieldQuantity,
   yieldUnit,
   photoUrl,
+  thumbnailCrop,
   blocks,
   macros = [],
 }: {
@@ -30,6 +32,7 @@ export function RecipeDraftPreview({
   yieldQuantity: string;
   yieldUnit: string;
   photoUrl: string | null;
+  thumbnailCrop?: { focalX: string | number; focalY: string | number; zoom: string | number };
   blocks: DraftBlock[];
   macros?: DraftMacro[];
 }) {
@@ -40,7 +43,7 @@ export function RecipeDraftPreview({
     <div className="recipe-draft-preview" aria-label="Recipe preview">
       <section className="recipe-hero" aria-labelledby="recipe-preview-title">
         <div className="recipe-hero__media">
-          {photoUrl ? <img src={photoUrl} alt={title} /> : <RecipeFallbackArt title={title} />}
+           {photoUrl ? <img src={photoUrl} alt={title} style={thumbnailCrop ? { "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties : undefined} /> : <RecipeFallbackArt title={title} />}
         </div>
         <div className="recipe-hero__copy">
           <p className="eyebrow">From your kitchen</p>

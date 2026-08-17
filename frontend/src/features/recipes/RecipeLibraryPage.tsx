@@ -7,7 +7,9 @@ import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Select, Skeleton 
 import { recipesApi } from "./api";
 import { RecipeCard } from "./RecipeCard";
 import { RecipeCollectionManager } from "./RecipeCollectionManager";
+import { RecipeCollectionStrip } from "./RecipeCollectionStrip";
 import { RecipeImportDialog } from "./RecipeImportDialog";
+import type { RecipePage } from "./types";
 import { FirstRunJourney } from "../onboarding/FirstRunJourney";
 import { onboardingApi } from "../onboarding/api";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,15 +23,16 @@ export function RecipeLibraryPage() {
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [collectionId, setCollectionId] = useState("");
   const [mealRole, setMealRole] = useState("");
+  const unfiled = collectionId === "__unfiled__";
   const collections = useQuery({ queryKey: ["recipe-collections"], queryFn: recipesApi.collections, retry: 1 });
   const onboarding = useQuery({ queryKey: ["owner-onboarding"], queryFn: onboardingApi.get, retry: 1 });
   const collectionName = (Array.isArray(collections.data) ? collections.data : []).find((collection) => collection.id === collectionId)?.name;
   const activeFilters = [
     favoriteOnly ? { label: "Favorites", clear: () => setFavoriteOnly(false) } : null,
-    collectionId ? { label: `Collection: ${collectionName ?? "Selected"}`, clear: () => setCollectionId("") } : null,
+    collectionId ? { label: unfiled ? "Unfiled recipes" : `Collection: ${collectionName ?? "Selected"}`, clear: () => setCollectionId("") } : null,
     mealRole ? { label: `Meal: ${mealRole}`, clear: () => setMealRole("") } : null,
   ].filter((filter): filter is { label: string; clear: () => void } => filter !== null);
-  const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: collectionId || undefined, mealRole: mealRole || undefined };
+  const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: unfiled ? undefined : collectionId || undefined, mealRole: mealRole || undefined };
   const recipes = useQuery({
     queryKey: ["recipes", filters],
     queryFn: () => recipesApi.list(filters),
@@ -40,14 +43,37 @@ export function RecipeLibraryPage() {
       if (action === "archive") await recipesApi.archive(id, version);
       else await recipesApi.restore(id, version);
     },
+    onMutate: async ({ id, action }) => {
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
+      snapshots.forEach(([key, value]) => {
+        if (value) queryClient.setQueryData<RecipePage>(key, { ...value, items: value.items.map((item) => item.id === id ? { ...item, status: action === "archive" ? "archived" : (item.archivedFromStatus ?? "ready") } : item) });
+      });
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => context?.snapshots.forEach(([key, value]) => queryClient.setQueryData(key, value)),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["recipes"] }),
   });
   const remove = useMutation({
-    mutationFn: ({ id, version }: { id: string; version: number }) => recipesApi.permanentDelete(id, version),
+    mutationFn: async ({ id, version }: { id: string; version: number }) => {
+      await recipesApi.archive(id, version);
+      const archived = await recipesApi.get(id);
+      await recipesApi.permanentDelete(id, archived.version);
+    },
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
+      snapshots.forEach(([key, value]) => {
+        if (value) queryClient.setQueryData<RecipePage>(key, { ...value, items: value.items.filter((item) => item.id !== id) });
+      });
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => context?.snapshots.forEach(([key, value]) => queryClient.setQueryData(key, value)),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["recipes"] }),
   });
   const displayedRecipes = useMemo(() => {
     const items = recipes.data?.items.filter((recipe) => {
+      if (unfiled && (recipe.collections ?? []).length > 0) return false;
       const ready = recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState);
       if (libraryView === "ready") return ready;
       if (libraryView === "attention") return recipe.status !== "archived" && !ready;
@@ -61,7 +87,7 @@ export function RecipeLibraryPage() {
       if (sortBy === "calories") return Number(a.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY) - Number(b.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY);
       return new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime();
     });
-  }, [libraryView, recipes.data?.items, sortBy]);
+  }, [libraryView, recipes.data?.items, sortBy, unfiled]);
   const groupedRecipes = groupBy === "readiness"
     ? [
         { title: "Ready to plan", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState)) },
@@ -127,15 +153,18 @@ export function RecipeLibraryPage() {
             <label className="recipe-favorite-filter"><Checkbox checked={favoriteOnly} onCheckedChange={(checked) => setFavoriteOnly(checked === true)} />Favorites only</label>
             <RecipeCollectionManager collections={Array.isArray(collections.data) ? collections.data : []} />
           </div>
-        </details>
+         </details>
+       <RecipeCollectionStrip collections={Array.isArray(collections.data) ? collections.data : []} recipesCount={recipes.data?.items.filter((recipe) => recipe.status !== "archived").length ?? 0} unfiledCount={recipes.data?.items.filter((recipe) => recipe.status !== "archived" && (recipe.collections ?? []).length === 0).length ?? 0} selected={collectionId} onSelect={setCollectionId} />
         {activeFilters.length ? <div className="active-library-filters" aria-label="Active recipe filters" aria-live="polite"><span>Showing a focused view</span>{activeFilters.map((filter) => <button type="button" key={filter.label} onClick={filter.clear}>{filter.label} <span aria-hidden="true">×</span><span className="sr-only">Remove filter</span></button>)}<button type="button" className="active-library-filters__clear" onClick={() => { setFavoriteOnly(false); setCollectionId(""); setMealRole(""); }}>Clear filters</button></div> : null}
       </section>
 
       {lifecycle.error instanceof Error ? <p className="error-text" role="alert">{lifecycle.error.message}</p> : null}
+      {remove.error instanceof Error ? <p className="error-text" role="alert">{remove.error.message} The recipe is still available in Archived.</p> : null}
+      {remove.isSuccess ? <p className="success-text" role="status">Recipe removed from your active library.</p> : null}
       {recipes.isPending ? <Skeleton label="Loading recipe library" lines={6} /> : null}
       {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
       {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
-      {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
+       {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} actionPending={lifecycle.isPending || remove.isPending} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
     </main>
   );
 }

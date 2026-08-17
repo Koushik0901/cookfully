@@ -159,6 +159,30 @@ def test_recipe_crud_correction_job_polling_and_decimal_contract(
         assert len(page.json()["items"]) == 1
 
 
+def test_recipe_thumbnail_crop_and_origin_contract(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        payload = recipe_payload()
+        payload["originKind"] = "cookbook_import"
+        payload["thumbnailCrop"] = {"focalX": "0.250000", "focalY": "0.750000", "zoom": "1.500000"}
+
+        created = client.post("/api/v1/recipes", json=payload, headers=headers)
+        assert created.status_code == 201, created.text
+        body = created.json()
+        assert body["originKind"] == "cookbook_import"
+        assert body["thumbnailCrop"] == {
+            "focalX": "0.25",
+            "focalY": "0.75",
+            "zoom": "1.5",
+        }
+
+        invalid = {**payload, "thumbnailCrop": {"focalX": "1.1", "focalY": "0.5", "zoom": "1"}}
+        response = client.post("/api/v1/recipes", json=invalid, headers=headers)
+        assert response.status_code == 422
+
+
 def test_archive_restore_and_confirmed_permanent_delete_contract(
     isolated_database_url: str, tmp_path: Path
 ) -> None:

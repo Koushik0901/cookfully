@@ -4,7 +4,7 @@ import base64
 import binascii
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from typing import cast
@@ -26,6 +26,7 @@ from cookfully.domain.nutrition import (
     SupportedMicronutrientValue,
     resolved_macros,
 )
+from cookfully.domain.recipes import ThumbnailCrop
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.nutrition import (
     IngredientMatch,
@@ -123,6 +124,8 @@ class RecipeRead:
     instructions: tuple[InstructionRead, ...] = ()
     sections: tuple[SectionRead, ...] = ()
     active_job: JobProgress | None = None
+    thumbnail_crop: ThumbnailCrop = field(default_factory=ThumbnailCrop)
+    origin_kind: str = "manual"
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,6 +225,10 @@ class RecipeQueryService:
             description=recipe.description,
             source_url=recipe.source_url,
             image_url=(f"/api/v1/media/{recipe.image_asset_id}" if recipe.image_asset_id else None),
+            thumbnail_crop=ThumbnailCrop(
+                recipe.thumbnail_focal_x, recipe.thumbnail_focal_y, recipe.thumbnail_zoom
+            ),
+            origin_kind=recipe.origin_kind,
             yield_quantity=recipe.yield_quantity,
             yield_unit=recipe.yield_unit,
             status=recipe.status,

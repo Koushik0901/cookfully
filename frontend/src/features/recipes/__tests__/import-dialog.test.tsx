@@ -14,6 +14,7 @@ const preview: ImportPreview = {
   yieldText: null,
   imageSources: [],
   duplicates: [{ id: "00000000-0000-4000-8000-000000000001", title: "Shawarma bowl", version: 4 }],
+  originKind: "web_import",
   sections: [
     {
       title: "The chicken",

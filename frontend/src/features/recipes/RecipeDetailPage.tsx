@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ArrowLeft, ChefHat, ExternalLink, Pencil } from "lucide-react";
@@ -9,19 +9,23 @@ import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt"
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
+import { RecipeNutritionOverview } from "./RecipeNutritionOverview";
 import { RecipeNutritionSummary } from "./RecipeNutritionSummary";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
+import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail } from "./types";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
+const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
 
 export function RecipeDetailPage() {
   const { recipeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const routeState = location.state as { jobId?: string; recipeSaved?: boolean; importUrl?: string } | null;
+  const routeState = location.state as { jobId?: string; recipeSaved?: boolean; importUrl?: string; coverStatus?: "attached" | "not_selected" | "failed" } | null;
   const routeJobId = routeState?.jobId;
+  const coverStatus = routeState?.coverStatus;
   const [savedRecipeId] = useState(() => routeState?.recipeSaved ? recipeId : undefined);
   const [jobId, setJobId] = useState<string | undefined>(routeJobId);
   const [mobilePanel, setMobilePanel] = useState<"ingredients" | "method">("ingredients");
@@ -39,8 +43,8 @@ export function RecipeDetailPage() {
 
   useEffect(() => {
     if (!savedRecipeId) return;
-    navigate(location.pathname, { replace: true, state: routeJobId ? { jobId: routeJobId } : null });
-  }, [location.pathname, navigate, routeJobId, savedRecipeId]);
+    navigate(location.pathname, { replace: true, state: routeJobId || coverStatus ? { jobId: routeJobId, coverStatus } : null });
+  }, [coverStatus, location.pathname, navigate, routeJobId, savedRecipeId]);
 
   const shouldRecoverJob = Boolean(
     recipeId
@@ -89,10 +93,24 @@ export function RecipeDetailPage() {
   });
   const archive = useMutation({
     mutationFn: () => recipesApi.archive(recipeId!, detail.data!.version),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["recipe", recipeId] });
+      const previous = queryClient.getQueryData<RecipeDetail>(["recipe", recipeId]);
+      if (previous) queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], { ...previous, status: "archived", archivedFromStatus: previous.status });
+      return { previous };
+    },
+    onError: (_error, _variables, context) => { if (context?.previous) queryClient.setQueryData(["recipe", recipeId], context.previous); },
     onSuccess: async () => { await detail.refetch(); void queryClient.invalidateQueries({ queryKey: ["recipes"] }); },
   });
   const restore = useMutation({
     mutationFn: () => recipesApi.restore(recipeId!, detail.data!.version),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["recipe", recipeId] });
+      const previous = queryClient.getQueryData<RecipeDetail>(["recipe", recipeId]);
+      if (previous?.archivedFromStatus) queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], { ...previous, status: previous.archivedFromStatus, archivedFromStatus: null });
+      return { previous };
+    },
+    onError: (_error, _variables, context) => { if (context?.previous) queryClient.setQueryData(["recipe", recipeId], context.previous); },
     onSuccess: (value) => { queryClient.setQueryData(["recipe", recipeId], value); void queryClient.invalidateQueries({ queryKey: ["recipes"] }); },
   });
   const permanentDelete = useMutation({
@@ -113,7 +131,9 @@ export function RecipeDetailPage() {
   if (detail.isPending) return <Skeleton label="Loading recipe" lines={8} />;
   if (detail.isError || !detail.data) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
   const recipe = detail.data;
-  const latestJob = job.data ?? recoveredJob.data ?? recipe.activeJob;
+  const latestJob = recipe.activeJob && recipe.activeJob.id !== jobId
+    ? recipe.activeJob
+    : job.data ?? recoveredJob.data ?? recipe.activeJob;
   const importFailed = recipe.status === "import_failed" || (recipe.status === "failed" && recipe.title === "Importing recipe");
   if (importFailed) {
     return (
@@ -132,6 +152,8 @@ export function RecipeDetailPage() {
     );
   }
 
+  const thumbnailCrop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
+  const recipeCollections = recipe.collections ?? [];
   const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").length;
   const actionError = [recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
   const ingredientGroups = new Map<string | null, typeof recipe.ingredients>();
@@ -154,18 +176,20 @@ export function RecipeDetailPage() {
 
       <section className="recipe-hero" aria-labelledby="recipe-title">
         <div className="recipe-hero__media">
-          {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.title} /> : <RecipeFallbackArt title={recipe.title} />}
+          {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.title} style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
         </div>
         <div className="recipe-hero__copy">
           <p className="eyebrow">{recipe.status === "archived" ? "Archived recipe" : recipe.mealRoles?.[0] ?? "From your kitchen"}</p>
           <h1 id="recipe-title">{recipe.title}</h1>
           {recipe.description ? <p className="lede">{recipe.description}</p> : null}
-          <div className="recipe-hero__facts">
+           <div className="recipe-hero__facts">
             <span><strong>{servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</strong>{recipe.sourceUrl ? " · source yield" : ""}</span>
             <span><strong>{recipe.ingredients.length}</strong> ingredients</span>
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
-          </div>
+           </div>
+           <p className="recipe-provenance"><strong>{originLabel[recipe.originKind] ?? "Recipe"}</strong>{recipe.sourceUrl ? <> · <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">View original source</a></> : <> · No external source</>}</p>
+           {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
           <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
           <div className="recipe-hero__actions">
             {recipe.instructions.length > 0 ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
@@ -179,7 +203,14 @@ export function RecipeDetailPage() {
         </div>
       </section>
 
-      {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>Recipe saved</strong><p>{recipe.title} is ready in your kitchen.</p></div></section> : null}
+       {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>{coverStatus === "failed" ? "Recipe saved, cover needs another try" : "Recipe saved"}</strong><p>{coverStatus === "attached" ? "Recipe and cover are ready in your kitchen." : coverStatus === "failed" ? "The recipe is safe. You can choose a different cover in Edit recipe." : "It is ready in your kitchen."}</p></div></section> : null}
+      <RecipeProcessingBanner job={latestJob} nutritionState={recipe.nutritionState} />
+      <RecipeNutritionOverview
+        nutrition={recipe.nutrition}
+        nutritionState={recipe.nutritionState}
+        ingredientReviewCount={ingredientReviewCount}
+        reviewHref={`/app/recipes/${recipe.id}/edit#ingredient-matches`}
+      />
       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
 
       <RecipeOrganizationPanel recipe={recipe} onSaved={(value) => queryClient.setQueryData(["recipe", recipeId], value)} />

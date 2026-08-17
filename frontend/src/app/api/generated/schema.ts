@@ -1058,6 +1058,8 @@ export interface components {
         Body_replaceRecipePhoto: {
             /** Photo */
             photo: string;
+            /** Thumbnailcrop */
+            thumbnailCrop?: string | null;
         };
         /** DuplicateSummary */
         DuplicateSummary: {
@@ -1302,6 +1304,7 @@ export interface components {
              * @default []
              */
             components: components["schemas"]["ImportConfirmComponent"][];
+            thumbnailCrop?: components["schemas"]["ThumbnailCropRequest-Input"] | null;
         };
         /** ImportMergeRequest */
         ImportMergeRequest: {
@@ -1361,6 +1364,12 @@ export interface components {
              * @default []
              */
             sections: components["schemas"]["ImportPreviewSection"][];
+            /**
+             * Originkind
+             * @default web_import
+             * @enum {string}
+             */
+            originKind: "manual" | "web_import" | "cookbook_import";
         };
         /** ImportPreviewSection */
         ImportPreviewSection: {
@@ -1472,6 +1481,8 @@ export interface components {
              * @default queued
              */
             status: string;
+            /** Coverstatus */
+            coverStatus?: ("attached" | "not_selected" | "failed") | null;
         };
         /** JobResponse */
         JobResponse: {
@@ -2091,6 +2102,12 @@ export interface components {
              * @default []
              */
             mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+            thumbnailCrop: components["schemas"]["ThumbnailCropRequest-Output"];
+            /**
+             * Originkind
+             * @enum {string}
+             */
+            originKind: "manual" | "web_import" | "cookbook_import";
             /** Description */
             description?: string | null;
             /** Ingredients */
@@ -2124,6 +2141,7 @@ export interface components {
         RecipePhotoAttachRequest: {
             /** Imagesource */
             imageSource: string;
+            thumbnailCrop?: components["schemas"]["ThumbnailCropRequest-Input"] | null;
         };
         /** RecipeResponse */
         RecipeResponse: {
@@ -2171,6 +2189,12 @@ export interface components {
              * @default []
              */
             mealRoles: ("breakfast" | "lunch" | "dinner" | "snack")[];
+            thumbnailCrop: components["schemas"]["ThumbnailCropRequest-Output"];
+            /**
+             * Originkind
+             * @enum {string}
+             */
+            originKind: "manual" | "web_import" | "cookbook_import";
         };
         /** RecipeSourceImageChoiceRequest */
         RecipeSourceImageChoiceRequest: {
@@ -2179,6 +2203,7 @@ export interface components {
              * Format: uri
              */
             url: string;
+            thumbnailCrop?: components["schemas"]["ThumbnailCropRequest-Input"] | null;
         };
         /** RecipeSourceImageResponse */
         RecipeSourceImageResponse: {
@@ -2215,6 +2240,9 @@ export interface components {
              * @default []
              */
             sections: components["schemas"]["SectionWriteRequest"][];
+            thumbnailCrop?: components["schemas"]["ThumbnailCropRequest-Input"] | null;
+            /** Originkind */
+            originKind?: ("manual" | "web_import" | "cookbook_import") | null;
         };
         /** ReferenceDataInstallRequest */
         ReferenceDataInstallRequest: {
@@ -2486,6 +2514,42 @@ export interface components {
             createdAt: string;
             /** Expiresat */
             expiresAt: string | null;
+        };
+        /** ThumbnailCropRequest */
+        "ThumbnailCropRequest-Input": {
+            /**
+             * Focalx
+             * @default 0.500000
+             */
+            focalX: number | string;
+            /**
+             * Focaly
+             * @default 0.500000
+             */
+            focalY: number | string;
+            /**
+             * Zoom
+             * @default 1.000000
+             */
+            zoom: number | string;
+        };
+        /** ThumbnailCropRequest */
+        "ThumbnailCropRequest-Output": {
+            /**
+             * Focalx
+             * @default 0.5
+             */
+            focalX: string;
+            /**
+             * Focaly
+             * @default 0.5
+             */
+            focalY: string;
+            /**
+             * Zoom
+             * @default 1
+             */
+            zoom: string;
         };
         /** UserGoalResponse */
         UserGoalResponse: {

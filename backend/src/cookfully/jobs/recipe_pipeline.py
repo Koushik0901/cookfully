@@ -262,6 +262,8 @@ class RecipePipeline:
                 recipe.image_asset_id = self._persist_image(
                     session, recipe.id, first_import.image_url, stored_image
                 )
+            job.progress_current = 1
+            job.progress_total = 1
             self._persist_source_nutrition(session, recipe, first_import)
             if isinstance(imported, ImportedCookbook):
                 for item in imported.recipes[1:]:
@@ -325,13 +327,17 @@ class RecipePipeline:
             job = self._running_job(session, job_id)
             recipe = self._recipe_for_job(session, job)
             self._require_input(job, recipe)
-            for ingredient in recipe.ingredients:
+            job.progress_current = 0
+            job.progress_total = len(recipe.ingredients)
+            for position, ingredient in enumerate(recipe.ingredients, start=1):
                 if ingredient.parse_status == "manual":
+                    job.progress_current = position
                     continue
                 try:
                     parsed = parse_ingredient_line(ingredient.original_text)
                 except Exception:
                     ingredient.parse_status = "failed"
+                    job.progress_current = position
                     continue
                 ingredient.quantity_min = parsed.quantity_min
                 ingredient.quantity_max = parsed.quantity_max
@@ -347,6 +353,7 @@ class RecipePipeline:
                 ingredient.parser_name = parsed.parser_name
                 ingredient.parser_version = parsed.parser_version
                 ingredient.version += 1
+                job.progress_current = position
             recipe.version += 1
             _, next_job = self._jobs.succeed_in_session(
                 session, job.id, next_kind=NEXT_KIND[job.kind]
@@ -367,9 +374,12 @@ class RecipePipeline:
                     503,
                 )
             matcher = FoodMatcher(repository)
-            for ingredient in recipe.ingredients:
+            job.progress_current = 0
+            job.progress_total = len(recipe.ingredients)
+            for position, ingredient in enumerate(recipe.ingredients, start=1):
                 active = repository.active_match(ingredient.id)
                 if active is not None and active.status == "manual":
+                    job.progress_current = position
                     continue
                 decision = matcher.decide(ingredient.food_name or "")
                 candidate = decision.candidate
@@ -400,6 +410,7 @@ class RecipePipeline:
                         active=True,
                     )
                 )
+                job.progress_current = position
             recipe.version += 1
             _, next_job = self._jobs.succeed_in_session(
                 session, job.id, next_kind=NEXT_KIND[job.kind]
@@ -426,7 +437,9 @@ class RecipePipeline:
             contributions: list[IngredientNutrition] = []
             micronutrient_contributions: list[MicronutrientContribution] = []
             assumptions: list[str] = []
-            for ingredient in recipe.ingredients:
+            job.progress_current = 0
+            job.progress_total = len(recipe.ingredients)
+            for position, ingredient in enumerate(recipe.ingredients, start=1):
                 match = matches.get(ingredient.id)
                 grams = match.grams_min if match is not None else None
                 matched = match is not None and (
@@ -444,11 +457,13 @@ class RecipePipeline:
                 if match is not None and match.assumption_text:
                     assumptions.append(f"{ingredient.position}: {match.assumption_text}")
                 if not matched or grams is None:
+                    job.progress_current = position
                     continue
                 assert match is not None
                 if match.owner_food_id is not None:
                     owner_food = session.get(OwnerFood, match.owner_food_id)
                     if owner_food is None:
+                        job.progress_current = position
                         continue
                     contributions.append(
                         IngredientNutrition(
@@ -458,6 +473,7 @@ class RecipePipeline:
                 else:
                     food = session.get(FoodReference, match.food_reference_id)
                     if food is None:
+                        job.progress_current = position
                         continue
                     contributions.append(
                         IngredientNutrition(self._food_macros(food, grams), matched=True)
@@ -470,6 +486,7 @@ class RecipePipeline:
                                 resolved=True,
                             )
                         )
+                job.progress_current = position
             coverage = coverage_ratio(measures).overall
             value = rollup_per_serving(
                 contributions,

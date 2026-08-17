@@ -69,6 +69,11 @@ help someone plan, cook, and eat better food with less friction?"
   recipe-detail presentation. A selected PDF thumbnail persists on confirm via best-effort
   `PUT /recipes/{recipeId}/photo/attach` (`imageSourceKind: "pdf_thumbnail"`), surfaced in the
   confirm step and never blocking the import.
+- **Instant recipe feedback + thumbnail framing** — Recipe jobs expose human-readable stage progress,
+  nutrition is presented as a primary result with coverage and review states, favorites/collections/
+  archive-delete actions provide optimistic feedback with rollback, provenance and collection context
+  are visible, and recipe images persist exact-decimal focal-point/zoom metadata without rewriting the
+  original media.
 
 - **Food matching v2** — signal-based scoring (head/block/lead) with penalty lexicons for
   product forms, flavours, and plant parts. Exact-tie-only ambiguity. Variant-aware SQL

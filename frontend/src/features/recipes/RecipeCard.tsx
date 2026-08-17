@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Archive, Check, Heart, MoreVertical, Pencil, RotateCcw, Trash2 } from "lucide-react";
 
@@ -25,32 +25,43 @@ const STATE_LABELS: Record<string, string> = {
   estimated: "Estimated",
   source_provided: "Source provided",
 };
+const ORIGIN_LABELS = { manual: "Cookfully", web_import: "Web import", cookbook_import: "Cookbook" } as const;
+const EMPTY_COLLECTIONS: Recipe["collections"] = [];
 
 export function RecipeCard({
   recipe,
   onArchive,
   onRestore,
   onDelete,
+  actionPending = false,
 }: {
   recipe: Recipe;
   onArchive: (id: string, version: number) => void;
   onRestore: (id: string, version: number) => void;
   onDelete: (id: string, version: number) => void;
+  actionPending?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const recipeCollections = recipe.collections ?? EMPTY_COLLECTIONS;
+  const thumbnailCrop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [favorite, setFavorite] = useState(Boolean(recipe.favorite));
+  const [membership, setMembership] = useState(recipeCollections.map((item) => item.id));
+  useEffect(() => {
+    setFavorite(Boolean(recipe.favorite));
+    setMembership(recipeCollections.map((item) => item.id));
+  }, [recipe.favorite, recipeCollections]);
   const nutrition = recipe.nutrition;
   const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
     ? recipe.nutritionState
     : nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
   const stateLabel = STATE_LABELS[displayedNutritionState] ?? displayedNutritionState.replace("_", " ");
   const collections = useQuery({ queryKey: ["recipe-collections"], queryFn: recipesApi.collections, retry: 1 });
-  const membership = (recipe.collections ?? []).map((item) => item.id);
   const organize = useMutation({
-    mutationFn: (collectionIds: string[]) =>
+    mutationFn: (value: { favorite: boolean; collectionIds: string[] }) =>
       recipesApi.organize(recipe.id, recipe.version, {
-        favorite: Boolean(recipe.favorite),
-        collectionIds,
+        favorite: value.favorite,
+        collectionIds: value.collectionIds,
         mealRoles: recipe.mealRoles ?? [],
       }),
     onSuccess: (value) => {
@@ -63,7 +74,14 @@ export function RecipeCard({
     const next = membership.includes(collectionId)
       ? membership.filter((id) => id !== collectionId)
       : [...membership, collectionId];
-    organize.mutate(next);
+    const previous = membership;
+    setMembership(next);
+    organize.mutate({ favorite, collectionIds: next }, { onError: () => setMembership(previous) });
+  };
+  const toggleFavorite = () => {
+    const next = !favorite;
+    setFavorite(next);
+    organize.mutate({ favorite: next, collectionIds: membership }, { onError: () => setFavorite(!next) });
   };
   const displayNumber = (value: string | null | undefined, maximumFractionDigits: number) =>
     value == null
@@ -72,9 +90,11 @@ export function RecipeCard({
   return (
     <article className="recipe-card">
       <Link className="recipe-card__media" to={`/app/recipes/${recipe.id}`} aria-label={`Open ${recipe.title}`}>
-        {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={recipe.title} />}
-        {recipe.favorite ? <span className="recipe-card__favorite" aria-label="Favorite recipe"><Heart aria-hidden="true" /></span> : null}
+        {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
       </Link>
+      <button type="button" className={`recipe-card__favorite-toggle${favorite ? " is-favorite" : ""}`} aria-label={`${favorite ? "Remove" : "Add"} ${recipe.title} ${favorite ? "from" : "to"} favorites`} aria-pressed={favorite} onClick={toggleFavorite} disabled={organize.isPending}>
+        <Heart aria-hidden="true" />
+      </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className="recipe-card__menu" aria-label={`More actions for ${recipe.title}`}><MoreVertical aria-hidden="true" /></button>
@@ -94,11 +114,11 @@ export function RecipeCard({
           }) : <p className="cf-menu__empty">No collections yet. Create one under “Refine recipes”.</p>}
           <DropdownMenuSeparator />
           {recipe.status === "archived" ? (
-            <DropdownMenuItem onSelect={() => onRestore(recipe.id, recipe.version)}><RotateCcw aria-hidden="true" />Restore recipe</DropdownMenuItem>
+           <DropdownMenuItem disabled={actionPending} onSelect={() => onRestore(recipe.id, recipe.version)}><RotateCcw aria-hidden="true" />Restore recipe</DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onSelect={() => onArchive(recipe.id, recipe.version)}><Archive aria-hidden="true" />Archive recipe</DropdownMenuItem>
+             <DropdownMenuItem disabled={actionPending} onSelect={() => onArchive(recipe.id, recipe.version)}><Archive aria-hidden="true" />Archive recipe</DropdownMenuItem>
           )}
-          <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}><Trash2 aria-hidden="true" />Delete recipe</DropdownMenuItem>
+           <DropdownMenuItem disabled={actionPending} variant="destructive" onSelect={() => setConfirmDelete(true)}><Trash2 aria-hidden="true" />Delete recipe</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ConfirmDialog
@@ -119,6 +139,7 @@ export function RecipeCard({
           {" · "}
           <span className={`recipe-card__state recipe-card__state--${displayedNutritionState}`}>{stateLabel}</span>
         </p>
+        <div className="recipe-card__context"><span className="recipe-card__origin">{ORIGIN_LABELS[recipe.originKind] ?? "Recipe"}</span>{recipeCollections.map((collection) => <span className="recipe-card__collection" key={collection.id}>{collection.name}</span>)}</div>
         {nutrition ? (
           <dl className="recipe-card__nutrition" aria-label={`${recipe.title} nutrition`}>
             <div><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)} kcal</dd></div>

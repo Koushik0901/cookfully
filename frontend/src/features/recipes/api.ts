@@ -11,6 +11,7 @@ import type {
   RecipeWrite,
   RecipeCollection,
   RecipeOrganizationWrite,
+  ThumbnailCropWrite,
   ResolvedNutrition,
 } from "./types";
 import { getSessionQueryClient } from "../../app/sessionStore";
@@ -111,9 +112,10 @@ export const recipesApi = {
   organize(recipeId: string, version: number, value: RecipeOrganizationWrite) {
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}/organization`, { method: "PUT", version, body: JSON.stringify(value) });
   },
-  uploadPhoto(recipeId: string, version: number, photo: File) {
+  uploadPhoto(recipeId: string, version: number, photo: File, thumbnailCrop?: ThumbnailCropWrite) {
     const body = new FormData();
     body.set("photo", photo);
+    if (thumbnailCrop) body.set("thumbnailCrop", JSON.stringify(thumbnailCrop));
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo`, {
       method: "PUT",
       version,
@@ -129,11 +131,11 @@ export const recipesApi = {
   sourceImages(recipeId: string) {
     return apiRequest<{ url: string }[]>(`/recipes/${recipeId}/source-images`);
   },
-  useSourcePhoto(recipeId: string, version: number, url: string) {
+  useSourcePhoto(recipeId: string, version: number, url: string, thumbnailCrop?: ThumbnailCropWrite) {
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo/source`, {
       method: "PUT",
       version,
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, thumbnailCrop }),
     });
   },
   archive(recipeId: string, version: number) {
@@ -181,11 +183,11 @@ export const recipesApi = {
       body: JSON.stringify(write),
     });
   },
-  attachPhoto(recipeId: string, version: number, imageSource: string) {
+  attachPhoto(recipeId: string, version: number, imageSource: string, thumbnailCrop?: ThumbnailCropWrite) {
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo/attach`, {
       method: "PUT",
       version,
-      body: JSON.stringify({ imageSource }),
+      body: JSON.stringify({ imageSource, thumbnailCrop }),
     });
   },
   recalculate(recipeId: string, resetCorrections = false) {

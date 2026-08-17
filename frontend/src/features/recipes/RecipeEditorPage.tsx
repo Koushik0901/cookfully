@@ -8,7 +8,8 @@ import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
 import { RecipeDraftPreview } from "./RecipeDraftPreview";
-import type { RecipeWrite } from "./types";
+import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
+import type { RecipeWrite, ThumbnailCropWrite } from "./types";
 
 const decimalPattern = /^(?!0(?:\.0{1,3})?$)(?:0|[1-9][0-9]*)(?:\.[0-9]{1,3})?$/;
 const optionalDecimalPattern = /^(?:|0|[1-9][0-9]*)(?:\.[0-9]{1,6})?$/;
@@ -30,6 +31,7 @@ const NUTRITION_FIELDS = [
 type NutritionField = typeof NUTRITION_FIELDS[number][0];
 type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
+const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
 
 interface EditorBlock {
   key: string;
@@ -61,6 +63,7 @@ const [title, setTitle] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
   const [showSourceImages, setShowSourceImages] = useState(false);
   const [nutritionValues, setNutritionValues] = useState<NutritionValues>(emptyNutrition);
   const [initialNutritionValues, setInitialNutritionValues] = useState<NutritionValues>(emptyNutrition);
@@ -75,7 +78,7 @@ const [title, setTitle] = useState("");
     retry: 1,
   });
   const chooseSourcePhoto = useMutation({
-    mutationFn: (url: string) => recipesApi.useSourcePhoto(recipeId!, detail.data!.version, url),
+    mutationFn: (url: string) => recipesApi.useSourcePhoto(recipeId!, detail.data!.version, url, thumbnailCrop),
     onSuccess: (value) => {
       queryClient.setQueryData(["recipe", recipeId], value);
       setPhoto(null);
@@ -110,6 +113,7 @@ useEffect(() => {
     setBlocks(blocks);
     setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
     setRemovePhoto(false);
+    setThumbnailCrop(detail.data.thumbnailCrop ?? defaultThumbnailCrop());
     const values = emptyNutrition();
     for (const [field, , , responseKey] of NUTRITION_FIELDS) {
       if (responseKey in (detail.data.nutrition ?? {})) {
@@ -129,7 +133,7 @@ useEffect(() => {
     onSuccess: async (saved) => {
       let finalRecipe = saved;
       try {
-        if (photo) finalRecipe = await recipesApi.uploadPhoto(saved.id, saved.version, photo);
+        if (photo) finalRecipe = await recipesApi.uploadPhoto(saved.id, saved.version, photo, thumbnailCrop);
         else if (recipeId && removePhoto && detail.data?.imageUrl) finalRecipe = await recipesApi.removePhoto(saved.id, saved.version);
         const activeCorrections = new Map(
           detail.data?.nutrition?.corrections
@@ -219,6 +223,7 @@ function submit(event: FormEvent) {
       sections,
       ingredients,
       instructions,
+      thumbnailCrop,
     });
   }
 
@@ -238,9 +243,10 @@ function submit(event: FormEvent) {
           description={description}
           sourceUrl={sourceUrl}
           yieldQuantity={yieldQuantity}
-          yieldUnit={yieldUnit}
-          photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
-          blocks={blocks}
+           yieldUnit={yieldUnit}
+           photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
+           thumbnailCrop={thumbnailCrop}
+           blocks={blocks}
           macros={NUTRITION_FIELDS.slice(0, 4).filter(([field]) => nutritionValues[field].trim()).map(([field, label, unit]) => ({ label: `${label} (${unit})`, value: nutritionValues[field].trim() }))}
         />
       ) : (
@@ -296,6 +302,7 @@ function submit(event: FormEvent) {
             <Field label="Source or reason" hint="For example: package label, cookbook, or clinician-provided value."><input className="input" value={nutritionReason} onChange={(event) => setNutritionReason(event.target.value)} /></Field>
           </div>
         </details>
+        {photoPreview || (detail.data?.imageUrl && !removePhoto) ? <section className="recipe-editor__crop" aria-labelledby="recipe-crop-heading"><p className="eyebrow" id="recipe-crop-heading">Frame your cover</p><ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /></section> : null}
         <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h2 id="recipe-photo-heading">Choose the cover</h2><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button> : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}

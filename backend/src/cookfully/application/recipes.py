@@ -22,6 +22,8 @@ from cookfully.domain.common import (
 from cookfully.domain.recipes import (
     IngredientInput,
     RecipeDraft,
+    RecipeOrigin,
+    ThumbnailCrop,
 )
 from cookfully.infrastructure.erasure_ledger import ErasureLedger, ErasureRecord
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
@@ -141,6 +143,8 @@ class RecipeWrite:
     yield_unit: str = "servings"
     prep_minutes: int | None = None
     cook_minutes: int | None = None
+    thumbnail_crop: ThumbnailCrop | None = None
+    origin_kind: RecipeOrigin | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -157,6 +161,7 @@ class RecipeWrite:
 class RecipeMutation:
     recipe: Recipe
     job: ProcessingJob | None
+    cover_status: str | None = None
 
 
 def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
@@ -234,6 +239,10 @@ class RecipeService:
                 nutrition_state="pending",
                 input_hash=input_hash,
                 version=1,
+                thumbnail_focal_x=(write.thumbnail_crop or ThumbnailCrop()).focal_x,
+                thumbnail_focal_y=(write.thumbnail_crop or ThumbnailCrop()).focal_y,
+                thumbnail_zoom=(write.thumbnail_crop or ThumbnailCrop()).zoom,
+                origin_kind=write.origin_kind or "manual",
                 sections=sections,
                 ingredients=self._ingredients(recipe_id, write.ingredients, sections),
                 instructions=self._instructions(recipe_id, write.instructions, sections),
@@ -307,6 +316,12 @@ class RecipeService:
             recipe.yield_unit = write.yield_unit
             recipe.prep_minutes = write.prep_minutes
             recipe.cook_minutes = write.cook_minutes
+            if write.thumbnail_crop is not None:
+                recipe.thumbnail_focal_x = write.thumbnail_crop.focal_x
+                recipe.thumbnail_focal_y = write.thumbnail_crop.focal_y
+                recipe.thumbnail_zoom = write.thumbnail_crop.zoom
+            if write.origin_kind is not None:
+                recipe.origin_kind = write.origin_kind
             recipe.input_hash = recipe_input_hash(recipe_id, write)
             recipe.nutrition_state = "stale"
             recipe.status = "processing"
