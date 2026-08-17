@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -64,6 +66,34 @@ class RecipePhotoService:
                 422,
             )
         stored = await self._images.capture(image_url)
+        return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
+
+    async def attach_url(
+        self,
+        recipe_id: UUID,
+        image_url: str,
+        *,
+        expected_version: int,
+    ) -> Recipe:
+        """Attach a photo from a remote URL or a base64 data-URI.
+
+        ``attach_url`` supports PDF-extracted thumbnails (``data:image/...;base64,...``)
+        that are never reachable again after the preview, plus ordinary remote image
+        URLs. The data-URI branch decodes in memory and reuses the same media capture
+        path as an upload, so stored photos are always normalized WebP.
+        """
+        if image_url.startswith("data:image/"):
+            content_type, _, encoded = image_url.partition(",")
+            media_type = content_type.split(";", 1)[0].removeprefix("data:")
+            try:
+                content = base64.b64decode(encoded, validate=True)
+            except (ValueError, binascii.Error) as exc:
+                raise DomainError(
+                    "image_invalid", "Recipe image data could not be decoded.", 422
+                ) from exc
+            stored = self._images.capture_bytes(content, media_type)
+        else:
+            stored = await self._images.capture(image_url)
         return self._replace_stored(recipe_id, stored=stored, expected_version=expected_version)
 
     def _replace_stored(
