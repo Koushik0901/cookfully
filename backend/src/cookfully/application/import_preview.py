@@ -10,6 +10,7 @@ delegates the actual recipe persistence + job enqueue to ``RecipeService.create`
 
 from __future__ import annotations
 
+import logging
 import re
 import secrets
 from datetime import timedelta
@@ -20,6 +21,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import (
     IngredientWrite,
@@ -36,6 +38,8 @@ from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.recipe_importer import ImportedCookbook, ImportedRecipe
 
+logger = logging.getLogger(__name__)
+
 
 class ImportFetcher(Protocol):
     async def import_url(self, url: str) -> ImportedRecipe | ImportedCookbook: ...
@@ -51,12 +55,14 @@ class ImportPreviewCoordinator:
         recipes: RecipeService,
         query_service: RecipeQueryService,
         *,
+        photos: RecipePhotoService,
         ttl: timedelta = timedelta(minutes=15),
     ) -> None:
         self._session_factory = session_factory
         self._importer = importer
         self._recipes: RecipeService = recipes
         self._query_service = query_service
+        self._photos = photos
         self._ttl = ttl
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str) -> dict[str, Any]:
@@ -90,7 +96,7 @@ class ImportPreviewCoordinator:
             "sections": sections,
         }
 
-    def confirm(
+    async def confirm(
         self,
         parse_id: str,
         payload: dict[str, Any],
@@ -113,13 +119,24 @@ class ImportPreviewCoordinator:
                     410,
                 )
             stored = record.payload
-        # Image persistence is deferred to a later phase: the confirm path is focused
-        # on content persistence + job enqueue. ``imageSource`` from the client is
-        # intentionally accepted but not yet written; the existing
-        # ``POST /recipes/{id}/photo/source`` endpoint already applies a chosen source
-        # image post-save, so no new column or media write is introduced here.
         write = self._build_write(stored, payload)
-        return self._recipes.create(write, trace_id=trace_id, owner_id=owner_id)
+        mutation = self._recipes.create(write, trace_id=trace_id, owner_id=owner_id)
+        # PDF thumbnails are base64 data-URIs that cannot be fetched again after the
+        # preview, so the chosen image must persist at confirm time. Attachment is
+        # best-effort: media failures must never roll back a confirmed import.
+        await self._attach_preview_image(mutation.recipe, payload)
+        return mutation
+
+    async def _attach_preview_image(self, recipe: Recipe, payload: dict[str, Any]) -> None:
+        if payload.get("imageSourceKind") != "pdf_thumbnail":
+            return
+        image_source = payload.get("imageSource")
+        if not isinstance(image_source, str) or not image_source:
+            return
+        try:
+            await self._photos.attach_url(recipe.id, image_source, expected_version=recipe.version)
+        except Exception:
+            logger.exception("Skipped attaching PDF thumbnail for imported recipe %s", recipe.id)
 
     # ---- payload builders ----
 
