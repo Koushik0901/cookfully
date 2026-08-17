@@ -204,9 +204,10 @@ async function mockApi(page: Page) {
   return { releaseImport: () => { releaseImport = true; pollCount = 0; } };
 }
 
-async function mockPreviewApi(page: Page) {
+async function mockPreviewApi(page: Page, options: { pdfThumbnail?: boolean } = {}) {
   const parseId = "preview-parse-0001";
   let confirmPosted: Record<string, unknown> | null = null;
+  let mergePosted: Record<string, unknown> | null = null;
   await page.context().addCookies([
     { name: "cookfully_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" },
   ]);
@@ -230,7 +231,7 @@ async function mockPreviewApi(page: Page) {
         title: "Shawarma bowl",
         yieldQuantity: null,
         yieldText: null,
-        imageSources: [],
+        imageSources: options.pdfThumbnail ? [`data:image/jpeg;base64,${Buffer.from("pdf-cover").toString("base64")}`] : [],
         duplicates: [{ id: recipeId, title: "Shawarma bowl", version: 1 }],
         sections: [
           {
@@ -251,6 +252,10 @@ async function mockPreviewApi(page: Page) {
     }
     if (path === "/api/v1/recipes/import/confirm" && method === "POST") {
       confirmPosted = request.postDataJSON() as Record<string, unknown>;
+      return json({ jobId, resourceId: recipeId, status: "queued" }, 202);
+    }
+    if (path === "/api/v1/recipes/import/merge" && method === "POST") {
+      mergePosted = request.postDataJSON() as Record<string, unknown>;
       return json({ jobId, resourceId: recipeId, status: "queued" }, 202);
     }
     if (path === `/api/v1/recipes/${recipeId}` && method === "GET") {
@@ -283,7 +288,7 @@ async function mockPreviewApi(page: Page) {
     }
     return json({ code: "not_found", title: "Not found", status: 404 }, 404);
   });
-  return { parseId, posted: () => confirmPosted };
+  return { parseId, posted: () => confirmPosted, mergePosted: () => mergePosted };
 }
 
 async function openRecipeOptions(page: Page) {
@@ -455,7 +460,7 @@ test("import preview shows components, prompts for missing quantities, warns on 
   await page.getByRole("button", { name: "Start import" }).click();
 
   await expect(page.getByRole("heading", { name: "Review the recipe" })).toBeVisible();
-  await expect(page.getByText("Shawarma bowl")).toBeVisible();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue("Shawarma bowl");
   await expect(page.getByRole("alert")).toContainText("already have “Shawarma bowl”");
   await expect(page.getByLabel("Component 1 title")).toHaveValue("The chicken");
   await expect(page.getByLabel("Component 2 title")).toHaveValue("The sauce");
@@ -491,5 +496,77 @@ test("import preview shows components, prompts for missing quantities, warns on 
     expect(matches).toBeTruthy();
   }
 
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("merge replaces duplicate content while preserving the existing recipe identity", async ({ page }) => {
+  const preview = await mockPreviewApi(page);
+  await page.goto("/app/recipes");
+  await page.getByRole("button", { name: "Import recipe" }).click();
+
+  await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/shawarma");
+  await page.getByRole("button", { name: "Start import" }).click();
+
+  await expect(page.getByRole("heading", { name: "Review the recipe" })).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("already have “Shawarma bowl”");
+  await expect(page.getByRole("button", { name: "Merge into existing" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Merge into existing" }).click();
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
+  const mergePosted = preview.mergePosted();
+  expect(mergePosted).not.toBeNull();
+  expect(mergePosted?.recipeId).toBe(recipeId);
+  expect(mergePosted?.parseId).toBe(preview.parseId);
+  expect(mergePosted?.expectedVersion).toBe(1);
+  expect(mergePosted?.title).toBe("Shawarma bowl");
+  expect(JSON.stringify(mergePosted?.components ?? [])).toContain("1 lb chicken breast");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("editor preview toggle mirrors the live draft", async ({ page }, testInfo) => {
+  await mockApi(page);
+  await page.goto("/app/recipes/new");
+  await page.getByLabel("Recipe title").fill("Sheet pan chicken");
+  await page.getByLabel("Yield quantity").fill("4.000");
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  await page.getByLabel("Ingredients, one per line").fill("1 chicken breast\n2 cups rice");
+  await page.getByLabel("Method, one step per line").fill("Roast the chicken.\nRest before serving.");
+
+  await page.getByRole("button", { name: "Preview" }).click();
+  await expect(page.getByRole("heading", { name: "Sheet pan chicken" })).toBeVisible();
+  await expect(page.getByText("1 chicken breast")).toBeVisible();
+  await expect(page.getByText("2 cups rice")).toBeVisible();
+  await expect(page.getByText("Roast the chicken.")).toBeVisible();
+  await expect(page.getByText("4 servings")).toBeVisible();
+  await captureUi(page, testInfo, "recipe-editor-preview");
+
+  await page.getByRole("button", { name: "Edit" }).click();
+  await expect(page.getByLabel("Recipe title")).toHaveValue("Sheet pan chicken");
+  await expect(page.getByLabel("Ingredients, one per line")).toHaveValue("1 chicken breast\n2 cups rice");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("a PDF thumbnail selected at import is confirmed with pdf_thumbnail kind and attach feedback", async ({ page }) => {
+  const preview = await mockPreviewApi(page, { pdfThumbnail: true });
+  await page.goto("/app/recipes");
+  await page.getByRole("button", { name: "Import recipe" }).click();
+
+  await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/cookbook.pdf");
+  await page.getByRole("button", { name: "Start import" }).click();
+
+  await expect(page.getByRole("heading", { name: "Review the recipe" })).toBeVisible();
+  await expect(page.getByLabel("Thumbnail 1")).toBeChecked();
+  await page.getByRole("button", { name: "Keep this import" }).click();
+  await expect(page.getByText(/cover photo will be attached/i)).toBeVisible();
+
+  await page.getByRole("button", { name: "Add to collection" }).click();
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
+  const posted = preview.posted();
+  expect(posted).not.toBeNull();
+  expect(posted?.imageSourceKind).toBe("pdf_thumbnail");
+  expect(typeof posted?.imageSource).toBe("string");
+  expect(String(posted?.imageSource ?? "")).toMatch(/^data:image\/jpeg;base64,/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
