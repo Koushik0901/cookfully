@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Button, Field } from "../../components";
 import { ApiProblem, recipesApi } from "./api";
-import type { ImportPreview } from "./types";
+import type { ImportConfirmComponent, ImportPreview } from "./types";
 
 type Step = "url" | "preview" | "confirm";
 
@@ -17,6 +17,19 @@ interface EditableComponent {
   title: string;
   ingredients: EditableIngredient[];
   instructions: string[];
+}
+
+function componentsPayload(components: EditableComponent[]): ImportConfirmComponent[] {
+  return components.map((component) => ({
+    title: component.title || undefined,
+    ingredients: component.ingredients.map((ingredient) => ({
+      originalText: ingredient.originalText,
+      quantityOverride: ingredient.quantityOverride ?? undefined,
+      optional: false,
+      remove: false,
+    })),
+    instructions: component.instructions.map((text) => ({ text, remove: false })),
+  }));
 }
 
 export function RecipeImportDialog({ trigger, onImported }: { trigger: React.ReactNode; onImported?: () => void | Promise<unknown> }) {
@@ -77,16 +90,29 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         parseId: write.parseId,
         title: write.title,
         imageSource: write.imageSource ?? undefined,
-        components: write.components.map((component) => ({
-          title: component.title || undefined,
-          ingredients: component.ingredients.map((ingredient) => ({
-            originalText: ingredient.originalText,
-            quantityOverride: ingredient.quantityOverride ?? undefined,
-            optional: false,
-            remove: false,
-          })),
-          instructions: component.instructions.map((text) => ({ text, remove: false })),
-        })),
+        components: componentsPayload(write.components),
+      }),
+    onSuccess: async (accepted) => {
+      try {
+        await onImported?.();
+      } catch {
+        // The recipe already exists; optional onboarding persistence must not turn that into a failure.
+      } finally {
+        setOpen(false);
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, importUrl: url } });
+      }
+    },
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: (target: { recipeId: string; expectedVersion: number }) =>
+      recipesApi.mergeImport({
+        recipeId: target.recipeId,
+        parseId: preview?.parseId ?? "",
+        expectedVersion: target.expectedVersion,
+        title,
+        yieldQuantity: null,
+        components: componentsPayload(components),
       }),
     onSuccess: async (accepted) => {
       try {
@@ -148,7 +174,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
     setComponents((current) => current.filter((_, i) => i !== componentIndex));
   }
 
-  const busy = previewMutation.isPending || confirmMutation.isPending;
+  const busy = previewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending;
 
   return (
     <Dialog.Root
@@ -190,7 +216,20 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
               {preview.duplicates.length > 0 ? (
                 <section className="import-wizard__duplicate" role="alert">
                   <strong>It looks like you already have “{preview.duplicates[0].title}”.</strong>
-                  <p>You can still keep this import, discard it, or open the existing recipe to compare.</p>
+                  <p>You can merge this import into an existing recipe, keep it as a new recipe, or discard it.</p>
+                  {preview.duplicates.map((duplicate) => (
+                    <div className="import-wizard__duplicate-merge" key={duplicate.id}>
+                      <span className="import-wizard__duplicate-title">{duplicate.title}</span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={mergeMutation.isPending && mergeMutation.variables?.recipeId === duplicate.id}
+                        onClick={() => mergeMutation.mutate({ recipeId: duplicate.id, expectedVersion: duplicate.version })}
+                      >
+                        Merge into existing
+                      </Button>
+                    </div>
+                  ))}
                   <div className="actions">
                     <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Discard</Button>
                     <Button type="button" variant="secondary" onClick={() => { setOpen(false); navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>

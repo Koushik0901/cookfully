@@ -231,7 +231,7 @@ async function mockPreviewApi(page: Page) {
         yieldQuantity: null,
         yieldText: null,
         imageSources: [],
-        duplicates: [{ id: recipeId, title: "Shawarma bowl" }],
+        duplicates: [{ id: recipeId, title: "Shawarma bowl", version: 1 }],
         sections: [
           {
             title: "The chicken",
