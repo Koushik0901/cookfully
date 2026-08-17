@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from io import BytesIO
 from pathlib import Path
 
@@ -285,6 +286,38 @@ def test_recipe_photo_contract_is_versioned_and_keeps_recipe_content_intact(
         assert removed.status_code == 200
         assert removed.json()["imageUrl"] is None
         assert removed.json()["version"] == 3
+
+
+def test_recipe_photo_attach_accepts_data_uri_and_requires_version(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        created = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers).json()
+        recipe_id = created["id"]
+
+        encoded = base64.b64encode(_png_bytes()).decode("ascii")
+        data_uri = f"data:image/png;base64,{encoded}"
+
+        stale = client.put(
+            f"/api/v1/recipes/{recipe_id}/photo/attach",
+            json={"imageSource": data_uri},
+            headers={**headers, "If-Match": '"99"'},
+        )
+        assert stale.status_code == 409
+
+        attached = client.put(
+            f"/api/v1/recipes/{recipe_id}/photo/attach",
+            json={"imageSource": data_uri},
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert attached.status_code == 200
+        assert attached.json()["imageUrl"].startswith("/api/v1/media/")
+        assert attached.json()["version"] == 2
+        assert (
+            attached.json()["ingredients"]
+            == client.get(f"/api/v1/recipes/{recipe_id}").json()["ingredients"]
+        )
 
 
 def test_recipe_organization_is_optional_filterable_and_versioned(

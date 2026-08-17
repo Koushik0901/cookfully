@@ -23,6 +23,7 @@ from cookfully.api.schemas.jobs import JobAcceptedResponse
 from cookfully.api.schemas.recipes import (
     DuplicateSummary,
     ImportConfirmRequest,
+    ImportMergeRequest,
     ImportPreviewIngredient,
     ImportPreviewRequest,
     ImportPreviewResponse,
@@ -36,6 +37,7 @@ from cookfully.api.schemas.recipes import (
     RecipeDetailResponse,
     RecipeOrganizationWriteRequest,
     RecipePageResponse,
+    RecipePhotoAttachRequest,
     RecipeResponse,
     RecipeSourceImageChoiceRequest,
     RecipeSourceImageResponse,
@@ -337,7 +339,7 @@ async def preview_recipe_import(
     response_model_by_alias=True,
     status_code=status.HTTP_202_ACCEPTED,
 )
-def confirm_recipe_import(
+async def confirm_recipe_import(
     payload: ImportConfirmRequest,
     coordinator: Annotated[ImportPreviewCoordinator, Depends(import_preview_coordinator)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
@@ -357,10 +359,60 @@ def confirm_recipe_import(
             )
         return JobAcceptedResponse.model_validate(decision.response_body)
     try:
-        mutation = coordinator.confirm(
+        mutation = await coordinator.confirm(
             payload.parse_id,
             payload.model_dump(mode="json", by_alias=True),
             owner_id=owner.id,
+            trace_id=correlation_id.get(),
+        )
+    except Exception:
+        idempotency.abort(owner_id=owner.id, key=key)
+        raise
+    assert mutation.job is not None
+    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=mutation.recipe.id)
+    idempotency.complete(
+        owner_id=owner.id,
+        key=key,
+        response_status=202,
+        resource_id=mutation.recipe.id,
+        job_id=mutation.job.id,
+        response_body=response.model_dump(mode="json", by_alias=True),
+    )
+    return response
+
+
+@router.post(
+    "/import/merge",
+    response_model=JobAcceptedResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def merge_recipe_import(
+    payload: ImportMergeRequest,
+    coordinator: Annotated[ImportPreviewCoordinator, Depends(import_preview_coordinator)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> JobAcceptedResponse:
+    decision = idempotency.begin(
+        owner_id=owner.id,
+        key=key,
+        operation="recipe.import.merge",
+        payload=payload.model_dump(mode="json", by_alias=True),
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        return JobAcceptedResponse.model_validate(decision.response_body)
+    try:
+        mutation = coordinator.merge(
+            payload.recipe_id,
+            payload.parse_id,
+            payload.model_dump(mode="json", by_alias=True),
+            owner_id=owner.id,
+            expected_version=payload.expected_version,
             trace_id=correlation_id.get(),
         )
     except Exception:
@@ -459,6 +511,27 @@ async def replace_recipe_photo_from_source(
     await photos.replace_from_source(
         recipe_id,
         image_url=str(payload.url),
+        expected_version=version,
+    )
+    return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.put(
+    "/{recipeId}/photo/attach",
+    response_model=RecipeDetailResponse,
+    response_model_by_alias=True,
+)
+async def attach_recipe_photo(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    payload: RecipePhotoAttachRequest,
+    version: Annotated[int, Depends(expected_version)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeDetailResponse:
+    await photos.attach_url(
+        recipe_id,
+        payload.image_source,
         expected_version=version,
     )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))

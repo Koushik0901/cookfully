@@ -179,6 +179,7 @@ class ImportPreviewSection(ApiModel):
 class DuplicateSummary(ApiModel):
     id: UUID
     title: str
+    version: int = Field(ge=1)
 
 
 class ImportPreviewResponse(ApiModel):
@@ -213,8 +214,24 @@ class ImportConfirmRequest(ApiModel):
     parse_id: str = Field(alias="parseId", max_length=64)
     title: str | None = Field(default=None, min_length=1, max_length=240)
     image_source: str | None = Field(alias="imageSource", default=None, max_length=2048)
+    image_source_kind: Literal["url", "pdf_thumbnail"] | None = Field(
+        alias="imageSourceKind", default=None
+    )
     yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
     components: tuple[ImportConfirmComponent, ...] = ()
+
+
+class ImportMergeRequest(ApiModel):
+    recipe_id: UUID = Field(alias="recipeId")
+    parse_id: str = Field(alias="parseId", max_length=64)
+    expected_version: int = Field(alias="expectedVersion", ge=1)
+    title: str | None = Field(default=None, min_length=1, max_length=240)
+    yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
+    components: tuple[ImportConfirmComponent, ...] = ()
+
+
+class RecipePhotoAttachRequest(ApiModel):
+    image_source: str = Field(alias="imageSource", min_length=1, max_length=20_000_000)
 
 
 class RecipeSourceImageChoiceRequest(ApiModel):

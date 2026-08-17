@@ -223,6 +223,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 RecipeImporter(SafeFetcher(max_bytes=25 * 1024 * 1024), media_store),
                 app.state.recipes,
                 recipe_query_service,
+                photos=app.state.recipe_photos,
             )
             app.state.corrections = CorrectionService(sessions)
             app.state.idempotency = idempotency_service

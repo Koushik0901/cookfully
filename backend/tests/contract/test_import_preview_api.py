@@ -17,7 +17,7 @@ PREVIEW_BODY: dict[str, object] = {
     "yield_quantity": "2.000",
     "yield_text": "2 servings",
     "image_sources": ["https://example.com/cover.jpg"],
-    "duplicates": [{"id": uuid4(), "title": "Training Oats"}],
+    "duplicates": [{"id": uuid4(), "title": "Training Oats", "version": 2}],
     "sections": [
         {
             "title": "",
@@ -68,18 +68,44 @@ def _confirm_mutation() -> SimpleNamespace:
 
 
 class StubCoordinator:
-    def __init__(self, preview=None, confirm=None) -> None:
+    def __init__(self, preview=None, confirm=None, merge=None) -> None:
         self._preview_handler = preview
         self._confirm_handler = confirm
+        self._merge_handler = merge
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str):
         if self._preview_handler is not None:
             return await self._preview_handler(url, owner_id=owner_id, trace_id=trace_id)
         return dict(PREVIEW_BODY)
 
-    def confirm(self, parse_id: str, payload: dict[str, object], *, owner_id: UUID, trace_id: str):
+    async def confirm(
+        self, parse_id: str, payload: dict[str, object], *, owner_id: UUID, trace_id: str
+    ):
         if self._confirm_handler is not None:
-            return self._confirm_handler(parse_id, payload, owner_id=owner_id, trace_id=trace_id)
+            return await self._confirm_handler(
+                parse_id, payload, owner_id=owner_id, trace_id=trace_id
+            )
+        return _confirm_mutation()
+
+    def merge(
+        self,
+        recipe_id: UUID,
+        parse_id: str,
+        payload: dict[str, object],
+        *,
+        owner_id: UUID,
+        expected_version: int,
+        trace_id: str,
+    ):
+        if self._merge_handler is not None:
+            return self._merge_handler(
+                recipe_id,
+                parse_id,
+                payload,
+                owner_id=owner_id,
+                expected_version=expected_version,
+                trace_id=trace_id,
+            )
         return _confirm_mutation()
 
 
@@ -173,7 +199,7 @@ def test_import_confirm_accepts_and_is_idempotent(
 def test_import_confirm_expired_preview_returns_410(
     isolated_database_url: str, tmp_path: Path
 ) -> None:
-    def expired(parse_id: str, payload: dict[str, object], **kwargs):
+    async def expired(parse_id: str, payload: dict[str, object], **kwargs):
         raise DomainError("import_preview_expired", "This import preview has expired.", 410)
 
     with client_for(isolated_database_url, tmp_path) as client:
@@ -186,3 +212,56 @@ def test_import_confirm_expired_preview_returns_410(
         )
         assert response.status_code == 410
         assert response.json()["code"] == "import_preview_expired"
+
+
+def test_import_merge_replaces_content_and_is_idempotent(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        client.app.state.import_previews = StubCoordinator()
+        headers = authenticate(client)
+        payload = {
+            "recipeId": str(uuid4()),
+            "parseId": "abcd1234",
+            "expectedVersion": 2,
+            "title": "Spiced Oats",
+            "yieldQuantity": "3",
+            "components": [{"ingredients": [{"quantityOverride": "150 g"}]}],
+        }
+        submitted = {**headers, "Idempotency-Key": "import-merge-key-0001"}
+        accepted = client.post("/api/v1/recipes/import/merge", json=payload, headers=submitted)
+        assert accepted.status_code == 202
+        assert accepted.json()["status"] == "queued"
+        assert accepted.json()["jobId"] and accepted.json()["resourceId"]
+        replayed = client.post("/api/v1/recipes/import/merge", json=payload, headers=submitted)
+        assert replayed.status_code == 202
+        assert replayed.json() == accepted.json()
+
+
+def test_import_confirm_pdf_thumbnail_flows_to_coordinator(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    captured: list[dict[str, object]] = []
+
+    async def confirm(parse_id: str, payload: dict[str, object], **kwargs):
+        captured.append(payload)
+        return _confirm_mutation()
+
+    with client_for(isolated_database_url, tmp_path) as client:
+        client.app.state.import_previews = StubCoordinator(confirm=confirm)
+        headers = authenticate(client)
+        payload = {
+            "parseId": "abcd1234",
+            "title": "Spiced Oats",
+            "imageSource": "data:image/jpeg;base64,c2FtcGxl",
+            "imageSourceKind": "pdf_thumbnail",
+            "yieldQuantity": "3",
+        }
+        response = client.post(
+            "/api/v1/recipes/import/confirm",
+            json=payload,
+            headers={**headers, "Idempotency-Key": "import-confirm-pdf-key-0001"},
+        )
+        assert response.status_code == 202
+        assert captured[-1]["imageSourceKind"] == "pdf_thumbnail"
+        assert captured[-1]["imageSource"] == "data:image/jpeg;base64,c2FtcGxl"
