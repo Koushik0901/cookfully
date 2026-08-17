@@ -317,6 +317,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipes/import/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Merge Recipe Import */
+        post: operations["mergeRecipeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -381,6 +398,23 @@ export interface paths {
         get?: never;
         /** Replace Recipe Photo From Source */
         put: operations["replaceRecipePhotoFromSource"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recipes/{recipeId}/photo/attach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Attach Recipe Photo */
+        put: operations["attachRecipePhoto"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1034,6 +1068,8 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+            /** Version */
+            version: number;
         };
         /** ExportRequest */
         ExportRequest: {
@@ -1257,6 +1293,29 @@ export interface components {
             title?: string | null;
             /** Imagesource */
             imageSource?: string | null;
+            /** Imagesourcekind */
+            imageSourceKind?: ("url" | "pdf_thumbnail") | null;
+            /** Yieldquantity */
+            yieldQuantity?: string | null;
+            /**
+             * Components
+             * @default []
+             */
+            components: components["schemas"]["ImportConfirmComponent"][];
+        };
+        /** ImportMergeRequest */
+        ImportMergeRequest: {
+            /**
+             * Recipeid
+             * Format: uuid
+             */
+            recipeId: string;
+            /** Parseid */
+            parseId: string;
+            /** Expectedversion */
+            expectedVersion: number;
+            /** Title */
+            title?: string | null;
             /** Yieldquantity */
             yieldQuantity?: string | null;
             /**
@@ -2060,6 +2119,11 @@ export interface components {
             items: components["schemas"]["RecipeResponse"][];
             /** Nextcursor */
             nextCursor?: string | null;
+        };
+        /** RecipePhotoAttachRequest */
+        RecipePhotoAttachRequest: {
+            /** Imagesource */
+            imageSource: string;
         };
         /** RecipeResponse */
         RecipeResponse: {
@@ -3242,6 +3306,41 @@ export interface operations {
             };
         };
     };
+    mergeRecipeImport: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     getRecipe: {
         parameters: {
             query?: never;
@@ -3456,6 +3555,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["RecipeSourceImageChoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attachRecipePhoto: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string | null;
+            };
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipePhotoAttachRequest"];
             };
         };
         responses: {

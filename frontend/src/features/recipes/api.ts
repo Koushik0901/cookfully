@@ -1,5 +1,6 @@
 import type {
   ImportConfirmWrite,
+  ImportMergeWrite,
   ImportPreview,
   Job,
   JobAccepted,
@@ -171,6 +172,20 @@ export const recipesApi = {
       method: "POST",
       idempotent: true,
       body: JSON.stringify(write),
+    });
+  },
+  mergeImport(write: ImportMergeWrite) {
+    return apiRequest<JobAccepted>("/recipes/import/merge", {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify(write),
+    });
+  },
+  attachPhoto(recipeId: string, version: number, imageSource: string) {
+    return apiRequest<RecipeDetail>(`/recipes/${recipeId}/photo/attach`, {
+      method: "PUT",
+      version,
+      body: JSON.stringify({ imageSource }),
     });
   },
   recalculate(recipeId: string, resetCorrections = false) {

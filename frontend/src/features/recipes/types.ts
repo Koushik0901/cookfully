@@ -14,7 +14,9 @@ export type RecipeCollection = components["schemas"]["RecipeCollectionResponse"]
 export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWriteRequest"];
 export type ImportPreview = components["schemas"]["ImportPreviewResponse"];
 export type ImportConfirmWrite = components["schemas"]["ImportConfirmRequest"];
+export type ImportMergeWrite = components["schemas"]["ImportMergeRequest"];
 export type ImportPreviewSection = components["schemas"]["ImportPreviewSection"];
 export type ImportPreviewIngredient = components["schemas"]["ImportPreviewIngredient"];
 export type DuplicateSummary = components["schemas"]["DuplicateSummary"];
+export type RecipePhotoAttachWrite = components["schemas"]["RecipePhotoAttachRequest"];
 

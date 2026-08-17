@@ -251,7 +251,6 @@ async function mockPreviewApi(page: Page) {
     }
     if (path === "/api/v1/recipes/import/confirm" && method === "POST") {
       confirmPosted = request.postDataJSON() as Record<string, unknown>;
-      const title = (confirmPosted.title as string) ?? "Shawarma bowl";
       return json({ jobId, resourceId: recipeId, status: "queued" }, 202);
     }
     if (path === `/api/v1/recipes/${recipeId}` && method === "GET") {
