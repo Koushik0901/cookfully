@@ -122,9 +122,55 @@ class MacroValues:
 
 
 @dataclass(frozen=True, slots=True)
+class ProvisionalMacroRange:
+    minimum: MacroValues
+    representative: MacroValues
+    maximum: MacroValues
+
+
+def provisional_macro_range(values: list[MacroValues]) -> ProvisionalMacroRange:
+    if not values:
+        raise DomainError(
+            "missing_candidates", "At least one nutrition candidate is required.", 422
+        )
+
+    def percentile(field: NutrientField, position: str) -> Decimal | None:
+        numbers = sorted(
+            value
+            for value in (getattr(item, field) for item in values)
+            if value is not None
+        )
+        if not numbers:
+            return None
+        if position == "minimum":
+            selected = numbers[0]
+        elif position == "maximum":
+            selected = numbers[-1]
+        else:
+            middle = len(numbers) // 2
+            selected = (
+                numbers[middle]
+                if len(numbers) % 2
+                else (numbers[middle - 1] + numbers[middle]) / Decimal(2)
+            )
+        return quantize_decimal(selected, NUTRIENT_SCALE)
+
+    def macros(position: str) -> MacroValues:
+        return MacroValues(
+            percentile("calories_kcal", position),
+            percentile("protein_g", position),
+            percentile("carbohydrate_g", position),
+            percentile("fat_g", position),
+        )
+
+    return ProvisionalMacroRange(macros("minimum"), macros("representative"), macros("maximum"))
+
+
+@dataclass(frozen=True, slots=True)
 class IngredientNutrition:
     macros: MacroValues
     matched: bool
+    provisional: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,7 +206,7 @@ def rollup_per_serving(
         raise DomainError("invalid_coverage", "Coverage must be between zero and one.", 422)
 
     def nutrient(field: NutrientField) -> Decimal | None:
-        matched = [item for item in contributions if item.matched]
+        matched = [item for item in contributions if item.matched or item.provisional]
         values = [getattr(item.macros, field) for item in matched]
         if not values or any(value is None for value in values):
             return None

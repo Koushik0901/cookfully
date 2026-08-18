@@ -3,6 +3,7 @@ import type { components } from "../../app/api/generated/schema";
 export type Recipe = components["schemas"]["RecipeResponse"];
 export type RecipeDetail = components["schemas"]["RecipeDetailResponse"];
 export type RecipePage = components["schemas"]["RecipePageResponse"];
+export type BulkArchiveResponse = components["schemas"]["RecipeBulkArchiveResponse"];
 export type RecipeWrite = components["schemas"]["RecipeWriteRequest"];
 export type IngredientWrite = components["schemas"]["IngredientWriteRequest"];
 export type Job = components["schemas"]["JobResponse"];

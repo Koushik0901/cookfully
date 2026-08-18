@@ -33,6 +33,9 @@ from cookfully.api.schemas.recipes import (
     NutritionCorrectionWriteRequest,
     PermanentDeleteRequest,
     RecalculateRequest,
+    RecipeBulkArchiveRequest,
+    RecipeBulkArchiveResponse,
+    RecipeBulkArchiveResult,
     RecipeCollectionResponse,
     RecipeCollectionWriteRequest,
     RecipeDetailResponse,
@@ -244,6 +247,31 @@ def create_recipe(
 ) -> RecipeResponse:
     mutation = recipes.create(payload.to_write(), trace_id=correlation_id.get(), owner_id=owner.id)
     return RecipeResponse.from_read(queries.get(mutation.recipe.id))
+
+
+@router.post(
+    "/bulk/archive",
+    response_model=RecipeBulkArchiveResponse,
+    response_model_by_alias=True,
+)
+def bulk_archive_recipes(
+    payload: RecipeBulkArchiveRequest,
+    recipes: Annotated[RecipeService, Depends(recipe_service)],
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeBulkArchiveResponse:
+    results = recipes.bulk_archive(tuple((item.id, item.version) for item in payload.recipes))
+    return RecipeBulkArchiveResponse(
+        results=tuple(
+            RecipeBulkArchiveResult(
+                id=result.recipe_id,
+                status=result.status,
+                version=result.version,
+                code=result.code,
+                message=result.message,
+            )
+            for result in results
+        )
+    )
 
 
 @router.post(
@@ -751,6 +779,7 @@ def create_nutrition_correction(
             text_value=payload.text_value,
             reference_id_value=payload.reference_id_value,
             reason=payload.reason,
+            remember_match=payload.remember_match,
             created_by=owner.id,
         )
     except Exception:

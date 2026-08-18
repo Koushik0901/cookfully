@@ -92,6 +92,7 @@ describe("NutritionDataTab", () => {
     }));
     renderTab();
     expect(await screen.findByText(/Installing/)).toBeVisible();
+    expect(screen.getByRole("status").querySelector("svg")).toHaveClass("reference-data__spinner");
     expect(calls).toBeGreaterThanOrEqual(1);
   });
 });

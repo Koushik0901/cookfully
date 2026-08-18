@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.food_match_memories import remembered_food_reference
 from cookfully.application.food_matching import FoodMatcher
 from cookfully.application.jobs import JobService
 from cookfully.application.recipes import (
@@ -34,6 +35,7 @@ from cookfully.domain.nutrition import (
     MicronutrientContribution,
     MicronutrientKey,
     SourceMicronutrient,
+    provisional_macro_range,
     rollup_micronutrients_per_serving,
     rollup_per_serving,
 )
@@ -43,6 +45,7 @@ from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
+from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.jobs import TERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionEstimate
@@ -65,6 +68,11 @@ from cookfully.infrastructure.recipe_importer import (
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
+from cookfully.infrastructure.semantic_embeddings import (
+    HashingTextEmbedder,
+    TextEmbedder,
+    create_text_embedder,
+)
 
 
 def _section_at(
@@ -120,11 +128,13 @@ class RecipePipeline:
         session_factory: sessionmaker[Session],
         importer: RecipeImporter,
         image_service: RecipeImageService,
+        embedder: TextEmbedder | None = None,
     ) -> None:
         self._session_factory = session_factory
         self._jobs = JobService(session_factory)
         self._importer = importer
         self._image_service = image_service
+        self._embedder = embedder or HashingTextEmbedder()
 
     async def process(self, envelope: JobEnvelope) -> PipelineResult:
         if envelope.aggregate_type != "recipe" or envelope.kind not in {
@@ -373,7 +383,10 @@ class RecipePipeline:
                     "Required nutrition reference data is not active.",
                     503,
                 )
-            matcher = FoodMatcher(repository)
+            matcher = FoodMatcher(repository, embedder=self._embedder)
+            owner_id = session.scalar(
+                select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
+            )
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -381,7 +394,12 @@ class RecipePipeline:
                 if active is not None and active.status == "manual":
                     job.progress_current = position
                     continue
-                decision = matcher.decide(ingredient.food_name or "")
+                remembered = (
+                    remembered_food_reference(session, owner_id=owner_id, ingredient=ingredient)
+                    if owner_id is not None
+                    else None
+                )
+                decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
                 candidate = decision.candidate
                 density = (
                     density_for(candidate.food.description)
@@ -457,6 +475,41 @@ class RecipePipeline:
                 if match is not None and match.assumption_text:
                     assumptions.append(f"{ingredient.position}: {match.assumption_text}")
                 if not matched or grams is None:
+                    if (
+                        match is not None
+                        and match.resolution_kind == "provisional"
+                        and match.candidate_evidence
+                        and grams is not None
+                    ):
+                        candidate_macros: list[MacroValues] = []
+                        for evidence in match.candidate_evidence:
+                            raw_id = evidence.get("foodReferenceId")
+                            if not isinstance(raw_id, str):
+                                continue
+                            try:
+                                food = session.get(FoodReference, UUID(raw_id))
+                            except ValueError:
+                                continue
+                            if food is not None:
+                                candidate_macros.append(self._food_macros(food, grams))
+                        if candidate_macros:
+                            macro_range = provisional_macro_range(candidate_macros)
+                            match.provisional_macros = {
+                                "minimum": self._macro_dict(macro_range.minimum),
+                                "representative": self._macro_dict(macro_range.representative),
+                                "maximum": self._macro_dict(macro_range.maximum),
+                            }
+                            contributions.append(
+                                IngredientNutrition(
+                                    macro_range.representative,
+                                    matched=False,
+                                    provisional=True,
+                                )
+                            )
+                            assumptions.append(
+                                f"{ingredient.position}: provisional estimate from "
+                                f"{len(candidate_macros)} compatible foods; review required"
+                            )
                     job.progress_current = position
                     continue
                 assert match is not None
@@ -804,6 +857,17 @@ class RecipePipeline:
         return MacroValues(calories, protein, carbohydrates, fat)
 
     @staticmethod
+    def _macro_dict(value: MacroValues) -> dict[str, str | None]:
+        return {
+            "caloriesKcal": str(value.calories_kcal) if value.calories_kcal is not None else None,
+            "proteinG": str(value.protein_g) if value.protein_g is not None else None,
+            "carbohydrateG": (
+                str(value.carbohydrate_g) if value.carbohydrate_g is not None else None
+            ),
+            "fatG": str(value.fat_g) if value.fat_g is not None else None,
+        }
+
+    @staticmethod
     def _owner_food_macros(food: OwnerFood, grams: Decimal) -> MacroValues:
         if food.basis_grams is None or food.basis_grams == 0:
             return MacroValues(
@@ -895,4 +959,12 @@ def get_recipe_pipeline() -> RecipePipeline:
         diagnostics_enabled=settings.failed_import_diagnostics_enabled,
     )
     images = RecipeImageService(SafeFetcher(max_bytes=10 * 1024 * 1024), media_store)
-    return RecipePipeline(sessions, importer, images)
+    embedder = (
+        create_text_embedder(
+            model_name=settings.semantic_matching_model,
+            cache_dir=settings.semantic_matching_model_dir,
+        )
+        if settings.semantic_matching_backend == "fastembed"
+        else HashingTextEmbedder()
+    )
+    return RecipePipeline(sessions, importer, images, embedder)

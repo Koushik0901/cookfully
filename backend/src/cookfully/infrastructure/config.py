@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     backup_retention_days: int = 30
     cookie_secure: bool = False
     session_ttl_days: Annotated[int, Field(ge=1, le=400)] = 400
+    semantic_matching_backend: Literal["hashing", "fastembed"] = "hashing"
+    semantic_matching_model: str = "BAAI/bge-small-en-v1.5"
+    semantic_matching_model_dir: Path = Path("semantic-models")
 
     @field_validator("job_retry_delays_seconds", mode="before")
     @classmethod

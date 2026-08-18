@@ -6,10 +6,10 @@ import { ArrowLeft, ChefHat, ExternalLink, Pencil } from "lucide-react";
 
 import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
-import { RecipeNutritionOverview } from "./RecipeNutritionOverview";
 import { RecipeNutritionSummary } from "./RecipeNutritionSummary";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
@@ -131,6 +131,7 @@ export function RecipeDetailPage() {
   if (detail.isPending) return <Skeleton label="Loading recipe" lines={8} />;
   if (detail.isError || !detail.data) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
   const recipe = detail.data;
+  const nutritionStatePresentation = nutritionPresentation(recipe.nutritionState, recipe.nutrition?.status);
   const latestJob = recipe.activeJob && recipe.activeJob.id !== jobId
     ? recipe.activeJob
     : job.data ?? recoveredJob.data ?? recipe.activeJob;
@@ -154,7 +155,7 @@ export function RecipeDetailPage() {
 
   const thumbnailCrop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
   const recipeCollections = recipe.collections ?? [];
-  const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").length;
+  const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").length;
   const actionError = [recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
   const ingredientGroups = new Map<string | null, typeof recipe.ingredients>();
   for (const item of recipe.ingredients) {
@@ -205,13 +206,7 @@ export function RecipeDetailPage() {
 
        {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>{coverStatus === "failed" ? "Recipe saved, cover needs another try" : "Recipe saved"}</strong><p>{coverStatus === "attached" ? "Recipe and cover are ready in your kitchen." : coverStatus === "failed" ? "The recipe is safe. You can choose a different cover in Edit recipe." : "It is ready in your kitchen."}</p></div></section> : null}
       <RecipeProcessingBanner job={latestJob} nutritionState={recipe.nutritionState} />
-      <RecipeNutritionOverview
-        nutrition={recipe.nutrition}
-        nutritionState={recipe.nutritionState}
-        ingredientReviewCount={ingredientReviewCount}
-        reviewHref={`/app/recipes/${recipe.id}/edit#ingredient-matches`}
-      />
-      {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
+       {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
 
       <RecipeOrganizationPanel recipe={recipe} onSaved={(value) => queryClient.setQueryData(["recipe", recipeId], value)} />
 
@@ -272,10 +267,14 @@ export function RecipeDetailPage() {
 
       <details className="recipe-nutrition-drawer" id="nutrition-details">
         <summary><span><strong>Nutrition details and evidence</strong><small>Micronutrients, sources, assumptions, and processing status</small></span></summary>
+        <div className="recipe-nutrition-evidence-summary">
+          <div><span>Estimate</span><strong>{nutritionStatePresentation.label}</strong><small>{nutritionStatePresentation.description}</small></div>
+          <div><span>Ingredient coverage</span><strong>{recipe.nutrition ? `${Math.round(Number(recipe.nutrition.coverageRatio) * 100)}%` : "Not ready"}</strong><small>{recipe.nutrition ? "Quantified ingredients with supporting evidence" : "Coverage will appear when the estimate is ready"}</small></div>
+        </div>
         {ingredientReviewCount ? (
           <section className="ingredient-evidence--inline" style={{ borderTop: 0 }}>
             <div><strong>{ingredientReviewCount} nutrition match{ingredientReviewCount === 1 ? "" : "es"} could be improved</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these only if you want a more complete estimate.</small></div>
-            <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.matchStatus}</small></article>)}</div>
+             <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></article>)}</div>
             <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
           </section>
         ) : null}

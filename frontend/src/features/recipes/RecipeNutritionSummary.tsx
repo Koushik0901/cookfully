@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import type { Job, ResolvedNutrition } from "./types";
 
 const display = (value: string | null | undefined, digits: number) =>
@@ -18,33 +19,22 @@ export function RecipeNutritionSummary({
   job?: Job | null;
   editTo: string;
 }) {
-  const state = nutritionState === "stale"
-    ? "stale"
-    : nutrition?.status === "manual"
-      ? "manual"
-      : nutritionState;
-  const stateLabel = state === "stale"
-    ? "Outdated"
-    : state === "manual"
-      ? "Manual"
-      : state === "pending"
-        ? "Estimating…"
-        : state.replace("_", " ");
+  const statePresentation = nutritionPresentation(nutritionState, nutrition?.status);
   const failed = job?.status === "failed";
   const processing = job && ["pending", "running"].includes(job.status);
   const retrying = job?.status === "retry_wait";
   const coverageRatio = nutrition?.coverageRatio != null ? Number(nutrition.coverageRatio) : null;
   const coverageLabel = coverageRatio == null ? null
-    : coverageRatio >= 0.9 ? "Complete estimate"
-    : coverageRatio >= 0.7 ? "Good estimate"
-    : coverageRatio >= 0.4 ? "Partial estimate"
-    : "Limited estimate";
+    : coverageRatio >= 0.9 ? "Coverage: complete"
+    : coverageRatio >= 0.7 ? "Coverage: good"
+    : coverageRatio >= 0.4 ? "Coverage: partial"
+    : "Coverage: limited";
 
   return (
     <section className="recipe-nutrition-summary" aria-labelledby="recipe-nutrition-summary-heading">
       <div className="recipe-nutrition-summary__heading">
         <div><p className="eyebrow">Per serving</p><h2 id="recipe-nutrition-summary-heading">Nutrition</h2></div>
-        <span className={`nutrition-state nutrition-state--${state}`}>{stateLabel}</span>
+         <span className={`nutrition-state nutrition-state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
       </div>
       <dl className="recipe-nutrition-summary__metrics">
         <div><dt>Calories</dt><dd>{display(nutrition?.caloriesKcal, 0)} <small>kcal</small></dd></div>

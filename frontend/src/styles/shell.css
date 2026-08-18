@@ -19,17 +19,6 @@
   background: var(--color-herb-850);
 }
 
-.planner-nav::after {
-  position: absolute;
-  right: 0;
-  bottom: 12%;
-  width: 1px;
-  height: 28%;
-  background: linear-gradient(to bottom, transparent, var(--color-accent), transparent);
-  content: "";
-  opacity: 0.7;
-}
-
 .planner-nav__brand {
   display: flex;
   align-items: center;

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -84,6 +84,9 @@ class IngredientRead:
     optional: bool
     parse_status: str
     match_status: str | None
+    resolution_kind: str | None
+    candidate_evidence: tuple[dict[str, Any], ...]
+    provisional_macros: dict[str, Any] | None
     assumptions: tuple[str, ...]
     section_id: UUID | None = None
 
@@ -439,6 +442,9 @@ class RecipeQueryService:
             value.optional,
             value.parse_status,
             match.status if match is not None else None,
+            match.resolution_kind if match is not None else None,
+            tuple(match.candidate_evidence or ()) if match is not None else (),
+            match.provisional_macros if match is not None else None,
             assumptions,
             value.section_id,
         )

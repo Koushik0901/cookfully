@@ -36,6 +36,10 @@ export interface FoodCandidate {
   brandOwner: string | null;
   servingSizeG: string | null;
   servingUnit: string | null;
+  score?: string | null;
+  semanticSimilarity?: string | null;
+  compatibility?: "compatible" | "review" | "contradictory" | null;
+  reasons?: string[];
 }
 
 export interface FoodSearchResponse {

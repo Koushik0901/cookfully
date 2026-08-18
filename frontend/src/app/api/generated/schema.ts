@@ -266,6 +266,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipes/bulk/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Archive Recipes */
+        post: operations["bulkArchiveRecipes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recipes/import": {
         parameters: {
             query?: never;
@@ -1098,6 +1115,17 @@ export interface components {
             servingSizeG: string | null;
             /** Servingunit */
             servingUnit: string | null;
+            /** Score */
+            score?: string | null;
+            /** Semanticsimilarity */
+            semanticSimilarity?: string | null;
+            /** Compatibility */
+            compatibility?: string | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
         };
         /** FoodSearchResponse */
         FoodSearchResponse: {
@@ -1421,6 +1449,19 @@ export interface components {
             parseStatus: string;
             /** Matchstatus */
             matchStatus?: string | null;
+            /** Resolutionkind */
+            resolutionKind?: string | null;
+            /**
+             * Candidateevidence
+             * @default []
+             */
+            candidateEvidence: {
+                [key: string]: unknown;
+            }[];
+            /** Provisionalmacros */
+            provisionalMacros?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Assumptions
              * @default []
@@ -1738,6 +1779,11 @@ export interface components {
             referenceIdValue?: string | null;
             /** Reason */
             reason?: string | null;
+            /**
+             * Remembermatch
+             * @default true
+             */
+            rememberMatch: boolean;
         };
         /** NutritionSnapshotResponse */
         NutritionSnapshotResponse: {
@@ -2020,6 +2066,45 @@ export interface components {
              * @default false
              */
             resetCorrections: boolean;
+        };
+        /** RecipeBulkArchiveItem */
+        RecipeBulkArchiveItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Version */
+            version: number;
+        };
+        /** RecipeBulkArchiveRequest */
+        RecipeBulkArchiveRequest: {
+            /** Recipes */
+            recipes: components["schemas"]["RecipeBulkArchiveItem"][];
+        };
+        /** RecipeBulkArchiveResponse */
+        RecipeBulkArchiveResponse: {
+            /** Results */
+            results: components["schemas"]["RecipeBulkArchiveResult"][];
+        };
+        /** RecipeBulkArchiveResult */
+        RecipeBulkArchiveResult: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "archived" | "already_archived" | "failed";
+            /** Version */
+            version?: number | null;
+            /** Code */
+            code?: string | null;
+            /** Message */
+            message?: string | null;
         };
         /** RecipeCollectionResponse */
         RecipeCollectionResponse: {
@@ -3254,6 +3339,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecipeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulkArchiveRecipes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeBulkArchiveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeBulkArchiveResponse"];
                 };
             };
             /** @description Validation Error */

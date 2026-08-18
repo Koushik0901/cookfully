@@ -260,14 +260,21 @@ class ReferenceDataInstallService:
                 is not None
             )
 
-    def status(self) -> tuple[dict[str, object], JobProgress | None]:
+    def status(
+        self, owner_id: UUID
+    ) -> tuple[dict[str, object], JobProgress | None, tuple[str, ...] | None]:
         releases = release_status()
         with self._session_factory() as session:
-            latest = session.scalar(
-                select(ProcessingJob)
-                .where(ProcessingJob.kind == INSTALL_JOB_KIND)
-                .order_by(ProcessingJob.accepted_at.desc())
+            latest_install = session.scalar(
+                select(ReferenceDataInstall)
+                .where(ReferenceDataInstall.owner_id == owner_id)
+                .order_by(ReferenceDataInstall.created_at.desc())
                 .limit(1)
             )
-        progress = self._jobs.progress(latest.id) if latest is not None else None
-        return releases, progress
+        progress = (
+            self._jobs.progress(latest_install.job_id)
+            if latest_install is not None and latest_install.job_id is not None
+            else None
+        )
+        requested = tuple(latest_install.datasets) if latest_install is not None else None
+        return releases, progress, requested

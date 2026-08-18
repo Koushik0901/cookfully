@@ -130,7 +130,7 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await plannedEntry.getByLabel("Protein oats servings").fill("2.000");
   await plannedEntry.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("1,003 kcal")).toBeVisible();
-  await plannedEntry.getByRole("button", { name: "Next day" }).click();
+  await plannedEntry.getByRole("button", { name: "Copy to next day" }).click();
   await ensureAdjustmentsOpen();
   await plannedEntry.getByLabel("Protein oats meal slot").selectOption("lunch");
   await plannedEntry.getByRole("button", { name: "Save changes" }).click();

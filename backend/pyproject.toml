@@ -37,6 +37,7 @@ nutrition = [
   "recipe-scrapers>=15,<16",
 ]
 suggestions = ["ortools>=9.15,<9.16"]
+semantic = ["fastembed>=0.7,<1"]
 mcp = ["mcp>=2,<3"]
 
 [dependency-groups]

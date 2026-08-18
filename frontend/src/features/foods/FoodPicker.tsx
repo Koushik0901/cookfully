@@ -22,6 +22,7 @@ export function FoodPicker({
   onSelected,
 }: FoodPickerProps) {
   const [open, setOpen] = useState(false);
+  const [rememberMatch, setRememberMatch] = useState(true);
 
   const candidates = useQuery({
     queryKey: ["ingredient-candidates", recipeId, ingredientId],
@@ -31,7 +32,7 @@ export function FoodPicker({
   });
   const selectFood = useMutation({
     mutationFn: (candidate: FoodCandidate) =>
-      foodsApi.selectIngredientFood(recipeId, ingredientId, candidate.id),
+      foodsApi.selectIngredientFood(recipeId, ingredientId, candidate.id, rememberMatch),
     onSuccess: () => {
       onSelected();
       setOpen(false);
@@ -75,6 +76,19 @@ export function FoodPicker({
             </ul>
           )}
 
+          {candidates.data && candidates.data.candidates.some((candidate) => candidate.compatibility === "review") ? (
+            <p className="muted">Some results are compatible estimates and still need your review.</p>
+          ) : null}
+
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={rememberMatch}
+              onChange={(event) => setRememberMatch(event.target.checked)}
+            />
+            Remember this choice for similar ingredients
+          </label>
+
           {selectFood.error instanceof Error ? (
             <p className="error-text" role="alert">{selectFood.error.message}</p>
           ) : null}
@@ -116,6 +130,7 @@ function FoodRow({ candidate }: { candidate: FoodCandidate }) {
       <span className="food-candidate-meta">
         <span className="food-candidate-source">{source}</span>
         {serving && <span className="muted">{serving}</span>}
+        {candidate.compatibility === "review" && <span className="muted">Review required</span>}
       </span>
     </span>
   );

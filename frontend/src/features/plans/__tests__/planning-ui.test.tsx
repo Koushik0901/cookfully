@@ -147,7 +147,7 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("region", { name: "Monday budget" })).toBeVisible();
     expect(screen.getByText("752 / 2200.000000 kcal")).toBeVisible();
     expect(screen.getByText("60.1 / 180.000000 g")).toBeVisible();
-    expect(screen.getByText(/nutrition estimate supported/i)).toBeVisible();
+    expect(screen.getByText(/ready/i)).toBeVisible();
     expect(screen.getByText("119.9 g remaining")).toBeVisible();
     expect(screen.getAllByRole("progressbar")).toHaveLength(4);
     await user.click(screen.getByText("Micronutrient planning view"));
@@ -194,7 +194,7 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("tab", { name: /monday.*march 9/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: "Breakfast" })).toBeVisible();
     expect(await screen.findByRole("heading", { name: "Protein oats" })).toBeVisible();
-    expect(screen.getAllByText("Nutrition estimate supported").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
 
     await user.click(screen.getByText("Adjust meal", { selector: "summary" }));
     await user.clear(screen.getByLabelText("Protein oats servings"));
@@ -206,9 +206,26 @@ describe("goal and weekly planning UI", () => {
       expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ servings: "2.000" });
     });
     await user.click(screen.getByRole("button", { name: "Refresh nutrition" }));
-    await user.click(screen.getByRole("button", { name: "Next day" }));
+    await user.click(screen.getByRole("button", { name: "Copy to next day" }));
     await user.click(screen.getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
+  });
+
+  it("offers one day-level suggestion action for open meal slots", async () => {
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: /week of march 9/i });
+    expect(screen.getByRole("tab", { name: "Week" })).toHaveAttribute("aria-controls", "planner-panel-week");
+    await user.click(screen.getByRole("tab", { name: "Day" }));
+
+    expect(screen.queryAllByRole("link", { name: /find an idea/i })).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Suggest meals for open spots" })).toHaveAttribute(
+      "href",
+      "/app/suggestions?scope=day&localDate=2026-03-11",
+    );
+    expect(screen.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-controls", "planner-panel-day");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "planner-panel-day");
   });
 
   it("lets someone plan meals before creating a nutrition guide", async () => {

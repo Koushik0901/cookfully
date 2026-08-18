@@ -68,6 +68,7 @@ def test_recipe_and_job_openapi_surface(isolated_database_url: str, tmp_path: Pa
         assert schema["info"]["version"] == "0.2.0"
         paths = schema["paths"]
         assert "/api/v1/recipes/{recipeId}" in paths
+        assert "/api/v1/recipes/bulk/archive" in paths
         assert "/api/v1/recipes/{recipeId}/nutrition/corrections/{correctionId}" in paths
         assert "/api/v1/jobs/{jobId}" in paths
         current = paths["/api/v1/jobs/current"]["get"]
@@ -260,6 +261,61 @@ def test_archive_restore_and_confirmed_permanent_delete_contract(
         )
         assert deleted_replay.status_code == 204
         assert client.get(f"/api/v1/recipes/{recipe_id}").status_code == 404
+
+
+def test_bulk_archive_returns_independent_version_guarded_outcomes(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        first = client.post("/api/v1/recipes", json=recipe_payload("First recipe"), headers=headers)
+        second = client.post(
+            "/api/v1/recipes", json=recipe_payload("Second recipe"), headers=headers
+        )
+        assert first.status_code == 201 and second.status_code == 201
+        first_id = first.json()["id"]
+        second_id = second.json()["id"]
+
+        updated = client.patch(
+            f"/api/v1/recipes/{second_id}",
+            json=recipe_payload("Second recipe updated"),
+            headers={**headers, "If-Match": '"1"'},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["version"] == 2
+
+        response = client.post(
+            "/api/v1/recipes/bulk/archive",
+            json={"recipes": [{"id": first_id, "version": 1}, {"id": second_id, "version": 1}]},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["results"][0] == {
+            "id": first_id,
+            "status": "archived",
+            "version": 2,
+            "code": None,
+            "message": None,
+        }
+        assert response.json()["results"][1]["id"] == second_id
+        assert response.json()["results"][1]["status"] == "failed"
+        assert response.json()["results"][1]["code"] == "stale_version"
+
+        replay = client.post(
+            "/api/v1/recipes/bulk/archive",
+            json={"recipes": [{"id": first_id, "version": 2}]},
+            headers=headers,
+        )
+        assert replay.status_code == 200
+        assert replay.json()["results"] == [
+            {
+                "id": first_id,
+                "status": "already_archived",
+                "version": 2,
+                "code": None,
+                "message": None,
+            }
+        ]
 
 
 def _png_bytes() -> bytes:

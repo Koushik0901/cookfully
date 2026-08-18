@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Archive, Check, Heart, MoreVertical, Pencil, RotateCcw, Trash2 } from "lucide-react";
 
 import { ConfirmDialog, PollingStatusBadge } from "../../components";
+import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import {
   DropdownMenu,
@@ -12,19 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { Checkbox } from "../../components/ui/checkbox";
 import { recipesApi } from "./api";
 import { servingLabel } from "./formatCooking";
 import type { Recipe } from "./types";
 
-const STATE_LABELS: Record<string, string> = {
-  stale: "Outdated",
-  pending: "Estimating…",
-  failed: "Unavailable",
-  manual: "Manual",
-  partial: "Partial estimate",
-  estimated: "Estimated",
-  source_provided: "Source provided",
-};
 const ORIGIN_LABELS = { manual: "Cookfully", web_import: "Web import", cookbook_import: "Cookbook" } as const;
 const EMPTY_COLLECTIONS: Recipe["collections"] = [];
 
@@ -34,12 +27,18 @@ export function RecipeCard({
   onRestore,
   onDelete,
   actionPending = false,
+  selectionMode = false,
+  selected = false,
+  onSelectedChange,
 }: {
   recipe: Recipe;
   onArchive: (id: string, version: number) => void;
   onRestore: (id: string, version: number) => void;
   onDelete: (id: string, version: number) => void;
   actionPending?: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectedChange?: (selected: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const recipeCollections = recipe.collections ?? EMPTY_COLLECTIONS;
@@ -55,7 +54,7 @@ export function RecipeCard({
   const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
     ? recipe.nutritionState
     : nutrition?.status === "manual" ? "manual" : recipe.nutritionState;
-  const stateLabel = STATE_LABELS[displayedNutritionState] ?? displayedNutritionState.replace("_", " ");
+  const statePresentation = nutritionPresentation(displayedNutritionState, nutrition?.status);
   const collections = useQuery({ queryKey: ["recipe-collections"], queryFn: recipesApi.collections, retry: 1 });
   const organize = useMutation({
     mutationFn: (value: { favorite: boolean; collectionIds: string[] }) =>
@@ -88,9 +87,32 @@ export function RecipeCard({
       ? "—"
       : new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(Number(value));
   return (
-    <article className="recipe-card">
-      <Link className="recipe-card__media" to={`/app/recipes/${recipe.id}`} aria-label={`Open ${recipe.title}`}>
-        {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
+    <article className={`recipe-card${selectionMode ? " recipe-card--selection-mode" : ""}`}>
+      {selectionMode ? <Checkbox className="recipe-card__selection" checked={selected} aria-label={`Select ${recipe.title}`} onCheckedChange={(checked) => onSelectedChange?.(checked === true)} /> : null}
+      <Link className="recipe-card__primary" to={`/app/recipes/${recipe.id}`} aria-label={recipe.title}>
+        <div className="recipe-card__media">
+          {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
+        </div>
+        <div className="recipe-card__body">
+          <div className="recipe-card__heading">
+            <h2>{recipe.title}</h2>
+            {recipe.status === "processing" ? <PollingStatusBadge status="running" /> : null}
+          </div>
+          <p className="recipe-card__yield data-value">
+            Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}
+            {" · "}
+             <span className={`recipe-card__state recipe-card__state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
+          </p>
+          <div className="recipe-card__context"><span className="recipe-card__origin">{ORIGIN_LABELS[recipe.originKind] ?? "Recipe"}</span>{recipeCollections.map((collection) => <span className="recipe-card__collection" key={collection.id}>{collection.name}</span>)}</div>
+          {nutrition ? (
+            <dl className="recipe-card__nutrition" aria-label={`${recipe.title} nutrition`}>
+              <div><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)} kcal</dd></div>
+              <div className="recipe-card__protein"><dt>Protein</dt><dd>{displayNumber(nutrition.proteinG, 1)} g</dd></div>
+              <div className="recipe-card__carb"><dt>Carbs</dt><dd>{displayNumber(nutrition.carbohydrateG, 1)} g</dd></div>
+              <div className="recipe-card__fat"><dt>Fat</dt><dd>{displayNumber(nutrition.fatG, 1)} g</dd></div>
+            </dl>
+          ) : <p className="muted">Nutrition estimate in progress.</p>}
+        </div>
       </Link>
       <button type="button" className={`recipe-card__favorite-toggle${favorite ? " is-favorite" : ""}`} aria-label={`${favorite ? "Remove" : "Add"} ${recipe.title} ${favorite ? "from" : "to"} favorites`} aria-pressed={favorite} onClick={toggleFavorite} disabled={organize.isPending}>
         <Heart aria-hidden="true" />
@@ -129,26 +151,6 @@ export function RecipeCard({
         confirmLabel="Delete permanently"
         onConfirm={() => { setConfirmDelete(false); onDelete(recipe.id, recipe.version); }}
       />
-      <div className="recipe-card__body">
-        <div className="recipe-card__heading">
-          <h2><Link to={`/app/recipes/${recipe.id}`}>{recipe.title}</Link></h2>
-          {recipe.status === "processing" ? <PollingStatusBadge status="running" /> : null}
-        </div>
-        <p className="recipe-card__yield data-value">
-          Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}
-          {" · "}
-          <span className={`recipe-card__state recipe-card__state--${displayedNutritionState}`}>{stateLabel}</span>
-        </p>
-        <div className="recipe-card__context"><span className="recipe-card__origin">{ORIGIN_LABELS[recipe.originKind] ?? "Recipe"}</span>{recipeCollections.map((collection) => <span className="recipe-card__collection" key={collection.id}>{collection.name}</span>)}</div>
-        {nutrition ? (
-          <dl className="recipe-card__nutrition" aria-label={`${recipe.title} nutrition`}>
-            <div><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)} kcal</dd></div>
-            <div className="recipe-card__protein"><dt>Protein</dt><dd>{displayNumber(nutrition.proteinG, 1)} g</dd></div>
-            <div className="recipe-card__carb"><dt>Carbs</dt><dd>{displayNumber(nutrition.carbohydrateG, 1)} g</dd></div>
-            <div className="recipe-card__fat"><dt>Fat</dt><dd>{displayNumber(nutrition.fatG, 1)} g</dd></div>
-          </dl>
-        ) : <p className="muted">Nutrition estimate in progress.</p>}
-      </div>
     </article>
   );
 }

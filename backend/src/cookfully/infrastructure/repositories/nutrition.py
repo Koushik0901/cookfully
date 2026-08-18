@@ -76,6 +76,16 @@ class NutritionRepository:
             )
         )
 
+    def list_active_foods(self) -> list[FoodReference]:
+        return list(
+            self.session.scalars(
+                select(FoodReference)
+                .join(FoodReference.dataset)
+                .where(ReferenceDataset.status == "active")
+                .options(selectinload(FoodReference.dataset))
+            )
+        )
+
     def active_match(self, ingredient_id: UUID) -> IngredientMatch | None:
         return self.session.scalar(
             select(IngredientMatch).where(

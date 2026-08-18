@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.food_match_memories import remember_food_reference
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     SERVING_SCALE,
@@ -61,6 +62,7 @@ class CorrectionService:
         text_value: str | None = None,
         reference_id_value: UUID | None = None,
         reason: str | None = None,
+        remember_match: bool = True,
     ) -> NutritionCorrection:
         typed_count = sum(
             value is not None for value in (decimal_value, text_value, reference_id_value)
@@ -161,6 +163,13 @@ class CorrectionService:
                         active=True,
                     )
                 )
+                if remember_match:
+                    remember_food_reference(
+                        session,
+                        owner_id=created_by,
+                        ingredient=ingredient,
+                        food=food,
+                    )
             recipe.version += 1
             return correction
 

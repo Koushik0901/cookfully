@@ -50,7 +50,7 @@ export function NutritionDataTab() {
   const requested = new Set(status.data?.requestedDatasets ?? []);
 
   return (
-    <section className="settings-section" aria-labelledby="nutrition-data-title">
+    <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">
       <h2 id="nutrition-data-title">Nutrition reference data</h2>
       <p>
         USDA FoodData Central powers ingredient matching. Without it, nutrition estimates cannot
@@ -60,7 +60,7 @@ export function NutritionDataTab() {
       {working && job ? (
         <div className="token-card" role="status">
           <h3>
-            <LoaderCircle aria-hidden="true" /> Installing USDA data… {progress}%
+            <LoaderCircle className="reference-data__spinner" aria-hidden="true" /> Installing USDA data… {progress}%
           </h3>
           <progress aria-label="USDA data install progress" max={100} value={progress}>
             {progress}%
@@ -99,6 +99,7 @@ export function NutritionDataTab() {
               </div>
               <Button
                 variant="secondary"
+                className="reference-data__install-button"
                 onClick={() => install.mutate(datasets)}
                 disabled={Boolean(active) || working || install.isPending}
               >

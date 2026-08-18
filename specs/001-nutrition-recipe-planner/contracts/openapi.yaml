@@ -280,6 +280,26 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /recipes/bulk/archive:
+    post:
+      tags: [Recipes]
+      operationId: bulkArchiveRecipes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipeBulkArchiveRequest"
+      responses:
+        "200":
+          description: Independent archive outcomes for each requested recipe.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeBulkArchiveResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -1590,6 +1610,10 @@ components:
         brandOwner: { type: string }
         servingSizeG: { type: string }
         servingUnit: { type: string }
+        score: { type: [string, "null"] }
+        semanticSimilarity: { type: [string, "null"] }
+        compatibility: { type: [string, "null"], enum: [compatible, review, contradictory, null] }
+        reasons: { type: array, items: { type: string } }
     OwnerFoodResponse:
       type: object
       required:
@@ -1835,6 +1859,9 @@ components:
             position: { type: integer, minimum: 0 }
             parseStatus: { type: string, enum: [unparsed, parsed, low_confidence, manual, failed] }
             matchStatus: { type: string, enum: [candidate, matched, ambiguous, unmatched, manual] }
+            resolutionKind: { type: [string, "null"], enum: [confirmed, provisional, unresolved, null] }
+            candidateEvidence: { type: array, items: { type: object } }
+            provisionalMacros: { type: [object, "null"] }
             assumptions: { type: array, items: { type: string } }
             sectionId: { type: [string, "null"], format: uuid }
     SectionWrite:
@@ -1971,6 +1998,39 @@ components:
       properties:
         items: { type: array, items: { $ref: "#/components/schemas/Recipe" } }
         nextCursor: { type: [string, "null"] }
+    RecipeBulkArchiveItem:
+      type: object
+      additionalProperties: false
+      required: [id, version]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer, minimum: 1 }
+    RecipeBulkArchiveRequest:
+      type: object
+      additionalProperties: false
+      required: [recipes]
+      properties:
+        recipes:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: "#/components/schemas/RecipeBulkArchiveItem" }
+    RecipeBulkArchiveResult:
+      type: object
+      required: [id, status, version, code, message]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [archived, already_archived, failed] }
+        version: { type: [integer, "null"], minimum: 1 }
+        code: { type: [string, "null"] }
+        message: { type: [string, "null"] }
+    RecipeBulkArchiveResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeBulkArchiveResult" }
     NutritionCorrectionWrite:
       type: object
       additionalProperties: false
@@ -1984,6 +2044,7 @@ components:
         textValue: { type: [string, "null"], maxLength: 500 }
         referenceIdValue: { type: [string, "null"], format: uuid }
         reason: { type: [string, "null"], maxLength: 1000 }
+        rememberMatch: { type: boolean, default: true }
     NutritionCorrection:
       allOf:
         - $ref: "#/components/schemas/NutritionCorrectionWrite"

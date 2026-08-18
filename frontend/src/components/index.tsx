@@ -128,7 +128,7 @@ export function EmptyState({ title, description, action, motif = true, headingLe
   );
 }
 
-export function ErrorRecovery({ title, description = "Try again. If the problem continues, check service health.", actionLabel = "Try again", onRetry }: { title: string; description?: string; actionLabel?: string; onRetry: () => void }) {
+export function ErrorRecovery({ title, description = "Try again. If it keeps happening, your recipes are safe.", actionLabel = "Try again", onRetry }: { title: string; description?: string; actionLabel?: string; onRetry: () => void }) {
   return <section className="error-recovery" role="alert"><KitchenCompanion moment="error" size="sm" className="error-recovery__companion" /><div className="error-recovery__copy"><h2>{title}</h2><p>{description}</p></div><Button onClick={onRetry}>{actionLabel}</Button></section>;
 }
 

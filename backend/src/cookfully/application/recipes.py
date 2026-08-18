@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import update
@@ -162,6 +163,15 @@ class RecipeMutation:
     recipe: Recipe
     job: ProcessingJob | None
     cover_status: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class BulkArchiveResult:
+    recipe_id: UUID
+    status: Literal["archived", "already_archived", "failed"]
+    version: int | None = None
+    code: str | None = None
+    message: str | None = None
 
 
 def recipe_input_hash(recipe_id: UUID, write: RecipeWrite) -> str:
@@ -347,26 +357,73 @@ class RecipeService:
 
     def archive(self, recipe_id: UUID, *, expected_version: int) -> Recipe:
         with self._session_factory.begin() as session:
-            recipe = RecipeRepository(session).get(recipe_id, for_update=True)
-            require_version(expected_version, recipe.version)
-            if recipe.status not in {"draft", "processing", "ready", "partial", "failed"}:
-                raise DomainError(
-                    "invalid_archive_state", "This recipe cannot be archived now.", 409
-                )
-            prior_status = recipe.status
-            if prior_status == "processing":
-                if recipe.nutrition_state == "partial":
-                    prior_status = "partial"
-                elif recipe.active_estimate_id is not None:
-                    prior_status = "ready"
-                else:
-                    prior_status = "draft"
-            recipe.archived_from_status = prior_status
-            recipe.status = "archived"
-            recipe.archived_at = utc_now()
-            recipe.version += 1
-            self._supersede_jobs(session, recipe.id)
+            recipe, _ = self._archive_in_session(
+                session, recipe_id, expected_version, allow_already_archived=False
+            )
             return recipe
+
+    def bulk_archive(
+        self, items: Sequence[tuple[UUID, int]]
+    ) -> tuple[BulkArchiveResult, ...]:
+        results: list[BulkArchiveResult] = []
+        for recipe_id, expected_version in items:
+            try:
+                with self._session_factory.begin() as session:
+                    recipe, already_archived = self._archive_in_session(
+                        session, recipe_id, expected_version, allow_already_archived=True
+                    )
+                    results.append(
+                        BulkArchiveResult(
+                            recipe_id=recipe_id,
+                            status="already_archived" if already_archived else "archived",
+                            version=recipe.version,
+                        )
+                    )
+            except DomainError as error:
+                results.append(
+                    BulkArchiveResult(
+                        recipe_id=recipe_id,
+                        status="failed",
+                        code=error.code,
+                        message=error.safe_message,
+                    )
+                )
+        return tuple(results)
+
+    def _archive_in_session(
+        self,
+        session: Session,
+        recipe_id: UUID,
+        expected_version: int,
+        *,
+        allow_already_archived: bool,
+    ) -> tuple[Recipe, bool]:
+        recipe = RecipeRepository(session).get(recipe_id, for_update=True)
+        require_version(expected_version, recipe.version)
+        if recipe.status == "archived":
+            if allow_already_archived:
+                return recipe, True
+            raise DomainError(
+                "invalid_archive_state", "This recipe cannot be archived now.", 409
+            )
+        if recipe.status not in {"draft", "processing", "ready", "partial", "failed"}:
+            raise DomainError(
+                "invalid_archive_state", "This recipe cannot be archived now.", 409
+            )
+        prior_status = recipe.status
+        if prior_status == "processing":
+            if recipe.nutrition_state == "partial":
+                prior_status = "partial"
+            elif recipe.active_estimate_id is not None:
+                prior_status = "ready"
+            else:
+                prior_status = "draft"
+        recipe.archived_from_status = prior_status
+        recipe.status = "archived"
+        recipe.archived_at = utc_now()
+        recipe.version += 1
+        self._supersede_jobs(session, recipe.id)
+        return recipe, False
 
     def restore(self, recipe_id: UUID, *, expected_version: int) -> Recipe:
         with self._session_factory.begin() as session:

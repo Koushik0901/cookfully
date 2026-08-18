@@ -57,15 +57,40 @@ def normalize_food_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", normalized.casefold()).strip()
 
 
-def load_usda_archive(path: Path) -> list[dict[str, Any]]:
+def load_usda_archive(path: Path, *, dataset_type: str | None = None) -> list[dict[str, Any]]:
     if path.suffix.casefold() == ".zip":
         with zipfile.ZipFile(path) as archive:
             names = [name for name in archive.namelist() if name.casefold().endswith(".json")]
-            if len(names) != 1:
+            if dataset_type is not None and len(names) > 1:
+                required_tokens = {
+                    "foundation": ("foundation",),
+                    "sr_legacy": ("sr", "legacy"),
+                    "branded_food": ("branded",),
+                }.get(dataset_type)
+                matches = (
+                    [
+                        name
+                        for name in names
+                        if required_tokens is not None
+                        and all(token in name.casefold() for token in required_tokens)
+                    ]
+                    if required_tokens is not None
+                    else []
+                )
+                if len(matches) == 1:
+                    raw = json.loads(archive.read(matches[0]))
+                else:
+                    raise DomainError(
+                        "dataset_archive_invalid",
+                        f"USDA archive does not contain one JSON file for {dataset_type}.",
+                        422,
+                    )
+            elif len(names) == 1:
+                raw = json.loads(archive.read(names[0]))
+            else:
                 raise DomainError(
                     "dataset_archive_invalid", "USDA archive must contain one JSON file.", 422
                 )
-            raw = json.loads(archive.read(names[0]))
     else:
         raw = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(raw, list):
@@ -91,7 +116,7 @@ def import_release(
             f"Dataset must be one of {', '.join(sorted(ALLOWED_TYPES))}.",
             422,
         )
-    rows = load_usda_archive(path)
+    rows = load_usda_archive(path, dataset_type=dataset_type)
     engine = create_database_engine(get_settings())
     sessions = create_session_factory(engine)
     try:

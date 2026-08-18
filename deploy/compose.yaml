@@ -51,6 +51,7 @@ services:
       COOKFULLY_COOKIE_SECURE: ${COOKFULLY_COOKIE_SECURE:-false}
       COOKFULLY_SESSION_TTL_DAYS: ${COOKFULLY_SESSION_TTL_DAYS:-400}
       COOKFULLY_MEDIA_ROOT: /data/media
+      COOKFULLY_SEMANTIC_MATCHING_MODEL_DIR: /data/semantic-models
       COOKFULLY_EXPORT_ROOT: /data/exports
       COOKFULLY_ERASURE_LEDGER_ROOT: /data/erasure-ledger
       COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
@@ -64,6 +65,7 @@ services:
         condition: service_healthy
     volumes:
       - media-data:/data/media
+      - semantic-model-data:/data/semantic-models
       - export-data:/data/exports
       - erasure-ledger-data:/data/erasure-ledger
     healthcheck:
@@ -87,6 +89,7 @@ services:
         condition: service_healthy
     volumes:
       - media-data:/data/media
+      - semantic-model-data:/data/semantic-models
       - export-data:/data/exports
       - erasure-ledger-data:/data/erasure-ledger
     restart: unless-stopped
@@ -148,5 +151,6 @@ volumes:
   postgres-data:
   redis-data:
   media-data:
+  semantic-model-data:
   export-data:
   erasure-ledger-data:

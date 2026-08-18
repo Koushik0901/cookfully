@@ -73,7 +73,7 @@ test("polling announcements and destructive confirmation preserve screen-reader 
   await page.getByText("Nutrition details and evidence").click();
   const status = page.getByLabel("Nutrition processing status").getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
-  await expect(status).toHaveText("running");
+  await expect(status).toHaveText("Working…");
   await expect(page.locator("nav:visible").first()).toBeVisible();
   await expect(page.getByRole("main").first()).toBeVisible();
   await expect(page.getByLabel("Nutrition field")).toHaveCount(0);

@@ -10,6 +10,7 @@ import {
   LogOut,
   PackageOpen,
   ShoppingBasket,
+  Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ import { useSignOut } from "../features/settings/useSignOut";
 import { AppProviders, RequireAuthentication } from "./providers";
 
 const CookModePage = lazy(() => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage })));
+const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
 const GoalSettingsPage = lazy(() => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage })));
 const GroceryListPage = lazy(() => import("../features/grocery/GroceryListPage").then((module) => ({ default: module.GroceryListPage })));
 const OwnerFoodsPage = lazy(() => import("../features/foods/OwnerFoodsPage").then((module) => ({ default: module.OwnerFoodsPage })));
@@ -55,6 +57,7 @@ const PRIMARY_NAVIGATION = [
 ] as const;
 
 const SECONDARY_NAVIGATION = [
+  { to: "/app/suggestions", label: "Ideas", Icon: Sparkles },
   { to: "/app/foods", label: "Foods", Icon: Carrot },
   { to: "/app/goals", label: "Goals", Icon: ListChecks },
 ] as const;
@@ -244,8 +247,9 @@ function PlannerShell() {
             <Route path="goals" element={<GoalSettingsPage />} />
             <Route path="grocery" element={<GroceryListPage />} />
             <Route path="pantry" element={<PantryPage />} />
-            <Route path="foods" element={<OwnerFoodsPage />} />
-              <Route path="suggestions" element={<SuggestionPage />} />
+             <Route path="foods" element={<OwnerFoodsPage />} />
+             <Route path="agent-access" element={<AgentAccessPage />} />
+             <Route path="suggestions" element={<SuggestionPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
           </Routes>

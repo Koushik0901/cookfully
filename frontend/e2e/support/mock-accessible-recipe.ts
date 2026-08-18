@@ -43,7 +43,7 @@ export function accessibleRecipe() {
       matchStatus: "matched",
       assumptions: [],
     }],
-    instructions: ["Cook and portion."],
+    instructions: [{ position: 0, text: "Cook and portion." }],
     activeJob: {
       id: "00000000-0000-4000-8000-000000000083",
       kind: "nutrition_match",

@@ -70,6 +70,7 @@ const recipe: RecipeDetail = {
       optional: false,
       parseStatus: "parsed",
       matchStatus: "matched",
+      candidateEvidence: [],
       assumptions: [],
     },
   ],
@@ -144,7 +145,7 @@ describe("recipe UI", () => {
     expect(screen.getByText("512 kcal")).toBeVisible();
     expect(screen.getByText("31.1 g")).toBeVisible();
     expect(document.querySelector('[data-fallback-kind="breakfast"]')).toHaveAttribute("src", "/media/recipe-fallbacks/breakfast.jpg");
-    expect(screen.getByText("Estimated", { selector: ".recipe-card__state" })).toBeVisible();
+    expect(screen.getByText("Ready", { selector: ".recipe-card__state" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add Exact oats to favorites" })).toBeVisible();
   });
 
@@ -248,7 +249,7 @@ describe("recipe UI", () => {
 
   it("keeps stale lifecycle warnings ahead of manual provenance on recipe cards", () => {
     renderCard({ ...recipe, nutritionState: "stale", nutrition: { ...recipe.nutrition!, status: "manual" } } as Recipe);
-    expect(screen.getByText("Outdated", { selector: ".recipe-card__state" })).toBeVisible();
+    expect(screen.getByText("Needs review", { selector: ".recipe-card__state" })).toBeVisible();
   });
 
   it("attributes an imported recipe to its source with a prominent new-tab link", async () => {
@@ -293,9 +294,10 @@ describe("recipe UI", () => {
     renderRoute(<RecipeDetailPage />);
     expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
     expect(screen.getByText("1.25 cups rolled oats")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Nutrition at a glance" })).toBeVisible();
-    expect(screen.getByText("Ingredient coverage")).toBeVisible();
-    expect(screen.getByText("88%")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Nutrition" })).toBeVisible();
+    expect(document.querySelectorAll(".recipe-nutrition-summary dt")).toHaveLength(4);
+    expect(document.querySelector(".recipe-nutrition-overview")).not.toBeInTheDocument();
+    expect(screen.getByText("Nutrition details and evidence")).toBeVisible();
     expect(screen.queryByLabelText("Nutrition field")).not.toBeInTheDocument();
     await userEvent.click(screen.getByText("Nutrition details and evidence"));
     expect(screen.getByText(/planning aid, not medical advice/i)).toBeVisible();

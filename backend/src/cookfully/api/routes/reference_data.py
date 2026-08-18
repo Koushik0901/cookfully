@@ -34,9 +34,9 @@ def idempotency_service(request: Request) -> IdempotencyService:
 @router.get("/status", response_model=ReferenceDataStatusResponse, response_model_by_alias=True)
 def get_reference_data_status(
     service: Annotated[ReferenceDataInstallService, Depends(reference_data_service)],
-    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> ReferenceDataStatusResponse:
-    releases, progress = service.status()
+    releases, progress, requested = service.status(owner.id)
     return ReferenceDataStatusResponse(
         available=bool(releases["available"]),
         missing=tuple(cast(list[str], releases["missing"])),
@@ -44,7 +44,7 @@ def get_reference_data_status(
             ReferenceRelease.model_validate(item)
             for item in cast(list[dict[str, object]], releases["releases"])
         ),
-        requestedDatasets=None,
+        requestedDatasets=requested,
         job=JobResponse.from_progress(progress) if progress is not None else None,
     )
 

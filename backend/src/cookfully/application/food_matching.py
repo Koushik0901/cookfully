@@ -8,9 +8,21 @@ from difflib import SequenceMatcher
 from uuid import UUID
 
 from cookfully.domain.common import NUTRIENT_SCALE, quantize_decimal
+from cookfully.domain.food_semantics import (
+    Compatibility,
+    FoodSemanticProfile,
+    compare_compatibility,
+    profile_from_text,
+)
 from cookfully.infrastructure.models.nutrition import IngredientMatch
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
+from cookfully.infrastructure.semantic_embeddings import (
+    Embedding,
+    HashingTextEmbedder,
+    TextEmbedder,
+    cosine_similarity,
+)
 
 ALIASES = {
     "scallion": "green onion",
@@ -97,6 +109,9 @@ def normalize_food(value: str) -> str:
 class FoodCandidate:
     food: FoodReference
     score: Decimal
+    compatibility: Compatibility = Compatibility.COMPATIBLE
+    reasons: tuple[str, ...] = ()
+    semantic_similarity: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,15 +123,43 @@ class MatchDecision:
 
 
 class FoodMatcher:
-    def __init__(self, repository: NutritionRepository) -> None:
+    def __init__(
+        self,
+        repository: NutritionRepository,
+        *,
+        embedder: TextEmbedder | None = None,
+    ) -> None:
         self.repository = repository
+        self._embedder = embedder or HashingTextEmbedder()
+        self._food_pool: tuple[FoodReference, ...] | None = None
+        self._food_embeddings: dict[UUID, Embedding] = {}
+        self._food_profiles: dict[UUID, FoodSemanticProfile] = {}
 
     def candidates(self, food_name: str, *, limit: int = 10) -> tuple[FoodCandidate, ...]:
-        query = normalize_food(food_name)
-        foods = self.repository.search_foods(query, limit=max(limit * 3, 20))
-        ranked = sorted(
-            (FoodCandidate(food, self._score(query, food)) for food in foods),
-            key=lambda item: (-item.score, item.food.external_id),
+        concept = profile_from_text(food_name)
+        query = _rank_query(food_name) or _semantic_query(concept) or normalize_food(food_name)
+        foods = self._food_candidates(query, limit=limit)
+        ranked = []
+        query_embedding = self._embedder.embed((food_name,))[0]
+        for food in foods:
+            candidate_profile = self._food_profile(food)
+            compatibility = compare_compatibility(concept, candidate_profile)
+            if compatibility.compatibility is Compatibility.CONTRADICTORY:
+                continue
+            similarity = quantize_decimal(
+                Decimal(str(self._embedder_similarity(query_embedding, food))), NUTRIENT_SCALE
+            )
+            ranked.append(
+                FoodCandidate(
+                    food,
+                    self._score(query, food, concept),
+                    compatibility.compatibility,
+                    compatibility.reasons,
+                    similarity,
+                )
+            )
+        ranked.sort(
+            key=lambda item: (-item.score, -item.semantic_similarity, item.food.external_id)
         )
         deduped: list[FoodCandidate] = []
         seen: set[str] = set()
@@ -128,13 +171,40 @@ class FoodMatcher:
             deduped.append(cand)
         return tuple(deduped[:limit])
 
-    def decide(self, food_name: str) -> MatchDecision:
+    def decide(
+        self,
+        food_name: str,
+        *,
+        preferred_food: FoodReference | None = None,
+    ) -> MatchDecision:
+        if preferred_food is not None:
+            concept = profile_from_text(food_name)
+            compatibility = compare_compatibility(
+                concept, profile_from_text(preferred_food.description)
+            )
+            if compatibility.compatibility is not Compatibility.CONTRADICTORY:
+                return MatchDecision(
+                    "matched",
+                    "memory",
+                    FoodCandidate(
+                        preferred_food,
+                        Decimal("1.000000"),
+                        compatibility.compatibility,
+                        compatibility.reasons,
+                        Decimal("1.000000"),
+                    ),
+                    (),
+                )
         candidates = self.candidates(food_name)
         if not candidates or candidates[0].score < Decimal("0.650000"):
             return MatchDecision("unmatched", "ranked", None, candidates)
         top = candidates[0]
         second_score = candidates[1].score if len(candidates) > 1 else Decimal(0)
-        if top.score >= Decimal("0.800000") and top.score - second_score > Decimal(0):
+        if (
+            top.compatibility is Compatibility.COMPATIBLE
+            and top.score >= Decimal("0.800000")
+            and top.score - second_score > Decimal(0)
+        ):
             exact = normalize_food(top.food.normalized_name) == normalize_food(food_name)
             return MatchDecision("matched", "exact" if exact else "ranked", top, candidates[1:])
         return MatchDecision("ambiguous", "ranked", None, candidates)
@@ -166,8 +236,17 @@ class FoodMatcher:
         return self.repository.activate_match(match)
 
     @staticmethod
-    def _score(query: str, food: FoodReference) -> Decimal:
+    def _score(
+        query: str,
+        food: FoodReference,
+        concept: FoodSemanticProfile | None = None,
+    ) -> Decimal:
         normalized = normalize_food(food.normalized_name)
+        candidate_concept = profile_from_text(food.description)
+        semantic_identity_bonus = Decimal(0)
+        if concept is not None and concept.canonical_identity:
+            if concept.canonical_identity == candidate_concept.canonical_identity:
+                semantic_identity_bonus = Decimal("0.150000")
         if query == normalized:
             return Decimal("1.000000")
         query_tokens = _tokens(query)
@@ -179,6 +258,20 @@ class FoodMatcher:
             ratio = Decimal(str(SequenceMatcher(None, query, normalized).ratio()))
             return quantize_decimal(ratio * Decimal("0.500000"), NUTRIENT_SCALE)
         if len(intersection) < len(query_set):
+            if semantic_identity_bonus:
+                missing_query = len(query_set - candidate_set)
+                candidate_extra = candidate_set - query_set
+                penalty_hits = candidate_extra & _PENALTY_TOKENS
+                penalty = Decimal("0.050000") * len(penalty_hits) + Decimal("0.010000") * (
+                    len(candidate_extra) - len(penalty_hits)
+                )
+                score = (
+                    Decimal("0.750000")
+                    + semantic_identity_bonus
+                    - Decimal("0.020000") * missing_query
+                    - penalty
+                )
+                return quantize_decimal(max(Decimal(0), min(score, Decimal(1))), NUTRIENT_SCALE)
             aligned = Decimal(len(intersection)) / Decimal(len(query_set))
             jaccard = Decimal(len(intersection)) / Decimal(
                 len(query_set) + len(candidate_set) - len(intersection)
@@ -204,9 +297,47 @@ class FoodMatcher:
         penalty = Decimal("0.050000") * len(penalty_hits) + Decimal("0.010000") * (
             len(unmatched) - len(penalty_hits)
         )
-        score = Decimal("0.750000") + lead + block + head - penalty
+        base_score = Decimal("0.650000") if semantic_identity_bonus else Decimal("0.750000")
+        score = base_score + lead + block + head + semantic_identity_bonus - penalty
         clamped = max(Decimal(0), min(score, Decimal(1)))
         return quantize_decimal(clamped, NUTRIENT_SCALE)
+
+    def _embedder_similarity(
+        self, query_embedding: tuple[float, ...], food: FoodReference
+    ) -> float:
+        vector = self._food_embeddings.get(food.id)
+        if vector is None:
+            vector = self._embedder.embed((food.description,))[0]
+        return cosine_similarity(query_embedding, vector)
+
+    def _food_candidates(self, query: str, *, limit: int) -> list[FoodReference]:
+        list_active = getattr(self.repository, "list_active_foods", None)
+        if not callable(list_active):
+            return self.repository.search_foods(query, limit=max(limit * 3, 20))
+        if self._food_pool is None:
+            self._food_pool = tuple(list_active())
+            vectors = self._embedder.embed(tuple(food.description for food in self._food_pool))
+            self._food_embeddings = {
+                food.id: vector for food, vector in zip(self._food_pool, vectors, strict=True)
+            }
+        return list(self._food_pool)
+
+    def _food_profile(self, food: FoodReference) -> FoodSemanticProfile:
+        profile = self._food_profiles.get(food.id)
+        if profile is None:
+            profile = profile_from_text(food.description)
+            self._food_profiles[food.id] = profile
+        return profile
+
+
+def _semantic_query(concept: FoodSemanticProfile) -> str:
+    values = [concept.canonical_identity, concept.part, concept.form]
+    return " ".join(value for value in values if value and value != "whole_food")
+
+
+def _rank_query(value: str) -> str:
+    normalized = normalize_food(value)
+    return " ".join(token for token in normalized.split() if not token[:1].isdigit())
 
 
 def _tokens(value: str) -> list[str]:

@@ -77,6 +77,7 @@ def test_reference_data_status_and_install_surface(
 
         running = client.get("/api/v1/reference-data/status", headers=headers)
         assert running.json()["job"]["status"] == "queued"
+        assert running.json()["requestedDatasets"] == ["foundation_sr_legacy"]
 
 
 def test_reference_data_install_rejects_duplicate_in_flight(

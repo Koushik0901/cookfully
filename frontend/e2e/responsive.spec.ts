@@ -31,7 +31,7 @@ test("desktop and 390x844 layouts contain long content without document overflow
   expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
   if (testInfo.project.name === "narrow-mobile") {
     const navItems = page.locator(
-      ".mobile-nav > .mobile-nav__link, .mobile-nav > .mobile-nav__more > summary",
+      ".mobile-nav > .mobile-nav__link, .mobile-nav > .mobile-nav__more > .mobile-nav__more-trigger",
     );
     await expect(navItems).toHaveCount(5);
     for (let index = 0; index < await navItems.count(); index += 1) {
@@ -94,10 +94,11 @@ test("mobile keeps secondary places in a deliberate More menu", async ({ page },
 
   const more = page.locator(".mobile-nav__more");
   await more.getByText("More", { exact: true }).click();
-  await expect(more).toHaveAttribute("open", "");
-  await expect(more.getByRole("link", { name: "Goals" })).toBeVisible();
-  await expect(more.getByRole("link", { name: "Settings" })).toBeVisible();
-  await expect(more.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(more.getByRole("button", { name: "More" })).toHaveAttribute("aria-expanded", "true");
+  await expect(more.getByRole("menuitem", { name: "Ideas" })).toBeVisible();
+  await expect(more.getByRole("menuitem", { name: "Goals" })).toBeVisible();
+  await expect(more.getByRole("menuitem", { name: "Settings" })).toBeVisible();
+  await expect(more.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await captureUi(page, testInfo, "mobile-more-menu");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

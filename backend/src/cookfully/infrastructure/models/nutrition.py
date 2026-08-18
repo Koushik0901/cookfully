@@ -5,6 +5,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -67,6 +68,11 @@ class IngredientMatch(TimestampMixin, Base):
     source_release_id: Mapped[str | None] = mapped_column(String(120))
     input_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    resolution_kind: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="confirmed", server_default="confirmed"
+    )
+    candidate_evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON)
+    provisional_macros: Mapped[dict[str, object] | None] = mapped_column(JSON)
 
 
 class NutritionEstimate(Base):

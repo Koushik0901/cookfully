@@ -68,6 +68,10 @@ class FoodCandidateResponse(BaseModel):
     brand_owner: Annotated[str | None, Field(alias="brandOwner")]
     serving_size_g: Annotated[Decimal | None, Field(alias="servingSizeG")]
     serving_unit: Annotated[str | None, Field(alias="servingUnit")]
+    score: Decimal | None = None
+    semantic_similarity: Annotated[Decimal | None, Field(alias="semanticSimilarity")] = None
+    compatibility: str | None = None
+    reasons: tuple[str, ...] = ()
 
 
 class FoodSearchResponse(BaseModel):

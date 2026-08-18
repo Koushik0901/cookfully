@@ -86,6 +86,7 @@ _OPERATION_IDS = {
     "delete_recipe_collection": "deleteRecipeCollection",
     "replace_recipe_organization": "replaceRecipeOrganization",
     "create_recipe": "createRecipe",
+    "bulk_archive_recipes": "bulkArchiveRecipes",
     "import_recipe": "importRecipe",
     "preview_recipe_import": "previewRecipeImport",
     "confirm_recipe_import": "confirmRecipeImport",

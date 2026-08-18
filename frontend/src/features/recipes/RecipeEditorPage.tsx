@@ -148,6 +148,7 @@ useEffect(() => {
               field,
               decimalValue: nextValue,
               reason: nutritionReason.trim() || "Updated in recipe editor",
+              rememberMatch: true,
             });
           } else {
             const correctionId = activeCorrections.get(field);

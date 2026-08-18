@@ -140,7 +140,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
-  await expect(page.getByText("stale", { exact: true })).toBeVisible();
+  await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
 
   await expect(page.getByRole("link", { name: "Plan" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Grocery" })).toBeVisible();

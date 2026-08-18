@@ -6,6 +6,7 @@ import type {
   JobAccepted,
   NutritionCorrectionWrite,
   Recipe,
+  BulkArchiveResponse,
   RecipeDetail,
   RecipePage,
   RecipeWrite,
@@ -140,6 +141,12 @@ export const recipesApi = {
   },
   archive(recipeId: string, version: number) {
     return apiRequest<void>(`/recipes/${recipeId}`, { method: "DELETE", version });
+  },
+  bulkArchive(items: Array<{ id: string; version: number }>) {
+    return apiRequest<BulkArchiveResponse>("/recipes/bulk/archive", {
+      method: "POST",
+      body: JSON.stringify({ recipes: items }),
+    });
   },
   restore(recipeId: string, version: number) {
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}/restore`, {

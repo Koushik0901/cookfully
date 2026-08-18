@@ -197,6 +197,27 @@ class RecipeWriteRequest(ApiModel):
         )
 
 
+class RecipeBulkArchiveItem(ApiModel):
+    id: UUID
+    version: int = Field(ge=1)
+
+
+class RecipeBulkArchiveRequest(ApiModel):
+    recipes: tuple[RecipeBulkArchiveItem, ...] = Field(min_length=1, max_length=100)
+
+
+class RecipeBulkArchiveResult(ApiModel):
+    id: UUID
+    status: Literal["archived", "already_archived", "failed"]
+    version: int | None = Field(default=None, ge=1)
+    code: str | None = None
+    message: str | None = None
+
+
+class RecipeBulkArchiveResponse(ApiModel):
+    results: tuple[RecipeBulkArchiveResult, ...]
+
+
 class ImportRecipeRequest(ApiModel):
     url: AnyHttpUrl = Field(max_length=2048)
 
@@ -356,6 +377,7 @@ class NutritionCorrectionWriteRequest(ApiModel):
     text_value: str | None = Field(alias="textValue", default=None, max_length=500)
     reference_id_value: UUID | None = Field(alias="referenceIdValue", default=None)
     reason: str | None = Field(default=None, max_length=1000)
+    remember_match: bool = Field(alias="rememberMatch", default=True)
 
 
 class ProvenanceResponse(ApiModel):
@@ -522,6 +544,13 @@ class IngredientResponse(ApiModel):
     optional: bool
     parse_status: str = Field(alias="parseStatus")
     match_status: str | None = Field(alias="matchStatus", default=None)
+    resolution_kind: str | None = Field(alias="resolutionKind", default=None)
+    candidate_evidence: tuple[dict[str, object], ...] = Field(
+        alias="candidateEvidence", default=()
+    )
+    provisional_macros: dict[str, object] | None = Field(
+        alias="provisionalMacros", default=None
+    )
     assumptions: tuple[str, ...] = ()
     section_id: UUID | None = Field(alias="sectionId", default=None)
 
@@ -539,6 +568,9 @@ class IngredientResponse(ApiModel):
             optional=value.optional,
             parse_status=value.parse_status,
             match_status=value.match_status,
+            resolution_kind=value.resolution_kind,
+            candidate_evidence=value.candidate_evidence,
+            provisional_macros=value.provisional_macros,
             assumptions=value.assumptions,
             section_id=value.section_id,
         )

@@ -73,6 +73,10 @@ async function mockApi(page: Page) {
     if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
     if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
     if (path === "/api/v1/recipes/collections" && method === "GET") return json([collection]);
+    if (path === "/api/v1/recipes/bulk/archive" && method === "POST") {
+      deleted = true;
+      return json({ results: (request.postDataJSON().recipes as Array<{ id: string; version: number }>).map((item) => ({ id: item.id, status: "archived", version: item.version + 1, code: null, message: null })) });
+    }
     if (path === "/api/v1/recipes" && method === "GET") {
       return json({ items: deleted ? [] : [recipe], nextCursor: null });
     }
@@ -322,7 +326,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await page.getByLabel("Yield quantity").fill("3.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await expect(page.getByText("Outdated", { exact: true })).toBeVisible();
+  await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
@@ -371,10 +375,10 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   await expect(page.getByText(/attempt 2 of 3/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/next retry/i)).toBeVisible();
   await expect(page.getByText(/deadline/i)).toBeVisible();
-  await expect(page.getByText("Outdated", { exact: true })).toBeVisible({ timeout: 7_000 });
+  await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible({ timeout: 7_000 });
   await captureUi(page, testInfo, "recipe-import-stale");
   await page.getByRole("button", { name: "Recalculate nutrition" }).click();
-  await expect(page.getByText("Estimating…", { exact: true })).toBeVisible();
+  await expect(page.locator(".nutrition-state").filter({ hasText: "Updating" }).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -442,6 +446,29 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await expect(page.getByLabel("Favorites only")).not.toBeChecked();
   await expect(page.getByRole("button", { name: "Clear filters" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("keeps recipe nutrition metrics in one evidence layer", async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/app/recipes/${recipeId}`);
+  await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+  await expect(page.locator(".recipe-nutrition-summary__metrics")).toHaveCount(1);
+  await expect(page.locator(".recipe-nutrition-overview")).toHaveCount(0);
+  await page.getByText("Nutrition details and evidence").click();
+  await expect(page.getByText("Ingredient coverage", { exact: true })).toBeVisible();
+});
+
+test("archives selected recipes from the library with one reversible action", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/app/recipes");
+  await page.getByRole("button", { name: "Select recipes" }).click();
+  await page.getByRole("checkbox", { name: "Select Protein oats" }).click();
+  const [request] = await Promise.all([
+    page.waitForRequest((value) => value.url().includes("/recipes/bulk/archive") && value.method() === "POST"),
+    page.getByRole("button", { name: "Archive 1 selected recipe" }).click(),
+  ]);
+  expect(request.postDataJSON()).toEqual({ recipes: [{ id: recipeId, version: 1 }] });
+  await expect(page.getByText("1 recipe archived.")).toBeVisible();
 });
 
 test("a handwritten recipe can gain and remove a representative photo", async ({ page }, testInfo) => {

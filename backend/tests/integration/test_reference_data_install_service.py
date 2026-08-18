@@ -84,7 +84,8 @@ def test_status_reports_missing_datasets_and_no_job_before_first_request(
         lambda: Settings(database_url=isolated_database_url, environment="test"),
     )
     service = ReferenceDataInstallService(session_factory)
-    releases, job = service.status()
+    releases, job, requested = service.status(OWNER)
     assert releases["available"] is False
     assert set(releases["missing"]) == {"foundation", "sr_legacy"}
     assert job is None
+    assert requested is None

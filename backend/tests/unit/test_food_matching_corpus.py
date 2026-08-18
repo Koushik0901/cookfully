@@ -218,3 +218,42 @@ def test_flavored_variants_do_not_hijack_plain_greek_yogurt() -> None:
     decision = matcher.decide("greek yogurt")
     assert decision.status == "matched"
     assert best_food_id(decision) == "greek-plain"
+
+
+def test_natural_language_chicken_keeps_breast_and_thigh_as_review_candidates() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub(
+            [
+                food("breast", "Chicken, breast, meat and skin, cooked"),
+                food("thigh", "Chicken, thigh, meat and skin, cooked"),
+            ]
+        )
+    )
+
+    decision = matcher.decide("300g tandoori chicken")
+
+    assert decision.status == "ambiguous"
+    assert decision.candidate is None
+    assert {candidate.food.external_id for candidate in decision.alternatives} == {"breast", "thigh"}
+
+
+def test_lemongrass_is_not_a_semantic_match_for_lemon() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub([food("lemongrass", "Lemon grass (citronella), raw")])
+    )
+
+    decision = matcher.decide("Juice of one lemon")
+
+    assert decision.status == "unmatched"
+
+
+def test_smoked_paprika_can_be_presented_as_review_required_paprika() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub([food("paprika", "Spices, paprika")])
+    )
+
+    decision = matcher.decide("1 tsp smoked paprika")
+
+    assert decision.status == "ambiguous"
+    assert decision.candidate is None
+    assert decision.alternatives[0].food.external_id == "paprika"

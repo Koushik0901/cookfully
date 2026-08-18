@@ -1,4 +1,5 @@
 import { Button, PollingStatusBadge } from "../../components";
+import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import type { Job, ResolvedNutrition } from "./types";
 
 const MICRONUTRIENTS = [
@@ -49,6 +50,7 @@ export function NutritionPanel({
     })
     : [];
   const unavailableMicronutrientCount = MICRONUTRIENTS.length - availableMicronutrients.length;
+  const statePresentation = nutritionPresentation(nutritionState, nutrition?.status);
 
   return (
     <section className="nutrition-evidence-panel" aria-labelledby="nutrition-evidence-heading">
@@ -78,16 +80,17 @@ export function NutritionPanel({
         </div>
       ) : null}
 
-      {nutritionState === "stale" ? <p className="notice">The recipe changed after calculation. Recalculate before relying on these values.</p> : null}
-      {nutritionState === "pending" ? <p className="notice">Nutrition is being calculated in the background.</p> : null}
+       {statePresentation.key === "needs_review" ? <p className="notice">The recipe changed after calculation. Recalculate before relying on these values.</p> : null}
+       {statePresentation.key === "updating" ? <p className="notice">Nutrition is being calculated in the background.</p> : null}
 
       <details className="nutrition-state-guide">
         <summary>What does this status mean?</summary>
         <dl>
-          <div><dt>Estimated</dt><dd>Calculated from matched ingredients and recorded assumptions.</dd></div>
-          <div><dt>Partial</dt><dd>Some ingredients, quantities, or reference nutrients could not be resolved.</dd></div>
-          <div><dt>Source provided</dt><dd>Published by the recipe source rather than calculated ingredient by ingredient.</dd></div>
-          <div><dt>Manual</dt><dd>Entered by you; the automatic values remain in the history.</dd></div>
+           <div><dt>Ready</dt><dd>Calculated from matched ingredients and recorded assumptions.</dd></div>
+           <div><dt>Needs review</dt><dd>Some ingredients, quantities, or reference nutrients need attention.</dd></div>
+           <div><dt>Updating</dt><dd>Cookfully is still working on the estimate in the background.</dd></div>
+           <div><dt>Unavailable</dt><dd>An estimate is not currently available.</dd></div>
+           <div><dt>Manual</dt><dd>Entered by you; the automatic values remain in the history.</dd></div>
           <div><dt>Coverage</dt><dd>The percentage of quantified ingredients supported by nutrition evidence.</dd></div>
         </dl>
       </details>

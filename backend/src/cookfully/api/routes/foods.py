@@ -43,7 +43,9 @@ def _candidate_from_owner(uf: OwnerFood) -> FoodCandidateResponse:
     )
 
 
-def _candidate_from_usda(ref: FoodReference) -> FoodCandidateResponse:
+def _candidate_from_usda(
+    ref: FoodReference, candidate: object | None = None
+) -> FoodCandidateResponse:
     return FoodCandidateResponse(
         source="usda",
         id=ref.id,
@@ -51,6 +53,14 @@ def _candidate_from_usda(ref: FoodReference) -> FoodCandidateResponse:
         brand_owner=ref.brand_owner,
         serving_size_g=ref.serving_size_g,
         serving_unit=ref.serving_unit,
+        score=getattr(candidate, "score", None),
+        semantic_similarity=getattr(candidate, "semantic_similarity", None),
+        compatibility=(
+            getattr(getattr(candidate, "compatibility", None), "value", None)
+            if candidate is not None
+            else None
+        ),
+        reasons=getattr(candidate, "reasons", ()),
     )
 
 
@@ -211,7 +221,7 @@ def list_ingredient_candidates(
     nut_repo = NutritionRepository(session)
     matcher = FoodMatcher(nut_repo)
     for fc in matcher.candidates(food_name):
-        candidates.append(_candidate_from_usda(fc.food))
+        candidates.append(_candidate_from_usda(fc.food, fc))
 
     session.close()
     return FoodSearchResponse(query=food_name, candidates=candidates)
