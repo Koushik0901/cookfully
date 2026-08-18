@@ -29,15 +29,29 @@ def ensure_activation_allowed(root: Path) -> None:
 def _try_lock(connection: Connection, *, shared: bool) -> bool:
     function = "pg_try_advisory_lock_shared" if shared else "pg_try_advisory_lock"
     return bool(
-        connection.scalar(
-            text(f"SELECT {function}(:lock_id)"), {"lock_id": INSTANCE_ADVISORY_LOCK_ID}
-        )
+        connection.scalar(text(f"SELECT {function}(:lock_id)"), {"lock_id": _lock_id(connection)})
     )
 
 
 def _unlock(connection: Connection, *, shared: bool) -> None:
     function = "pg_advisory_unlock_shared" if shared else "pg_advisory_unlock"
-    connection.execute(text(f"SELECT {function}(:lock_id)"), {"lock_id": INSTANCE_ADVISORY_LOCK_ID})
+    connection.execute(text(f"SELECT {function}(:lock_id)"), {"lock_id": _lock_id(connection)})
+
+
+def _lock_id(connection: Connection) -> int:
+    """Scope the instance lease to this database schema.
+
+    Test schemas share the PostgreSQL cluster with the live stack, so a global
+    advisory key makes unrelated schemas appear to have services running.
+    Production services still share one key because they use the same schema.
+    """
+
+    return int(
+        connection.scalar(
+            text("SELECT hashtextextended(current_database() || ':' || current_schema(), :seed)"),
+            {"seed": INSTANCE_ADVISORY_LOCK_ID},
+        )
+    )
 
 
 @contextmanager

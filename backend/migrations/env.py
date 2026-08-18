@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models import Base
@@ -32,6 +32,19 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
+        with connection.begin():
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS alembic_version (
+                        version_num VARCHAR(128) NOT NULL PRIMARY KEY
+                    )
+                    """
+                )
+            )
+            connection.execute(
+                text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(128)")
+            )
         context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
         with context.begin_transaction():
             context.run_migrations()

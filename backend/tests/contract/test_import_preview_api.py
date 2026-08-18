@@ -64,6 +64,7 @@ def _confirm_mutation() -> SimpleNamespace:
     return SimpleNamespace(
         recipe=SimpleNamespace(id=uuid4()),
         job=SimpleNamespace(id=uuid4()),
+        cover_status=None,
     )
 
 

@@ -136,9 +136,7 @@ def provisional_macro_range(values: list[MacroValues]) -> ProvisionalMacroRange:
 
     def percentile(field: NutrientField, position: str) -> Decimal | None:
         numbers = sorted(
-            value
-            for value in (getattr(item, field) for item in values)
-            if value is not None
+            value for value in (getattr(item, field) for item in values) if value is not None
         )
         if not numbers:
             return None

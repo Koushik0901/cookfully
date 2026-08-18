@@ -3,7 +3,6 @@ from __future__ import annotations
 from cookfully.domain.food_semantics import (
     Compatibility,
     FoodSemanticProfile,
-    IngredientConcept,
     compare_compatibility,
     concept_signature,
     profile_from_text,

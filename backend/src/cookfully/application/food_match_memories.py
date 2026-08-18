@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -77,8 +78,33 @@ def remembered_food_reference(
     )
     if memory is None or memory.food_reference_id is None:
         return None
+    food = session.get(FoodReference, memory.food_reference_id)
+    if food is None or food.dataset.status != "active":
+        return None
     memory.use_count += 1
-    return session.get(FoodReference, memory.food_reference_id)
+    memory.last_used_at = datetime.now(UTC)
+    return food
+
+
+def forget_food_reference(
+    session: Session,
+    *,
+    owner_id: UUID,
+    ingredient: Ingredient,
+) -> bool:
+    concept = profile_from_text(ingredient.food_name or ingredient.original_text)
+    memory = session.scalar(
+        select(FoodMatchMemory).where(
+            FoodMatchMemory.owner_id == owner_id,
+            FoodMatchMemory.signature_hash == concept_signature(concept),
+            FoodMatchMemory.active.is_(True),
+        )
+    )
+    if memory is None:
+        return False
+    memory.active = False
+    session.flush()
+    return True
 
 
 def remembered_match(

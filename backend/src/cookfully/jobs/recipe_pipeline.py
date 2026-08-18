@@ -87,7 +87,9 @@ def _section_at(
 
 
 logger = logging.getLogger(__name__)
-RETRYABLE_CODES = frozenset({"dns_failed", "source_unavailable", "network_timeout"})
+RETRYABLE_CODES = frozenset(
+    {"dns_failed", "source_unavailable", "network_timeout", "reference_data_unavailable"}
+)
 NUTRITION_PIPELINE_VERSION = "nutrition-v3"
 NEXT_KIND = {
     "recipe_import": "ingredient_parse",
@@ -605,6 +607,7 @@ class RecipePipeline:
                 and active.status == "source_provided"
                 and self._complete(self._estimate_macros(active))
             ):
+                active.coverage_ratio = value.coverage
                 if existing is None:
                     session.add(estimate)
                 recipe.status = "ready"
@@ -771,7 +774,7 @@ class RecipePipeline:
             protein_g=macros.protein_g,
             carbohydrate_g=macros.carbohydrate_g,
             fat_g=macros.fat_g,
-            coverage_ratio=Decimal("1.000000") if cls._complete(macros) else Decimal("0.000000"),
+            coverage_ratio=Decimal("0.000000"),
             source_label=recipe.source_name or "Source recipe page",
             source_url=recipe.canonical_source_url,
             assumptions_summary="Source nutrition interpreted as per-serving values.",

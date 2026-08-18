@@ -30,7 +30,9 @@ class HashingTextEmbedder:
     def _embed_one(self, text: str) -> Embedding:
         values = [0.0] * self.dimensions
         tokens = re.findall(r"[a-z0-9]+", text.casefold())
-        features = tokens + [f"{token[i:i + 3]}" for token in tokens for i in range(len(token) - 2)]
+        features = tokens + [
+            f"{token[i : i + 3]}" for token in tokens for i in range(len(token) - 2)
+        ]
         for feature in features:
             digest = hashlib.blake2b(feature.encode("utf-8"), digest_size=8).digest()
             index = int.from_bytes(digest[:4], "big") % self.dimensions

@@ -133,7 +133,7 @@ def test_manual_workflows_survive_every_optional_provider_failure(
             safe_message="Optional provider unavailable; edit or enter nutrition manually.",
         )
         failed_recipe = client.get(f"/api/v1/recipes/{affected_body['resourceId']}").json()
-        assert failed_recipe["status"] == "failed"
+        assert failed_recipe["status"] == "import_failed"
         failed_job = client.get(f"/api/v1/jobs/{job_id}").json()
         assert failed_job["failureCode"] == failure_code
         assert failed_job["recoveryActions"]

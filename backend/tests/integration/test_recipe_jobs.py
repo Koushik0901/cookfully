@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from time import perf_counter
@@ -290,6 +290,54 @@ async def test_import_persists_source_result_and_chains_with_the_new_input_hash(
         source = session.get(NutritionEstimate, recipe.active_estimate_id)
         assert source is not None and source.status == "source_provided"
         assert source.calories_kcal == Decimal("165.000000")
+        assert source.coverage_ratio == Decimal("0.000000")
+
+
+@pytest.mark.asyncio
+async def test_source_estimate_coverage_updated_to_real_ingredient_coverage_after_rollup(
+    session_factory: sessionmaker[Session], tmp_path: Path
+) -> None:
+    install_reference_data(session_factory)
+    mutation = recipe_service(session_factory, tmp_path).create_import_placeholder(
+        "https://example.com/mixed", trace_id="trace-mixed"
+    )
+    assert mutation.job is not None
+    importer = ImporterStub(
+        ImportedRecipe(
+            title="Mixed source",
+            source_url="https://example.com/mixed",
+            canonical_url="https://example.com/mixed",
+            image_url=None,
+            yield_quantity=Decimal("2.000"),
+            yield_text="2 servings",
+            ingredients=("200 g chicken breast", "1 cup mystery protein"),
+            ingredient_sections=(None, None),
+            sections=(),
+            instructions=("Cook.",),
+            source_nutrition={
+                "calories": "500 kcal",
+                "proteinContent": "40 g",
+                "carbohydrateContent": "20 g",
+                "fatContent": "20 g",
+            },
+        )
+    )
+    worker = pipeline(session_factory, importer)
+    imported = await worker.process(envelope_for(session_factory, mutation.job.id))
+    assert imported.status == "succeeded" and imported.next_job_id is not None
+    parsed = await worker.process(envelope_for(session_factory, imported.next_job_id))
+    assert parsed.status == "succeeded" and parsed.next_job_id is not None
+    matched = await worker.process(envelope_for(session_factory, parsed.next_job_id))
+    assert matched.status == "succeeded" and matched.next_job_id is not None
+    rollup = await worker.process(envelope_for(session_factory, matched.next_job_id))
+    assert rollup.status == "succeeded"
+    with session_factory() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        assert recipe is not None and recipe.status == "ready"
+        assert recipe.nutrition_state == "source_provided"
+        active = session.get(NutritionEstimate, recipe.active_estimate_id)
+        assert active is not None and active.status == "source_provided"
+        assert active.coverage_ratio == Decimal("0.500000")
 
 
 @pytest.mark.asyncio
@@ -376,7 +424,7 @@ async def test_input_change_and_archive_supersede_queued_work(
 
 
 @pytest.mark.asyncio
-async def test_missing_reference_data_finishes_partial_without_blocking_manual_use(
+async def test_missing_reference_data_retries_instead_of_blocking_manual_use(
     session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     mutation = recipe_service(session_factory, tmp_path).create(
@@ -389,15 +437,137 @@ async def test_missing_reference_data_finishes_partial_without_blocking_manual_u
     )
     parsed = await worker.process(envelope_for(session_factory, mutation.job.id))
     assert parsed.next_job_id is not None
-    failed = await worker.process(envelope_for(session_factory, parsed.next_job_id))
-    assert failed.status == "failed"
+    result = await worker.process(envelope_for(session_factory, parsed.next_job_id))
+    assert result.status == "retry_wait"
     with session_factory() as session:
         recipe = session.get(Recipe, mutation.recipe.id)
         job = session.get(ProcessingJob, parsed.next_job_id)
-        assert recipe is not None and recipe.status == "partial"
-        assert recipe.nutrition_state == "partial"
+        assert recipe is not None and recipe.status == "processing"
+        assert recipe.nutrition_state == "pending"
         assert job is not None and job.failure_code == "reference_data_unavailable"
-        assert recipe.title == "Chicken bowl"
+        assert job.status == "retry_wait" and job.next_retry_at is not None
+        assert job.max_attempts == 5
+
+
+@pytest.mark.asyncio
+async def test_reference_data_retry_completes_once_data_is_active(
+    session_factory: sessionmaker[Session], tmp_path: Path
+) -> None:
+    mutation = recipe_service(session_factory, tmp_path).create(
+        write(), trace_id="trace-recovery", owner_id=bootstrap_owner_id(session_factory)
+    )
+    assert mutation.job is not None
+    worker = pipeline(
+        session_factory,
+        ImporterStub(DomainError("not_used", "Not used.", 500)),
+    )
+    parsed = await worker.process(envelope_for(session_factory, mutation.job.id))
+    assert parsed.next_job_id is not None
+    match_job_id = parsed.next_job_id
+    retry = await worker.process(envelope_for(session_factory, match_job_id))
+    assert retry.status == "retry_wait"
+    with session_factory() as session:
+        job = session.get(ProcessingJob, match_job_id)
+        assert job is not None and job.next_retry_at is not None
+        retry_at = job.next_retry_at
+
+    install_reference_data(session_factory)
+    released_at = retry_at + timedelta(minutes=5)
+    assert JobService(session_factory).release_due_retries(now=released_at) == [match_job_id]
+    with session_factory.begin() as session:
+        job = session.get(ProcessingJob, match_job_id)
+        assert job is not None and job.status == "queued"
+        job.available_at = datetime.now(UTC)
+
+    succeeded = await worker.process(envelope_for(session_factory, match_job_id))
+    assert succeeded.status == "succeeded"
+    assert succeeded.next_job_id is not None
+    rollup = await worker.process(envelope_for(session_factory, succeeded.next_job_id))
+    assert rollup.status == "succeeded"
+    with session_factory() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        estimate = session.get(NutritionEstimate, recipe.active_estimate_id)
+        assert recipe is not None and recipe.status == "ready"
+        assert estimate is not None and estimate.status == "estimated"
+        assert estimate.coverage_ratio == Decimal("1.000000")
+
+
+@pytest.mark.asyncio
+async def test_recover_stale_nutrition_dry_run_then_enqueues_when_reference_data_active(
+    session_factory: sessionmaker[Session], tmp_path: Path
+) -> None:
+    services = recipe_service(session_factory, tmp_path)
+    mutation = services.create(
+        write(), trace_id="trace-stale", owner_id=bootstrap_owner_id(session_factory)
+    )
+    assert mutation.job is not None
+    worker = pipeline(
+        session_factory,
+        ImporterStub(DomainError("not_used", "Not used.", 500)),
+    )
+    parsed = await worker.process(envelope_for(session_factory, mutation.job.id))
+    assert parsed.next_job_id is not None
+    now = datetime.now(UTC)
+    with session_factory.begin() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        job = session.get(ProcessingJob, parsed.next_job_id)
+        assert recipe is not None and job is not None
+        job.status = "failed"
+        job.failure_code = "reference_data_unavailable"
+        job.finished_at = now
+        job.next_retry_at = None
+        recipe.status = "partial"
+        recipe.nutrition_state = "partial"
+        recipe.version += 1
+
+    dry_run = services.recover_stale_nutrition(dry_run=True)
+    assert [item.recipe_id for item in dry_run] == [mutation.recipe.id]
+    assert all(item.skipped_reason == "reference_data_unavailable" for item in dry_run)
+    with session_factory() as session:
+        active = list(
+            session.scalars(
+                select(ProcessingJob).where(
+                    ProcessingJob.aggregate_id == mutation.recipe.id,
+                    ProcessingJob.status.in_(("queued", "running", "retry_wait")),
+                )
+            )
+        )
+        assert active == []
+
+    install_reference_data(session_factory)
+    dry_run = services.recover_stale_nutrition(dry_run=True)
+    assert all(item.skipped_reason == "dry_run" and item.job_id is None for item in dry_run)
+
+    waiting = services.recover_stale_nutrition(dry_run=False)
+    assert [item.recipe_id for item in waiting] == [mutation.recipe.id]
+    assert all(item.skipped_reason is None and item.job_id is not None for item in waiting)
+    with session_factory() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        job = session.get(ProcessingJob, waiting[0].job_id)
+        assert recipe is not None and recipe.status == "processing"
+        assert recipe.nutrition_state == "stale"
+        assert job is not None and job.kind == "nutrition_match"
+        assert job.input_hash == recipe.input_hash
+        assert job.status == "queued"
+
+    idempotent = services.recover_stale_nutrition(dry_run=False)
+    assert idempotent == []
+    with session_factory() as session:
+        active = list(
+            session.scalars(
+                select(ProcessingJob).where(
+                    ProcessingJob.aggregate_id == mutation.recipe.id,
+                    ProcessingJob.status.in_(("queued", "running", "retry_wait")),
+                )
+            )
+        )
+        assert [job.id for job in active] == [waiting[0].job_id]
+
+    resumed = await worker.process(envelope_for(session_factory, waiting[0].job_id))
+    assert resumed.status == "succeeded"
+    assert resumed.next_job_id is not None
+    rollup = await worker.process(envelope_for(session_factory, resumed.next_job_id))
+    assert rollup.status == "succeeded"
 
 
 @pytest.mark.asyncio

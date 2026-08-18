@@ -234,7 +234,10 @@ def test_natural_language_chicken_keeps_breast_and_thigh_as_review_candidates() 
 
     assert decision.status == "ambiguous"
     assert decision.candidate is None
-    assert {candidate.food.external_id for candidate in decision.alternatives} == {"breast", "thigh"}
+    assert {candidate.food.external_id for candidate in decision.alternatives} == {
+        "breast",
+        "thigh",
+    }
 
 
 def test_lemongrass_is_not_a_semantic_match_for_lemon() -> None:

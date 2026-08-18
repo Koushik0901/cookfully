@@ -545,12 +545,8 @@ class IngredientResponse(ApiModel):
     parse_status: str = Field(alias="parseStatus")
     match_status: str | None = Field(alias="matchStatus", default=None)
     resolution_kind: str | None = Field(alias="resolutionKind", default=None)
-    candidate_evidence: tuple[dict[str, object], ...] = Field(
-        alias="candidateEvidence", default=()
-    )
-    provisional_macros: dict[str, object] | None = Field(
-        alias="provisionalMacros", default=None
-    )
+    candidate_evidence: tuple[dict[str, object], ...] = Field(alias="candidateEvidence", default=())
+    provisional_macros: dict[str, object] | None = Field(alias="provisionalMacros", default=None)
     assumptions: tuple[str, ...] = ()
     section_id: UUID | None = Field(alias="sectionId", default=None)
 

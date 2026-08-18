@@ -41,8 +41,12 @@ def upgrade() -> None:
         sa.Column("input_hash", sa.String(128), nullable=False),
         sa.Column("source_release_id", sa.String(120)),
         sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.CheckConstraint(
             "((food_reference_id IS NOT NULL)::int + (owner_food_id IS NOT NULL)::int) = 1",
             name="semantic_index_single_source",
@@ -79,8 +83,12 @@ def upgrade() -> None:
         sa.Column("active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("use_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("last_used_at", sa.DateTime(timezone=True)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.CheckConstraint(
             "((food_reference_id IS NOT NULL)::int + (owner_food_id IS NOT NULL)::int) = 1",
             name="food_match_memory_single_source",

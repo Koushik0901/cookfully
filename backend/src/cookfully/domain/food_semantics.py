@@ -121,9 +121,7 @@ def profile_from_text(value: str) -> IngredientConcept:
         text = _normalize(value[: quantity_match.start()] + value[quantity_match.end() :])
 
     alternatives = tuple(
-        _normalize(item)
-        for item in re.split(r"\s+or\s+|\s*;\s*", text)
-        if _normalize(item)
+        _normalize(item) for item in re.split(r"\s+or\s+|\s*;\s*", text) if _normalize(item)
     )
     identity = _identity(text)
     category = _CATEGORY_BY_IDENTITY.get(identity or "")

@@ -378,6 +378,29 @@ describe("recipe UI", () => {
     expect(screen.getByLabelText("Ingredients, one per line")).toHaveValue("1 chicken breast\n2 cups rice");
   });
 
+  it("surfaces provisional estimates in the editor review list", async () => {
+    const provisionalRecipe = {
+      ...recipe,
+      ingredients: [
+        {
+          ...recipe.ingredients[0],
+          matchStatus: "unmatched",
+          resolutionKind: "provisional",
+          candidateEvidence: [
+            { foodReferenceId: "00000000-0000-4000-8000-000000000010" },
+            { foodReferenceId: "00000000-0000-4000-8000-000000000011" },
+          ],
+        },
+      ],
+    };
+    vi.mocked(fetch).mockImplementation(() => response(provisionalRecipe));
+    renderRoute(<RecipeEditorPage />, `/app/recipes/${recipe.id}/edit`);
+
+    await screen.findByDisplayValue("Exact oats");
+    expect(screen.getByText("Improve nutrition matches")).toBeInTheDocument();
+    expect(screen.getByText(/provisional estimate from 2 foods/i)).toBeInTheDocument();
+  });
+
   it("polls visible work after two seconds and recovers authoritative state after reload", async () => {
     vi.useFakeTimers();
     const running: Job = {
