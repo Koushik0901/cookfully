@@ -130,7 +130,7 @@
 
 .page-shell {
   display: grid;
-  width: min(100%, 90rem);
+  width: min(100%, 100rem);
   min-height: 100%;
   align-content: start;
   gap: 2.5rem;

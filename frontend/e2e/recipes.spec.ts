@@ -391,6 +391,20 @@ test("keeps optional favorites and meal moments out of recipe entry, but easy to
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("uses more of the wide desktop canvas for the recipe library", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await mockApi(page);
+  await page.goto("/app/recipes");
+
+  const shell = page.locator(".page-shell.recipe-library-page");
+  await expect(shell).toBeVisible();
+
+  const shellBox = await shell.boundingBox();
+  expect(shellBox).not.toBeNull();
+  expect(shellBox!.width).toBeGreaterThanOrEqual(1580);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("makes a focused recipe-library view easy to understand and clear", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/app/recipes");
