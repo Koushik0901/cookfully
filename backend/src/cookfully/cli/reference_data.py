@@ -4,12 +4,15 @@ import json
 import re
 import unicodedata
 import zipfile
+from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from io import RawIOBase
 from pathlib import Path
-from typing import Annotated, Any
+from typing import IO, Annotated, Any
 from uuid import UUID
 
+import ijson
 import typer
 from sqlalchemy import select, update
 
@@ -28,28 +31,17 @@ REQUIRED_TYPES = frozenset({"foundation", "sr_legacy"})
 ALLOWED_TYPES = REQUIRED_TYPES | {"branded_food"}
 GYM_BRANDED_CATEGORIES = frozenset(
     {
-        "Protein & whey powder",
-        "Protein bars",
-        "Plant-based protein",
-        "Ready-to-drink protein shakes",
-        "Greek yogurt",
-        "Cottage cheese",
-        "Nut butters",
-        "Nut milks",
-        "Bread, rolls & buns",
-        "Wraps & tortillas",
-        "Pasta & noodles",
-        "Rice & grains",
-        "Cooking oils",
-        "Soy sauce & condiments",
-        "Pre-workout & energy",
-        "Creatine & amino acids",
-        "BCAAs",
-        "Collagen",
-        "Powdered nut butters",
+        "Snack, Energy & Granola Bars",
+        "Energy, Protein & Muscle Recovery Drinks",
+        "Meal Replacement Supplements",
+        "Nut & Seed Butters",
+        "Plant Based Milk",
+        "Yogurt",
+        "Green Supplements",
+        "Milk",
+        "Amino Acid Supplements",
     }
 )
-BRANDED_CATEGORIES: set[str] = set()
 
 
 def normalize_food_name(value: str) -> str:
@@ -57,49 +49,163 @@ def normalize_food_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", normalized.casefold()).strip()
 
 
-def load_usda_archive(path: Path, *, dataset_type: str | None = None) -> list[dict[str, Any]]:
-    if path.suffix.casefold() == ".zip":
-        with zipfile.ZipFile(path) as archive:
-            names = [name for name in archive.namelist() if name.casefold().endswith(".json")]
-            if dataset_type is not None and len(names) > 1:
-                required_tokens = {
-                    "foundation": ("foundation",),
-                    "sr_legacy": ("sr", "legacy"),
-                    "branded_food": ("branded",),
-                }.get(dataset_type)
-                matches = (
-                    [
-                        name
-                        for name in names
-                        if required_tokens is not None
-                        and all(token in name.casefold() for token in required_tokens)
-                    ]
-                    if required_tokens is not None
-                    else []
-                )
-                if len(matches) == 1:
-                    raw = json.loads(archive.read(matches[0]))
-                else:
-                    raise DomainError(
-                        "dataset_archive_invalid",
-                        f"USDA archive does not contain one JSON file for {dataset_type}.",
-                        422,
-                    )
-            elif len(names) == 1:
-                raw = json.loads(archive.read(names[0]))
-            else:
-                raise DomainError(
-                    "dataset_archive_invalid", "USDA archive must contain one JSON file.", 422
-                )
-    else:
-        raw = json.loads(path.read_text(encoding="utf-8"))
+_JSON_MEMBER_TOKENS: dict[str, tuple[str, ...]] = {
+    "foundation": ("foundation",),
+    "sr_legacy": ("sr", "legacy"),
+    "branded_food": ("branded",),
+}
+
+
+def _select_json_member(names: list[str], dataset_type: str | None) -> str:
+    if dataset_type is not None and len(names) > 1:
+        tokens = _JSON_MEMBER_TOKENS.get(dataset_type)
+        if tokens is not None:
+            matches = [name for name in names if all(token in name.casefold() for token in tokens)]
+            if len(matches) == 1:
+                return matches[0]
+            raise DomainError(
+                "dataset_archive_invalid",
+                f"USDA archive does not contain one JSON file for {dataset_type}.",
+                422,
+            )
+    if len(names) == 1:
+        return names[0]
+    raise DomainError("dataset_archive_invalid", "USDA archive must contain one JSON file.", 422)
+
+
+_ARRAY_KEYS = ("BrandedFoods", "FoundationFoods", "SRLegacyFoods", "Foods", "foods")
+
+
+def _rows_from_json_value(raw: Any) -> list[dict[str, Any]]:
     if isinstance(raw, list):
         return raw
-    for key in ("FoundationFoods", "SRLegacyFoods", "foods"):
+    for key in _ARRAY_KEYS:
         value = raw.get(key) if isinstance(raw, dict) else None
         if isinstance(value, list):
             return value
     raise DomainError("dataset_schema_invalid", "USDA dataset JSON has an unsupported schema.", 422)
+
+
+def load_usda_archive(path: Path, *, dataset_type: str | None = None) -> list[dict[str, Any]]:
+    if path.suffix.casefold() == ".zip":
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.casefold().endswith(".json")]
+            member = _select_json_member(names, dataset_type)
+            raw = json.loads(archive.read(member))
+    else:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    return _rows_from_json_value(raw)
+
+
+def _accept_row(row: Any, dataset_type: str | None) -> bool:
+    if not isinstance(row, dict):
+        return False
+    if dataset_type == "branded_food":
+        return (row.get("brandedFoodCategory") or "").strip() in GYM_BRANDED_CATEGORIES
+    return True
+
+
+def _dedupe_nutrients(items: Any) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        nutrient = item.get("nutrient", {})
+        code = nutrient.get("number") if isinstance(nutrient, dict) else None
+        if code is None:
+            code = nutrient.get("id") if isinstance(nutrient, dict) else None
+        if code is None:
+            continue
+        nutrient_code = str(code)
+        if nutrient_code in seen:
+            continue
+        seen.add(nutrient_code)
+        deduped.append(item)
+    return deduped
+
+
+class _PeekableReader(RawIOBase):
+    """Buffered read()/peek() over a non-seekable binary stream (zip members)."""
+
+    def __init__(self, raw: IO[bytes]) -> None:
+        super().__init__()
+        self._raw = raw
+        self._buffer = bytearray()
+        self._offset = 0
+
+    def readable(self) -> bool:
+        return True
+
+    def peek(self, size: int = 1) -> bytes:
+        while len(self._buffer) - self._offset < size:
+            chunk = self._raw.read(64 * 1024)
+            if not chunk:
+                break
+            self._buffer.extend(chunk)
+        return bytes(self._buffer[self._offset : self._offset + size])
+
+    def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            self._drain()
+            data = bytes(self._buffer[self._offset :])
+            self._offset = len(self._buffer)
+            return data
+        self.peek(size)
+        data = bytes(self._buffer[self._offset : self._offset + size])
+        self._offset += len(data)
+        return data
+
+    def readinto(self, buffer: Any) -> int:
+        data = self.read(len(buffer))
+        buffer[: len(data)] = data
+        return len(data)
+
+    def _drain(self) -> None:
+        while True:
+            chunk = self._raw.read(64 * 1024)
+            if not chunk:
+                return
+            self._buffer.extend(chunk)
+
+
+def _iter_json_rows(raw: IO[bytes], dataset_type: str | None) -> Iterator[dict[str, Any]]:
+    reader = _PeekableReader(raw)
+    first = reader.peek(64 * 1024).lstrip(b" \t\r\n")[:1]
+    if first == b"[":
+        for item in ijson.items(reader, "item"):
+            if _accept_row(item, dataset_type):
+                yield item
+        return
+    if first == b"{":
+        head = reader.peek(64 * 1024).decode("utf-8", errors="ignore")
+        for key in _ARRAY_KEYS:
+            if f'"{key}"' in head:
+                for item in ijson.items(reader, f"{key}.item"):
+                    if _accept_row(item, dataset_type):
+                        yield item
+                return
+    for row in _rows_from_json_value(json.load(reader)):
+        if _accept_row(row, dataset_type):
+            yield row
+
+
+def iter_food_rows(path: Path, *, dataset_type: str | None = None) -> Iterator[dict[str, Any]]:
+    """Yield USDA food rows without materializing the whole archive in memory.
+
+    Large branded bulk downloads stream their top-level JSON array one item at
+    a time; smaller or object-wrapped files fall back to an in-memory parse.
+    Branded rows are filtered to the gym product categories Cookfully indexes.
+    """
+    if path.suffix.casefold() == ".zip":
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.casefold().endswith(".json")]
+            member = _select_json_member(names, dataset_type)
+            with archive.open(member) as raw:
+                yield from _iter_json_rows(raw, dataset_type)
+    else:
+        with path.open("rb") as raw:
+            yield from _iter_json_rows(raw, dataset_type)
 
 
 def import_release(
@@ -116,7 +222,11 @@ def import_release(
             f"Dataset must be one of {', '.join(sorted(ALLOWED_TYPES))}.",
             422,
         )
-    rows = load_usda_archive(path, dataset_type=dataset_type)
+    rows = (
+        iter_food_rows(path, dataset_type=dataset_type)
+        if dataset_type == "branded_food"
+        else load_usda_archive(path, dataset_type=dataset_type)
+    )
     engine = create_database_engine(get_settings())
     sessions = create_session_factory(engine)
     try:
@@ -145,6 +255,8 @@ def import_release(
             )
             session.add(dataset)
             session.flush()
+            dataset_id = dataset.id
+            inserted = 0
             for row in rows:
                 if not isinstance(row, dict):
                     continue
@@ -168,7 +280,7 @@ def import_release(
                     serving_unit = str(row.get("servingSizeUnit", "") or "").strip() or None
                 food = FoodReference(
                     id=uuid7(),
-                    dataset_id=dataset.id,
+                    dataset_id=dataset_id,
                     external_id=str(row["fdcId"]),
                     description=description,
                     normalized_name=normalize_food_name(description),
@@ -182,17 +294,16 @@ def import_release(
                     serving_unit=serving_unit,
                 )
                 session.add(food)
-                for item in row.get("foodNutrients") or []:
+                for item in _dedupe_nutrients(row.get("foodNutrients")):
                     nutrient = item.get("nutrient", {})
                     code = nutrient.get("number") or nutrient.get("id")
-                    if code is None:
-                        continue
+                    nutrient_code = str(code)
                     amount = item.get("amount")
                     mapping = usda_micronutrient_mapping(code)
                     session.add(
                         FoodNutrient(
                             food_reference_id=food.id,
-                            nutrient_code=str(code),
+                            nutrient_code=nutrient_code,
                             canonical_key=mapping.key if mapping is not None else None,
                             mapping_version=(
                                 mapping.mapping_version if mapping is not None else None
@@ -207,6 +318,16 @@ def import_release(
                             derivation=str(item.get("foodNutrientDerivation", "")) or None,
                         )
                     )
+                inserted += 1
+                if inserted % 500 == 0:
+                    session.flush()
+                    session.expunge_all()
+                    refetched = session.get(ReferenceDataset, dataset_id)
+                    assert refetched is not None
+                    dataset = refetched
+            refetched = session.get(ReferenceDataset, dataset_id)
+            assert refetched is not None
+            dataset = refetched
             dataset.status = "ready"
             session.flush()
             return dataset
