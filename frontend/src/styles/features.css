@@ -1057,6 +1057,23 @@
 .reference-data-section .token-card .section-heading > div { min-width: 0; }
 .reference-data__install-button { flex: 0 0 auto; max-width: 100%; line-height: 1.2; white-space: normal; text-align: center; }
 .reference-data__spinner { animation: spin 1.1s linear infinite; }
+.nutrition-intelligence-section { max-width: 58rem; }
+.settings-status { flex: 0 0 auto; border-radius: var(--radius-full); padding: 0.35rem 0.65rem; color: var(--color-on-primary-container); background: var(--color-primary-container); font-size: 0.75rem; font-weight: 620; }
+.resource-estimate { display: grid; gap: 1rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface-low); }
+.resource-estimate--warning { border-color: var(--status-warning); }
+.resource-estimate--blocked { border-color: var(--status-error); }
+.resource-estimate__heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.resource-estimate__heading h3 { font-family: var(--font-body); font-size: 1.05rem; font-weight: 620; }
+.resource-estimate__status { text-transform: capitalize; font-size: 0.78rem; font-weight: 620; }
+.resource-estimate__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.resource-estimate__grid > div { display: flex; min-width: 0; align-items: center; gap: 0.55rem; border-top: 1px solid var(--color-outline-variant); padding-top: 0.7rem; }
+.resource-estimate__grid svg { flex: 0 0 auto; width: 1rem; color: var(--color-primary); }
+.resource-estimate__grid span { display: grid; min-width: 0; gap: 0.12rem; }
+.resource-estimate__grid strong { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.resource-estimate__grid small { color: var(--color-on-surface-variant); font-size: 0.7rem; }
+.resource-estimate__warnings { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.1rem; color: var(--color-on-surface-variant); font-size: 0.8rem; }
+.settings-range { width: 100%; accent-color: var(--color-primary); }
+.settings-range-labels { display: flex; justify-content: space-between; color: var(--color-on-surface-variant); font-size: 0.75rem; }
 .one-time-secret { display: grid; min-width: 0; gap: 0.75rem; overflow: hidden; border-radius: var(--radius-lg); padding: 1rem; color: var(--color-on-primary); background: var(--color-herb-800); }
 .one-time-secret h2,
 .one-time-secret .eyebrow { color: var(--color-on-primary); }
@@ -1115,11 +1132,13 @@
   .reference-data__install-button { width: 100%; }
   .scope-picker { grid-template-columns: 1fr; }
   .scope-option:nth-of-type(odd) { border-right: 0; }
-  .settings-tabs { position: static; display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; overflow: visible; padding-bottom: 0.25rem; }
+   .settings-tabs { position: static; display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; overflow: visible; padding-bottom: 0.25rem; }
   .settings-tabs button { display: grid; width: 100%; min-width: 0; min-height: 3.75rem; grid-template-columns: 1fr; justify-items: center; gap: 0.25rem; padding: 0.5rem 0.25rem; text-align: center; }
   .settings-tabs button > span { display: block; min-width: 0; }
   .settings-tabs button strong { display: block; overflow-wrap: anywhere; font-size: 0.76rem; line-height: 1.15; }
-  .settings-tabs button small { display: none; }
+   .settings-tabs button small { display: none; }
+   .resource-estimate__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+   .resource-estimate__heading { flex-direction: column; }
 }
 
 /* Grocery — compact, tactile and designed for one-handed checking. */

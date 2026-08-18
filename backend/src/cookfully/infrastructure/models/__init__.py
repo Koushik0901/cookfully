@@ -21,6 +21,7 @@ from cookfully.infrastructure.models.nutrition import (
     NutritionCorrection,
     NutritionEstimate,
 )
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import (
@@ -69,6 +70,7 @@ __all__ = [
     "MediaAsset",
     "NutritionCorrection",
     "NutritionEstimate",
+    "NutritionIntelligenceSettings",
     "OutboxEvent",
     "OwnerAccount",
     "OwnerFood",

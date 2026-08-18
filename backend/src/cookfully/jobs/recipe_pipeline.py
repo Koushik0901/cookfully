@@ -49,6 +49,7 @@ from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.jobs import TERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionEstimate
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import (
     Ingredient,
@@ -136,7 +137,8 @@ class RecipePipeline:
         self._jobs = JobService(session_factory)
         self._importer = importer
         self._image_service = image_service
-        self._embedder = embedder or HashingTextEmbedder()
+        self._embedder = embedder
+        self._embedder_key: tuple[str, str, str | None] | None = None
 
     async def process(self, envelope: JobEnvelope) -> PipelineResult:
         if envelope.aggregate_type != "recipe" or envelope.kind not in {
@@ -385,7 +387,7 @@ class RecipePipeline:
                     "Required nutrition reference data is not active.",
                     503,
                 )
-            matcher = FoodMatcher(repository, embedder=self._embedder)
+            matcher = FoodMatcher(repository, embedder=self._embedder_for_session(session))
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
@@ -436,6 +438,27 @@ class RecipePipeline:
                 session, job.id, next_kind=NEXT_KIND[job.kind]
             )
             return next_job
+
+    def _embedder_for_session(self, session: Session) -> TextEmbedder:
+        if self._embedder is not None:
+            return self._embedder
+        settings = session.get(NutritionIntelligenceSettings, 1)
+        backend = settings.backend if settings is not None else "hashing"
+        model_name = settings.model_name if settings is not None else ""
+        revision = settings.model_revision if settings is not None else None
+        key = (backend, model_name, revision)
+        if self._embedder_key != key:
+            if backend == "fastembed":
+                runtime = get_settings()
+                self._embedder = create_text_embedder(
+                    model_name=model_name,
+                    cache_dir=runtime.semantic_matching_model_dir,
+                )
+            else:
+                self._embedder = HashingTextEmbedder()
+            self._embedder_key = key
+        assert self._embedder is not None
+        return self._embedder
 
     def _rollup(self, job_id: UUID) -> ProcessingJob | None:
         with self._session_factory.begin() as session:

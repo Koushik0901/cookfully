@@ -21,6 +21,7 @@ from cookfully.api.routes import (
     jobs,
     meal_plans,
     media,
+    nutrition_intelligence,
     owner,
     pantry,
     recipes,
@@ -37,6 +38,7 @@ from cookfully.application.idempotency import IdempotencyService
 from cookfully.application.import_preview import ImportPreviewCoordinator
 from cookfully.application.jobs import JobService
 from cookfully.application.meal_plans import GoalService, MealPlanService
+from cookfully.application.nutrition_intelligence import NutritionIntelligenceService
 from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.application.pantry import PantryService
@@ -134,6 +136,9 @@ _OPERATION_IDS = {
     "get_suggestion": "getSuggestion",
     "accept_suggestion": "acceptSuggestion",
     "get_recipe_media": "getRecipeMedia",
+    "get_settings": "getNutritionIntelligenceSettings",
+    "estimate": "estimateNutritionIntelligence",
+    "update_settings": "updateNutritionIntelligenceSettings",
 }
 
 
@@ -241,6 +246,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.sessions = sessions
             app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
             app.state.reference_data = ReferenceDataInstallService(sessions)
+            app.state.nutrition_intelligence = NutritionIntelligenceService(sessions)
             try:
                 async with mcp_http.router.lifespan_context(mcp_http):
                     yield
@@ -284,6 +290,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(media.router)
     versioned.include_router(foods.router)
     versioned.include_router(reference_data.router)
+    versioned.include_router(nutrition_intelligence.router)
     app.include_router(versioned)
     app.mount("/mcp", McpAuthenticationMiddleware(mcp_http, mcp_security), name="mcp")
     return app

@@ -333,6 +333,46 @@ trustworthy even though cooking and meal preparation are the primary experience.
 `frontend/src/features/plans/WeeklyPlannerPage.tsx`, and
 `frontend/src/features/plans/__tests__/planning-ui.test.tsx`.
 
+## Installation-level model settings and workload preview — 2026-08-18
+
+### Source inspected
+
+- [Immich system settings](https://immich.app/docs/administration/system-settings), especially its
+  machine-learning capability switch, operation-specific model sections, availability checks, reset
+  defaults action, model-change reprocessing requirement, and concurrency guidance.
+- [Immich jobs and workers](https://immich.app/docs/administration/jobs-workers), especially its
+  separation of API work from background jobs and its ability to split worker responsibilities.
+
+### Objective comparison
+
+Immich makes expensive processing understandable before it runs: an administrator can choose an ML
+backend/model per operation, see availability, tune concurrency, and explicitly re-run the affected
+job. That is better than hiding all behavior in environment variables. Immich's remote ML server list
+and image-specific model controls are not directly transferable: Cookfully's ingredient matching is
+nutrition evidence, and an unavailable or changed model must never silently replace a manual correction
+or rewrite a recipe estimate.
+
+### Local decision
+
+Adapt Immich's system-settings pattern into an installation-level **Nutrition Intelligence** section:
+
+- deterministic matching remains the safety baseline; enhanced embeddings are an optional backend,
+  not a global nutrition off-switch;
+- model name, revision, and bounded concurrency are persisted with optimistic versioning;
+- a pre-save estimate calls the fixed Hugging Face metadata host and combines model size, active food
+  count, CPU, memory, and disk capacity into a conservative safe/warning/blocked result;
+- saving requires the estimate hash, while model loading and nutrition work remain background activity;
+- changing settings affects future processing and requires explicit recalculation for existing recipes;
+- a Redis lease limits concurrent nutrition-match jobs so the requested concurrency is an actual bound,
+  while crashed workers release capacity through expiry;
+- remote model URLs, arbitrary code execution, and raw host diagnostics are rejected for now.
+
+This fits Cookfully's narrower requirement: give self-hosting administrators Immich-like control and
+visibility without making model similarity a source of silent nutrition authority. Evidence:
+`backend/src/cookfully/application/nutrition_intelligence.py`,
+`backend/src/cookfully/infrastructure/nutrition_concurrency.py`,
+`frontend/src/features/settings/NutritionIntelligenceTab.tsx`, and the resource-estimate contract tests.
+
 ## Non-standard unit handling — 2026-08-12
 
 ### Sources inspected

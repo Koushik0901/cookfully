@@ -1471,6 +1471,50 @@ paths:
         "409":
           description: An install is already in flight.
 
+  /nutrition-intelligence/settings:
+    get:
+      tags: [Nutrition Intelligence]
+      operationId: getNutritionIntelligenceSettings
+      responses:
+        "200":
+          description: Installation-level nutrition matching settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionIntelligenceSettings" }
+    put:
+      tags: [Nutrition Intelligence]
+      operationId: updateNutritionIntelligenceSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NutritionIntelligenceSettingsWrite" }
+      responses:
+        "200":
+          description: Updated nutrition matching settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionIntelligenceSettings" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /nutrition-intelligence/estimate:
+    post:
+      tags: [Nutrition Intelligence]
+      operationId: estimateNutritionIntelligence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NutritionIntelligenceEstimateRequest" }
+      responses:
+        "200":
+          description: Conservative model and concurrency resource estimate.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NutritionIntelligenceEstimate" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     sessionCookie:
@@ -1669,6 +1713,58 @@ components:
         timezone: { type: string, minLength: 1, maxLength: 100 }
         weekStartsOn: { type: integer, minimum: 1, maximum: 7 }
         version: { type: integer, minimum: 1 }
+    NutritionIntelligenceSettings:
+      type: object
+      additionalProperties: false
+      required: [backend, modelName, modelRevision, concurrency, version, runtimeStatus]
+      properties:
+        backend: { type: string, enum: [hashing, fastembed] }
+        modelName: { type: string, minLength: 1, maxLength: 200 }
+        modelRevision: { type: [string, "null"] }
+        concurrency: { type: integer, minimum: 1, maximum: 4 }
+        version: { type: integer, minimum: 1 }
+        runtimeStatus: { type: string, enum: [ready, configured, fallback] }
+    NutritionIntelligenceSettingsWrite:
+      type: object
+      additionalProperties: false
+      required: [backend, modelName, concurrency, version, estimateHash]
+      properties:
+        backend: { type: string, enum: [hashing, fastembed] }
+        modelName: { type: string, minLength: 1, maxLength: 200 }
+        concurrency: { type: integer, minimum: 1, maximum: 4 }
+        version: { type: integer, minimum: 1 }
+        estimateHash: { type: string, minLength: 64, maxLength: 64 }
+    NutritionIntelligenceEstimateRequest:
+      type: object
+      additionalProperties: false
+      required: [backend, modelName, concurrency]
+      properties:
+        backend: { type: string, enum: [hashing, fastembed] }
+        modelName: { type: string, minLength: 1, maxLength: 200 }
+        concurrency: { type: integer, minimum: 1, maximum: 4 }
+    NutritionIntelligenceEstimate:
+      type: object
+      additionalProperties: false
+      required: [backend, modelName, modelRevision, concurrency, activeFoodCount, downloadBytes, diskBytes, modelMemoryBytes, perJobMemoryBytes, totalMemoryBytes, requiredCpuCores, availableCpuCores, availableMemoryBytes, availableDiskBytes, memoryHeadroomBytes, status, warnings, estimateHash]
+      properties:
+        backend: { type: string, enum: [hashing, fastembed] }
+        modelName: { type: string }
+        modelRevision: { type: [string, "null"] }
+        concurrency: { type: integer }
+        activeFoodCount: { type: integer }
+        downloadBytes: { type: integer }
+        diskBytes: { type: integer }
+        modelMemoryBytes: { type: integer }
+        perJobMemoryBytes: { type: integer }
+        totalMemoryBytes: { type: integer }
+        requiredCpuCores: { type: integer }
+        availableCpuCores: { type: integer }
+        availableMemoryBytes: { type: integer }
+        availableDiskBytes: { type: integer }
+        memoryHeadroomBytes: { type: integer }
+        status: { type: string, enum: [safe, warning, blocked] }
+        warnings: { type: array, items: { type: string } }
+        estimateHash: { type: string, minLength: 64, maxLength: 64 }
     OwnerOnboarding:
       type: object
       additionalProperties: false

@@ -1,5 +1,11 @@
 import { apiRequest } from "../recipes/api";
 import type { AccessToken, AccessTokenCreated, AccessTokenWrite, PasswordChange, SessionList } from "./types";
+import type {
+  NutritionIntelligenceEstimate,
+  NutritionIntelligenceEstimateRequest,
+  NutritionIntelligenceSettings,
+  NutritionIntelligenceSettingsWrite,
+} from "./types";
 
 export const agentAccessApi = {
   list() {
@@ -38,5 +44,23 @@ export const accountApi = {
     return apiRequest<void>("/auth/session", {
       method: "DELETE",
     });
+  },
+};
+
+export const nutritionIntelligenceApi = {
+  get() {
+    return apiRequest<NutritionIntelligenceSettings>("/nutrition-intelligence/settings");
+  },
+  estimate(value: NutritionIntelligenceEstimateRequest) {
+    return apiRequest<NutritionIntelligenceEstimate>(
+      "/nutrition-intelligence/estimate",
+      { method: "POST", body: JSON.stringify(value) },
+    );
+  },
+  update(value: NutritionIntelligenceSettingsWrite) {
+    return apiRequest<NutritionIntelligenceSettings>(
+      "/nutrition-intelligence/settings",
+      { method: "PUT", body: JSON.stringify(value) },
+    );
   },
 };

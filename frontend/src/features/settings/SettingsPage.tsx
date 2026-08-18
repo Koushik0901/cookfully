@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Database, KeyRound, ShieldCheck, UserRound } from "lucide-react";
+import { Cpu, Database, KeyRound, ShieldCheck, UserRound } from "lucide-react";
 
 import { PageHeader } from "../../components";
 import { AccountTab } from "./AccountTab";
 import { AgentAccessPage } from "./AgentAccessPage";
 import { SecurityTab } from "./SecurityTab";
 import { NutritionDataTab } from "../referenceData/NutritionDataTab";
+import { NutritionIntelligenceTab } from "./NutritionIntelligenceTab";
 
 const TABS = [
   { id: "account", label: "Account", description: "Name and planning week", Icon: UserRound },
   { id: "security", label: "Security", description: "Password and sessions", Icon: ShieldCheck },
   { id: "api", label: "Connections", description: "Third-party apps and access keys", Icon: KeyRound },
   { id: "data", label: "Nutrition data", description: "USDA reference foods", Icon: Database },
+  { id: "intelligence", label: "Intelligence", description: "Models and workload", Icon: Cpu },
 ] as const;
 
 export function SettingsPage() {
@@ -60,6 +62,11 @@ export function SettingsPage() {
         {tab === "data" ? (
           <div id="settings-panel-data" role="tabpanel" aria-labelledby="settings-tab-data">
             <NutritionDataTab />
+          </div>
+        ) : null}
+        {tab === "intelligence" ? (
+          <div id="settings-panel-intelligence" role="tabpanel" aria-labelledby="settings-tab-intelligence">
+            <NutritionIntelligenceTab />
           </div>
         ) : null}
       </div>

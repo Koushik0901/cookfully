@@ -80,7 +80,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
-    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=${COOKFULLY_WORKER_MAX_CONCURRENCY:-4}"]
     environment:
       <<: *backend-environment
       COOKFULLY_RUN_MIGRATIONS: "false"

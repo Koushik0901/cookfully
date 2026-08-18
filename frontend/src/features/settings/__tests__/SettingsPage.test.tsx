@@ -56,7 +56,7 @@ describe("settings page", () => {
     );
   }
 
-  it("renders Account, Security, Connections, and Nutrition data tabs and edits account details", async () => {
+  it("renders Account, Security, Connections, Nutrition data, and Intelligence tabs and edits account details", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
@@ -76,12 +76,63 @@ describe("settings page", () => {
     expect(screen.getByRole("tab", { name: "Security" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Connections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Nutrition data" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Intelligence" })).toBeVisible();
 
     expect(await screen.findByLabelText("Display name")).toHaveValue("Owner");
     await user.clear(screen.getByLabelText("Display name"));
     await user.type(screen.getByLabelText("Display name"), "Alex");
     await user.click(screen.getByRole("button", { name: "Save account" }));
     await waitFor(() => expect(screen.getByText("Account details saved.")).toBeVisible());
+  });
+
+  it("previews model resources before saving nutrition intelligence settings", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (path.includes("/nutrition-intelligence/settings") && !init?.method) {
+        return json({
+          backend: "hashing",
+          modelName: "BAAI/bge-small-en-v1.5",
+          modelRevision: null,
+          concurrency: 1,
+          version: 1,
+          runtimeStatus: "ready",
+        });
+      }
+      if (path.includes("/nutrition-intelligence/estimate")) {
+        return json({
+          backend: "fastembed",
+          modelName: "BAAI/bge-small-en-v1.5",
+          modelRevision: "abc123456789",
+          concurrency: 2,
+          activeFoodCount: 8100,
+          downloadBytes: 133466304,
+          diskBytes: 133466304,
+          modelMemoryBytes: 268435456,
+          perJobMemoryBytes: 12582912,
+          totalMemoryBytes: 293601280,
+          requiredCpuCores: 2,
+          availableCpuCores: 8,
+          availableMemoryBytes: 8589934592,
+          availableDiskBytes: 21474836480,
+          memoryHeadroomBytes: 8296333312,
+          status: "safe",
+          warnings: [],
+          estimateHash: "a".repeat(64),
+        });
+      }
+      return json({}, 404);
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Intelligence" }));
+
+    expect(await screen.findByText("Plan the load before you save.")).toBeVisible();
+    await user.selectOptions(screen.getByLabelText("Matching backend"), "fastembed");
+    expect(await screen.findByText("Comfortable headroom")).toBeVisible();
+    expect(screen.getByText("127 MB")).toBeVisible();
+    expect(screen.getByText(/8,100 active foods/)).toBeVisible();
   });
 
   it("shows active sessions on the Security tab", async () => {
