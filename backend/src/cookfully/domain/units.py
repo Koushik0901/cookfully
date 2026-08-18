@@ -118,7 +118,9 @@ def coverage_ratio(ingredients: list[IngredientMeasure]) -> Coverage:
     total_mass = sum((item.minimum or Decimal(0)) for item in measured)
     matched_mass = sum((item.minimum or Decimal(0)) for item in measured if item.matched)
     mass = matched_mass / total_mass if total_mass else Decimal(0)
-    count = Decimal(sum(1 for item in required if item.matched)) / Decimal(len(required) or 1)
+    count = Decimal(
+        sum(1 for item in required if item.matched and item.minimum is not None)
+    ) / Decimal(len(required) or 1)
     mass_q = quantize_decimal(mass, NUTRIENT_SCALE)
     count_q = quantize_decimal(count, NUTRIENT_SCALE)
     return Coverage(mass_q, count_q, min(mass_q, count_q))

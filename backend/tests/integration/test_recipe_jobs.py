@@ -168,7 +168,22 @@ def install_reference_data(session_factory: sessionmaker[Session]) -> None:
                 ),
             ],
         )
-        session.add_all([foundation, legacy, food])
+        salt = FoodReference(
+            id=uuid7(),
+            dataset=foundation,
+            external_id="1002",
+            description="Salt",
+            normalized_name="salt",
+            data_type="foundation",
+            basis_grams=Decimal("100.000000"),
+            nutrients=[
+                FoodNutrient(nutrient_code="1008", amount=Decimal("0"), unit="kcal"),
+                FoodNutrient(nutrient_code="1003", amount=Decimal("0"), unit="g"),
+                FoodNutrient(nutrient_code="1005", amount=Decimal("0"), unit="g"),
+                FoodNutrient(nutrient_code="1004", amount=Decimal("0"), unit="g"),
+            ],
+        )
+        session.add_all([foundation, legacy, food, salt])
 
 
 def pipeline(session_factory: sessionmaker[Session], importer: ImporterStub) -> RecipePipeline:
@@ -338,6 +353,54 @@ async def test_source_estimate_coverage_updated_to_real_ingredient_coverage_afte
         active = session.get(NutritionEstimate, recipe.active_estimate_id)
         assert active is not None and active.status == "source_provided"
         assert active.coverage_ratio == Decimal("0.500000")
+
+
+@pytest.mark.asyncio
+async def test_unquantified_matched_ingredient_remains_unresolved_for_coverage(
+    session_factory: sessionmaker[Session], tmp_path: Path
+) -> None:
+    install_reference_data(session_factory)
+    owner_id = bootstrap_owner_id(session_factory)
+    mutation = recipe_service(session_factory, tmp_path).create(
+        RecipeWrite(
+            title="Chicken with salt",
+            yield_quantity=Decimal("2.000"),
+            ingredients=(
+                IngredientWrite(
+                    original_text="200 g chicken breast",
+                    quantity_min=Decimal("200.000000"),
+                    quantity_max=Decimal("200.000000"),
+                    unit_code="gram",
+                    food_name="chicken breast",
+                ),
+                IngredientWrite(
+                    original_text="salt to taste",
+                    quantity_min=None,
+                    quantity_max=None,
+                    unit_code=None,
+                    food_name="salt",
+                ),
+            ),
+            instructions=("Cook.",),
+        ),
+        trace_id="trace-unquantified",
+        owner_id=owner_id,
+    )
+    assert mutation.job is not None
+    worker = pipeline(session_factory, ImporterStub(DomainError("unexpected", "unused", 500)))
+
+    parsed = await worker.process(envelope_for(session_factory, mutation.job.id))
+    matched = await worker.process(envelope_for(session_factory, parsed.next_job_id))
+    rolled_up = await worker.process(envelope_for(session_factory, matched.next_job_id))
+
+    assert rolled_up.status == "succeeded"
+    with session_factory() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        assert recipe is not None
+        estimate = session.get(NutritionEstimate, recipe.active_estimate_id)
+        assert estimate is not None
+        assert estimate.coverage_ratio == Decimal("0.500000")
+        assert recipe.status == "partial"
 
 
 @pytest.mark.asyncio

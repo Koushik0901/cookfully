@@ -34,3 +34,29 @@ def test_lower_of_mass_and_required_count_coverage() -> None:
     assert coverage.mass == Decimal("0.500000")
     assert coverage.required_count == Decimal("0.333333")
     assert coverage.overall == Decimal("0.333333")
+
+
+def test_unquantified_required_match_does_not_count_as_resolved() -> None:
+    coverage = coverage_ratio(
+        [
+            IngredientMeasure(Decimal("100"), None, "gram", matched=True),
+            IngredientMeasure(None, None, None, matched=True),
+        ]
+    )
+
+    assert coverage.mass == Decimal("1.000000")
+    assert coverage.required_count == Decimal("0.500000")
+    assert coverage.overall == Decimal("0.500000")
+
+
+def test_unresolved_and_optional_ingredients_cannot_inflate_coverage() -> None:
+    coverage = coverage_ratio(
+        [
+            IngredientMeasure(Decimal("100"), None, "gram", matched=False),
+            IngredientMeasure(None, None, None, optional=True, matched=False),
+        ]
+    )
+
+    assert coverage.mass == Decimal("0.000000")
+    assert coverage.required_count == Decimal("0.000000")
+    assert coverage.overall == Decimal("0.000000")

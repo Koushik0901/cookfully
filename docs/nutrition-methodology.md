@@ -15,7 +15,7 @@ Only non-optional ingredients participate in required coverage. The pipeline com
 - quantified-mass coverage: matched, convertible grams divided by all quantified, convertible non-optional grams;
 - ingredient-count coverage: resolved non-optional ingredient count divided by all non-optional ingredient count.
 
-The published `coverageRatio` is the lower of those two values. A missing or zero denominator produces zero rather than an optimistic result. A benchmark recipe is nutrition-complete only when calories, protein, carbohydrate, and fat are all non-null and coverage is at least `0.900000`.
+The published `coverageRatio` is the lower of those two values. Required count coverage includes every non-optional ingredient in its denominator, but an ingredient is resolved only when its food identity and usable gram quantity are both available. Matched-but-unquantified ingredients therefore remain unresolved and cannot make a recipe complete. A missing or zero denominator produces zero rather than an optimistic result. A benchmark recipe is nutrition-complete only when calories, protein, carbohydrate, and fat are all non-null and coverage is at least `0.900000`.
 
 ## Precision and rounding
 
@@ -44,6 +44,8 @@ For each eligible nutrient observation at or above its near-zero floor, percenta
 `abs(estimate - reference) / reference * 100`
 
 The release metric is the median across every eligible recipe after per-serving yield normalization. The maximum permitted median error is 20% for calories and 25% each for protein, carbohydrate, and fat.
+
+The adversarial matching suite must contain zero known critical false-auto-match cases. A candidate that lacks a requested identity, part, state, or product form may remain visible for review but cannot be selected automatically.
 
 Near-zero references are excluded only from that nutrient's percentage summary because percentage error becomes unstable near zero. They remain in the corpus and are reported separately using median and maximum absolute error. The floors are 50 kcal, 5 g protein, 5 g carbohydrate, and 2 g fat.
 

@@ -192,6 +192,59 @@ def test_rice_flour_does_not_beat_brown_rice() -> None:
     assert best_food_id(decision) == "brown-rice"
 
 
+def test_generic_chicken_does_not_auto_match_chicken_breast() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub([food("generic-chicken", "Chicken, meat only, raw")])
+    )
+
+    decision = matcher.decide("chicken breast")
+
+    assert decision.status in {"ambiguous", "unmatched"}
+    assert decision.candidate is None
+
+
+def test_partial_semantic_identity_does_not_auto_match() -> None:
+    matcher = FoodMatcher(  # type: ignore[arg-type]
+        FoodRepositoryStub([food("generic-chicken", "Chicken, meat only, raw")])
+    )
+
+    decision = matcher.decide("chicken breast")
+
+    assert decision.status != "matched"
+
+
+def test_known_attribute_mismatches_never_auto_match() -> None:
+    cases = [
+        (
+            "cooked chicken",
+            food("generic-chicken", "Chicken, meat only"),
+        ),
+        (
+            "banana powder",
+            food("raw-banana", "Bananas, raw"),
+        ),
+        (
+            "buttermilk",
+            food("whole-milk", "Milk, whole, 3.25% milkfat"),
+        ),
+        (
+            "rice flour",
+            food("raw-rice", "Rice, brown, long-grain, raw"),
+        ),
+        (
+            "lemon juice",
+            food("lemongrass", "Lemon grass (citronella), raw"),
+        ),
+    ]
+
+    for query, candidate in cases:
+        decision = FoodMatcher(  # type: ignore[arg-type]
+            FoodRepositoryStub([candidate])
+        ).decide(query)
+
+        assert decision.candidate is None, query
+
+
 def test_buttermilk_is_never_auto_matched_for_whole_milk() -> None:
     matcher = FoodMatcher(  # type: ignore[arg-type]
         FoodRepositoryStub(

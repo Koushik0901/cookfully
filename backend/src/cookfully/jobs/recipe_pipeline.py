@@ -462,8 +462,10 @@ class RecipePipeline:
             for position, ingredient in enumerate(recipe.ingredients, start=1):
                 match = matches.get(ingredient.id)
                 grams = match.grams_min if match is not None else None
-                matched = match is not None and (
-                    match.food_reference_id is not None or match.owner_food_id is not None
+                matched = (
+                    match is not None
+                    and grams is not None
+                    and (match.food_reference_id is not None or match.owner_food_id is not None)
                 )
                 measures.append(
                     IngredientMeasure(

@@ -271,7 +271,10 @@ class FoodMatcher:
                     - Decimal("0.020000") * missing_query
                     - penalty
                 )
-                return quantize_decimal(max(Decimal(0), min(score, Decimal(1))), NUTRIENT_SCALE)
+                return quantize_decimal(
+                    max(Decimal("0.650000"), min(score, Decimal("0.799999"))),
+                    NUTRIENT_SCALE,
+                )
             aligned = Decimal(len(intersection)) / Decimal(len(query_set))
             jaccard = Decimal(len(intersection)) / Decimal(
                 len(query_set) + len(candidate_set) - len(intersection)

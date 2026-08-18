@@ -180,6 +180,9 @@ def compare_compatibility(
     if query.part and candidate.part and query.part != candidate.part:
         hard_conflict = True
         reasons.append("part_conflict")
+    elif query.part and candidate.part is None:
+        review = True
+        reasons.append("candidate_part_not_represented")
     elif query.part is None and candidate.part is not None:
         review = True
         reasons.append("candidate_part_unspecified")
@@ -187,9 +190,15 @@ def compare_compatibility(
     if query.state and candidate.state and query.state != candidate.state:
         hard_conflict = True
         reasons.append("state_conflict")
+    elif query.state and candidate.state is None:
+        review = True
+        reasons.append("candidate_state_not_represented")
     if query.form and candidate.form and query.form != candidate.form:
         hard_conflict = True
         reasons.append("form_conflict")
+    elif query.form and candidate.form is None:
+        review = True
+        reasons.append("candidate_form_not_represented")
     elif query.form is None and candidate.form not in {None, "whole_food"}:
         review = True
         reasons.append("candidate_form_unspecified")

@@ -55,6 +55,26 @@ def test_unspecified_part_is_ambiguous_but_explicit_part_is_compatible() -> None
     assert explicit.compatibility is Compatibility.COMPATIBLE
 
 
+def test_missing_requested_part_requires_review() -> None:
+    result = compare_compatibility(
+        profile_from_text("chicken breast"),
+        profile_from_text("Chicken, meat only, raw"),
+    )
+
+    assert result.compatibility is Compatibility.REVIEW
+    assert "candidate_part_not_represented" in result.reasons
+
+
+def test_missing_requested_state_requires_review() -> None:
+    result = compare_compatibility(
+        profile_from_text("cooked chicken"),
+        profile_from_text("Chicken, meat only"),
+    )
+
+    assert result.compatibility is Compatibility.REVIEW
+    assert "candidate_state_not_represented" in result.reasons
+
+
 def test_lemongrass_cannot_satisfy_lemon_identity() -> None:
     query = profile_from_text("lemon")
     candidate = FoodSemanticProfile(
