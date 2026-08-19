@@ -179,7 +179,7 @@
 }
 
 .input::placeholder {
-  color: oklch(0.510 0.032 145);
+  color: oklch(0.440 0.032 145);
 }
 
 .textarea {

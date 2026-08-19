@@ -140,20 +140,29 @@ useEffect(() => {
             .filter((item) => item.active && item.ingredientId == null)
             .map((item) => [item.field, item.id]) ?? [],
         );
+        const correctionPromises: Promise<unknown>[] = [];
         for (const [field] of NUTRITION_FIELDS) {
           const nextValue = nutritionValues[field].trim();
           if (nextValue === initialNutritionValues[field].trim()) continue;
           if (nextValue) {
-            await recipesApi.correct(saved.id, {
-              field,
-              decimalValue: nextValue,
-              reason: nutritionReason.trim() || "Updated in recipe editor",
-              rememberMatch: true,
-            });
+            correctionPromises.push(
+              recipesApi.correct(saved.id, {
+                field,
+                decimalValue: nextValue,
+                reason: nutritionReason.trim() || "Updated in recipe editor",
+                rememberMatch: true,
+              }),
+            );
           } else {
             const correctionId = activeCorrections.get(field);
-            if (correctionId) await recipesApi.resetCorrection(saved.id, correctionId);
+            if (correctionId) correctionPromises.push(recipesApi.resetCorrection(saved.id, correctionId));
           }
+        }
+        const results = await Promise.allSettled(correctionPromises);
+        const failures = results.filter((r) => r.status === "rejected");
+        if (failures.length) {
+          const message = failures[0] instanceof Error ? failures[0].message : "Nutrition corrections failed.";
+          throw new Error(message);
         }
       } catch (error) {
         setSavedRecipeId(saved.id);
@@ -238,20 +247,19 @@ function submit(event: FormEvent) {
         <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}>Edit</button>
         <button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}>Preview</button>
       </nav>
-      {view === "preview" ? (
-        <RecipeDraftPreview
-          title={title}
-          description={description}
-          sourceUrl={sourceUrl}
-          yieldQuantity={yieldQuantity}
-           yieldUnit={yieldUnit}
-           photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
-           thumbnailCrop={thumbnailCrop}
-           blocks={blocks}
-          macros={NUTRITION_FIELDS.slice(0, 4).filter(([field]) => nutritionValues[field].trim()).map(([field, label, unit]) => ({ label: `${label} (${unit})`, value: nutritionValues[field].trim() }))}
-        />
-      ) : (
-      <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}`} onSubmit={submit} noValidate>
+      <RecipeDraftPreview
+        title={title}
+        description={description}
+        sourceUrl={sourceUrl}
+        yieldQuantity={yieldQuantity}
+         yieldUnit={yieldUnit}
+         photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
+         thumbnailCrop={thumbnailCrop}
+         blocks={blocks}
+        macros={NUTRITION_FIELDS.slice(0, 4).filter(([field]) => nutritionValues[field].trim()).map(([field, label, unit]) => ({ label: `${label} (${unit})`, value: nutritionValues[field].trim() }))}
+        className={view === "preview" ? undefined : "u-hidden"}
+      />
+      <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}${view === "edit" ? undefined : " u-hidden"}`} onSubmit={submit} noValidate>
         <section className="recipe-editor__identity" aria-label="Recipe name and yield">
           <Field label="Recipe title" error={errors.title}><input className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
           <div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field></div>
@@ -304,12 +312,11 @@ function submit(event: FormEvent) {
           </div>
         </details>
         {photoPreview || (detail.data?.imageUrl && !removePhoto) ? <section className="recipe-editor__crop" aria-labelledby="recipe-crop-heading"><p className="eyebrow" id="recipe-crop-heading">Frame your cover</p><ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /></section> : null}
-        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h2 id="recipe-photo-heading">Choose the cover</h2><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button> : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
+        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h3 id="recipe-photo-heading">Choose the cover</h3><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button> : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
         <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
-      )}
     </main>
   );
 }

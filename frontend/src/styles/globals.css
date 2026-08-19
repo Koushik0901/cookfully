@@ -267,3 +267,5 @@ small {
     transition-duration: 0.01ms !important;
   }
 }
+
+.u-hidden { display: none !important; }

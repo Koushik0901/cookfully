@@ -25,6 +25,7 @@ export function RecipeDraftPreview({
   thumbnailCrop,
   blocks,
   macros = [],
+  className,
 }: {
   title: string;
   description: string;
@@ -35,12 +36,13 @@ export function RecipeDraftPreview({
   thumbnailCrop?: { focalX: string | number; focalY: string | number; zoom: string | number };
   blocks: DraftBlock[];
   macros?: DraftMacro[];
+  className?: string;
 }) {
   const ingredientCount = blocks.reduce((total, block) => total + block.ingredients.split("\n").filter((line) => line.trim()).length, 0);
   const stepCount = blocks.reduce((total, block) => total + block.instructions.split("\n").filter((line) => line.trim()).length, 0);
 
   return (
-    <div className="recipe-draft-preview" aria-label="Recipe preview">
+    <div className={`recipe-draft-preview${className ? ` ${className}` : ""}`} aria-label="Recipe preview">
       <section className="recipe-hero" aria-labelledby="recipe-preview-title">
         <div className="recipe-hero__media">
            {photoUrl ? <img src={photoUrl} alt={title} style={thumbnailCrop ? { "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties : undefined} /> : <RecipeFallbackArt title={title} />}

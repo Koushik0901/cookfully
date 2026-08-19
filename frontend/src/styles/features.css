@@ -673,7 +673,7 @@
 .recipe-editor__section-heading > span { color: var(--color-tomato); font-size: 0.75rem; font-weight: 700; }
 .recipe-editor__section-heading > div { display: grid; gap: 0.35rem; }
 .recipe-editor__section-heading p { color: var(--color-on-surface-variant); font-size: 0.84rem; }
-.recipe-editor__textarea { min-height: 22rem; border: 0; border-radius: var(--radius-lg); padding: 1.25rem; background: var(--color-surface-bright); box-shadow: var(--shadow-level-1); line-height: 1.75; }
+.recipe-editor__textarea { min-height: 14rem; border: 0; border-radius: var(--radius-lg); padding: 1.25rem; background: var(--color-surface-bright); box-shadow: var(--shadow-level-1); line-height: 1.75; }
 .structured-review ul { display: grid; gap: 0.5rem; padding: 0.75rem 0 1rem; list-style: none; }
 .structured-review li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--color-outline-variant); padding-bottom: 0.5rem; }
 .structured-review li > span { display: grid; gap: 0.15rem; }
@@ -825,7 +825,7 @@
 @media (max-width: 63.99rem) {
   .recipe-editor__identity { grid-template-columns: 1fr; }
   .recipe-editor__workbench { grid-template-columns: 1fr; }
-  .recipe-editor__textarea { min-height: 16rem; }
+  .recipe-editor__textarea { min-height: 10rem; }
   .cook-mode__body { grid-template-columns: 1fr; }
   .cook-mode__ingredients { border-right: 0; border-bottom: 1px solid var(--color-on-dark-line); padding-block: 0.75rem; }
   .cook-mode__ingredient-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.25rem; }
