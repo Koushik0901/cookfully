@@ -1,18 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
-import { Plus } from "lucide-react";
+import { Undo2 } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
 import { RecipeDraftPreview } from "./RecipeDraftPreview";
 import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
 import type { RecipeWrite, ThumbnailCropWrite } from "./types";
+import {
+  type EditorBlock,
+  editorBlocksFromRecipe,
+  newEditorBlock,
+  previewBlocks,
+  serializeRecipeBlocks,
+} from "./recipeEditorModel";
+import { StructuredIngredientEditor, StructuredMethodEditor } from "./StructuredRecipeFields";
 
 const decimalPattern = /^(?!0(?:\.0{1,3})?$)(?:0|[1-9][0-9]*)(?:\.[0-9]{1,3})?$/;
 const optionalDecimalPattern = /^(?:|0|[1-9][0-9]*)(?:\.[0-9]{1,6})?$/;
+const optionalMinutesPattern = /^(?:|0|[1-9][0-9]*)$/;
 const NUTRITION_FIELDS = [
   ["calories_kcal", "Calories", "kcal", "caloriesKcal"],
   ["protein_g", "Protein", "g", "proteinG"],
@@ -33,16 +42,6 @@ type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
 const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
 
-interface EditorBlock {
-  key: string;
-  title: string;
-  ingredients: string;
-  instructions: string;
-}
-
-let blockSequence = 0;
-const newBlock = (title = ""): EditorBlock => ({ key: `block-${++blockSequence}`, title, ingredients: "", instructions: "" });
-
 export function RecipeEditorPage() {
   const { recipeId } = useParams();
   const location = useLocation();
@@ -54,7 +53,9 @@ const [title, setTitle] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [yieldQuantity, setYieldQuantity] = useState("1");
   const [yieldUnit, setYieldUnit] = useState("servings");
-  const [blocks, setBlocks] = useState<EditorBlock[]>(() => [newBlock()]);
+  const [prepMinutes, setPrepMinutes] = useState("");
+  const [cookMinutes, setCookMinutes] = useState("");
+  const [blocks, setBlocks] = useState<EditorBlock[]>(() => [newEditorBlock()]);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [matchesOpen, setMatchesOpen] = useState(location.hash === "#ingredient-matches");
   const [nutritionOpen, setNutritionOpen] = useState(location.hash === "#nutrition");
@@ -70,6 +71,8 @@ const [title, setTitle] = useState("");
   const [nutritionReason, setNutritionReason] = useState("");
   const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dirty, setDirty] = useState(false);
+  const [pasteUndo, setPasteUndo] = useState<{ previous: EditorBlock[]; message: string } | null>(null);
   const photoPreview = useMemo(() => photo ? URL.createObjectURL(photo) : null, [photo]);
   const sourceImages = useQuery({
     queryKey: ["recipe-source-images", recipeId],
@@ -89,28 +92,16 @@ const [title, setTitle] = useState("");
 
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!detail.data) return;
     setTitle(detail.data.title);
     setDescription(detail.data.description ?? "");
     setSourceUrl(detail.data.sourceUrl ?? "");
     setYieldQuantity(formatCookingInput(detail.data.yieldQuantity));
     setYieldUnit(detail.data.yieldUnit);
-    const ungrouped = detail.data.ingredients.filter((item) => item.sectionId == null).map((item) => item.originalText).join("\n");
-    const ungroupedSteps = detail.data.instructions.filter((item) => item.sectionId == null).map((item) => item.text).join("\n");
-    const blocks: EditorBlock[] = [newBlock()];
-    if (ungrouped || ungroupedSteps) blocks[0] = { ...blocks[0], ingredients: ungrouped, instructions: ungroupedSteps };
-    for (const section of detail.data.sections ?? []) {
-      const sectionIngredients = detail.data.ingredients.filter((item) => item.sectionId === section.id).map((item) => item.originalText).join("\n");
-      const sectionSteps = detail.data.instructions.filter((item) => item.sectionId === section.id).map((item) => item.text).join("\n");
-      blocks.push({
-        key: `section-${section.id}`,
-        title: section.title,
-        ingredients: sectionIngredients,
-        instructions: sectionSteps,
-      });
-    }
-    setBlocks(blocks);
+    setPrepMinutes(detail.data.prepMinutes == null ? "" : String(detail.data.prepMinutes));
+    setCookMinutes(detail.data.cookMinutes == null ? "" : String(detail.data.cookMinutes));
+    setBlocks(editorBlocksFromRecipe(detail.data));
     setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
     setRemovePhoto(false);
     setThumbnailCrop(detail.data.thumbnailCrop ?? defaultThumbnailCrop());
@@ -126,7 +117,18 @@ useEffect(() => {
     }
     setNutritionValues(values);
     setInitialNutritionValues(values);
+    setDirty(false);
   }, [detail.data]);
+
+  useEffect(() => {
+    function beforeUnload(event: BeforeUnloadEvent) {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
 
   const save = useMutation({
     mutationFn: (value: RecipeWrite) => recipeId && detail.data ? recipesApi.update(recipeId, detail.data.version, value) : recipesApi.create(value),
@@ -166,39 +168,39 @@ useEffect(() => {
         }
       } catch (error) {
         setSavedRecipeId(saved.id);
+        setDirty(false);
         setPhotoError(error instanceof Error ? `Recipe saved, but one finishing change failed: ${error.message}` : "Recipe saved, but one finishing change failed.");
         return;
       }
       if ("ingredients" in finalRecipe) queryClient.setQueryData(["recipe", finalRecipe.id], finalRecipe);
       else queryClient.removeQueries({ queryKey: ["recipe", finalRecipe.id], exact: true });
 void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      setDirty(false);
       navigate(`/app/recipes/${finalRecipe.id}`, { state: { recipeSaved: true } });
     },
   });
 
-  function updateBlock(key: string, patch: Partial<Omit<EditorBlock, "key">>) {
-    setBlocks((current) => current.map((block) => block.key === key ? { ...block, ...patch } : block));
+  const setEditorBlocks: Dispatch<SetStateAction<EditorBlock[]>> = (value) => {
+    setDirty(true);
+    setBlocks(value);
+  };
+
+  function rowsSplit(previous: EditorBlock[], count: number, kind: "ingredients" | "steps") {
+    setDirty(true);
+    setPasteUndo({ previous, message: `${count} ${kind === "ingredients" ? "ingredient rows" : "method steps"} created from your paste.` });
   }
 
-  function removeBlock(key: string) {
-    setBlocks((current) => current.filter((block) => block.key !== key));
-  }
-
-  function addBlock() {
-    setBlocks((current) => [...current, newBlock("")]);
-    setErrors((current) => ({ ...current, sections: "" }));
-    setMobileStep("ingredients");
-  }
-
-function submit(event: FormEvent) {
+  function submit(event: FormEvent) {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     if (!title.trim()) nextErrors.title = "Recipe title is required.";
     if (!decimalPattern.test(yieldQuantity)) nextErrors.yieldQuantity = "Use a positive value with up to three decimal places (and no exponent).";
+    if (!optionalMinutesPattern.test(prepMinutes) || Number(prepMinutes) > 1440) nextErrors.prepMinutes = "Use a whole number from 0 to 1440 minutes.";
+    if (!optionalMinutesPattern.test(cookMinutes) || Number(cookMinutes) > 1440) nextErrors.cookMinutes = "Use a whole number from 0 to 1440 minutes.";
     const titledBlocks = blocks.filter((block) => block.title.trim());
     const sectionTitles = titledBlocks.map((block) => block.title.trim());
     if (new Set(sectionTitles).size !== sectionTitles.length) nextErrors.sections = "Component names must be unique.";
-    const hasIngredients = blocks.some((block) => block.ingredients.split("\n").some((line) => line.trim()));
+    const hasIngredients = blocks.some((block) => block.ingredients.some((item) => item.originalText.trim()));
     if (!hasIngredients) nextErrors.ingredients = "Enter at least one ingredient.";
     if (sourceUrl) {
       try { new URL(sourceUrl); } catch { nextErrors.sourceUrl = "Enter a complete source URL."; }
@@ -212,29 +214,10 @@ function submit(event: FormEvent) {
     setPhotoError("");
     if (Object.keys(nextErrors).length) {
       const hasNutritionError = Object.keys(nextErrors).some((key) => key.startsWith("nutrition-"));
-      setMobileStep(nextErrors.title || nextErrors.yieldQuantity ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
+      setMobileStep(nextErrors.title || nextErrors.yieldQuantity || nextErrors.prepMinutes || nextErrors.cookMinutes ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
       return;
     }
-    const sections = sectionTitles.map((section) => ({ title: section }));
-    const ingredients = blocks.flatMap((block) => {
-      const sectionIndex = block.title.trim() ? sectionTitles.indexOf(block.title.trim()) : null;
-      return block.ingredients.split("\n").filter((line) => line.trim()).map((originalText) => ({ originalText, optional: false, section: sectionIndex }));
-    });
-    const instructions = blocks.flatMap((block) => {
-      const sectionIndex = block.title.trim() ? sectionTitles.indexOf(block.title.trim()) : null;
-      return block.instructions.split("\n").filter((line) => line.trim()).map((text) => ({ text, section: sectionIndex }));
-    });
-    save.mutate({
-      title: title.trim(),
-      description: description.trim() || null,
-      sourceUrl: sourceUrl.trim() || null,
-      yieldQuantity,
-      yieldUnit: yieldUnit.trim() || "servings",
-      sections,
-      ingredients,
-      instructions,
-      thumbnailCrop,
-    });
+    save.mutate(serializeRecipeBlocks(blocks, { title, description, sourceUrl, yieldQuantity, yieldUnit, prepMinutes, cookMinutes, thumbnailCrop }));
   }
 
   if (recipeId && detail.isPending) return <Skeleton label="Loading recipe editor" lines={6} />;
@@ -242,7 +225,7 @@ function submit(event: FormEvent) {
 
   return (
     <main className="page-shell recipe-editor-page">
-      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
+      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"} onClick={(event) => { if (dirty && !window.confirm("Leave without saving your recipe changes?")) event.preventDefault(); }}>Cancel</Link>} />
       <nav className="recipe-editor__view-toggle" aria-label="Recipe editor views">
         <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}>Edit</button>
         <button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}>Preview</button>
@@ -255,41 +238,25 @@ function submit(event: FormEvent) {
          yieldUnit={yieldUnit}
          photoUrl={photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null)}
          thumbnailCrop={thumbnailCrop}
-         blocks={blocks}
+         blocks={previewBlocks(blocks)}
         macros={NUTRITION_FIELDS.slice(0, 4).filter(([field]) => nutritionValues[field].trim()).map(([field, label, unit]) => ({ label: `${label} (${unit})`, value: nutritionValues[field].trim() }))}
         className={view === "preview" ? undefined : "u-hidden"}
       />
-      <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}${view === "edit" ? undefined : " u-hidden"}`} onSubmit={submit} noValidate>
+      <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}${view === "edit" ? "" : " u-hidden"}`} onSubmit={submit} onChange={() => setDirty(true)} noValidate>
         <section className="recipe-editor__identity" aria-label="Recipe name and yield">
           <Field label="Recipe title" error={errors.title}><input className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
-          <div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field></div>
+          <div className="recipe-editor__identity-details"><div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field></div><div className="recipe-times"><Field label="Prep minutes" hint="Optional" error={errors.prepMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={prepMinutes} onChange={(event) => setPrepMinutes(event.currentTarget.value)} /></Field><Field label="Cook minutes" hint="Optional" error={errors.cookMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={cookMinutes} onChange={(event) => setCookMinutes(event.currentTarget.value)} /></Field></div></div>
         </section>
 
         <nav className="recipe-editor__mobile-steps" aria-label="Recipe editing steps">
-          {(["basics", "ingredients", "method", "nutrition"] as const).map((step, index) => <button type="button" key={step} aria-current={mobileStep === step ? "step" : undefined} onClick={() => setMobileStep(step)}><span>{index + 1}</span>{step[0].toUpperCase() + step.slice(1)}</button>)}
+          {(["basics", "ingredients", "method", "nutrition"] as const).map((step, index) => <button type="button" key={step} aria-label={step[0].toUpperCase() + step.slice(1)} aria-current={mobileStep === step ? "step" : undefined} onClick={() => { setMobileStep(step); if (step === "nutrition") setNutritionOpen(true); }}><span aria-hidden="true">{index + 1}</span>{step[0].toUpperCase() + step.slice(1)}</button>)}
         </nav>
 
-<div className="recipe-editor__workbench">
-          <div className="recipe-editor__blocks">
-            {blocks.map((block, blockIndex) => (
-              <section key={block.key} className={`recipe-editor__section recipe-editor__section--block${block.title.trim() ? " is-component" : ""}`}>
-                <div className="recipe-editor__section-heading">
-                  <span>{String(blockIndex === 0 ? 1 : blockIndex + 1).padStart(2, "0")}</span>
-                  <div>
-                    {blockIndex === 0 && !block.title.trim()
-                      ? <><h2>Ingredients & method</h2><p>Start with the main recipe. Add components for dishes with several parts.</p></>
-                      : <Field label="Component name" hint="For example: chicken, rice, or sauce"><input className="input" value={block.title} onChange={(event) => updateBlock(block.key, { title: event.target.value })} placeholder="For the chicken" aria-label={`Component ${blockIndex + 1} name`} /></Field>}
-                  </div>
-                </div>
-                <div className="recipe-editor__block-fields">
-                  <Field label="Ingredients, one per line" error={errors.ingredients} hint="Amounts and preparation notes can stay in the same line."><textarea aria-label={`Component ${blockIndex + 1} ingredients`} className="input textarea recipe-editor__textarea" value={block.ingredients} onChange={(event) => updateBlock(block.key, { ingredients: event.target.value })} placeholder={"2 chicken breasts\n1 lemon, juiced\n2 tbsp olive oil"} /></Field>
-                  <Field label="Method, one step per line"><textarea aria-label={`Component ${blockIndex + 1} method`} className="input textarea recipe-editor__textarea" value={block.instructions} onChange={(event) => updateBlock(block.key, { instructions: event.target.value })} placeholder={"Season the chicken generously.\nSear until golden on both sides."} /></Field>
-                </div>
-                {blockIndex > 0 ? <button type="button" className="text-link" onClick={() => removeBlock(block.key)}>Remove {block.title.trim() || "this component"}</button> : null}
-              </section>
-            ))}
-          </div>
-          <Button type="button" variant="secondary" onClick={addBlock}><Plus aria-hidden="true" />Add a component</Button>
+        {pasteUndo ? <div className="recipe-editor__paste-feedback" role="status"><span>{pasteUndo.message}</span><Button type="button" variant="ghost" size="sm" onClick={() => { setBlocks(pasteUndo.previous); setPasteUndo(null); }}><Undo2 aria-hidden="true" />Undo</Button></div> : null}
+
+        <div className="recipe-editor__workbench">
+          <StructuredIngredientEditor blocks={blocks} setBlocks={setEditorBlocks} error={errors.ingredients} onRowsSplit={rowsSplit} />
+          <StructuredMethodEditor blocks={blocks} setBlocks={setEditorBlocks} onRowsSplit={rowsSplit} />
         </div>
 
         {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" id="ingredient-matches" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}

@@ -17,6 +17,7 @@ build/
 coverage/
 playwright-report/
 test-results/
+frontend/output/
 tmp/
 *.tsbuildinfo
 *.log

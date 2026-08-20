@@ -184,8 +184,8 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "See the food, not just the count" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /edit monday.*march 9/i })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Place the meals that matter" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /open day view for monday.*march 9/i })).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Prep" }));
     expect(screen.getByRole("heading", { name: "Cook 1 dish for 1 meal" })).toBeVisible();
     expect(screen.getByText("1.5 total servings")).toBeVisible();
@@ -226,6 +226,38 @@ describe("goal and weekly planning UI", () => {
     );
     expect(screen.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-controls", "planner-panel-day");
     expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "planner-panel-day");
+  });
+
+  it("moves a weekly meal without requiring drag and preserves the version guard", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (init?.method === "PATCH") {
+        const body = JSON.parse(String(init.body)) as { localDate: string; mealSlot: string; position: number };
+        return json({ ...entry, ...body, version: 2 });
+      }
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [{ id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: "Place the meals that matter" });
+    await user.click(screen.getByRole("button", { name: "Move Protein oats" }));
+    expect(screen.getByRole("dialog", { name: "Protein oats" })).toBeVisible();
+    await user.selectOptions(screen.getByLabelText("Day"), "2026-03-10");
+    await user.selectOptions(screen.getByLabelText("Meal"), "dinner");
+    await user.click(screen.getByRole("button", { name: "Move meal" }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
+      expect(new Headers(call?.[1]?.headers).get("if-match")).toBe('"1"');
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ localDate: "2026-03-10", mealSlot: "dinner", position: 0 });
+    });
+    expect(await screen.findByText("Protein oats moved to dinner.")).toBeVisible();
   });
 
   it("lets someone plan meals before creating a nutrition guide", async () => {

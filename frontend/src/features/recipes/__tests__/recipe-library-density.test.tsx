@@ -95,8 +95,11 @@ describe("recipe library density", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Add recipe" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Import recipe" })).toBeVisible();
+    const addRecipe = screen.getByText("Add recipe", { selector: "summary" });
+    expect(addRecipe).toBeVisible();
+    await userEvent.click(addRecipe);
+    expect(screen.getByRole("link", { name: /write a recipe/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /import a recipe/i })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Give me ideas" })).not.toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search recipes" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "All recipes" })).toHaveAttribute("aria-controls", "recipe-view-panel");

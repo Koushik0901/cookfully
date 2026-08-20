@@ -1976,6 +1976,8 @@ export interface components {
             id: string;
             /** Normalizedfoodname */
             normalizedFoodName: string;
+            /** Expireson */
+            expiresOn?: string | null;
             /**
              * Matchstatus
              * @enum {string}
@@ -1996,6 +1998,8 @@ export interface components {
             unit: string;
             /** Foodreferenceid */
             foodReferenceId?: string | null;
+            /** Expireson */
+            expiresOn?: string | null;
         };
         /** PantryRecipeMatchResponse */
         PantryRecipeMatchResponse: {
@@ -2158,6 +2162,10 @@ export interface components {
             yieldQuantity: string;
             /** Yieldunit */
             yieldUnit: string;
+            /** Prepminutes */
+            prepMinutes?: number | null;
+            /** Cookminutes */
+            cookMinutes?: number | null;
             /** Status */
             status: string;
             /** Archivedfromstatus */
@@ -2245,6 +2253,10 @@ export interface components {
             yieldQuantity: string;
             /** Yieldunit */
             yieldUnit: string;
+            /** Prepminutes */
+            prepMinutes?: number | null;
+            /** Cookminutes */
+            cookMinutes?: number | null;
             /** Status */
             status: string;
             /** Archivedfromstatus */
@@ -2313,6 +2325,10 @@ export interface components {
              * @default servings
              */
             yieldUnit: string;
+            /** Prepminutes */
+            prepMinutes?: number | null;
+            /** Cookminutes */
+            cookMinutes?: number | null;
             /** Ingredients */
             ingredients: components["schemas"]["IngredientWriteRequest"][];
             /**

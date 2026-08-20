@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { formatCookingNumber } from "../recipes/formatCooking";
 import type { RecipePage } from "./types";
 
@@ -81,8 +82,6 @@ export function RecipePickerSheet({
                 {onRetry ? <button className="text-link" type="button" onClick={onRetry}>Try again</button> : null}
               </div>
             ) : visibleRecipes.length ? visibleRecipes.map((recipe) => {
-              const calories = recipe.nutrition?.caloriesKcal;
-              const protein = recipe.nutrition?.proteinG;
               const pending = pendingRecipeId === recipe.id;
               const yieldUnit = Number(recipe.yieldQuantity) === 1 && recipe.yieldUnit.toLocaleLowerCase() === "servings" ? "serving" : recipe.yieldUnit;
               return (
@@ -92,7 +91,8 @@ export function RecipePickerSheet({
                   </span>
                   <span className="recipe-pick__copy">
                     <strong>{recipe.title}</strong>
-                    <small>{formatCookingNumber(recipe.yieldQuantity)} {yieldUnit}{calories ? ` · ${formatCookingNumber(calories, 0)} kcal` : ""}{protein ? ` · ${formatCookingNumber(protein, 1)} g protein` : ""}</small>
+                    <small>Makes {formatCookingNumber(recipe.yieldQuantity)} {yieldUnit}</small>
+                    <RecipeMetadata recipe={recipe} compact />
                   </span>
                   <span className="recipe-pick__action">{pending ? "Adding…" : "Add"}</span>
                 </button>

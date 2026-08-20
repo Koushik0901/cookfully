@@ -1,7 +1,7 @@
 ---
 name: Cookfully
-version: 2.0
-direction: Editorial kitchen utility
+version: 2.2
+direction: Calm kitchen utility
 defaultTheme: light
 fonts:
   display: Afacad Flux Variable
@@ -114,12 +114,12 @@ Self-host the variable faces. Do not load fonts from a third-party CDN.
 | Token | Desktop | Mobile | Weight | Use |
 |---|---:|---:|---:|---|
 | `display` | 56/58 | 40/43 | 650 | Marketing statement only |
-| `page-title` | 36/39 | 30/34 | 620 | One per page |
-| `section-title` | 28/32 | 24/28 | 600 | Major content section |
-| `card-title` | 21/25 | 20/24 | 590 | Recipe and plan titles |
-| `body` | 16/24 | 16/24 | 430 | Default copy |
-| `body-small` | 14/20 | 14/20 | 440 | Metadata and helper text |
-| `label` | 13/16 | 13/16 | 620 | Form and compact UI labels |
+| `page-title` | 38/38 | 34/36 | 500 | One per page |
+| `section-title` | 28/31 | 24/28 | 500 | Major content section |
+| `card-title` | 17–25/21–27 | 17–24/21–27 | 500 | Recipe and plan titles |
+| `body` | 16/24 | 16/24 | 400 | Default copy |
+| `body-small` | 12–14/18–20 | 12–14/18–20 | 400 | Metadata and helper text |
+| `label` | 12–13/16 | 12–13/16 | 500 | Form and compact UI labels |
 
 Letter spacing is normal for body copy, `-0.015em` for headings, and `0.02em` only for short eyebrow
 labels. All-caps labels are prohibited. Body line length is 45–72 characters.
@@ -150,14 +150,17 @@ The base unit is 4px. Approved gaps are 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80
 
 ### Application shell
 
-- Desktop (`>= 1024px`): 232px navigation rail, fixed within the viewport; content uses the remaining
-  width and a maximum readable width of 1440px.
-- Tablet (`768–1023px`): 80px icon rail or compact top navigation depending on content needs.
-- Mobile (`< 768px`): compact top bar plus a 68px bottom navigation with four primary destinations and
-  one `More` entry. Safe-area padding is mandatory.
-- Primary destinations: Recipes, Plan, Grocery, Pantry. Suggestions may replace Pantry if product data
-  proves it is used more frequently. Foods, Goals, agent/system access, and account live under More.
-- Navigation labels are always visible on mobile. Icons supplement text; they never replace it.
+- Desktop and tablet (`>= 768px`): a fixed 112px warm-ivory navigation strip with a 20px icon and
+  short visible label. The selected destination uses a mint field and a small amber state dot;
+  content uses the remaining width and a maximum readable width of 1440px.
+- Mobile (`< 768px`): compact top bar plus a 72px bottom navigation with Home, Recipes, Plan, Grocery,
+  and one `More` entry. Safe-area padding is mandatory.
+- Primary kitchen destinations on desktop are Home, Recipes, Plan, Grocery, and Pantry. Foods, Goals,
+  agent/system access, and account are utilities. Suggestions are contextual to Home, Recipes, and Plan
+  rather than a permanent navigation category.
+- Navigation labels are always visible at every breakpoint. Icons supplement text; they never replace it.
+- Home is the visual reference for app density: a 38px/500 greeting, a compact two-card dinner/week
+  dashboard, and a three-item recent-recipe shelf should fit in one ordinary desktop viewport.
 
 ### Page frame
 

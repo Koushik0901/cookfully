@@ -247,6 +247,8 @@ class RecipePipeline:
             recipe.source_name = write.source_name
             recipe.yield_quantity = write.yield_quantity
             recipe.yield_unit = write.yield_unit
+            recipe.prep_minutes = write.prep_minutes
+            recipe.cook_minutes = write.cook_minutes
             recipe.input_hash = recipe_input_hash(recipe.id, write)
             recipe.status = "processing"
             recipe.nutrition_state = "pending"
@@ -297,6 +299,8 @@ class RecipePipeline:
                         source_name=extra_write.source_name,
                         yield_quantity=extra_write.yield_quantity,
                         yield_unit=extra_write.yield_unit,
+                        prep_minutes=extra_write.prep_minutes,
+                        cook_minutes=extra_write.cook_minutes,
                         status="processing",
                         nutrition_state="pending",
                         input_hash=extra_hash,
@@ -719,6 +723,8 @@ class RecipePipeline:
             source_url=imported.source_url,
             source_name=imported.canonical_url,
             yield_unit="servings" if imported.yield_text else "batch",
+            prep_minutes=imported.prep_minutes,
+            cook_minutes=imported.cook_minutes,
         )
 
     @staticmethod

@@ -173,6 +173,8 @@ class RecipeWriteRequest(ApiModel):
     source_url: AnyHttpUrl | None = Field(alias="sourceUrl", default=None, max_length=2048)
     yield_quantity: ServingDecimal = Field(alias="yieldQuantity")
     yield_unit: str = Field(alias="yieldUnit", default="servings", max_length=80)
+    prep_minutes: int | None = Field(alias="prepMinutes", default=None, ge=0, le=1440)
+    cook_minutes: int | None = Field(alias="cookMinutes", default=None, ge=0, le=1440)
     ingredients: tuple[IngredientWriteRequest, ...] = Field(min_length=1, max_length=500)
     instructions: tuple[InstructionWriteRequest, ...] = Field(default=(), max_length=500)
     sections: tuple[SectionWriteRequest, ...] = Field(default=(), max_length=50)
@@ -186,6 +188,8 @@ class RecipeWriteRequest(ApiModel):
             source_url=str(self.source_url) if self.source_url else None,
             yield_quantity=self.yield_quantity,
             yield_unit=self.yield_unit,
+            prep_minutes=self.prep_minutes,
+            cook_minutes=self.cook_minutes,
             ingredients=tuple(item.to_write() for item in self.ingredients),
             instructions=tuple(
                 InstructionWrite(text=item.text, section_index=item.section)
@@ -617,6 +621,8 @@ class RecipeResponse(ApiModel):
     image_url: str | None = Field(alias="imageUrl", default=None)
     yield_quantity: ServingDecimal = Field(alias="yieldQuantity")
     yield_unit: str = Field(alias="yieldUnit")
+    prep_minutes: int | None = Field(alias="prepMinutes", default=None, ge=0, le=1440)
+    cook_minutes: int | None = Field(alias="cookMinutes", default=None, ge=0, le=1440)
     status: str
     archived_from_status: str | None = Field(alias="archivedFromStatus", default=None)
     nutrition_state: str = Field(alias="nutritionState")
@@ -640,6 +646,8 @@ class RecipeResponse(ApiModel):
             image_url=value.image_url,
             yield_quantity=value.yield_quantity,
             yield_unit=value.yield_unit,
+            prep_minutes=value.prep_minutes,
+            cook_minutes=value.cook_minutes,
             status=value.status,
             archived_from_status=value.archived_from_status,
             nutrition_state=value.nutrition_state,

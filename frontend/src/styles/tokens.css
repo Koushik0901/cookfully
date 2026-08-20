@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
 
-  /* Cookfully 3.0 — bright editorial kitchen utility. */
+  /* Cookfully 3.1 — calm, compact kitchen utility. */
   --color-surface: oklch(0.985 0.007 92);
   --color-surface-dim: oklch(0.954 0.014 94);
   --color-surface-bright: oklch(0.998 0.002 92);
@@ -65,7 +65,7 @@
   --font-data: var(--font-body);
 
   --text-display-lg: clamp(2.75rem, 2rem + 3vw, 4.75rem);
-  --text-headline-md: 2.25rem;
+  --text-headline-md: 2.375rem;
   --text-headline-sm: 1.75rem;
   --text-headline-lg: var(--text-headline-md);
   --text-title-lg: var(--text-headline-md);

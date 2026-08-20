@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { formatCookingNumber } from "../recipes/formatCooking";
+import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import type { MealPlanEntry, RecipePage } from "./types";
 
 type Recipe = RecipePage["items"][number];
@@ -53,6 +54,7 @@ export function PrepOverview({ entries, recipesById, groceryStatus }: { entries:
               <div className="prep-item__body">
                 <div><h3>{group.title}</h3>{group.entries.length > 1 ? <span className="prep-item__batch"><Check aria-hidden="true" />Batch-friendly</span> : null}</div>
                 <strong>{formatCookingNumber(String(group.servings))} total {group.servings === 1 ? "serving" : "servings"}</strong>
+                {group.recipe ? <RecipeMetadata recipe={group.recipe} compact /> : null}
                 <p>{group.entries.map((entry) => `${shortDay(entry.localDate)} ${entry.mealSlot}`).join(" · ")}</p>
               </div>
               {group.recipeId ? <Link className="prep-item__open" to={`/app/recipes/${group.recipeId}`}>Review recipe <ArrowRight aria-hidden="true" /></Link> : null}

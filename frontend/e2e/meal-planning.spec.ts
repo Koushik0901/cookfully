@@ -143,7 +143,7 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await expect(page.getByText(/snapshot refreshed/i)).toBeVisible();
 
   await page.getByRole("tab", { name: "Week" }).click();
-  await expect(page.getByRole("heading", { name: "See the food, not just the count" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Place the meals that matter" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Weekly nutrition guidance" })).toBeVisible();
   await captureUi(page, testInfo, "planner-week-guided");
   await page.getByRole("tab", { name: "Prep" }).click();

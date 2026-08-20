@@ -94,9 +94,10 @@ test("the shared shell exposes account settings and a complete sign-out flow", a
   } else {
     const account = page.getByRole("navigation", { name: "Account" });
     await expect(account.getByRole("link", { name: "Settings" })).toBeVisible();
-    await expect(account.getByRole("button", { name: "Sign out" })).toBeVisible();
     await captureUi(page, testInfo, "shell-account-controls");
-    await account.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("tab", { name: "Security" }).click();
+    const currentSession = page.locator("section").filter({ has: page.getByRole("heading", { name: "Sign out", exact: true }) });
+    await currentSession.getByRole("button", { name: "Sign out", exact: true }).click();
   }
 
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();

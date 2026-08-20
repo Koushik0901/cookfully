@@ -520,6 +520,75 @@ Evidence: `frontend/src/app/App.tsx`, `frontend/src/features/plans/WeeklyPlanner
 `frontend/src/features/grocery/GroceryListPage.tsx`, and
 `backend/src/cookfully/application/meal_plans.py`.
 
+## A kitchen-first shell and direct-manipulation planner — 2026-08-20
+
+### Problem being solved
+
+Cookfully had capable recipe, planning, grocery, pantry, and nutrition workflows, but the app shell
+gave too many destinations equal weight. The recipe editor also flattened ingredients and method into
+two large text areas, while the weekly planner summarized meals more than it helped someone arrange
+them. The combined effect felt administrative instead of like a contemporary cooking tool.
+
+### Sources inspected
+
+- [Mealie repository](https://github.com/mealie-recipes/mealie) and
+  [Mealie feature documentation](https://docs.mealie.io/documentation/getting-started/features/) for
+  the breadth of recipe organization, planning, shopping, and household capabilities;
+- [Tandoor repository](https://github.com/TandoorRecipes/recipes) and
+  [Tandoor documentation](https://docs.tandoor.dev/) for its powerful search, cookbook, meal-plan,
+  shopping, and self-hosting model;
+- [dnd-kit React quickstart](https://dndkit.com/react/quickstart) and
+  [sensor guidance](https://dndkit.com/react/guides/sensors) for pointer and keyboard drag behavior;
+- [React Router view-transition guide](https://reactrouter.com/how-to/view-transitions) and
+  [MDN View Transition API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API)
+  for progressive route transitions with reduced-motion fallback.
+- the owner-selected Cookfully labelled-strip prototype for the exact app typography, warm canvas,
+  112 px rail, compact dinner/week composition, radii, spacing, and restrained color rhythm.
+
+### Benefits and liabilities observed
+
+Mealie and Tandoor prove that a self-hosted recipe product can cover a broad kitchen workflow, but
+their capability breadth also encourages taxonomy and administration to become prominent navigation.
+That tradeoff fits power users better than Cookfully's default cooking-first path. Direct manipulation
+is a strong fit for a weekly plan because the destination is spatially visible, but drag alone would
+exclude keyboard users and anyone who finds precise dragging awkward. Route transitions can preserve
+visual context between a recipe card and detail view, but generic page animation would add motion
+without meaning and can conflict with reduced-motion preferences.
+
+### Local decision
+
+Adapt the capability, not the information density:
+
+- make Home the post-login destination and keep permanent navigation to Home, Recipes, Plan,
+  Grocery, and Pantry; move Foods, Goals, Settings, and agent access into utility locations;
+- use the prototype's fixed 112 px labelled strip on desktop and tablet, with a labelled bottom bar
+  on mobile so icons never have to carry meaning alone;
+- treat the prototype's Afacad Flux 500 display type, Inclusive Sans 400 body type, warm canvas,
+  compact two-card Home dashboard, and three-recipe shelf as the product-density reference;
+- provide a focused command palette for navigation, recipe lookup, and common kitchen actions while
+  keeping natural-language planning out of this iteration;
+- reduce recipe-library competition to search, All/Favorites, a single Add recipe disclosure, and a
+  secondary Refine disclosure; keep ideas contextual to Recipes, Home, and Plan;
+- preserve ingredient text exactly while editing each ingredient as a reorderable row, disclose
+  parsed amount/unit/food fields only when useful, and split multiline paste into rows with Undo;
+- present method as separate reorderable step cards so the same structure remains readable in recipe
+  detail and Cook Mode;
+- let planned meals move between explicit day/slot targets with pointer or keyboard drag, announce
+  movement to assistive technology, and always provide a Move dialog fallback;
+- keep “Help fill this week” a guided preview-and-accept flow; suggestions never change the plan until
+  the owner explicitly accepts selected meals;
+- apply shared-element route transitions only to recipe media/title context, and remove transition
+  animation when the operating system requests reduced motion;
+- keep pantry recommendations evidence-based through match coverage and missing counts; do not invent
+  expiry or “use soon” claims without a pantry-expiry domain model.
+
+Evidence: `frontend/src/app/App.tsx`, `frontend/src/app/CommandPalette.tsx`,
+`frontend/src/features/home/HomePage.tsx`, `frontend/src/features/recipes/RecipeLibraryPage.tsx`,
+`frontend/src/features/recipes/RecipeEditorPage.tsx`,
+`frontend/src/features/recipes/StructuredRecipeFields.tsx`,
+`frontend/src/features/plans/WeekOverview.tsx`, `frontend/src/features/plans/MoveMealSheet.tsx`, and
+`frontend/src/features/plans/WeeklyPlannerPage.tsx`.
+
 ## Persistent sessions and an administration surface — 2026-08-12
 
 ### Sources inspected
@@ -607,6 +676,9 @@ and makes a 768–1023px planner read like an enlarged phone. Conversely, a perm
 phone width would crowd recipe and planning content.
 
 ### Local decision
+
+Historical note: the 80 px tablet-rail choice below was superseded by the owner-selected 112 px
+labelled-strip prototype on 2026-08-20.
 
 Adapt the clear hierarchy rather than copying any source UI:
 

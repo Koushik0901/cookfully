@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { PackageCheck, Plus, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { Button, ConfirmDialog, DecimalInput, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, Select, Skeleton } from "../../components";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,14 +63,22 @@ function GroceryRow({ item, weekStart, stops, readOnly }: { item: GroceryItem; w
 
 export function GroceryListPage() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const manualItemRef = useRef<HTMLInputElement>(null);
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const [weekStart, setWeekStart] = useState("");
   const [newItem, setNewItem] = useState<GroceryItemCreate>({ displayName: "", quantity: null, unit: null });
   const [deductions, setDeductions] = useState<PantryDeduction[]>([]);
+  const [manualOpen, setManualOpen] = useState(searchParams.get("add") === "1");
   useEffect(() => {
     if (!preferences.data || weekStart) return;
     setWeekStart(weekStartFor(todayInTimezone(preferences.data.timezone), preferences.data.weekStartsOn));
   }, [preferences.data, weekStart]);
+  useEffect(() => {
+    if (searchParams.get("add") !== "1") return;
+    setManualOpen(true);
+    window.requestAnimationFrame(() => manualItemRef.current?.focus());
+  }, [searchParams]);
   const list = useQuery({ queryKey: ["grocery-list", weekStart], queryFn: () => groceryApi.get(weekStart), enabled: Boolean(weekStart), retry: false });
   const stops = useQuery({ queryKey: ["grocery-shopping-stops"], queryFn: groceryApi.stops });
   const regenerate = useMutation({
@@ -126,7 +134,7 @@ export function GroceryListPage() {
       {list.data.status === "completed" ? <section className="grocery-complete" role="status"><KitchenCompanion moment="milestone" size="sm" /><div><strong>This shopping pass is complete</strong><p>Kept as a record for this week. Reopen it only if you need to shop again.</p></div><Button variant="secondary" onClick={() => reopen.mutate()} disabled={reopen.isPending}>Reopen list</Button></section> : list.data.status === "dirty" ? <p className="notice">Your meal plan changed. Refresh the list to update quantities without losing checked items or things you added yourself.</p> : list.data.status === "generating" ? <p className="notice" role="status">Building your grocery list from the latest plan…</p> : !isListEmpty ? <p className="grocery-ready" role="status"><PackageCheck aria-hidden="true" /><span><strong>Ready to shop</strong><small>{activeItems.length} items left to pick up</small></span></p> : null}
       {isListEmpty && list.data.status !== "generating" && list.data.status !== "completed" ? <EmptyState title="Nothing to pick up yet" description="Plan a meal and refresh this list, or add an extra manually below." action={<Button asChild><Link to="/app/plan">Open meal plan</Link></Button>} /> : null}
       {list.data.status !== "completed" && !isListEmpty ? <ShoppingStopManager /> : null}
-      {!readOnly ? <details className="manual-item grocery-manual"><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>For staples or extras that are not part of a planned recipe</small></span></summary><div className="grocery-edit"><Field label="Item"><input className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button onClick={() => create.mutate()} disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></div></details> : null}
+      {!readOnly ? <details className="manual-item grocery-manual" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>For staples or extras that are not part of a planned recipe</small></span></summary><div className="grocery-edit"><Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button onClick={() => create.mutate()} disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></div></details> : null}
       {deductions.length ? <section className="pantry-deduction-panel" aria-labelledby="deduction-heading"><div><h2 id="deduction-heading">Pantry deductions from this action</h2><p className="muted">Conversions are recorded on both sides. Reverse newer deductions first if quantities overlap.</p></div><div className="deduction-list">{deductions.map((deduction) => <article key={deduction.id} className="deduction-row"><div><strong>{deduction.groceryQuantity} {deduction.groceryUnit} removed from groceries</strong><p className="data-value">Pantry change: {deduction.pantryQuantity} {deduction.pantryUnit}</p><small>{deduction.assumption}</small></div><span className="reliability-badge">{deduction.status}</span>{deduction.status === "applied" ? <Button variant="secondary" onClick={() => reverseDeduction.mutate(deduction)} disabled={reverseDeduction.isPending}>Reverse deduction</Button> : null}</article>)}</div></section> : null}
       {groups.map(([label, items]) => <section className="grocery-group" key={label}><div className="section-heading"><h2>{label}</h2><span className="data-value">{items.length} item{items.length === 1 ? "" : "s"}</span></div><div className="grocery-items">{items.map((item) => <GroceryRow key={item.id} item={item} weekStart={weekStart} stops={stops.data ?? []} readOnly={readOnly} />)}</div></section>)}
       {list.data.status !== "completed" && list.data.items.length > 0 && activeItems.length === 0 ? <Button className="grocery-finish" onClick={() => complete.mutate()} disabled={complete.isPending}>{complete.isPending ? "Finishing…" : "Finish this shopping pass"}</Button> : null}

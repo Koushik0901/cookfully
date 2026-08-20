@@ -302,19 +302,38 @@ async function openRecipeOptions(page: Page) {
   }
 }
 
+async function openRecipeImport(page: Page) {
+  await expect(page.locator(".recipe-grid, .empty-state").first()).toBeVisible();
+  const directImport = page.getByRole("button", { name: "Import recipe", exact: true });
+  if (await directImport.isVisible()) {
+    await directImport.click();
+    return;
+  }
+  await page.locator("summary").filter({ hasText: "Add recipe" }).click();
+  await page.getByRole("button", { name: /Import a recipe/i }).click();
+}
+
+async function pasteRows(page: Page, label: string, value: string) {
+  await page.getByRole("textbox", { name: label, exact: true }).evaluate((element, text) => {
+    const clipboard = new DataTransfer();
+    clipboard.setData("text/plain", text);
+    element.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: clipboard }));
+  }, value);
+}
+
 test("manual create, edit, correction, archive, restore, and history-safe permanent delete", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/app/recipes/new");
   if (testInfo.project.name === "narrow-mobile") {
-    await expect(page.getByLabel("Ingredients, one per line")).toBeHidden();
+    await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeHidden();
     await page.getByRole("button", { name: "Ingredients" }).click();
-    await expect(page.getByLabel("Ingredients, one per line")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Basics" }).click();
   }
   await page.getByLabel("Recipe title").fill("Protein oats");
   await page.getByLabel("Yield quantity").fill("2.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
-  await page.getByLabel("Ingredients, one per line").fill("1 cup rolled oats");
+  await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup rolled oats");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await captureUi(page, testInfo, "recipe-editor");
   await page.getByRole("button", { name: "Save recipe" }).click();
@@ -331,7 +350,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
-  await page.getByText("Nutrition values").click();
+  else await page.getByText("Nutrition values").click();
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label");
   await page.getByRole("button", { name: "Save recipe" }).click();
@@ -362,7 +381,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
 test("URL import survives reload, exposes bounded retry, and offers stale-yield recovery", async ({ page }, testInfo) => {
   const api = await mockApi(page);
   await page.goto("/app/recipes");
-  await page.getByRole("button", { name: "Import recipe" }).click();
+  await openRecipeImport(page);
   await captureUi(page, testInfo, "recipe-import-dialog");
   await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/protein-oats");
   await page.getByRole("button", { name: "Start import" }).click();
@@ -461,6 +480,8 @@ test("keeps recipe nutrition metrics in one evidence layer", async ({ page }) =>
 test("archives selected recipes from the library with one reversible action", async ({ page }) => {
   await mockApi(page);
   await page.goto("/app/recipes");
+  await expect(page.locator(".recipe-grid")).toBeVisible();
+  await page.locator("summary").filter({ hasText: "Refine recipes" }).click();
   await page.getByRole("button", { name: "Select recipes" }).click();
   await page.getByRole("checkbox", { name: "Select Protein oats" }).click();
   const [request] = await Promise.all([
@@ -477,7 +498,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.getByLabel("Recipe title").fill("Lemon lentils");
   await page.getByLabel("Yield quantity").fill("2.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
-  await page.getByLabel("Ingredients, one per line").fill("1 cup lentils");
+  await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup lentils");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Basics" }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
   await expect(page.getByAltText("Preview of the selected recipe photo")).toBeVisible();
@@ -495,7 +516,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
 test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }) => {
   const preview = await mockPreviewApi(page);
   await page.goto("/app/recipes");
-  await page.getByRole("button", { name: "Import recipe" }).click();
+  await openRecipeImport(page);
 
   await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/shawarma");
   await page.getByRole("button", { name: "Start import" }).click();
@@ -543,7 +564,7 @@ test("import preview shows components, prompts for missing quantities, warns on 
 test("merge replaces duplicate content while preserving the existing recipe identity", async ({ page }) => {
   const preview = await mockPreviewApi(page);
   await page.goto("/app/recipes");
-  await page.getByRole("button", { name: "Import recipe" }).click();
+  await openRecipeImport(page);
 
   await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/shawarma");
   await page.getByRole("button", { name: "Start import" }).click();
@@ -571,27 +592,30 @@ test("editor preview toggle mirrors the live draft", async ({ page }, testInfo) 
   await page.getByLabel("Recipe title").fill("Sheet pan chicken");
   await page.getByLabel("Yield quantity").fill("4.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
-  await page.getByLabel("Ingredients, one per line").fill("1 chicken breast\n2 cups rice");
-  await page.getByLabel("Method, one step per line").fill("Roast the chicken.\nRest before serving.");
+  await pasteRows(page, "ingredient 1 for main recipe", "1 chicken breast\n2 cups rice");
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  await pasteRows(page, "step 1 for main recipe", "Roast the chicken.\nRest before serving.");
 
   await page.getByRole("button", { name: "Preview" }).click();
   await expect(page.getByRole("heading", { name: "Sheet pan chicken" })).toBeVisible();
   await expect(page.getByText("1 chicken breast")).toBeVisible();
   await expect(page.getByText("2 cups rice")).toBeVisible();
-  await expect(page.getByText("Roast the chicken.")).toBeVisible();
+  await expect(page.getByLabel("Recipe preview").getByText("Roast the chicken.")).toBeVisible();
   await expect(page.getByText("4 servings")).toBeVisible();
   await captureUi(page, testInfo, "recipe-editor-preview");
 
   await page.getByRole("button", { name: "Edit" }).click();
   await expect(page.getByLabel("Recipe title")).toHaveValue("Sheet pan chicken");
-  await expect(page.getByLabel("Ingredients, one per line")).toHaveValue("1 chicken breast\n2 cups rice");
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toHaveValue("1 chicken breast");
+  await expect(page.getByRole("textbox", { name: "ingredient 2 for main recipe", exact: true })).toHaveValue("2 cups rice");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("a PDF thumbnail selected at import is confirmed with pdf_thumbnail kind and attach feedback", async ({ page }) => {
   const preview = await mockPreviewApi(page, { pdfThumbnail: true });
   await page.goto("/app/recipes");
-  await page.getByRole("button", { name: "Import recipe" }).click();
+  await openRecipeImport(page);
 
   await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/cookbook.pdf");
   await page.getByRole("button", { name: "Start import" }).click();

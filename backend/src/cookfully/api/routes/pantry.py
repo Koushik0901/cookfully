@@ -83,6 +83,7 @@ def create_pantry_item(
                 display_name=payload.display_name,
                 quantity=payload.quantity,
                 unit=payload.unit,
+                expires_on=payload.expires_on,
                 food_reference_id=payload.food_reference_id,
             )
         )

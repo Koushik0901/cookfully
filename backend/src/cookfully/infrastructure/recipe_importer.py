@@ -30,6 +30,8 @@ class ImportedRecipe:
     sections: tuple[str, ...]
     instructions: tuple[str, ...]
     source_nutrition: dict[str, str]
+    prep_minutes: int | None = None
+    cook_minutes: int | None = None
     image_candidates: tuple[str, ...] = ()
 
 
@@ -103,6 +105,8 @@ class RecipeImporter:
                 image_candidates=candidates,
                 yield_quantity=self._yield_quantity(yield_text),
                 yield_text=yield_text,
+                prep_minutes=self._minutes(self._optional(scraper.prep_time)),
+                cook_minutes=self._minutes(self._optional(scraper.cook_time)),
                 ingredients=ingredients,
                 ingredient_sections=ingredient_sections,
                 sections=sections,
@@ -135,6 +139,19 @@ class RecipeImporter:
             return result
         except Exception:
             return None
+
+    @staticmethod
+    def _minutes(value: object | None) -> int | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int) and value >= 0:
+            return value
+        if isinstance(value, float) and value >= 0 and value.is_integer():
+            return int(value)
+        if isinstance(value, str):
+            match = re.search(r"\d+", value)
+            return int(match.group()) if match else None
+        return None
 
     @staticmethod
     def _yield_quantity(value: object | None) -> Decimal | None:
@@ -271,6 +288,8 @@ class RecipeImporter:
                     image_url=None,
                     yield_quantity=None,
                     yield_text=None,
+                    prep_minutes=None,
+                    cook_minutes=None,
                     ingredients=ingredients,
                     ingredient_sections=ingredient_sections,
                     sections=sections,

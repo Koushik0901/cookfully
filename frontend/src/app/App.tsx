@@ -6,18 +6,21 @@ import {
   CalendarDays,
   Carrot,
   CircleEllipsis,
+  Home,
   ListChecks,
   LogOut,
   PackageOpen,
+  Search,
   ShoppingBasket,
-  Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
 
 import { BrandMark, Button, EmptyState, Skeleton } from "../components";
 import { useSignOut } from "../features/settings/useSignOut";
+import { CommandPalette } from "./CommandPalette";
 import { AppProviders, RequireAuthentication } from "./providers";
 
+const HomePage = lazy(() => import("../features/home/HomePage").then((module) => ({ default: module.HomePage })));
 const CookModePage = lazy(() => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage })));
 const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
 const GoalSettingsPage = lazy(() => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage })));
@@ -50,6 +53,7 @@ const WORKFLOW = [
 ];
 
 const PRIMARY_NAVIGATION = [
+  { to: "/app", label: "Home", Icon: Home, end: true },
   { to: "/app/recipes", label: "Recipes", Icon: BookOpenText },
   { to: "/app/plan", label: "Plan", Icon: CalendarDays },
   { to: "/app/grocery", label: "Grocery", Icon: ShoppingBasket },
@@ -57,10 +61,11 @@ const PRIMARY_NAVIGATION = [
 ] as const;
 
 const SECONDARY_NAVIGATION = [
-  { to: "/app/suggestions", label: "Ideas", Icon: Sparkles },
   { to: "/app/foods", label: "Foods", Icon: Carrot },
   { to: "/app/goals", label: "Goals", Icon: ListChecks },
 ] as const;
+
+const MOBILE_NAVIGATION = PRIMARY_NAVIGATION.filter(({ label }) => label !== "Pantry");
 
 function LandingPage() {
   return (
@@ -122,7 +127,9 @@ function PlannerShell() {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const atHome = location.pathname.replace(/\/$/, "") === "/app";
   const moreIsActive = [
+    "/app/pantry",
     ...SECONDARY_NAVIGATION.map(({ to }) => to),
     "/app/settings",
   ].some((path) => location.pathname.startsWith(path));
@@ -155,28 +162,18 @@ function PlannerShell() {
     <div className="planner-shell">
       <a href="#planner-content" className="skip-link">Skip to content</a>
       <aside className="planner-nav">
-        <NavLink className="planner-nav__brand" to="/app/recipes">
-          <BrandMark />
-          <span>Cookfully</span>
+        <NavLink className="planner-nav__brand" to="/app" end>
+          <span className="planner-nav__brandmark" aria-hidden="true">♨</span>
+          <span className="visually-hidden">Cookfully home</span>
         </NavLink>
         <nav aria-label="Kitchen">
-          <p className="planner-nav__label">Kitchen</p>
-          {PRIMARY_NAVIGATION.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
-              <Icon aria-hidden="true" /><span>{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-        <nav aria-label="Your space" className="planner-nav__secondary">
-          <p className="planner-nav__label">Your space</p>
-          {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+          {PRIMARY_NAVIGATION.map(({ to, label, Icon, ...item }) => (
+            <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
         </nav>
         <nav aria-label="Account" className="planner-nav__account">
-          <p className="planner-nav__label">Account</p>
           <NavLink
             to="/app/settings"
             title="Settings"
@@ -184,23 +181,15 @@ function PlannerShell() {
           >
             <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
           </NavLink>
-          <button
-            type="button"
-            className="planner-nav__link planner-nav__button"
-            title="Sign out"
-            onClick={() => signOut.mutate()}
-            disabled={signOut.isPending}
-          >
-            <LogOut aria-hidden="true" /><span>{signOut.isPending ? "Signing out…" : "Sign out"}</span>
-          </button>
-          {signOut.isError ? <p className="planner-nav__error" role="alert">Couldn’t sign out. Try again.</p> : null}
         </nav>
-        <p className="planner-nav__promise">Your food stays on your server.</p>
       </aside>
-      <div className="planner-shell__mobile-brand"><BrandMark /><strong>Cookfully</strong></div>
+      <div className="planner-shell__mobile-brand">
+        <NavLink to="/app" aria-label="Cookfully home"><BrandMark /><strong>Cookfully</strong></NavLink>
+        {atHome ? null : <button type="button" aria-label="Open quick search" onClick={() => window.dispatchEvent(new Event("cookfully:open-command"))}><Search aria-hidden="true" /></button>}
+      </div>
       <nav className="mobile-nav" aria-label="Primary navigation">
-        {PRIMARY_NAVIGATION.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
+        {MOBILE_NAVIGATION.map(({ to, label, Icon, ...item }) => (
+          <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </NavLink>
         ))}
@@ -217,6 +206,9 @@ function PlannerShell() {
           </button>
           {moreOpen ? (
             <div ref={moreMenuRef} className="mobile-nav__menu" role="menu" aria-label="More navigation">
+              <NavLink to="/app/pantry" role="menuitem" onClick={closeMore}>
+                <PackageOpen aria-hidden="true" /><span>Pantry</span>
+              </NavLink>
               {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
                 <NavLink key={to} to={to} role="menuitem" onClick={closeMore}>
                   <Icon aria-hidden="true" /><span>{label}</span>
@@ -234,10 +226,11 @@ function PlannerShell() {
           ) : null}
         </div>
       </nav>
+      <CommandPalette />
       <main id="planner-content" className="planner-shell__content">
         <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
           <Routes>
-            <Route index element={<Navigate to="recipes" replace />} />
+            <Route index element={<HomePage />} />
             <Route path="recipes" element={<RecipeLibraryPage />} />
             <Route path="recipes/new" element={<RecipeEditorPage />} />
             <Route path="recipes/:recipeId" element={<RecipeDetailPage />} />

@@ -23,16 +23,22 @@ import type { PantryItem, PantryItemWrite } from "./types";
 
 const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
 
+function formatUseBy(value: string) {
+  return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
 function PantryItemCard({ item }: { item: PantryItem }) {
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState(item.displayName);
   const [quantity, setQuantity] = useState(formatCookingInput(item.quantity));
   const [unit, setUnit] = useState(item.unit);
+  const [expiresOn, setExpiresOn] = useState(item.expiresOn ?? "");
   const [referenceId, setReferenceId] = useState(item.foodReferenceId ?? "");
   useEffect(() => {
     setDisplayName(item.displayName);
     setQuantity(formatCookingInput(item.quantity));
     setUnit(item.unit);
+    setExpiresOn(item.expiresOn ?? "");
     setReferenceId(item.foodReferenceId ?? "");
   }, [item]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
@@ -56,6 +62,7 @@ function PantryItemCard({ item }: { item: PantryItem }) {
       displayName: displayName.trim(),
       quantity,
       unit,
+      expiresOn: expiresOn || null,
       foodReferenceId: referenceId.trim() || null,
     });
   }
@@ -65,7 +72,7 @@ function PantryItemCard({ item }: { item: PantryItem }) {
       <div className="pantry-card__heading">
         <div>
           <h3>{item.displayName}</h3>
-          <p className="data-value">{formatCookingNumber(item.quantity)} {item.unit}</p>
+          <p className="data-value">{formatCookingNumber(item.quantity)} {item.unit}{item.expiresOn ? ` · Use by ${formatUseBy(item.expiresOn)}` : ""}</p>
         </div>
         <span className={`match-badge match-badge--${item.matchStatus}`}>
           {matchLabel}
@@ -88,6 +95,9 @@ function PantryItemCard({ item }: { item: PantryItem }) {
           <Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
             {UNITS.map((value) => <option key={value}>{value}</option>)}
           </Select>
+        </Field>
+        <Field label={`${item.displayName} use-by date`} hint="Optional. Used only to surface food that deserves attention soon.">
+          <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
         </Field>
         <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
           <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
@@ -116,13 +126,14 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
     displayName: prefillName,
     quantity: "",
     unit: "g",
+    expiresOn: null,
     foodReferenceId: null,
   });
   const create = useMutation({
     mutationFn: () => pantryApi.create(draft),
     onSuccess: () => {
       setOpen(false);
-      setDraft({ displayName: prefillName, quantity: "", unit: "g", foodReferenceId: null });
+      setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null });
       void queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
     },
   });
@@ -130,7 +141,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
   return (
     <Dialog.Root open={open} onOpenChange={(value) => {
       setOpen(value);
-      if (!value) setDraft({ displayName: prefillName, quantity: "", unit: "g", foodReferenceId: null });
+      if (!value) setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null });
     }}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
@@ -152,6 +163,9 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
               <Field label="Quantity"><DecimalInput value={draft.quantity} onValueChange={(quantity) => setDraft((value) => ({ ...value, quantity }))} placeholder="500" /></Field>
               <Field label="Unit"><Select value={draft.unit} onChange={(event) => { const unit = event.currentTarget.value; setDraft((value) => ({ ...value, unit })); }}>{UNITS.map((value) => <option key={value}>{value}</option>)}</Select></Field>
             </div>
+            <Field label="Use-by date (optional)" hint="Add one when timing matters; shelf-stable food can stay undated.">
+              <input className="input" type="date" value={draft.expiresOn ?? ""} onChange={(event) => { const expiresOn = event.currentTarget.value || null; setDraft((value) => ({ ...value, expiresOn })); }} />
+            </Field>
             {create.error instanceof Error ? <p className="error-text pantry-dialog__error" role="alert">{create.error.message}</p> : null}
             <div className="pantry-dialog__actions">
               <Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close>

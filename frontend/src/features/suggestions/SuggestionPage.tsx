@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, Select, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
 import { suggestionsApi } from "./api";
@@ -200,7 +201,7 @@ export function SuggestionPage() {
           return <article className="suggestion-item" key={item.id}>
             <Link className="suggestion-item__media" to={`/app/recipes/${item.recipeId}`} aria-label={`Open ${item.recipeTitle}`}>{recipe?.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={item.recipeTitle} />}</Link>
             <label className="suggestion-item__select"><Checkbox checked={selectedIds.includes(item.id)} disabled={item.accepted} aria-label={`Accept ${item.recipeTitle}`} onCheckedChange={(checked) => setSelectedIds((current) => checked === true ? [...current, item.id] : current.filter((id) => id !== item.id))} /><span className="visually-hidden">Add {item.recipeTitle}</span></label>
-            <div className="suggestion-item__body"><p className="eyebrow">{mealName} · {item.localDate}</p><h3><Link to={`/app/recipes/${item.recipeId}`}>{item.recipeTitle}</Link></h3><p className="suggestion-item__servings">{Number(item.servings)} {Number(item.servings) === 1 ? "serving" : "servings"}</p><p className="suggestion-item__reason">A practical fit for this {item.mealSlot}, balanced against the rest of your plan.</p><MacroTotals total={item.projectedNutrition} /><Link className="suggestion-item__open" to={`/app/recipes/${item.recipeId}`}>See recipe <ArrowRight aria-hidden="true" /></Link></div>
+            <div className="suggestion-item__body"><p className="eyebrow">{mealName} · {item.localDate}</p><h3><Link to={`/app/recipes/${item.recipeId}`}>{item.recipeTitle}</Link></h3><p className="suggestion-item__servings">{Number(item.servings)} {Number(item.servings) === 1 ? "serving" : "servings"}</p><RecipeMetadata recipe={recipe ?? { title: item.recipeTitle, prepMinutes: null, cookMinutes: null, nutrition: item.projectedNutrition }} compact /><p className="suggestion-item__reason">A practical fit for this {item.mealSlot}, balanced against the rest of your plan.</p><MacroTotals total={item.projectedNutrition} /><Link className="suggestion-item__open" to={`/app/recipes/${item.recipeId}`}>See recipe <ArrowRight aria-hidden="true" /></Link></div>
           </article>;
         })}</div></section> : null}
         <details className="suggestion-preview"><summary>Nutrition fit for this {result.request.scope === "week" ? "week" : "day"}</summary><div aria-label={`Projected ${result.request.scope === "week" ? "week" : "day"} total`}><MacroTotals total={previewTotal} testId="preview-primary-total" /></div></details>

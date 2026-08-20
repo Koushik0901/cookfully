@@ -77,13 +77,12 @@ test("tablet keeps a compact kitchen rail instead of inheriting phone navigation
   await expect(page.locator(".planner-nav")).toBeVisible();
   await expect(page.locator(".mobile-nav")).toBeHidden();
   await expect(page.getByRole("link", { name: "Recipes" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Goals" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Goals" })).toBeHidden();
 
   const content = await page.locator(".planner-shell__content").boundingBox();
   expect(content).not.toBeNull();
-  expect(content!.x).toBe(80);
+  expect(content!.x).toBe(112);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -95,7 +94,8 @@ test("mobile keeps secondary places in a deliberate More menu", async ({ page },
   const more = page.locator(".mobile-nav__more");
   await more.getByText("More", { exact: true }).click();
   await expect(more.getByRole("button", { name: "More" })).toHaveAttribute("aria-expanded", "true");
-  await expect(more.getByRole("menuitem", { name: "Ideas" })).toBeVisible();
+  await expect(more.getByRole("menuitem", { name: "Pantry" })).toBeVisible();
+  await expect(more.getByRole("menuitem", { name: "Foods" })).toBeVisible();
   await expect(more.getByRole("menuitem", { name: "Goals" })).toBeVisible();
   await expect(more.getByRole("menuitem", { name: "Settings" })).toBeVisible();
   await expect(more.getByRole("menuitem", { name: "Sign out" })).toBeVisible();

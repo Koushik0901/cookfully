@@ -8,6 +8,7 @@ import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt"
 import { Checkbox } from "@/components/ui/checkbox";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
+import { RecipeMetadata } from "./RecipeMetadata";
 
 export function CookModePage() {
   const { recipeId } = useParams();
@@ -105,6 +106,7 @@ export function CookModePage() {
         </div>
         <div className="cook-mode__meta">
           <strong>{servingLabel(currentRecipe.yieldQuantity, currentRecipe.yieldUnit)}</strong>
+          <RecipeMetadata recipe={currentRecipe} compact />
           <span>{screenAwake ? "Screen stays awake" : "Cook mode"}</span>
         </div>
       </header>

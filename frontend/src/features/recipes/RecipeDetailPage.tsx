@@ -11,6 +11,7 @@ import { recipesApi } from "./api";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 import { NutritionPanel } from "./NutritionPanel";
 import { RecipeNutritionSummary } from "./RecipeNutritionSummary";
+import { recipeTimeLabel } from "./recipeMetadataUtils";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail } from "./types";
@@ -176,15 +177,16 @@ export function RecipeDetailPage() {
       </div>
 
       <section className="recipe-hero" aria-labelledby="recipe-title">
-        <div className="recipe-hero__media">
+        <div className="recipe-hero__media" style={{ viewTransitionName: `recipe-media-${recipe.id}` } as CSSProperties}>
           {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.title} style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
         </div>
         <div className="recipe-hero__copy">
           <p className="eyebrow">{recipe.status === "archived" ? "Archived recipe" : recipe.mealRoles?.[0] ?? "From your kitchen"}</p>
-          <h1 id="recipe-title">{recipe.title}</h1>
+          <h1 id="recipe-title" style={{ viewTransitionName: `recipe-title-${recipe.id}` } as CSSProperties}>{recipe.title}</h1>
           {recipe.description ? <p className="lede">{recipe.description}</p> : null}
            <div className="recipe-hero__facts">
             <span><strong>{servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</strong>{recipe.sourceUrl ? " · source yield" : ""}</span>
+            <span><strong>{recipeTimeLabel(recipe)}</strong> estimated time</span>
             <span><strong>{recipe.ingredients.length}</strong> ingredients</span>
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}

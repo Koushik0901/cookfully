@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -17,6 +17,7 @@ class PantryItemWriteRequest(ApiModel):
     display_name: str = Field(alias="displayName", min_length=1, max_length=240)
     quantity: Decimal6
     unit: str = Field(min_length=1, max_length=80)
+    expires_on: date | None = Field(alias="expiresOn", default=None)
     food_reference_id: UUID | None = Field(alias="foodReferenceId", default=None)
 
 
@@ -35,6 +36,7 @@ class PantryItemResponse(PantryItemWriteRequest):
             normalized_food_name=value.normalized_food_name,
             quantity=value.quantity,
             unit=value.unit,
+            expires_on=value.expires_on,
             food_reference_id=value.food_reference_id,
             match_status=value.match_status,
             match_confidence=(

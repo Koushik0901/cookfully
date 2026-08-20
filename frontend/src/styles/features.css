@@ -269,6 +269,10 @@
 .recipe-card__nutrition > div { display: flex; gap: 0.35rem; }
 .recipe-card__nutrition dt { color: var(--color-on-surface-variant); }
 .recipe-card__nutrition dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 620; }
+.recipe-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; color: var(--color-on-surface-variant); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.recipe-meta span + span::before { margin-right: 0.75rem; color: var(--color-outline); content: "·"; }
+.recipe-meta--compact { gap: 0.2rem 0.55rem; font-size: 0.68rem; }
+.recipe-meta--compact span + span::before { margin-right: 0.55rem; }
 .recipe-card__protein dt { display: flex; align-items: center; gap: 0.35rem; }
 .recipe-card__protein dt::before { width: 0.38rem; height: 0.38rem; border-radius: 50%; background: var(--macro-protein); content: ""; }
 .recipe-card__carb dt { display: flex; align-items: center; gap: 0.35rem; }
@@ -663,6 +667,8 @@
 .recipe-title-input:focus { border-color: var(--color-primary); box-shadow: none; }
 .recipe-makes { display: grid; grid-template-columns: auto minmax(6rem, 0.45fr) minmax(8rem, 0.55fr); align-items: center; gap: 0.65rem; }
 .recipe-makes > span { color: var(--color-on-surface-variant); font-size: 0.85rem; }
+.recipe-editor__identity-details { display: grid; gap: 0.85rem; }
+.recipe-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .recipe-editor__mobile-steps { display: none; }
 .recipe-editor__workbench { display: grid; gap: 1.5rem; }
 .recipe-editor__blocks { display: grid; gap: 1.5rem; }
@@ -762,6 +768,7 @@
 .cook-mode__identity p { color: var(--color-accent); font-size: 0.72rem; font-weight: 650; }
 .cook-mode__title { max-width: 38rem; overflow: hidden; color: var(--color-on-primary); font-size: 1.35rem; text-overflow: ellipsis; white-space: nowrap; }
 .cook-mode__meta { display: grid; justify-items: end; gap: 0.1rem; font-size: 0.8rem; }
+.cook-mode__meta .recipe-meta { justify-content: end; color: var(--color-on-herb-subtle); font-size: 0.65rem; }
 .cook-mode__meta span { color: var(--color-on-herb-subtle); font-size: 0.68rem; }
 .cook-mode__body { display: grid; min-height: calc(100dvh - 5rem); grid-template-columns: minmax(17rem, 0.32fr) minmax(0, 0.68fr); }
 .cook-mode__ingredients { border-right: 1px solid var(--color-on-dark-line); padding: 1.5rem; background: var(--color-herb-900); }

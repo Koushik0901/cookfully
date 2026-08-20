@@ -136,7 +136,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
-  await page.getByLabel("Ingredients, one per line").fill("250 g tofu");
+  await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("250 g tofu");
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();

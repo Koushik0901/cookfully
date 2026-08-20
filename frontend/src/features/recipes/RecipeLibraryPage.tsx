@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
-import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, FileDown, Plus, Search, SlidersHorizontal } from "lucide-react";
 
 import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Select, Skeleton } from "../../components";
 import { recipesApi } from "./api";
 import { RecipeCard } from "./RecipeCard";
 import { BulkRecipeActions } from "./BulkRecipeActions";
 import { RecipeCollectionManager } from "./RecipeCollectionManager";
-import { RecipeCollectionStrip } from "./RecipeCollectionStrip";
 import { RecipeImportDialog } from "./RecipeImportDialog";
 import type { RecipePage } from "./types";
 import { FirstRunJourney } from "../onboarding/FirstRunJourney";
@@ -17,6 +16,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 export function RecipeLibraryPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const addMenuRef = useRef<HTMLDetailsElement>(null);
+  const [importOpen, setImportOpen] = useState(searchParams.get("import") === "1");
   const [query, setQuery] = useState("");
   const [libraryView, setLibraryView] = useState<"all" | "ready" | "attention" | "archived">("all");
   const [sortBy, setSortBy] = useState<"updated" | "title-asc" | "title-desc" | "protein" | "calories">("updated");
@@ -27,12 +29,16 @@ export function RecipeLibraryPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("");
+  useEffect(() => {
+    if (searchParams.get("import") === "1") setImportOpen(true);
+  }, [searchParams]);
   const unfiled = collectionId === "__unfiled__";
   const collections = useQuery({ queryKey: ["recipe-collections"], queryFn: recipesApi.collections, retry: 1 });
   const onboarding = useQuery({ queryKey: ["owner-onboarding"], queryFn: onboardingApi.get, retry: 1 });
   const collectionName = (Array.isArray(collections.data) ? collections.data : []).find((collection) => collection.id === collectionId)?.name;
   const activeFilters = [
     favoriteOnly ? { label: "Favorites", clear: () => setFavoriteOnly(false) } : null,
+    libraryView !== "all" ? { label: libraryView === "ready" ? "Ready to plan" : libraryView === "attention" ? "Needs attention" : "Archived", clear: () => setLibraryView("all") } : null,
     collectionId ? { label: unfiled ? "Unfiled recipes" : `Collection: ${collectionName ?? "Selected"}`, clear: () => setCollectionId("") } : null,
     mealRole ? { label: `Meal: ${mealRole}`, clear: () => setMealRole("") } : null,
   ].filter((filter): filter is { label: string; clear: () => void } => filter !== null);
@@ -149,6 +155,15 @@ export function RecipeLibraryPage() {
     bulkArchive.mutate(selectedItems.map((recipe) => ({ id: recipe.id, version: recipe.version })));
   };
 
+  const closeImport = (open: boolean) => {
+    setImportOpen(open);
+    if (!open && searchParams.has("import")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("import");
+      setSearchParams(next, { replace: true });
+    }
+  };
+
   if (isGenuinelyEmpty && onboarding.data?.state === "pending") {
     return <main className="page-shell first-kitchen-page"><FirstRunJourney onboarding={onboarding.data} /></main>;
   }
@@ -175,29 +190,40 @@ export function RecipeLibraryPage() {
       <PageHeader
         eyebrow="Your recipes"
         title="What would you like to cook?"
-        description="Browse what you know, or let Cookfully help you find a good fit for the week."
-         actions={<><Button asChild><Link to="/app/recipes/new">Add recipe</Link></Button><RecipeImportDialog trigger={<Button variant="secondary">Import recipe</Button>} /><Button variant="ghost" onClick={() => { setSelectionMode((current) => !current); setSelectedIds([]); setBulkMessage(""); }}>{selectionMode ? "Done selecting" : "Select recipes"}</Button></>}
+        description="Search the dishes you know, then narrow the shelf only when you need to."
+        actions={
+          <details className="recipe-add-menu" ref={addMenuRef}>
+            <summary className="cf-button cf-button--primary cf-button--md"><Plus aria-hidden="true" />Add recipe<ChevronDown aria-hidden="true" /></summary>
+            <div className="recipe-add-menu__content">
+              <Link to="/app/recipes/new" onClick={() => addMenuRef.current?.removeAttribute("open")}><Plus aria-hidden="true" /><span><strong>Write a recipe</strong><small>Build it ingredient by ingredient</small></span></Link>
+              <button type="button" onClick={() => { addMenuRef.current?.removeAttribute("open"); setImportOpen(true); }}><FileDown aria-hidden="true" /><span><strong>Import a recipe</strong><small>From a public page or cookbook</small></span></button>
+            </div>
+          </details>
+        }
       />
+      <RecipeImportDialog open={importOpen} onOpenChange={closeImport} />
 
       <section className="recipe-discovery" aria-label="Find recipes">
         <div className="recipe-search"><Search aria-hidden="true" /><input className="input" aria-label="Search recipes" type="search" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
         <div className="recipe-view-tabs" role="tablist" aria-label="Recipe views">
-           {([['all', 'All recipes'], ['ready', 'Ready to plan'], ['attention', 'Needs attention'], ['archived', 'Archived']] as const).map(([value, label]) => <button type="button" key={value} id={`recipe-view-tab-${value}`} role="tab" aria-controls="recipe-view-panel" aria-selected={libraryView === value} onClick={() => setLibraryView(value)}>{label}</button>)}
+          <button type="button" id="recipe-view-tab-all" role="tab" aria-controls="recipe-view-panel" aria-selected={!favoriteOnly} onClick={() => setFavoriteOnly(false)}>All recipes</button>
+          <button type="button" id="recipe-view-tab-favorites" role="tab" aria-controls="recipe-view-panel" aria-selected={favoriteOnly} onClick={() => setFavoriteOnly(true)}>Favorites</button>
         </div>
         <details className="recipe-filter-disclosure">
           <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeFilters.length ? <b>{activeFilters.length}</b> : null}{sortBy !== "updated" || favoriteOnly ? <b>{([sortBy !== "updated", favoriteOnly].filter(Boolean).length)}</b> : null}<ChevronDown aria-hidden="true" /></summary>
           <div className="recipe-filter-disclosure__content">
             <div className="recipe-filter-fields">
+              <Field label="Recipe status"><Select value={libraryView} onChange={(event) => setLibraryView(event.target.value as typeof libraryView)}><option value="all">Active recipes</option><option value="ready">Ready to plan</option><option value="attention">Needs attention</option><option value="archived">Archived</option></Select></Field>
               <Field label="Sort recipes"><Select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="updated">Recently updated</option><option value="title-asc">Name A–Z</option><option value="title-desc">Name Z–A</option><option value="protein">Highest protein</option><option value="calories">Lowest calories</option></Select></Field>
               <Field label="Collection"><Select value={collectionId} onChange={(event) => setCollectionId(event.target.value)}><option value="">Any collection</option>{(Array.isArray(collections.data) ? collections.data : []).map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}</Select></Field>
               <Field label="Meal moment"><Select value={mealRole} onChange={(event) => setMealRole(event.target.value)}><option value="">Any meal</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></Select></Field>
               <Field label="Group results"><Select value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)}><option value="none">No grouping</option><option value="readiness">Planning readiness</option></Select></Field>
             </div>
             <label className="recipe-favorite-filter"><Checkbox checked={favoriteOnly} onCheckedChange={(checked) => setFavoriteOnly(checked === true)} />Favorites only</label>
+            <Button variant="ghost" onClick={() => { setSelectionMode((current) => !current); setSelectedIds([]); setBulkMessage(""); }}>{selectionMode ? "Done selecting" : "Select recipes"}</Button>
             <RecipeCollectionManager collections={Array.isArray(collections.data) ? collections.data : []} />
           </div>
          </details>
-       <RecipeCollectionStrip collections={Array.isArray(collections.data) ? collections.data : []} recipesCount={recipes.data?.items.filter((recipe) => recipe.status !== "archived").length ?? 0} unfiledCount={recipes.data?.items.filter((recipe) => recipe.status !== "archived" && (recipe.collections ?? []).length === 0).length ?? 0} selected={collectionId} onSelect={setCollectionId} />
         {activeFilters.length ? <div className="active-library-filters" aria-label="Active recipe filters" aria-live="polite"><span>Showing a focused view</span>{activeFilters.map((filter) => <button type="button" key={filter.label} onClick={filter.clear}>{filter.label} <span aria-hidden="true">×</span><span className="sr-only">Remove filter</span></button>)}<button type="button" className="active-library-filters__clear" onClick={() => { setFavoriteOnly(false); setCollectionId(""); setMealRole(""); }}>Clear filters</button></div> : null}
       </section>
 
@@ -209,7 +235,7 @@ export function RecipeLibraryPage() {
        {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
        {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <><Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button><Button variant="ghost" asChild><Link to="/app/suggestions">Get ideas</Link></Button></> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
        {selectionMode && selectedIds.length ? <BulkRecipeActions selectedCount={selectedIds.length} pending={bulkArchive.isPending} onArchive={archiveSelected} onClear={() => setSelectedIds([])} /> : null}
-       <div id="recipe-view-panel" role="tabpanel" aria-labelledby={`recipe-view-tab-${libraryView}`}>
+       <div id="recipe-view-panel" role="tabpanel" aria-labelledby={favoriteOnly ? "recipe-view-tab-favorites" : "recipe-view-tab-all"}>
          {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} selectionMode={selectionMode && recipe.status !== "archived"} selected={selectedIds.includes(recipe.id)} onSelectedChange={(selected) => toggleSelected(recipe.id, selected)} actionPending={lifecycle.isPending || remove.isPending || bulkArchive.isPending} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
        </div>
      </main>

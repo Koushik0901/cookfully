@@ -34,9 +34,24 @@ function componentsPayload(components: EditableComponent[]): ImportConfirmCompon
   }));
 }
 
-export function RecipeImportDialog({ trigger, onImported }: { trigger: React.ReactNode; onImported?: () => void | Promise<unknown> }) {
+export function RecipeImportDialog({
+  trigger,
+  onImported,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  trigger?: React.ReactNode;
+  onImported?: () => void | Promise<unknown>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
   const [step, setStep] = useState<Step>("url");
   const [url, setUrl] = useState("");
   const [validation, setValidation] = useState("");
@@ -201,7 +216,7 @@ export function RecipeImportDialog({ trigger, onImported }: { trigger: React.Rea
         }
       }}
     >
-      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog import-wizard" aria-describedby="import-description">

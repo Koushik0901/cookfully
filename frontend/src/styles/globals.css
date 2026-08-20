@@ -4,7 +4,10 @@
 @import "shadcn/tailwind.css";
 @import "../components/shared.css";
 @import "./shell.css";
+@import "./home.css";
+@import "./command.css";
 @import "./features.css";
+@import "./redesign.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -30,7 +33,7 @@ body {
   background: var(--color-surface);
   font-family: var(--font-body);
   font-size: var(--text-body-md);
-  font-weight: 430;
+  font-weight: 400;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -70,7 +73,7 @@ h4 {
   margin: 0;
   color: var(--color-on-surface);
   font-family: var(--font-display);
-  font-weight: 620;
+  font-weight: 500;
   letter-spacing: -0.015em;
   line-height: 1.08;
   text-wrap: balance;
@@ -122,7 +125,7 @@ progress::-moz-progress-bar { background: var(--color-primary); }
 .eyebrow {
   color: var(--color-primary);
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -143,7 +146,7 @@ small {
   border: 0;
   padding: 0;
   background: transparent;
-  font-weight: 620;
+  font-weight: 500;
   cursor: pointer;
 }
 

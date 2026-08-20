@@ -16,9 +16,9 @@ import {
 import { Checkbox } from "../../components/ui/checkbox";
 import { recipesApi } from "./api";
 import { servingLabel } from "./formatCooking";
+import { RecipeMetadata } from "./RecipeMetadata";
 import type { Recipe } from "./types";
 
-const ORIGIN_LABELS = { manual: "Cookfully", web_import: "Web import", cookbook_import: "Cookbook" } as const;
 const EMPTY_COLLECTIONS: Recipe["collections"] = [];
 
 export function RecipeCard({
@@ -82,20 +82,16 @@ export function RecipeCard({
     setFavorite(next);
     organize.mutate({ favorite: next, collectionIds: membership }, { onError: () => setFavorite(!next) });
   };
-  const displayNumber = (value: string | null | undefined, maximumFractionDigits: number) =>
-    value == null
-      ? "—"
-      : new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(Number(value));
   return (
     <article className={`recipe-card${selectionMode ? " recipe-card--selection-mode" : ""}`}>
       {selectionMode ? <Checkbox className="recipe-card__selection" checked={selected} aria-label={`Select ${recipe.title}`} onCheckedChange={(checked) => onSelectedChange?.(checked === true)} /> : null}
-      <Link className="recipe-card__primary" to={`/app/recipes/${recipe.id}`} aria-label={recipe.title}>
-        <div className="recipe-card__media">
+      <Link className="recipe-card__primary" to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition>
+        <div className="recipe-card__media" style={{ viewTransitionName: `recipe-media-${recipe.id}` } as CSSProperties}>
           {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
         </div>
         <div className="recipe-card__body">
           <div className="recipe-card__heading">
-            <h2>{recipe.title}</h2>
+            <h2 style={{ viewTransitionName: `recipe-title-${recipe.id}` } as CSSProperties}>{recipe.title}</h2>
             {recipe.status === "processing" ? <PollingStatusBadge status="running" /> : null}
           </div>
           <p className="recipe-card__yield data-value">
@@ -103,15 +99,8 @@ export function RecipeCard({
             {" · "}
              <span className={`recipe-card__state recipe-card__state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
           </p>
-          <div className="recipe-card__context"><span className="recipe-card__origin">{ORIGIN_LABELS[recipe.originKind] ?? "Recipe"}</span>{recipeCollections.map((collection) => <span className="recipe-card__collection" key={collection.id}>{collection.name}</span>)}</div>
-          {nutrition ? (
-            <dl className="recipe-card__nutrition" aria-label={`${recipe.title} nutrition`}>
-              <div><dt>Calories</dt><dd>{displayNumber(nutrition.caloriesKcal, 0)} kcal</dd></div>
-              <div className="recipe-card__protein"><dt>Protein</dt><dd>{displayNumber(nutrition.proteinG, 1)} g</dd></div>
-              <div className="recipe-card__carb"><dt>Carbs</dt><dd>{displayNumber(nutrition.carbohydrateG, 1)} g</dd></div>
-              <div className="recipe-card__fat"><dt>Fat</dt><dd>{displayNumber(nutrition.fatG, 1)} g</dd></div>
-            </dl>
-          ) : <p className="muted">Nutrition estimate in progress.</p>}
+          {recipeCollections.length ? <div className="recipe-card__context"><span className="recipe-card__collection">{recipeCollections[0].name}</span>{recipeCollections.length > 1 ? <span className="recipe-card__collection">+{recipeCollections.length - 1}</span> : null}</div> : null}
+          <RecipeMetadata recipe={recipe} />
         </div>
       </Link>
       <button type="button" className={`recipe-card__favorite-toggle${favorite ? " is-favorite" : ""}`} aria-label={`${favorite ? "Remove" : "Add"} ${recipe.title} ${favorite ? "from" : "to"} favorites`} aria-pressed={favorite} onClick={toggleFavorite} disabled={organize.isPending}>

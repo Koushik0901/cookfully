@@ -115,11 +115,17 @@ def test_pantry_openapi_and_exact_decimal_crud(isolated_database_url: str, tmp_p
         headers = authenticate(client)
         created = client.post(
             "/api/v1/pantry-items",
-            json={"displayName": "Brown rice", "quantity": "0.250000", "unit": "kg"},
+            json={
+                "displayName": "Brown rice",
+                "quantity": "0.250000",
+                "unit": "kg",
+                "expiresOn": "2026-03-14",
+            },
             headers={**headers, "Idempotency-Key": "pantry-create-0001"},
         )
         assert created.status_code == 201
         assert created.json()["quantity"] == "0.25"
+        assert created.json()["expiresOn"] == "2026-03-14"
         assert created.json()["normalizedFoodName"] == "brown rice"
         assert created.json()["matchStatus"] in {"unmatched", "proposed", "matched", "manual"}
 
@@ -137,6 +143,7 @@ def test_pantry_openapi_and_exact_decimal_crud(isolated_database_url: str, tmp_p
                 "displayName": item["displayName"],
                 "quantity": "0.333333",
                 "unit": "kg",
+                "expiresOn": "2026-03-16",
                 "foodReferenceId": None,
             },
             headers={
@@ -147,6 +154,7 @@ def test_pantry_openapi_and_exact_decimal_crud(isolated_database_url: str, tmp_p
         )
         assert changed.status_code == 200
         assert changed.json()["quantity"] == "0.333333"
+        assert changed.json()["expiresOn"] == "2026-03-16"
 
         stale = client.patch(
             f"/api/v1/pantry-items/{item['id']}",

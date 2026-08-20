@@ -4,6 +4,7 @@ import re
 import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from difflib import SequenceMatcher
 from typing import Any
@@ -70,6 +71,7 @@ class PantryItemRead:
     normalized_food_name: str
     quantity: Decimal
     unit: str
+    expires_on: date | None
     food_reference_id: UUID | None
     match_status: str
     match_confidence: Decimal | None
@@ -225,6 +227,7 @@ class PantryService:
         display_name: str,
         quantity: Decimal,
         unit: str,
+        expires_on: date | None = None,
         food_reference_id: UUID | None = None,
     ) -> PantryItemRead:
         name = self._name(display_name)
@@ -238,6 +241,7 @@ class PantryService:
                 normalized_food_name=normalize_pantry_name(name),
                 quantity=amount,
                 unit_code=canonical_unit,
+                expires_on=expires_on,
                 food_reference_id=reference_id,
                 match_status=status,
                 match_confidence=confidence,
@@ -271,6 +275,8 @@ class PantryService:
                 item.quantity = self._quantity(values["quantity"])
             if "unit" in values:
                 item.unit_code = canonical_pantry_unit(str(values["unit"]))
+            if "expires_on" in values:
+                item.expires_on = values["expires_on"]
             if "food_reference_id" in values:
                 reference_id = values["food_reference_id"]
                 resolved, status, confidence = self._resolve_match(
@@ -359,13 +365,14 @@ class PantryService:
     @staticmethod
     def _read(item: PantryItem) -> PantryItemRead:
         return PantryItemRead(
-            item.id,
-            item.display_name,
-            item.normalized_food_name,
-            item.quantity,
-            item.unit_code,
-            item.food_reference_id,
-            item.match_status,
-            item.match_confidence,
-            item.version,
+            id=item.id,
+            display_name=item.display_name,
+            normalized_food_name=item.normalized_food_name,
+            quantity=item.quantity,
+            unit=item.unit_code,
+            expires_on=item.expires_on,
+            food_reference_id=item.food_reference_id,
+            match_status=item.match_status,
+            match_confidence=item.match_confidence,
+            version=item.version,
         )

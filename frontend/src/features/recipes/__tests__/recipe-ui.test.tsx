@@ -275,7 +275,7 @@ describe("recipe UI", () => {
     await user.type(screen.getByLabelText("Recipe title"), "Exact oats");
     await user.clear(screen.getByLabelText("Yield quantity"));
     await user.type(screen.getByLabelText("Yield quantity"), "2.1234567");
-    await user.type(screen.getByLabelText("Ingredients, one per line"), "1 1/4 cups rolled oats");
+    await user.type(screen.getByLabelText("ingredient 1 for main recipe"), "1 1/4 cups rolled oats");
     await user.click(screen.getByRole("button", { name: "Save recipe" }));
     expect(await screen.findByText(/up to six decimal places/i)).toBeVisible();
 
@@ -361,21 +361,26 @@ describe("recipe UI", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Recipe title"), "Sheet pan chicken");
-    await user.type(screen.getByLabelText("Ingredients, one per line"), "1 chicken breast\n2 cups rice");
-    await user.type(screen.getByLabelText("Method, one step per line"), "Roast the chicken.\nRest before serving.");
+    const firstIngredient = screen.getByLabelText("ingredient 1 for main recipe");
+    await user.click(firstIngredient);
+    await user.paste("1 chicken breast\n2 cups rice");
+    const firstStep = screen.getByLabelText("step 1 for main recipe");
+    await user.click(firstStep);
+    await user.paste("Roast the chicken.\nRest before serving.");
 
     await user.click(screen.getByRole("button", { name: "Preview" }));
 
     expect(await screen.findByRole("heading", { name: "Sheet pan chicken" })).toBeVisible();
     expect(screen.getByText("1 chicken breast")).toBeVisible();
     expect(screen.getByText("2 cups rice")).toBeVisible();
-    expect(screen.getByText("Roast the chicken.")).toBeVisible();
-    expect(screen.getByText("Rest before serving.")).toBeVisible();
+    expect(screen.getByText("Roast the chicken.", { selector: "li" })).toBeVisible();
+    expect(screen.getByText("Rest before serving.", { selector: "li" })).toBeVisible();
     expect(screen.getByText("1 serving")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     expect(screen.getByLabelText("Recipe title")).toHaveValue("Sheet pan chicken");
-    expect(screen.getByLabelText("Ingredients, one per line")).toHaveValue("1 chicken breast\n2 cups rice");
+    expect(screen.getByLabelText("ingredient 1 for main recipe")).toHaveValue("1 chicken breast");
+    expect(screen.getByLabelText("ingredient 2 for main recipe")).toHaveValue("2 cups rice");
   });
 
   it("surfaces provisional estimates in the editor review list", async () => {

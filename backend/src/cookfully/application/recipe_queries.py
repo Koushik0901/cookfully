@@ -114,6 +114,8 @@ class RecipeRead:
     image_url: str | None
     yield_quantity: Decimal
     yield_unit: str
+    prep_minutes: int | None
+    cook_minutes: int | None
     status: str
     archived_from_status: str | None
     nutrition_state: str
@@ -234,6 +236,8 @@ class RecipeQueryService:
             origin_kind=recipe.origin_kind,
             yield_quantity=recipe.yield_quantity,
             yield_unit=recipe.yield_unit,
+            prep_minutes=recipe.prep_minutes,
+            cook_minutes=recipe.cook_minutes,
             status=recipe.status,
             archived_from_status=recipe.archived_from_status,
             nutrition_state=recipe.nutrition_state,

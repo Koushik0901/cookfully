@@ -1,10 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +36,7 @@ class PantryItem(TimestampMixin, Base):
         ),
         CheckConstraint("version > 0", name="positive_version"),
         Index("ix_pantry_items_owner_name", "owner_id", "normalized_food_name"),
+        Index("ix_pantry_items_owner_expires_on", "owner_id", "expires_on"),
     )
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
@@ -36,6 +47,7 @@ class PantryItem(TimestampMixin, Base):
     normalized_food_name: Mapped[str] = mapped_column(String(240), nullable=False)
     quantity: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     unit_code: Mapped[str] = mapped_column(String(20), nullable=False)
+    expires_on: Mapped[date | None] = mapped_column(Date)
     food_reference_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("food_references.id", ondelete="SET NULL")
     )

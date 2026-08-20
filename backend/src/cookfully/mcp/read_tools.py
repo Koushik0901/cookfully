@@ -217,6 +217,7 @@ def _serialize_pantry_item(value: PantryItemRead) -> dict[str, Any]:
         "displayName": value.display_name,
         "quantity": str(value.quantity),
         "unit": value.unit,
+        "expiresOn": value.expires_on.isoformat() if value.expires_on else None,
         "foodReferenceId": str(value.food_reference_id) if value.food_reference_id else None,
         "matchStatus": value.match_status,
         "matchConfidence": str(value.match_confidence)

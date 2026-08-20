@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button, DecimalInput, Field, Select } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
+import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import type { MealPlanEntry as Entry, RecipePage } from "./types";
 import { nutritionConfidenceLabel } from "./nutritionConfidence";
 import { useMealPlanMutations } from "./useMealPlanMutations";
@@ -26,7 +27,7 @@ export function MealPlanEntry({ entry, weekStart, recipe }: { entry: Entry; week
         {entry.recipeId ? <Link className={`plan-entry__media ${recipe?.imageUrl ? "" : "plan-entry__media--fallback"}`} to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`}>{recipe?.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={entry.recipeTitle} />}</Link> : <span className="plan-entry__media plan-entry__media--fallback"><RecipeFallbackArt title={entry.recipeTitle} /></span>}
         <div className="plan-entry__body">
           <div className="plan-entry__heading"><div className="plan-entry__title"><h4>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : entry.recipeTitle}</h4></div><details className="nutrition-confidence nutrition-confidence--meal"><summary>{nutritionConfidenceLabel(entry.nutrition.status, entry.nutrition.coverageRatio)}</summary><p>{entry.nutrition.status.replace("_", " ")} nutrition · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% source coverage</p></details></div>
-          <div className="plan-entry__nutrition" aria-label={`${entry.recipeTitle} plan contribution`}><span><strong>{formatCookingNumber(entry.servings)}</strong> {Number(entry.servings) === 1 ? "serving" : "servings"}</span><span>{formatCookingNumber(entry.nutrition.caloriesKcal, 0) || "—"} kcal</span><span className="plan-entry__protein"><i aria-hidden="true" />{formatCookingNumber(entry.nutrition.proteinG, 1) || "—"} g protein</span></div>
+          <div className="plan-entry__nutrition" aria-label={`${entry.recipeTitle} plan contribution`}><span><strong>{formatCookingNumber(entry.servings)}</strong> {Number(entry.servings) === 1 ? "serving" : "servings"}</span><RecipeMetadata recipe={recipe ?? { title: entry.recipeTitle, prepMinutes: null, cookMinutes: null, nutrition: entry.nutrition }} compact /></div>
         </div>
       </div>
       {!entry.recipeId ? <p className="notice">Historical snapshot retained; the source recipe was deleted.</p> : null}
