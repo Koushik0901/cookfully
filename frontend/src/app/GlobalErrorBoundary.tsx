@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
-import { ErrorRecovery } from "../components";
+import { BrandMark, ErrorRecovery } from "../components";
 
 interface State {
   failed: boolean;
@@ -20,8 +20,12 @@ export class GlobalErrorBoundary extends Component<{ children: ReactNode }, Stat
   render() {
     if (this.state.failed) {
       return (
-        <main className="app-shell">
-          <ErrorRecovery title="The planner hit an unexpected error" onRetry={() => window.location.reload()} />
+        <main className="utility-screen">
+          <section className="utility-screen__card">
+            <div className="utility-screen__brand"><BrandMark /><strong>Cookfully</strong></div>
+            <p className="eyebrow">Your kitchen is still safe</p>
+            <ErrorRecovery title="Cookfully hit an unexpected error" description="Reload the app to return to your kitchen. Your saved recipes and plans were not changed." onRetry={() => window.location.reload()} />
+          </section>
         </main>
       );
     }

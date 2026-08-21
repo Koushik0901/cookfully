@@ -88,6 +88,33 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("reflows the mobile week into a readable vertical agenda", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "narrow-mobile", "The vertical agenda assertion is mobile-only.");
+  await mockPlanningApi(page);
+  await page.goto("/app/plan");
+
+  const board = page.locator(".week-board");
+  await expect(board).toBeVisible();
+  const layout = await board.evaluate((element) => {
+    const days = Array.from(element.querySelectorAll<HTMLElement>(".week-day")).slice(0, 2).map((day) => day.getBoundingClientRect());
+    const style = getComputedStyle(element);
+    return {
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      overflowX: style.overflowX,
+      firstDayWidth: days[0]?.width ?? 0,
+      firstDayHeight: days[0]?.height ?? 0,
+      stacked: days.length === 2 && days[1].y > days[0].bottom,
+    };
+  });
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+  expect(layout.overflowX).toBe("visible");
+  expect(layout.firstDayWidth).toBeGreaterThan(340);
+  expect(layout.firstDayHeight).toBeLessThan(100);
+  expect(layout.stacked).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes snapshots", async ({ page }, testInfo) => {
   await mockPlanningApi(page);
   await page.goto("/app/goals");
@@ -143,8 +170,10 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await expect(page.getByText(/snapshot refreshed/i)).toBeVisible();
 
   await page.getByRole("tab", { name: "Week" }).click();
-  await expect(page.getByRole("heading", { name: "Place the meals that matter" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your week at a glance" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Weekly nutrition guidance" })).toBeVisible();
+  const overflowingMeals = await page.locator(".week-meal").evaluateAll((meals) => meals.filter((meal) => meal.scrollWidth > meal.clientWidth + 1 || meal.scrollHeight > meal.clientHeight + 1).length);
+  expect(overflowingMeals).toBe(0);
   await captureUi(page, testInfo, "planner-week-guided");
   await page.getByRole("tab", { name: "Prep" }).click();
   await expect(page.getByRole("heading", { name: "Cook 1 dish for 8 meals" })).toBeVisible();

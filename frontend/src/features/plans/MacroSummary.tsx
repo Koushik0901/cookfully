@@ -1,3 +1,4 @@
+import { SectionHeading } from "../../components";
 import type { PeriodTotal, UserGoal } from "./types";
 import { nutritionConfidenceLabel } from "./nutritionConfidence";
 
@@ -31,7 +32,7 @@ function formatTargetDifference(value: string | null | undefined, unit: string) 
 export function MacroSummary({ total, target, label }: { total?: PeriodTotal; target: UserGoal; label: string }) {
   return (
     <section className="macro-summary" aria-label={label}>
-      <div className="section-heading"><h2>{label}</h2>{total ? <details className="nutrition-confidence"><summary>{nutritionConfidenceLabel(total.status, total.coverageRatio)}</summary><p>{total.status.replace("_", " ")} nutrition · {Math.round(Number(total.coverageRatio) * 100)}% source coverage</p></details> : <span className="nutrition-confidence__empty">No meals planned</span>}</div>
+      <SectionHeading title={label} action={total ? <details className="nutrition-confidence"><summary>{nutritionConfidenceLabel(total.status, total.coverageRatio)}</summary><p>{total.status.replace("_", " ")} nutrition · {Math.round(Number(total.coverageRatio) * 100)}% source coverage</p></details> : <span className="nutrition-confidence__empty">No meals planned</span>} />
       <div className="budget-grid">
         {MACROS.map(([field, name, unit, className]) => {
           const consumed = total?.[field] ?? "0";

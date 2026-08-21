@@ -809,6 +809,32 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /meal-plan-entries/{entryId}/swap:
+    post:
+      tags: [Meal Plans]
+      operationId: swapMealPlanEntries
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanEntrySwapRequest"
+      responses:
+        "200":
+          description: The two meals exchanged their calendar positions atomically.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntrySwapResponse"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /meal-plans/{weekStart}/grocery-list:
     get:
       tags: [Grocery]
@@ -2333,6 +2359,13 @@ components:
         servings: { $ref: "#/components/schemas/ServingDecimal" }
         position: { type: integer, minimum: 0 }
         refreshNutrition: { type: boolean, default: false }
+    MealPlanEntrySwapRequest:
+      type: object
+      additionalProperties: false
+      required: [targetEntryId, targetVersion]
+      properties:
+        targetEntryId: { type: string, format: uuid }
+        targetVersion: { type: integer, minimum: 1 }
     MealPlanEntry:
       type: object
       additionalProperties: false
@@ -2349,6 +2382,13 @@ components:
         nutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
         origin: { type: string, enum: [manual, suggestion, external] }
         version: { type: integer, minimum: 1 }
+    MealPlanEntrySwapResponse:
+      type: object
+      additionalProperties: false
+      required: [source, target]
+      properties:
+        source: { $ref: "#/components/schemas/MealPlanEntry" }
+        target: { $ref: "#/components/schemas/MealPlanEntry" }
     NutritionSnapshot:
       allOf:
         - $ref: "#/components/schemas/DisplayMacroValues"

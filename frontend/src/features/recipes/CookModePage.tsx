@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { Button, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
+import { Button, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { Checkbox } from "@/components/ui/checkbox";
 import { recipesApi } from "./api";
@@ -87,8 +87,8 @@ export function CookModePage() {
     return () => window.removeEventListener("keydown", navigateSteps);
   }, [nextStep, prevStep]);
 
-  if (recipe.isPending) return <Skeleton label="Loading recipe" lines={6} />;
-  if (recipe.isError || !recipe.data) return <ErrorRecovery title="Could not load recipe" onRetry={() => recipe.refetch()} />;
+  if (recipe.isPending) return <PageState><Skeleton label="Loading recipe" lines={6} /></PageState>;
+  if (recipe.isError || !recipe.data) return <PageState><ErrorRecovery title="Could not load recipe" onRetry={() => recipe.refetch()} /></PageState>;
   const currentRecipe = recipe.data;
   const steps = currentRecipe.instructions;
   const allIngredientsChecked = Boolean(currentRecipe.ingredients.length) && checkedIngredients.size >= currentRecipe.ingredients.length;
@@ -118,7 +118,7 @@ export function CookModePage() {
         </main>
       ) : complete ? (
         <main className="cook-mode__complete">
-          <div className="cook-mode__complete-media">{currentRecipe.imageUrl ? <img src={currentRecipe.imageUrl} alt="" /> : <RecipeFallbackArt title={currentRecipe.title} />}</div>
+          <div className="cook-mode__complete-media"><RecipeMedia recipe={currentRecipe} loading="eager" /></div>
           <div className="cook-mode__complete-copy">
             <KitchenCompanion moment="milestone" size="lg" className="cook-mode__complete-companion" />
             <p className="eyebrow">Cooking complete</p>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Barcode, ChevronDown, CircleHelp, Search, ShieldCheck } from "lucide-react";
-import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader } from "../../components";
+import { Barcode, ChevronDown, CircleHelp, ShieldCheck } from "lucide-react";
+import { Button, ConfirmDialog, EmptyState, ErrorRecovery, PageHeader, PageState, SearchField, SectionHeading, Skeleton } from "../../components";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
 import { formatCookingNumber } from "../recipes/formatCooking";
@@ -26,20 +26,18 @@ export function OwnerFoodsPage() {
 
   if (list.isLoading) {
     return (
-      <div className="page-shell owner-foods-page">
+      <main className="page-shell owner-foods-page">
         <PageHeader eyebrow="Your nutrition references" title="Foods you know best" description="Loading the foods you’ve saved from labels." />
-        <div className="owner-foods-loading" role="status" aria-label="Loading your foods">
-          <span /><span /><span />
-        </div>
-      </div>
+        <Skeleton label="Loading your foods" lines={5} />
+      </main>
     );
   }
-  if (list.isError) return <ErrorRecovery title="Could not load your foods." onRetry={() => list.refetch()} />;
+  if (list.isError) return <PageState><ErrorRecovery title="Could not load your foods" onRetry={() => list.refetch()} /></PageState>;
 
   const foods = list.data ?? [];
 
   return (
-    <div className="page-shell owner-foods-page">
+    <main className="page-shell owner-foods-page">
       <PageHeader
         eyebrow="Your nutrition references"
         title="Foods you know best"
@@ -55,25 +53,9 @@ export function OwnerFoodsPage() {
 
       <div className="owner-foods-layout">
         <section className="owner-foods-library" aria-labelledby="saved-foods-heading">
-          <div className="owner-foods-library__heading">
-            <div>
-              <p className="eyebrow">From your labels</p>
-              <h2 id="saved-foods-heading">Saved foods</h2>
-            </div>
-            <span className="owner-foods-count">{foods.length} {foods.length === 1 ? "food" : "foods"}</span>
-          </div>
+          <SectionHeading className="owner-foods-library__heading" eyebrow="From your labels" title="Saved foods" id="saved-foods-heading" meta={`${foods.length} ${foods.length === 1 ? "food" : "foods"}`} />
 
-          <div className="owner-foods-search">
-            <Search aria-hidden="true" />
-            <Field label="Search saved foods">
-              <input
-                className="input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Whey protein, oat milk…"
-              />
-            </Field>
-          </div>
+          <SearchField className="owner-foods-search" label="Search saved foods" value={search} onChange={(event) => setSearch(event.target.value)} onClear={() => setSearch("")} placeholder="Oat milk, sourdough bread…" />
 
           <details className="owner-foods-help">
             <summary>
@@ -113,9 +95,8 @@ export function OwnerFoodsPage() {
             </ul>
           )}
         </section>
-
       </div>
-    </div>
+    </main>
   );
 }
 

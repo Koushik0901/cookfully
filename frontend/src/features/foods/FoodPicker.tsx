@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "../../components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
 import type { FoodCandidate } from "./types";
@@ -81,11 +82,7 @@ export function FoodPicker({
           ) : null}
 
           <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={rememberMatch}
-              onChange={(event) => setRememberMatch(event.target.checked)}
-            />
+            <Checkbox checked={rememberMatch} onCheckedChange={(checked) => setRememberMatch(checked === true)} />
             Remember this choice for similar ingredients
           </label>
 

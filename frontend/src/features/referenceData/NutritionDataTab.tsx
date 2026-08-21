@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Database, Download, LoaderCircle } from "lucide-react";
-import { Button } from "../../components";
+import { Button, SectionHeading } from "../../components";
 import { referenceDataApi, type InstallUnit } from "./api";
 import { ApiProblem } from "../recipes/api";
 
@@ -17,7 +17,7 @@ const UNITS: { unit: InstallUnit; title: string; blurb: string; size: string; da
   {
     unit: "branded",
     title: "Branded foods",
-    blurb: "Packaged gym products — protein powders, bars, Greek yogurt, nut butters — with brand names and serving sizes.",
+    blurb: "Packaged foods you buy by brand — yogurt, bread, sauces, snacks, and other labeled staples — with their serving sizes.",
     size: "~1.5 GB download",
     datasets: ["branded"],
   },
@@ -51,12 +51,7 @@ export function NutritionDataTab() {
 
   return (
     <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">
-      <h2 id="nutrition-data-title">Nutrition reference data</h2>
-      <p>
-        USDA FoodData Central powers ingredient matching. Without it, nutrition estimates cannot
-        resolve any ingredient; with it, macros and micronutrients are estimated from official
-        laboratory data.
-      </p>
+      <SectionHeading id="nutrition-data-title" title="Nutrition reference data" description="USDA FoodData Central powers ingredient matching. Install it so Cookfully can estimate macros and micronutrients from official reference data." />
       {working && job ? (
         <div className="token-card" role="status">
           <h3>

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import { Button, Field } from "../../components";
+import { Button, DialogCloseButton, Field } from "../../components";
 import { foodsApi } from "./api";
 import type { OwnerFoodWrite } from "./types";
 
@@ -105,7 +104,7 @@ export function CreateFoodDialog({
                 Copy one serving from the package. Cookfully will keep these values together for future recipes.
               </Dialog.Description>
             </div>
-            <Dialog.Close className="food-dialog__close" aria-label="Close add food dialog"><X aria-hidden="true" /></Dialog.Close>
+            <DialogCloseButton label="Close add food dialog" />
           </header>
 
           <form className="food-dialog__form" onSubmit={submit}>
@@ -114,10 +113,10 @@ export function CreateFoodDialog({
               <p>Use the name you expect to see in a recipe.</p>
               <div className="food-dialog__identity-grid">
                 <Field label="Food name" error={error && !displayName.trim() ? error : undefined}>
-                  <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={ingredientName || "Vanilla whey protein"} autoFocus />
+                  <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={ingredientName || "Plain Greek yogurt"} autoFocus />
                 </Field>
                 <Field label="Brand (optional)">
-                  <input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Optimum Nutrition" />
+                  <input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Island Farms" />
                 </Field>
               </div>
             </fieldset>

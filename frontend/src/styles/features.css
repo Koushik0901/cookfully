@@ -2,35 +2,10 @@
 .recipe-discovery {
   display: grid;
   gap: 1rem;
-  border-block: 1px solid var(--color-outline-variant);
-  padding-block: 1.25rem;
+  padding-block: 0.25rem;
 }
 
-.recipe-search,
-.owner-foods-search {
-  position: relative;
-}
-
-.recipe-search > svg,
-.owner-foods-search > svg {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  left: 1rem;
-  width: 1.15rem;
-  height: 1.15rem;
-  transform: translateY(-50%);
-  color: var(--color-on-surface-variant);
-  pointer-events: none;
-}
-
-.recipe-search .input {
-  min-height: 3.5rem;
-  border-color: var(--color-outline);
-  padding-left: 3rem;
-  font-size: 1.05rem;
-  box-shadow: var(--shadow-level-1);
-}
+.recipe-search { max-width: 48rem; }
 
 .recipe-favorite-filter {
   display: flex;
@@ -124,7 +99,7 @@
 .active-library-filters .active-library-filters__clear { color: var(--color-primary); background: transparent; text-decoration: underline; text-underline-offset: 0.18em; }
 
 .recipe-group { display: grid; gap: 1rem; }
-.recipe-group__heading { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--color-outline-variant); padding-bottom: 0.75rem; }
+.recipe-group__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .recipe-group__heading span { color: var(--color-on-surface-variant); font-variant-numeric: tabular-nums; }
 
 .recipe-grid {
@@ -214,10 +189,12 @@
 }
 
 .recipe-card__favorite svg { width: 0.85rem; fill: currentColor; }
-.recipe-card__favorite-toggle { position: absolute; z-index: 4; top: 0.75rem; left: 0.75rem; display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid color-mix(in oklch, white 60%, transparent); border-radius: 50%; color: white; background: color-mix(in oklch, var(--color-surface) 42%, transparent); box-shadow: var(--shadow-level-1); cursor: pointer; }
-.recipe-card__favorite-toggle:hover { background: color-mix(in oklch, var(--color-surface) 72%, transparent); }
-.recipe-card__favorite-toggle.is-favorite { color: var(--color-tomato); background: var(--color-surface); }
-.recipe-card__favorite-toggle svg { width: 1rem; fill: currentColor; }
+.recipe-card__favorite-toggle { position: absolute; z-index: 4; top: 0.75rem; left: 0.75rem; display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid color-mix(in oklch, var(--color-outline) 38%, transparent); border-radius: 50%; color: var(--color-primary); background: color-mix(in oklch, var(--color-surface-bright) 94%, transparent); box-shadow: var(--shadow-media-rest); backdrop-filter: blur(10px); cursor: pointer; transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease, transform var(--motion-press) var(--ease-out-quart); }
+.recipe-card__favorite-toggle:hover { color: var(--color-primary-hover); background: var(--color-surface-bright); transform: translateY(-1px); }
+.recipe-card__favorite-toggle.is-favorite { border-color: color-mix(in oklch, var(--color-tomato) 34%, transparent); color: var(--color-tomato); background: color-mix(in oklch, var(--status-error-container) 86%, var(--color-surface-bright)); }
+.recipe-card__favorite-toggle svg { width: 1rem; fill: transparent; stroke-width: 2.25; }
+.recipe-card__favorite-toggle.is-favorite svg { fill: currentColor; }
+.recipe-card__favorite-toggle:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 24%, transparent); outline-offset: 3px; }
 
 .recipe-card__body { display: grid; gap: 0.55rem; padding-inline: 0.15rem; }
 .recipe-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
@@ -229,11 +206,12 @@
   overflow: hidden;
   color: var(--color-on-surface);
 }
-.recipe-card__yield { color: var(--color-on-surface-variant); font-size: 0.82rem; }
+.recipe-card__yield { color: var(--color-on-surface-variant); font-size: var(--text-data-sm); line-height: 1.45; }
 .recipe-card__context { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem; }
-.recipe-card__origin, .recipe-card__collection { display: inline-flex; max-width: 100%; align-items: center; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.18rem 0.5rem; color: var(--color-on-surface-variant); font-size: 0.7rem; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recipe-card__origin, .recipe-card__collection { display: inline-flex; max-width: 100%; align-items: center; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.18rem 0.5rem; color: var(--color-on-surface-variant); font-size: var(--text-data-sm); font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recipe-card__origin { color: var(--color-primary); background: var(--color-primary-container); }
-.recipe-collection-strip { display: flex; gap: 0.5rem; margin-block: 1rem; overflow-x: auto; padding-block: 0.15rem 0.35rem; scrollbar-width: thin; }
+.recipe-collection-strip { display: flex; gap: 0.5rem; margin-block: 1rem; overflow-x: auto; padding-block: 0.15rem 0.35rem; scrollbar-width: none; -ms-overflow-style: none; }
+.recipe-collection-strip::-webkit-scrollbar { display: none; }
 .recipe-collection-strip button { flex: 0 0 auto; display: inline-flex; min-height: 2.4rem; align-items: center; gap: 0.4rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.35rem 0.8rem; color: var(--color-on-surface-variant); background: var(--color-surface-low); font-weight: 650; cursor: pointer; }
 .recipe-collection-strip button:hover, .recipe-collection-strip button.is-selected { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-container); }
 .recipe-collection-strip span { color: inherit; opacity: 0.72; font-size: 0.78rem; }
@@ -263,16 +241,27 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem 1rem;
-  font-size: 0.82rem;
+  font-size: var(--text-data-sm);
 }
 
 .recipe-card__nutrition > div { display: flex; gap: 0.35rem; }
 .recipe-card__nutrition dt { color: var(--color-on-surface-variant); }
 .recipe-card__nutrition dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 620; }
-.recipe-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; color: var(--color-on-surface-variant); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
-.recipe-meta span + span::before { margin-right: 0.75rem; color: var(--color-outline); content: "·"; }
-.recipe-meta--compact { gap: 0.2rem 0.55rem; font-size: 0.68rem; }
-.recipe-meta--compact span + span::before { margin-right: 0.55rem; }
+.recipe-card__protein dd { color: var(--macro-protein-ink); }
+.recipe-card__carb dd { color: var(--macro-carbohydrate-ink); }
+.recipe-card__fat dd { color: var(--macro-fat-ink); }
+.recipe-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; color: var(--color-on-surface-variant); font-size: var(--text-data-sm); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.recipe-meta__item { display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.recipe-meta > .recipe-meta__item + .recipe-meta__item::before { margin-right: 0.45rem; color: var(--color-outline); content: "·"; }
+.recipe-meta__value { font-weight: 650; }
+.recipe-meta__item--calories .recipe-meta__value { color: var(--color-on-surface); }
+.recipe-meta__item--protein .recipe-meta__value { color: var(--macro-protein-ink); }
+.recipe-meta__item--fat .recipe-meta__value { color: var(--macro-fat-ink); }
+.recipe-meta__dot { width: 0.38rem; height: 0.38rem; flex: 0 0 auto; border-radius: 50%; }
+.recipe-meta__item--protein .recipe-meta__dot { background: var(--macro-protein); }
+.recipe-meta__item--fat .recipe-meta__dot { background: var(--macro-fat); }
+.recipe-meta--compact { gap: 0.3rem 0.65rem; font-size: var(--text-data-sm); }
+.recipe-meta--compact > .recipe-meta__item + .recipe-meta__item::before { margin-right: 0.25rem; }
 .recipe-card__protein dt { display: flex; align-items: center; gap: 0.35rem; }
 .recipe-card__protein dt::before { width: 0.38rem; height: 0.38rem; border-radius: 50%; background: var(--macro-protein); content: ""; }
 .recipe-card__carb dt { display: flex; align-items: center; gap: 0.35rem; }
@@ -338,8 +327,17 @@
 .recipe-nutrition-summary__metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .recipe-nutrition-summary__metrics > div { display: grid; gap: 0.15rem; border-left: 1px solid var(--color-outline-variant); padding-inline: 0.75rem; }
 .recipe-nutrition-summary__metrics > div:first-child { border-left: 0; padding-left: 0; }
-.recipe-nutrition-summary__metrics dt { color: var(--color-on-surface-variant); font-size: 0.72rem; }
+.recipe-nutrition-summary__metrics dt { display: flex; align-items: center; gap: 0.35rem; color: var(--color-on-surface-variant); font-size: 0.72rem; }
 .recipe-nutrition-summary__metrics dd { margin: 0; font-size: 1.08rem; font-variant-numeric: tabular-nums; font-weight: 680; }
+.recipe-nutrition-summary__metric--protein dt::before,
+.recipe-nutrition-summary__metric--carbs dt::before,
+.recipe-nutrition-summary__metric--fat dt::before { width: 0.38rem; height: 0.38rem; border-radius: 50%; content: ""; }
+.recipe-nutrition-summary__metric--protein dt::before { background: var(--macro-protein); }
+.recipe-nutrition-summary__metric--carbs dt::before { background: var(--macro-carbohydrate); }
+.recipe-nutrition-summary__metric--fat dt::before { background: var(--macro-fat); }
+.recipe-nutrition-summary__metric--protein dd { color: var(--macro-protein-ink); }
+.recipe-nutrition-summary__metric--carbs dd { color: var(--macro-carbohydrate-ink); }
+.recipe-nutrition-summary__metric--fat dd { color: var(--macro-fat-ink); }
 .recipe-nutrition-summary__metrics small { font-size: 0.68rem; font-weight: 500; }
 .recipe-nutrition-summary__message { color: var(--color-on-surface-variant); font-size: 0.8rem; }
 .recipe-nutrition-summary__message[role="alert"] { color: var(--status-error); }
@@ -569,7 +567,16 @@
 .macro:nth-child(odd) { border-right: 1px solid var(--color-outline-variant); }
 .macro:nth-child(-n+2) { border-bottom: 1px solid var(--color-outline-variant); }
 .macro dt { display: flex; align-items: center; gap: 0.35rem; color: var(--color-on-surface-variant); font-size: 0.76rem; }
+.macro--protein dt::before,
+.macro--carbs dt::before,
+.macro--fat dt::before { width: 0.38rem; height: 0.38rem; border-radius: 50%; content: ""; }
+.macro--protein dt::before { background: var(--macro-protein); }
+.macro--carbs dt::before { background: var(--macro-carbohydrate); }
+.macro--fat dt::before { background: var(--macro-fat); }
 .macro dd { margin: 0; font-size: 1.35rem; font-variant-numeric: tabular-nums; font-weight: 680; }
+.macro--protein dd { color: var(--macro-protein-ink); }
+.macro--carbs dd { color: var(--macro-carbohydrate-ink); }
+.macro--fat dd { color: var(--macro-fat-ink); }
 .macro dd span { font-size: 0.75rem; font-weight: 500; }
 .nutrition-panel__basis { color: var(--color-on-surface-variant); font-size: 0.76rem; }
 .nutrition-panel__scaled { border-radius: var(--radius); padding: 0.75rem; color: var(--color-on-primary-container); background: var(--color-primary-container); font-size: 0.84rem; }
@@ -768,7 +775,8 @@
 .cook-mode__identity p { color: var(--color-accent); font-size: 0.72rem; font-weight: 650; }
 .cook-mode__title { max-width: 38rem; overflow: hidden; color: var(--color-on-primary); font-size: 1.35rem; text-overflow: ellipsis; white-space: nowrap; }
 .cook-mode__meta { display: grid; justify-items: end; gap: 0.1rem; font-size: 0.8rem; }
-.cook-mode__meta .recipe-meta { justify-content: end; color: var(--color-on-herb-subtle); font-size: 0.65rem; }
+.cook-mode__meta .recipe-meta { justify-content: end; color: var(--color-on-herb-subtle); font-size: var(--text-data-sm); }
+.cook-mode__meta .recipe-meta__value { color: var(--color-on-herb-subtle); }
 .cook-mode__meta span { color: var(--color-on-herb-subtle); font-size: 0.68rem; }
 .cook-mode__body { display: grid; min-height: calc(100dvh - 5rem); grid-template-columns: minmax(17rem, 0.32fr) minmax(0, 0.68fr); }
 .cook-mode__ingredients { border-right: 1px solid var(--color-on-dark-line); padding: 1.5rem; background: var(--color-herb-900); }
@@ -994,6 +1002,7 @@
 .tolerance-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
 .recipe-rule-list { display: grid; }
 .recipe-rule { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.65rem; }
+.recipe-rule__identity { display: grid; min-width: 0; gap: 0.2rem; }
 .recipe-rule label { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; cursor: pointer; }
 .suggestion-create { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-radius: var(--radius-lg); padding: 1rem; color: var(--color-on-primary); background: var(--color-herb-800); }
 .suggestion-create > div { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0.75rem; }
@@ -1267,10 +1276,6 @@
 .food-dialog__header > div { display: grid; gap: 0.35rem; }
 .pantry-dialog__description,
 .food-dialog__description { color: var(--color-on-surface-variant); }
-.pantry-dialog__close,
-.food-dialog__close { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: var(--color-surface-low); cursor: pointer; }
-.pantry-dialog__close svg,
-.food-dialog__close svg { width: 1rem; }
 .pantry-dialog__form,
 .food-dialog__form { display: grid; gap: 0.75rem; }
 .pantry-dialog__quantity,
@@ -1285,9 +1290,6 @@
 .owner-foods-library__heading > div { display: grid; gap: 0.35rem; }
 .owner-foods-count { color: var(--color-on-surface-variant); font-size: 0.8rem; }
 .owner-foods-search { max-width: 36rem; }
-.owner-foods-search .field__label,
-.owner-foods-search .field__message { display: none; }
-.owner-foods-search .input { padding-left: 2.75rem; }
 
 .owner-foods-help { border-block: 1px solid var(--color-outline-variant); }
 .owner-foods-help > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 3.75rem; align-items: center; gap: 0.75rem; }
@@ -1429,16 +1431,26 @@
 .nutrition-pulse__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; }
 .nutrition-pulse__item { display: grid; gap: 0.5rem; }
 .nutrition-pulse__item > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.nutrition-pulse__item > div:first-child strong { display: inline-flex; align-items: center; gap: 0.35rem; }
+.nutrition-pulse__item > div:first-child strong::before { width: 0.38rem; height: 0.38rem; flex: 0 0 auto; border-radius: 50%; background: var(--macro-calories); content: ""; }
+.nutrition-pulse__item--protein > div:first-child strong::before { background: var(--macro-protein); }
+.nutrition-pulse__item--carbs > div:first-child strong::before { background: var(--macro-carbohydrate); }
+.nutrition-pulse__item--fat > div:first-child strong::before { background: var(--macro-fat); }
 .nutrition-pulse__item > div:first-child span { color: var(--color-on-herb-muted); font-size: 0.7rem; }
 .nutrition-pulse__track { height: 0.4rem; overflow: hidden; border-radius: var(--radius-full); background: var(--color-herb-track); }
 .nutrition-pulse__track span { display: block; height: 100%; border-radius: inherit; background: var(--color-accent); transition: transform var(--motion-state) var(--ease-out-expo); transform-origin: left; }
+.nutrition-pulse__item--calories .nutrition-pulse__track span { background: var(--macro-calories); }
+.nutrition-pulse__item--protein .nutrition-pulse__track span { background: var(--macro-protein); }
+.nutrition-pulse__item--carbs .nutrition-pulse__track span { background: var(--macro-carbohydrate); }
+.nutrition-pulse__item--fat .nutrition-pulse__track span { background: var(--macro-fat); }
 .nutrition-pulse__item small { color: var(--color-on-herb-muted); }
 .nutrition-pulse__evidence { border-top: 1px solid var(--color-on-dark-line); padding-top: 0.75rem; }
 .nutrition-pulse__evidence summary { color: var(--color-on-primary); font-size: 0.8rem; font-weight: 620; }
 .nutrition-pulse__evidence p { margin-top: 0.5rem; color: var(--color-on-herb-muted); font-size: 0.78rem; }
 .nutrition-pulse--empty { grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.55fr); align-items: end; }
 
-.day-tabs { position: sticky; z-index: 18; top: 4rem; display: grid; grid-template-columns: repeat(7, minmax(5.75rem, 1fr)); overflow-x: auto; border-bottom: 1px solid var(--color-outline-variant); background: var(--color-surface); scroll-margin-top: 8rem; scroll-padding-inline: 0.5rem; }
+.day-tabs { position: sticky; z-index: 18; top: 4rem; display: grid; grid-template-columns: repeat(7, minmax(5.75rem, 1fr)); overflow-x: auto; border-bottom: 1px solid var(--color-outline-variant); background: var(--color-surface); scroll-margin-top: 8rem; scroll-padding-inline: 0.5rem; scrollbar-width: none; -ms-overflow-style: none; }
+.day-tabs::-webkit-scrollbar { display: none; }
 .day-tab { position: relative; display: grid; min-height: 5.5rem; place-items: center; align-content: center; gap: 0.1rem; border: 0; padding: 0.5rem; color: var(--color-on-surface-variant); background: transparent; cursor: pointer; }
 .day-tab::after { position: absolute; right: 30%; bottom: -1px; left: 30%; height: 2px; border-radius: var(--radius-full); background: transparent; content: ""; transition: right var(--motion-state) var(--ease-out-expo), left var(--motion-state) var(--ease-out-expo), background-color var(--motion-fast) ease; }
 .day-tab > span { font-size: 0.76rem; }
@@ -1498,12 +1510,17 @@
 .budget-grid { display: grid; gap: 0.85rem; }
 .budget { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem 0.75rem; }
 .budget__name { font-size: 0.8rem; }
+.budget__name::before { display: inline-block; width: 0.38rem; height: 0.38rem; margin: 0 0.35rem 0.1rem 0; border-radius: 50%; background: var(--macro-calories); content: ""; }
 .budget__value { color: var(--color-on-surface-variant); font-size: 0.75rem; }
 .budget__track { grid-column: 1 / -1; height: 0.38rem; overflow: hidden; border-radius: var(--radius-full); background: var(--color-surface-high); }
 .budget__track span { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); }
 .budget--protein .budget__track span { background: var(--macro-protein); }
 .budget--carbs .budget__track span { background: var(--macro-carbohydrate); }
 .budget--fat .budget__track span { background: var(--macro-fat); }
+.budget--calories .budget__track span { background: var(--macro-calories); }
+.budget--protein .budget__name::before { background: var(--macro-protein); }
+.budget--carbs .budget__name::before { background: var(--macro-carbohydrate); }
+.budget--fat .budget__name::before { background: var(--macro-fat); }
 .budget__remaining { grid-column: 1 / -1; font-size: 0.68rem; }
 .plan-micronutrients { border-top: 1px solid var(--color-outline-variant); padding-top: 0.75rem; }
 .plan-micronutrients summary { color: var(--color-primary); font-size: 0.8rem; font-weight: 620; }
@@ -1543,11 +1560,7 @@
 .recipe-picker__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .recipe-picker__header > div { display: grid; gap: 0.35rem; }
 .recipe-picker__header p:last-child { color: var(--color-on-surface-variant); font-size: 0.85rem; }
-.recipe-picker__close { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-surface-variant); background: var(--color-surface-low); cursor: pointer; }
-.recipe-picker__close svg { width: 1rem; }
-.recipe-picker__search { position: relative; display: block; }
-.recipe-picker__search svg { position: absolute; z-index: 1; top: 50%; left: 0.9rem; width: 1rem; transform: translateY(-50%); color: var(--color-on-surface-variant); }
-.recipe-picker__search .input { padding-left: 2.75rem; }
+.recipe-picker__search { display: block; }
 .recipe-picker__results { display: grid; align-content: start; gap: 0.25rem; overflow: auto; margin-inline: -0.5rem; padding-inline: 0.5rem; }
 .recipe-pick { display: grid; grid-template-columns: 4.25rem minmax(0, 1fr) auto; align-items: center; gap: 0.85rem; border: 0; border-bottom: 1px solid var(--color-outline-variant); padding: 0.7rem 0.25rem; text-align: left; background: transparent; cursor: pointer; transition: background-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
 .recipe-pick:hover { border-radius: var(--radius); background: var(--color-surface-low); transform: translateX(2px); }

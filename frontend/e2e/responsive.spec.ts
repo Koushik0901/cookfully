@@ -42,6 +42,22 @@ test("desktop and 390x844 layouts contain long content without document overflow
         expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
       }
     }
+    const navGeometry = await navItems.evaluateAll((items) => items.map((item) => {
+      const box = item.getBoundingClientRect();
+      return { x: box.x, width: box.width, height: box.height, center: box.x + (box.width / 2) };
+    }));
+    expect(new Set(navGeometry.map((item) => Math.round(item.width))).size).toBe(1);
+    expect(new Set(navGeometry.map((item) => Math.round(item.height))).size).toBe(1);
+    expect(navGeometry.map((item) => Math.round(item.center))).toEqual([...navGeometry].sort((a, b) => a.center - b.center).map((item) => Math.round(item.center)));
+    const shellGeometry = await page.evaluate(() => {
+      const brand = document.querySelector<HTMLElement>(".planner-shell__mobile-brand");
+      const nav = document.querySelector<HTMLElement>(".mobile-nav");
+      return {
+        brandBorder: brand ? getComputedStyle(brand).borderBottomWidth : null,
+        navBorder: nav ? getComputedStyle(nav).borderTopWidth : null,
+      };
+    });
+    expect(shellGeometry).toEqual({ brandBorder: "0px", navBorder: "0px" });
   }
   const controls = page.locator("button, input, select, textarea");
   for (let index = 0; index < await controls.count(); index += 1) {

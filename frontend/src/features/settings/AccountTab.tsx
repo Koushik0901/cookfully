@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { Button, ErrorRecovery, Field, Select, Skeleton } from "../../components";
+import { Button, ErrorRecovery, Field, SectionHeading, Select, Skeleton } from "../../components";
 import { planningApi } from "../plans/api";
 
 const TIMEZONES = ["UTC", "America/Vancouver", "America/New_York", "Europe/London"];
@@ -54,12 +54,7 @@ export function AccountTab() {
 
   return (
     <form className="settings-section" onSubmit={submit}>
-      <div className="section-heading">
-        <div>
-          <h2>Account</h2>
-          <p className="muted">How Cookfully refers to you and when your planning week begins.</p>
-        </div>
-      </div>
+      <SectionHeading title="Account" description="How Cookfully refers to you and when your planning week begins." />
       <div className="form-grid">
         <Field label="Display name">
           <input

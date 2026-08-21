@@ -19,9 +19,9 @@ async function verifySession(): Promise<boolean> {
 
 export function RequireAuthentication({ children }: { children: ReactNode }) {
   const session = useQuery({ queryKey: ["owner-session"], queryFn: verifySession, retry: 1 });
-  if (session.isPending) return <Skeleton label="Checking your session" lines={3} />;
+  if (session.isPending) return <main className="utility-screen"><section className="utility-screen__card"><div className="utility-screen__brand"><BrandMark /><strong>Cookfully</strong></div><p className="eyebrow">Opening your kitchen</p><Skeleton label="Checking your session" lines={3} /></section></main>;
   if (session.isError) {
-    return <ErrorRecovery title="Session check failed" onRetry={() => void session.refetch()} />;
+    return <main className="utility-screen"><section className="utility-screen__card"><div className="utility-screen__brand"><BrandMark /><strong>Cookfully</strong></div><p className="eyebrow">Your kitchen is still safe</p><ErrorRecovery title="Session check failed" description="Cookfully could not confirm this browser session. Try the connection again." onRetry={() => void session.refetch()} /></section></main>;
   }
   if (!session.data) {
     return (

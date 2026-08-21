@@ -4,8 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ArrowLeft, ChefHat, ExternalLink, Pencil } from "lucide-react";
 
-import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, Skeleton } from "../../components";
-import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, SectionHeading, Skeleton } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
@@ -129,8 +128,8 @@ export function RecipeDetailPage() {
     return sourceYield > 0 ? scale / sourceYield : 1;
   }, [scale, detail.data?.yieldQuantity]);
 
-  if (detail.isPending) return <Skeleton label="Loading recipe" lines={8} />;
-  if (detail.isError || !detail.data) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
+  if (detail.isPending) return <PageState><Skeleton label="Loading recipe" lines={8} /></PageState>;
+  if (detail.isError || !detail.data) return <PageState><ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} /></PageState>;
   const recipe = detail.data;
   const nutritionStatePresentation = nutritionPresentation(recipe.nutritionState, recipe.nutrition?.status);
   const latestJob = recipe.activeJob && recipe.activeJob.id !== jobId
@@ -154,7 +153,6 @@ export function RecipeDetailPage() {
     );
   }
 
-  const thumbnailCrop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
   const recipeCollections = recipe.collections ?? [];
   const ingredientReviewCount = recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").length;
   const actionError = [recalculate.error, archive.error, restore.error, permanentDelete.error].find((value) => value instanceof Error);
@@ -178,7 +176,7 @@ export function RecipeDetailPage() {
 
       <section className="recipe-hero" aria-labelledby="recipe-title">
         <div className="recipe-hero__media" style={{ viewTransitionName: `recipe-media-${recipe.id}` } as CSSProperties}>
-          {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.title} style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
+          <RecipeMedia recipe={recipe} alt={recipe.title} loading="eager" />
         </div>
         <div className="recipe-hero__copy">
           <p className="eyebrow">{recipe.status === "archived" ? "Archived recipe" : recipe.mealRoles?.[0] ?? "From your kitchen"}</p>
@@ -219,7 +217,7 @@ export function RecipeDetailPage() {
 
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">
-          <div className="section-heading"><h2 id="ingredients-heading">Ingredients</h2><span>{recipe.ingredients.length} items</span></div>
+          <SectionHeading id="ingredients-heading" title="Ingredients" meta={`${recipe.ingredients.length} items`} />
           {recipe.ingredients.length ? (
             <ul className="ingredient-list">
               {orderedSections.map((section) => (
@@ -250,7 +248,7 @@ export function RecipeDetailPage() {
         </section>
 
         <section className={`recipe-reading-panel recipe-reading-panel--method${mobilePanel === "method" ? " is-mobile-active" : ""}`} aria-labelledby="method-heading">
-          <div className="section-heading"><h2 id="method-heading">Method</h2><span>{recipe.instructions.length} steps</span></div>
+          <SectionHeading id="method-heading" title="Method" meta={`${recipe.instructions.length} steps`} />
           {recipe.instructions.length ? (
             <ol className="instruction-list">
               {orderedSections.map((section) => (

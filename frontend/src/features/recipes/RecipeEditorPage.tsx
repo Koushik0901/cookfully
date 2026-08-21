@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, PageState, Skeleton } from "../../components";
 import { Undo2 } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
@@ -220,8 +220,8 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
     save.mutate(serializeRecipeBlocks(blocks, { title, description, sourceUrl, yieldQuantity, yieldUnit, prepMinutes, cookMinutes, thumbnailCrop }));
   }
 
-  if (recipeId && detail.isPending) return <Skeleton label="Loading recipe editor" lines={6} />;
-  if (recipeId && detail.isError) return <ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} />;
+  if (recipeId && detail.isPending) return <PageState><Skeleton label="Loading recipe editor" lines={6} /></PageState>;
+  if (recipeId && detail.isError) return <PageState><ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} /></PageState>;
 
   return (
     <main className="page-shell recipe-editor-page">

@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { type CSSProperties, useMemo } from "react";
+import { useMemo } from "react";
 import { ArrowRight, CalendarDays, ChefHat, PackageOpen, Plus, ShoppingBasket } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { Button, ErrorRecovery, Skeleton } from "../../components";
+import { Button, ErrorRecovery, RecipeMedia, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { groceryApi } from "../grocery/api";
 import { pantryApi } from "../pantry/api";
@@ -44,23 +44,6 @@ function relativeUseBy(today: string, useBy: string) {
   return `In ${days} days`;
 }
 
-function recipeMedia(recipe: Recipe, className = "") {
-  return recipe.imageUrl ? (
-    <img
-      className={className}
-      src={recipe.imageUrl}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      style={{
-        "--thumbnail-focal-x": recipe.thumbnailCrop?.focalX ?? "0.5",
-        "--thumbnail-focal-y": recipe.thumbnailCrop?.focalY ?? "0.5",
-        "--thumbnail-zoom": recipe.thumbnailCrop?.zoom ?? "1",
-      } as CSSProperties}
-    />
-  ) : <RecipeFallbackArt title={recipe.title} className={className} />;
-}
-
 function recommendationReason(recipe: Recipe, match: PantryRecipeMatch | undefined, plannedRecipeIds: Set<string>) {
   if (match?.availability === "full") return "Everything you need is in your pantry";
   if (match?.availability === "partial" && match.missingIngredients.length <= 2) {
@@ -90,7 +73,7 @@ function WeekDay({ date, entries, recipesById, today }: { date: string; entries:
     <Link className={`home-week-day${date === today ? " is-today" : ""}${meal ? " is-planned" : ""}`} to={`/app/plan?date=${date}`} aria-label={label}>
       <span>{weekday(date, "short")}</span>
       <span className="home-week-day__media" aria-hidden="true">
-        {recipe ? recipeMedia(recipe) : meal ? <RecipeFallbackArt title={meal.recipeTitle} /> : <Plus />}
+        {recipe ? <RecipeMedia recipe={recipe} /> : meal ? <RecipeFallbackArt title={meal.recipeTitle} /> : <Plus />}
       </span>
       <small>{entries.length ? entries.length : "Open"}</small>
     </Link>
@@ -164,7 +147,7 @@ export function HomePage() {
 
       <div className="home-dashboard">
         <article className={`home-tonight${dinnerRecipe?.imageUrl ? " home-tonight--with-image" : ""}`} aria-labelledby="tonight-heading">
-          <div className="home-tonight__art" aria-hidden="true">{dinnerRecipe ? <span className="home-tonight__photo">{recipeMedia(dinnerRecipe)}</span> : <span className="home-plate"><i className="home-plate__greens" /><i className="home-plate__main" /><i className="home-plate__sauce" /></span>}</div>
+          <div className="home-tonight__art" aria-hidden="true">{dinnerRecipe ? <span className="home-tonight__photo"><RecipeMedia recipe={dinnerRecipe} loading="eager" /></span> : <span className="home-plate"><i className="home-plate__greens" /><i className="home-plate__main" /><i className="home-plate__sauce" /></span>}</div>
           <div className="home-tonight__copy">
             <p className="eyebrow" id="tonight-heading">Tonight</p>
             {plan.isPending || recipes.isPending ? <><h2>Checking tonight’s plan…</h2><p>Opening this week.</p></> : plan.isError && !planMissing ? <><h2>Your plan is out of reach</h2><p>Recipes are still safe.</p><Button variant="secondary" onClick={() => void plan.refetch()}>Try again</Button></> : dinner ? <>
@@ -199,13 +182,13 @@ export function HomePage() {
 
       <section className="home-for-you" aria-labelledby="home-for-you-heading">
         <div className="home-section-heading"><div><h2 id="home-for-you-heading">Cook next</h2></div><Link to="/app/recipes">Browse recipes <ArrowRight aria-hidden="true" /></Link></div>
-        {recipes.isPending ? <Skeleton label="Finding recipe ideas" lines={3} /> : recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title}><span className="home-recommendation__media">{recipeMedia(recipe)}</span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
+        {recipes.isPending ? <Skeleton label="Finding recipe ideas" lines={3} /> : recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title}><span className="home-recommendation__media"><RecipeMedia recipe={recipe} /></span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
       </section>
 
       <div className="home-lower-grid">
         <section className="home-recent" aria-labelledby="home-recent-heading">
           <div className="home-section-heading"><div><p className="eyebrow">Recipe box</p><h2 id="home-recent-heading">Recently saved</h2></div><Link to="/app/recipes">See all <ArrowRight aria-hidden="true" /></Link></div>
-          {recipes.isPending ? <Skeleton label="Loading recent recipes" lines={2} /> : recipes.isError ? <ErrorRecovery title="Recent recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition><span className="home-recent-recipe__media">{recipeMedia(recipe)}</span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
+          {recipes.isPending ? <Skeleton label="Loading recent recipes" lines={2} /> : recipes.isError ? <ErrorRecovery title="Recent recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition><span className="home-recent-recipe__media"><RecipeMedia recipe={recipe} /></span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
         </section>
 
         <section className="home-grocery" aria-labelledby="home-grocery-heading">

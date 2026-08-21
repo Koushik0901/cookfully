@@ -254,7 +254,8 @@
   .home-section-heading { align-items: flex-end; }
   .home-section-heading h2 { font-size: 1.45rem; }
   .home-section-heading a { flex: 0 0 auto; }
-  .home-recent__grid { grid-auto-columns: minmax(15rem, 76vw); grid-template-columns: none; grid-auto-flow: column; overflow-x: auto; padding-bottom: 0.75rem; scroll-snap-type: x proximity; }
+  .home-recent__grid { grid-auto-columns: minmax(15rem, 76vw); grid-template-columns: none; grid-auto-flow: column; overflow-x: auto; padding-bottom: 0.75rem; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+  .home-recent__grid::-webkit-scrollbar { display: none; }
   .home-recent-recipe { scroll-snap-align: start; }
   .home-grocery { min-height: 18rem; border-radius: 1.25rem 2.75rem 1.25rem 1.25rem; }
 }

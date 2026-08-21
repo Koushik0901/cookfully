@@ -93,6 +93,8 @@ test("Home opens on tonight, the week, recent recipes, and focused quick search"
   await expect(page.getByRole("link", { name: "Start cooking" })).toHaveAttribute("href", `/app/recipes/${recipeId}/cook`);
   await expect(page.getByRole("heading", { name: "Two meals planned" })).toBeVisible();
   await expect(page.getByText("620 kcal")).toBeVisible();
+  await expect(page.locator(".home-for-you .recipe-meta__item--calories").first()).toBeVisible();
+  await expect(page.locator(".home-for-you .recipe-meta__item--protein").first()).toBeVisible();
   await expect(page.locator(".home-week-grid")).toHaveAttribute("aria-label", "1 of 7 days have planned meals");
   await expect(page.locator(".home-week-day")).toHaveCount(7);
   await expect(page.getByRole("heading", { name: "Use soon" })).toBeVisible();
@@ -115,6 +117,23 @@ test("Home opens on tonight, the week, recent recipes, and focused quick search"
     expect(home!.width / canvas!.width).toBeGreaterThan(0.9);
     expect(await page.locator(".home-page").evaluate((element) => element.scrollHeight)).toBeGreaterThan(1100);
     expect(await page.locator(".home-for-you__grid").evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(500);
+  }
+  if (testInfo.project.name === "narrow-mobile") {
+    const recentShelf = page.locator(".home-recent__grid");
+    const shelfGeometry = await recentShelf.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        overflowX: style.overflowX,
+        scrollbarWidth: style.scrollbarWidth,
+        webkitScrollbarDisplay: getComputedStyle(element, "::-webkit-scrollbar").display,
+      };
+    });
+    expect(shelfGeometry.overflowX).toBe("auto");
+    expect(shelfGeometry.scrollWidth).toBeGreaterThan(shelfGeometry.clientWidth);
+    expect(shelfGeometry.scrollbarWidth).toBe("none");
+    expect(shelfGeometry.webkitScrollbarDisplay).toBe("none");
   }
 
   await page.keyboard.press("Control+K");

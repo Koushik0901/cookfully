@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { PackagePlus, Search, X } from "lucide-react";
+import { CalendarClock, PackagePlus, Search } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -8,16 +8,22 @@ import {
   Button,
   ConfirmDialog,
   DecimalInput,
+  DialogCloseButton,
   EmptyState,
   ErrorRecovery,
   Field,
   KitchenCompanion,
   PageHeader,
+  PageState,
+  SearchField,
+  SectionHeading,
   Select,
   Skeleton,
 } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
+import { RecipeMetadata } from "../recipes/RecipeMetadata";
+import { planningApi } from "../plans/api";
 import { pantryApi } from "./api";
 import type { PantryItem, PantryItemWrite } from "./types";
 
@@ -25,6 +31,17 @@ const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
 
 function formatUseBy(value: string) {
   return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function formatUseByUrgency(value: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expires = new Date(`${value}T00:00:00`);
+  const days = Math.ceil((expires.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) return "Past use-by";
+  if (days === 0) return "Use today";
+  if (days === 1) return "1 day left";
+  return `${days} days left`;
 }
 
 function PantryItemCard({ item }: { item: PantryItem }) {
@@ -153,7 +170,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
               <Dialog.Title>Add something on hand</Dialog.Title>
               <Dialog.Description id="add-pantry-description" className="pantry-dialog__description">A useful name and rough quantity are enough. You can refine the match later.</Dialog.Description>
             </div>
-            <Dialog.Close className="pantry-dialog__close" aria-label="Close add pantry item dialog"><X aria-hidden="true" /></Dialog.Close>
+            <DialogCloseButton label="Close add pantry item dialog" />
           </header>
           <form className="pantry-dialog__form" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
             <Field label="Food name" hint="Use the name you would put on a shopping list.">
@@ -187,15 +204,31 @@ export function PantryPage() {
     queryFn: () => pantryApi.search(recipeQuery),
     enabled: searchEnabled,
   });
-  if (items.isPending) return <Skeleton label="Loading pantry" lines={8} />;
-  if (items.isError) return <ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} />;
+  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes, enabled: searchEnabled });
+  if (items.isPending) return <PageState><Skeleton label="Loading pantry" lines={8} /></PageState>;
+  if (items.isError) return <PageState><ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} /></PageState>;
+  const datedItems = items.data
+    .filter((item) => item.expiresOn)
+    .sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
+  const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
 
   return (
     <main className="page-shell pantry-page">
       <PageHeader eyebrow="Your kitchen" title="What’s already at home?" description="Keep a lightweight inventory of staples and ingredients so weekly prep starts with what you already have." actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild variant="secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>} />
 
-      <section className="pantry-section pantry-section--inventory">
-        <div className="section-heading"><div><p className="eyebrow">Your shelf</p><h2>On hand</h2></div><span className="data-value">{items.data.length} item{items.data.length === 1 ? "" : "s"}</span></div>
+      <section className="pantry-attention" aria-labelledby="pantry-use-soon-title">
+        <SectionHeading
+          eyebrow="Use soon"
+          title={datedItems.length ? "Cook these before they’re forgotten" : "Nothing needs attention yet"}
+          description={datedItems.length ? "The nearest use-by dates lead the shelf, so dinner can solve waste before it starts." : "Add dates only to fresh food that benefits from a reminder. Shelf-stable staples can stay undated."}
+          id="pantry-use-soon-title"
+          action={<Button asChild variant="ghost"><a href="#pantry-shelf">Review the shelf</a></Button>}
+        />
+        {datedItems.length ? <div className="pantry-attention__items">{datedItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">{formatUseByUrgency(item.expiresOn!)}</span></article>)}</div> : null}
+      </section>
+
+      <section className="pantry-section pantry-section--inventory" id="pantry-shelf">
+        <SectionHeading eyebrow="Your shelf" title="On hand" meta={`${items.data.length} item${items.data.length === 1 ? "" : "s"}`} />
         {items.data.length ? <div className="pantry-grid">{items.data.map((item) => <PantryItemCard item={item} key={item.id} />)}</div> : <div className="pantry-empty">
           <div className="pantry-empty__intro"><KitchenCompanion moment="empty" size="md" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
           <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
@@ -204,10 +237,10 @@ export function PantryPage() {
 
       {items.data.length ? <section className="pantry-section pantry-section--matches">
         <div className="pantry-discovery__intro"><span className="pantry-discovery__mark" aria-hidden="true"><Search /></span><div><p className="eyebrow">Use what you have</p><h2>Find a meal from your shelf</h2><p className="muted">Compare your recipes with what is on hand. Ingredients awaiting a match stay out until you review them.</p></div></div>
-        <div className="pantry-search"><Field label="Recipe name (optional)"><input className="input" value={recipeQuery} onChange={(event) => { setRecipeQuery(event.currentTarget.value); setSearchEnabled(false); }} placeholder="Leave empty to check every recipe" /></Field><Button onClick={() => setSearchEnabled(true)}>Find recipes</Button></div>
+        <div className="pantry-search"><SearchField label="Recipe name (optional)" value={recipeQuery} onChange={(event) => { setRecipeQuery(event.currentTarget.value); setSearchEnabled(false); }} onClear={() => { setRecipeQuery(""); setSearchEnabled(false); }} placeholder="Leave empty to check every recipe" /><Button onClick={() => setSearchEnabled(true)}>Find recipes</Button></div>
         {matches.isFetching ? <p role="status">Comparing recipes with your pantry…</p> : null}
         {matches.isError ? <ErrorRecovery title="Recipe availability could not be checked" onRetry={() => void matches.refetch()} /> : null}
-        {matches.data?.length ? <div className="pantry-results">{matches.data.map((match) => <article className="pantry-result" aria-label={match.recipeTitle} key={match.recipeId}><div className="pantry-card__heading"><h3><Link to={`/app/recipes/${match.recipeId}`}>{match.recipeTitle}</Link></h3><span className={`match-badge match-badge--${match.availability}`}>{match.availability === "full" ? "Fully makeable" : match.availability === "partial" ? "Partially makeable" : "Not makeable"}</span></div><p className="data-value">{Math.round(Number(match.coverageRatio) * 100)}% of required ingredients covered</p>{match.missingIngredients.length ? <div><strong>Still needed</strong><ul>{match.missingIngredients.map((value) => <li key={value}>{value}</li>)}</ul></div> : <p className="success-text">No required ingredients missing.</p>}</article>)}</div> : searchEnabled && matches.data ? <EmptyState title="No recipes found" description="Try a different title filter or add recipes first." /> : null}
+        {matches.data?.length ? <div className="pantry-results">{matches.data.map((match) => { const recipe = recipesById.get(match.recipeId); return <article className="pantry-result" aria-label={match.recipeTitle} key={match.recipeId}><div className="pantry-card__heading"><h3><Link to={`/app/recipes/${match.recipeId}`}>{match.recipeTitle}</Link></h3><span className={`match-badge match-badge--${match.availability}`}>{match.availability === "full" ? "Fully makeable" : match.availability === "partial" ? "Partially makeable" : "Not makeable"}</span></div>{recipe ? <RecipeMetadata recipe={recipe} compact /> : null}<p className="data-value">{Math.round(Number(match.coverageRatio) * 100)}% of required ingredients covered</p>{match.missingIngredients.length ? <div><strong>Still needed</strong><ul>{match.missingIngredients.map((value) => <li key={value}>{value}</li>)}</ul></div> : <p className="success-text">No required ingredients missing.</p>}</article>; })}</div> : searchEnabled && matches.data ? <EmptyState title="No recipes found" description="Try a different title filter or add recipes first." /> : null}
       </section> : null}
     </main>
   );

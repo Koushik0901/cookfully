@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, CookingPot, HeartPulse, LayoutGrid, Plus, Sparkles } from "lucide-react";
 
-import { Button, ErrorRecovery, PageHeader, Skeleton } from "../../components";
+import { Button, ErrorRecovery, PageHeader, PageState, Skeleton, TabList } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "./api";
 import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
@@ -94,6 +94,66 @@ export function WeeklyPlannerPage() {
       void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] });
     },
   });
+  const copy = useMutation({
+    mutationFn: ({ entry, date, slot, position }: { entry: PlannedEntry; date: string; slot: string; position: number }) => {
+      if (!entry.recipeId) throw new Error("This historical meal no longer has a recipe to copy.");
+      return planningApi.addEntry(weekStart, {
+        localDate: date,
+        mealSlot: slot,
+        recipeId: entry.recipeId,
+        servings: entry.servings,
+        position,
+        refreshNutrition: false,
+      });
+    },
+    onMutate: () => setAddMessage(""),
+    onError: () => setAddMessage("That meal could not be copied. The original is still in its usual spot."),
+    onSuccess: (saved) => {
+      setAddMessage(`${saved.recipeTitle} copied to ${saved.mealSlot}.`);
+      void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] });
+    },
+  });
+  const swap = useMutation({
+    mutationFn: ({ source, target }: { source: PlannedEntry; target: PlannedEntry }) => planningApi.swapEntries(source.id, source.version, target.id, target.version),
+    onMutate: async ({ source, target }) => {
+      await queryClient.cancelQueries({ queryKey: ["meal-plan", weekStart] });
+      const previous = queryClient.getQueryData<MealPlan>(["meal-plan", weekStart]);
+      if (previous) {
+        queryClient.setQueryData<MealPlan>(["meal-plan", weekStart], {
+          ...previous,
+          entries: previous.entries.map((item) => item.id === source.id ? { ...item, localDate: target.localDate, mealSlot: target.mealSlot, position: target.position } : item.id === target.id ? { ...item, localDate: source.localDate, mealSlot: source.mealSlot, position: source.position } : item),
+        });
+      }
+      setAddMessage("");
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(["meal-plan", weekStart], context.previous);
+      setAddMessage(error instanceof ApiProblem && error.status === 409 ? "The plan changed elsewhere, so the meals stayed where they were. Reload and try again." : "Those meals could not be swapped, so they stayed where they were.");
+    },
+    onSuccess: ({ source }) => {
+      setAddMessage(`${source.recipeTitle} swapped places.`);
+      void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (entry: PlannedEntry) => planningApi.removeEntry(entry.id, entry.version),
+    onMutate: async (entry) => {
+      await queryClient.cancelQueries({ queryKey: ["meal-plan", weekStart] });
+      const previous = queryClient.getQueryData<MealPlan>(["meal-plan", weekStart]);
+      if (previous) queryClient.setQueryData<MealPlan>(["meal-plan", weekStart], { ...previous, entries: previous.entries.filter((item) => item.id !== entry.id) });
+      setAddMessage("");
+      return { previous };
+    },
+    onError: (_error, _entry, context) => {
+      if (context?.previous) queryClient.setQueryData(["meal-plan", weekStart], context.previous);
+      setAddMessage("That meal could not be deleted. It stayed on your plan.");
+    },
+    onSuccess: (_value, entry) => {
+      setAddMessage(`${entry.recipeTitle} removed from your plan.`);
+      void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] });
+    },
+  });
 
   function changeWeek(days: number) {
     const next = addDays(weekStart, days);
@@ -103,10 +163,10 @@ export function WeeklyPlannerPage() {
     setAddMessage("");
   }
 
-  if (preferences.isPending || goal.isPending || !weekStart) return <Skeleton label="Loading weekly planner" lines={8} />;
-  if (preferences.isError) return <ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} />;
-  if (goal.isError && !goalMissing) return <ErrorRecovery title="Goal could not be loaded" onRetry={() => void goal.refetch()} />;
-  if (plan.isError && !planMissing) return <ErrorRecovery title="Weekly plan could not be loaded" onRetry={() => void plan.refetch()} />;
+  if (preferences.isPending || goal.isPending || !weekStart) return <PageState><Skeleton label="Loading weekly planner" lines={8} /></PageState>;
+  if (preferences.isError) return <PageState><ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
+  if (goal.isError && !goalMissing) return <PageState><ErrorRecovery title="Goal could not be loaded" onRetry={() => void goal.refetch()} /></PageState>;
+  if (plan.isError && !planMissing) return <PageState><ErrorRecovery title="Weekly plan could not be loaded" onRetry={() => void plan.refetch()} /></PageState>;
   const entries = plan.data?.entries ?? [];
   const selectedEntries = entries.filter((entry) => entry.localDate === selectedDate);
   const openSlots = SLOTS.filter((slot) => !selectedEntries.some((entry) => entry.mealSlot === slot));
@@ -120,25 +180,30 @@ export function WeeklyPlannerPage() {
     <main className="page-shell planner-page">
       <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />
       <div className="planner-toolbar">
-        <div className="planner-views" role="tablist" aria-label="Planning views">
-           <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
-           <button id="planner-tab-day" role="tab" aria-controls="planner-panel-day" aria-selected={view === "day"} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
-           <button id="planner-tab-prep" role="tab" aria-controls="planner-panel-prep" aria-selected={view === "prep"} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
-        </div>
+        <TabList className="planner-views" label="Planning views">
+           <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
+           <button id="planner-tab-day" role="tab" aria-controls="planner-panel-day" aria-selected={view === "day"} tabIndex={view === "day" ? 0 : -1} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
+           <button id="planner-tab-prep" role="tab" aria-controls="planner-panel-prep" aria-selected={view === "prep"} tabIndex={view === "prep" ? 0 : -1} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
+        </TabList>
         {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
       </div>
 
        {view === "week" ? <section id="planner-panel-week" role="tabpanel" aria-labelledby="planner-tab-week">
-         {addMessage ? <p className={move.isError ? "error-text" : "success-text"} role={move.isError ? "alert" : "status"}>{addMessage}</p> : null}
+         {addMessage ? <p className={move.isError || copy.isError || swap.isError || remove.isError ? "error-text" : "success-text"} role={move.isError || copy.isError || swap.isError || remove.isError ? "alert" : "status"}>{addMessage}</p> : null}
          <WeekOverview
            dates={dates}
            entries={entries}
            recipesById={recipesById}
            selectedDate={selectedDate}
-           movePending={move.isPending}
+           copyPending={copy.isPending}
+           swapPending={swap.isPending}
+           deletePending={remove.isPending}
            onOpenDay={(date) => { setSelectedDate(date); setAddMessage(""); setView("day"); }}
            onAdd={(date, slot) => { setSelectedDate(date); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}
            onMove={(entry, date, slot, position) => move.mutate({ entry, date, slot, position })}
+           onCopy={(entry, date, slot, position) => copy.mutate({ entry, date, slot, position })}
+           onSwap={(source, target) => swap.mutate({ source, target })}
+           onDelete={(entry) => remove.mutate(entry)}
          />
          {goal.data ? <NutritionPulse total={plan.data?.weekTotal} target={goal.data} plannedDays={plannedDays} /> : null}
        </section> : null}

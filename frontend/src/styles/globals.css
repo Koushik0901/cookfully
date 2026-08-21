@@ -185,6 +185,9 @@ small {
 
 .section-heading > div { display: grid; gap: 0.35rem; }
 .section-heading > span { color: var(--color-on-surface-variant); font-size: 0.875rem; }
+.section-heading--with-description { align-items: start; }
+.section-heading__description { max-width: 56ch; color: var(--color-on-surface-variant); }
+.section-heading > .section-heading__action { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; }
 
 .nutrient-dot {
   display: inline-block;
@@ -259,6 +262,7 @@ small {
   h2 { font-size: 1.5rem; }
   .form-grid { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; }
+  .section-heading > .section-heading__action { justify-content: flex-start; }
 }
 
 @media (prefers-reduced-motion: reduce) {

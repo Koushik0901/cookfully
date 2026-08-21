@@ -3,9 +3,8 @@ import { type CSSProperties, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Archive, Check, Heart, MoreVertical, Pencil, RotateCcw, Trash2 } from "lucide-react";
 
-import { ConfirmDialog, PollingStatusBadge } from "../../components";
+import { ConfirmDialog, PollingStatusBadge, RecipeMedia } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
-import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +41,6 @@ export function RecipeCard({
 }) {
   const queryClient = useQueryClient();
   const recipeCollections = recipe.collections ?? EMPTY_COLLECTIONS;
-  const thumbnailCrop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [favorite, setFavorite] = useState(Boolean(recipe.favorite));
   const [membership, setMembership] = useState(recipeCollections.map((item) => item.id));
@@ -87,7 +85,7 @@ export function RecipeCard({
       {selectionMode ? <Checkbox className="recipe-card__selection" checked={selected} aria-label={`Select ${recipe.title}`} onCheckedChange={(checked) => onSelectedChange?.(checked === true)} /> : null}
       <Link className="recipe-card__primary" to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition>
         <div className="recipe-card__media" style={{ viewTransitionName: `recipe-media-${recipe.id}` } as CSSProperties}>
-          {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" style={{ "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties} /> : <RecipeFallbackArt title={recipe.title} />}
+          <RecipeMedia recipe={recipe} />
         </div>
         <div className="recipe-card__body">
           <div className="recipe-card__heading">

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 
 import {
   BookOpenText,
@@ -244,7 +244,7 @@ function PlannerShell() {
              <Route path="agent-access" element={<AgentAccessPage />} />
              <Route path="suggestions" element={<SuggestionPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="*" element={<EmptyState title="Planner section coming next" description="Recipe planning is available now." action={<Button asChild><a href="/app/recipes">Open recipes</a></Button>} />} />
+            <Route path="*" element={<div className="page-shell utility-page"><EmptyState title="That kitchen page isn’t here" description="The link may be old, but your recipes and plans are still safe." action={<><Button asChild><Link to="/app">Return home</Link></Button><Button variant="secondary" asChild><Link to="/app/recipes">Open recipes</Link></Button></>} /></div>} />
           </Routes>
         </Suspense>
       </main>

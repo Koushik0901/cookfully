@@ -428,6 +428,47 @@ test("uses more of the wide desktop canvas for the recipe library", async ({ pag
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("turns the mobile recipe library into a compact visual shelf", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "narrow-mobile", "The compact two-column shelf is mobile-only.");
+  await mockApi(page);
+  await page.goto("/app/recipes");
+
+  await expect(page.getByRole("heading", { name: "Saved recipes" })).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const grid = document.querySelector<HTMLElement>(".recipe-grid");
+    const card = document.querySelector<HTMLElement>(".recipe-card");
+    const media = document.querySelector<HTMLElement>(".recipe-card__media");
+    if (!grid || !card || !media) return null;
+    const gridStyle = getComputedStyle(grid);
+    const cardBox = card.getBoundingClientRect();
+    const mediaBox = media.getBoundingClientRect();
+    return {
+      columns: gridStyle.gridTemplateColumns.split(" ").length,
+      cardWidth: cardBox.width,
+      mediaRatio: mediaBox.width / mediaBox.height,
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      metadataVisible: card.querySelector(".recipe-meta")?.textContent,
+    };
+  });
+  expect(layout).not.toBeNull();
+  expect(layout!.columns).toBe(2);
+  expect(layout!.cardWidth).toBeLessThan(layout!.viewportWidth * 0.55);
+  expect(layout!.mediaRatio).toBeGreaterThan(1.15);
+  expect(layout!.metadataVisible).toContain("kcal");
+  expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
+  const textFit = await page.locator(".recipe-card").evaluateAll((cards) => cards.map((card) => {
+    const metadata = card.querySelector<HTMLElement>(".recipe-meta");
+    const yieldText = card.querySelector<HTMLElement>(".recipe-card__yield");
+    return {
+      metadataFont: metadata ? Number.parseFloat(getComputedStyle(metadata).fontSize) : 0,
+      yieldFont: yieldText ? Number.parseFloat(getComputedStyle(yieldText).fontSize) : 0,
+      overflows: card.scrollWidth > card.clientWidth + 1,
+    };
+  }));
+  expect(textFit.every((item) => item.metadataFont >= 15 && item.yieldFont >= 15 && !item.overflows)).toBe(true);
+});
+
 test("makes a focused recipe-library view easy to understand and clear", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/app/recipes");
@@ -435,6 +476,21 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await expect(page.locator(".recipe-card--featured")).toHaveCount(0);
   await expect(page.locator(".recipe-card__media .recipe-card__state")).toHaveCount(0);
   await expect(page.locator(".recipe-card__body .recipe-card__state")).toBeVisible();
+  const libraryStyling = await page.evaluate(() => {
+    const favorite = document.querySelector<HTMLElement>(".recipe-card__favorite-toggle");
+    const discovery = document.querySelector<HTMLElement>(".recipe-discovery");
+    const results = document.querySelector<HTMLElement>(".recipe-results-heading");
+    const root = getComputedStyle(document.documentElement);
+    return {
+      favoriteColor: favorite ? getComputedStyle(favorite).color : "",
+      primaryColor: root.getPropertyValue("--color-primary").trim(),
+      discoveryBorders: discovery ? [getComputedStyle(discovery).borderTopWidth, getComputedStyle(discovery).borderBottomWidth] : [],
+      resultsBorder: results ? getComputedStyle(results).borderBottomWidth : "",
+    };
+  });
+  expect(libraryStyling.favoriteColor).toBe(libraryStyling.primaryColor);
+  expect(libraryStyling.discoveryBorders).toEqual(["0px", "0px"]);
+  expect(libraryStyling.resultsBorder).toBe("0px");
   await page.getByRole("button", { name: "More actions for Protein oats" }).click();
   await expect(page.getByRole("menuitem", { name: "Edit recipe" })).toHaveAttribute("href", `/app/recipes/${recipeId}/edit`);
   await expect(page.getByRole("menuitem", { name: "Archive recipe" })).toBeVisible();

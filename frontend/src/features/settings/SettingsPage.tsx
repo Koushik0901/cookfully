@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Cpu, Database, KeyRound, ShieldCheck, UserRound } from "lucide-react";
 
-import { PageHeader } from "../../components";
+import { PageHeader, TabList } from "../../components";
 import { AccountTab } from "./AccountTab";
 import { AgentAccessPage } from "./AgentAccessPage";
 import { SecurityTab } from "./SecurityTab";
@@ -23,10 +23,10 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Owner settings"
         title="Settings"
-        description="Manage your account and sign-in sessions. System connections stay separate from everyday settings."
+        description="Keep your account, privacy, connections, and local nutrition system in one quieter place. Everyday cooking stays out of the way."
       />
       <div className="settings-workspace">
-      <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+      <TabList className="settings-tabs" label="Settings sections">
         {TABS.map(({ id, label, description, Icon }) => (
           <button
             key={id}
@@ -35,6 +35,7 @@ export function SettingsPage() {
             aria-label={label}
             id={`settings-tab-${id}`}
             aria-selected={tab === id}
+            tabIndex={tab === id ? 0 : -1}
             aria-controls={`settings-panel-${id}`}
             className="settings-tab"
             onClick={() => setTab(id)}
@@ -42,7 +43,7 @@ export function SettingsPage() {
             <Icon aria-hidden="true" /><span><strong>{label}</strong><small>{description}</small></span>
           </button>
         ))}
-      </div>
+      </TabList>
       <div className="settings-panels">
         {tab === "account" ? (
           <div id="settings-panel-account" role="tabpanel" aria-labelledby="settings-tab-account">

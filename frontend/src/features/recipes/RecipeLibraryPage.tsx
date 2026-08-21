@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, FileDown, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, FileDown, Plus, SlidersHorizontal } from "lucide-react";
 
-import { Button, EmptyState, ErrorRecovery, Field, PageHeader, Select, Skeleton } from "../../components";
+import { Button, EmptyState, ErrorRecovery, Field, PageHeader, SearchField, SectionHeading, Select, Skeleton, TabList } from "../../components";
 import { recipesApi } from "./api";
 import { RecipeCard } from "./RecipeCard";
 import { BulkRecipeActions } from "./BulkRecipeActions";
@@ -204,11 +204,11 @@ export function RecipeLibraryPage() {
       <RecipeImportDialog open={importOpen} onOpenChange={closeImport} />
 
       <section className="recipe-discovery" aria-label="Find recipes">
-        <div className="recipe-search"><Search aria-hidden="true" /><input className="input" aria-label="Search recipes" type="search" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-        <div className="recipe-view-tabs" role="tablist" aria-label="Recipe views">
-          <button type="button" id="recipe-view-tab-all" role="tab" aria-controls="recipe-view-panel" aria-selected={!favoriteOnly} onClick={() => setFavoriteOnly(false)}>All recipes</button>
-          <button type="button" id="recipe-view-tab-favorites" role="tab" aria-controls="recipe-view-panel" aria-selected={favoriteOnly} onClick={() => setFavoriteOnly(true)}>Favorites</button>
-        </div>
+        <SearchField className="recipe-search" label="Search recipes" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} onClear={() => setQuery("")} />
+        <TabList className="recipe-view-tabs" label="Recipe views">
+          <button type="button" id="recipe-view-tab-all" role="tab" aria-controls="recipe-view-panel" aria-selected={!favoriteOnly} tabIndex={!favoriteOnly ? 0 : -1} onClick={() => setFavoriteOnly(false)}>All recipes</button>
+          <button type="button" id="recipe-view-tab-favorites" role="tab" aria-controls="recipe-view-panel" aria-selected={favoriteOnly} tabIndex={favoriteOnly ? 0 : -1} onClick={() => setFavoriteOnly(true)}>Favorites</button>
+        </TabList>
         <details className="recipe-filter-disclosure">
           <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeFilters.length ? <b>{activeFilters.length}</b> : null}{sortBy !== "updated" || favoriteOnly ? <b>{([sortBy !== "updated", favoriteOnly].filter(Boolean).length)}</b> : null}<ChevronDown aria-hidden="true" /></summary>
           <div className="recipe-filter-disclosure__content">
@@ -235,6 +235,7 @@ export function RecipeLibraryPage() {
        {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
        {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <><Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button><Button variant="ghost" asChild><Link to="/app/suggestions">Get ideas</Link></Button></> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
        {selectionMode && selectedIds.length ? <BulkRecipeActions selectedCount={selectedIds.length} pending={bulkArchive.isPending} onArchive={archiveSelected} onClear={() => setSelectedIds([])} /> : null}
+       {recipes.data && displayedRecipes.length ? <SectionHeading className="recipe-results-heading" eyebrow="Recipe box" title={hasDiscoveryFilter ? "Matching recipes" : "Saved recipes"} meta={`${displayedRecipes.length} ${displayedRecipes.length === 1 ? "recipe" : "recipes"}`} /> : null}
        <div id="recipe-view-panel" role="tabpanel" aria-labelledby={favoriteOnly ? "recipe-view-tab-favorites" : "recipe-view-tab-all"}>
          {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} selectionMode={selectionMode && recipe.status !== "archived"} selected={selectedIds.includes(recipe.id)} onSelectedChange={(selected) => toggleSelected(recipe.id, selected)} actionPending={lifecycle.isPending || remove.isPending || bulkArchive.isPending} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
        </div>

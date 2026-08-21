@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, type ReactNode, useState } from "react";
 
-import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader, Skeleton } from "../../components";
+import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, PageHeader, SectionHeading, Skeleton } from "../../components";
 import { Checkbox } from "@/components/ui/checkbox";
 import { agentAccessApi } from "./api";
 import type { AccessTokenCreated, AccessTokenScope } from "./types";
@@ -127,9 +127,7 @@ export function AgentAccessPage({ embedded = false }: { embedded?: boolean }) {
       ) : null}
 
       <form className="settings-section" onSubmit={submit}>
-        <div className="section-heading">
-          <div><h2>Create token</h2><p className="muted">Read-only defaults are selected. Add write scopes only when the client truly needs them.</p></div>
-        </div>
+        <SectionHeading title="Create token" description="Read-only defaults are selected. Add write scopes only when the client truly needs them." />
         <div className="form-grid">
           <Field label="Token name" hint="For example, Home Assistant meal planner.">
             <input className="input" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />
@@ -152,23 +150,20 @@ export function AgentAccessPage({ embedded = false }: { embedded?: boolean }) {
       </form>
 
       <section className="stack" aria-labelledby="active-tokens-heading">
-        <div className="section-heading"><div><h2 id="active-tokens-heading">Active tokens</h2><p className="muted">Secrets are never shown here.</p></div></div>
+        <SectionHeading id="active-tokens-heading" title="Active tokens" description="Secrets are never shown here." />
         {activeTokens.length === 0 ? (
           <EmptyState title="No active tokens" description="Create a token when an external client needs access." />
         ) : (
           <div className="token-list">
             {activeTokens.map((token) => (
               <article key={token.id} className="token-card" aria-label={token.name}>
-                <div className="section-heading">
-                  <div><h3>{token.name}</h3><p className="muted">Created {dateLabel(token.createdAt)}</p></div>
-                  <ConfirmDialog
+                <SectionHeading headingLevel="h3" title={token.name} description={`Created ${dateLabel(token.createdAt)}`} action={<ConfirmDialog
                     trigger={<Button type="button" variant="destructive">Revoke</Button>}
                     title="Revoke access token?"
                     description={`${token.name} will stop working immediately. This cannot be undone.`}
                     confirmLabel="Revoke token"
                     onConfirm={() => revokeToken.mutate(token.id)}
-                  />
-                </div>
+                  />} />
                 <dl className="token-metadata">
                   <div><dt>Scopes</dt><dd>{token.scopes.join(", ")}</dd></div>
                   <div><dt>Last used</dt><dd>{dateLabel(token.lastUsedAt)}</dd></div>

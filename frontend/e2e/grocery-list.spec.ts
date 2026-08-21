@@ -16,6 +16,10 @@ async function mockGroceryApi(page: Page, { empty = false, missing = false }: { 
   let listVersion = 2;
   let status = empty ? "current" : "dirty";
   let stops: TestStop[] = [];
+  const plannedEntries = [
+    { id: "00000000-0000-4000-8000-000000000020", localDate: "2026-03-11", mealSlot: "dinner", recipeId: "00000000-0000-4000-8000-000000000120", recipeTitle: "Sheet-pan tofu bowls" },
+    { id: "00000000-0000-4000-8000-000000000021", localDate: "2026-03-12", mealSlot: "dinner", recipeId: "00000000-0000-4000-8000-000000000121", recipeTitle: "Garlicky tomato pasta" },
+  ];
   let items: TestItem[] = empty ? [] : [
     {
       id: "00000000-0000-4000-8000-000000000071",
@@ -62,6 +66,7 @@ async function mockGroceryApi(page: Page, { empty = false, missing = false }: { 
     const grocery = () => ({ id: listId, weekStart, status, generatedAt: "2026-03-10T12:00:00Z", items, version: listVersion });
     if (path === "/api/v1/owner/preferences") return route.fulfill({ json: { timezone: "America/Vancouver", weekStartsOn: 1, version: 1 } });
     if (path === "/api/v1/owner/onboarding") return route.fulfill({ json: { state: "completed", version: 1 } });
+    if (path === `/api/v1/meal-plans/${weekStart}` && method === "GET") return route.fulfill({ json: { entries: plannedEntries } });
     if (path === "/api/v1/grocery-shopping-stops" && method === "GET") return route.fulfill({ json: stops });
     if (path === "/api/v1/grocery-shopping-stops" && method === "POST") {
       const value = request.postDataJSON();
@@ -129,6 +134,9 @@ test("keeps a missing grocery list focused on one useful choice", async ({ page 
   await expect(page.getByRole("heading", { level: 1, name: "Your grocery list starts with your plan" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Start an empty list" })).toHaveCount(1);
+  await expect(page.getByText("Plan the meals that matter")).toBeVisible();
+  await expect(page.getByText("Use what is already home")).toBeVisible();
+  await expect(page.getByText("Shop and check off")).toBeVisible();
   await expect(page.getByText("Build the list from your plan")).toHaveCount(0);
   await captureUi(page, testInfo, "grocery-missing");
 });
@@ -156,15 +164,14 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await page.getByRole("button", { name: "Refresh from plan" }).click();
   await expect(page.getByText("Ready to shop")).toBeVisible();
 
-  await page.getByRole("button", { name: "Show Red onion sources" }).click();
-  await expect(page.getByText("500 g red onion")).toBeVisible();
+  await expect(page.getByText("Sheet-pan tofu bowls")).toBeVisible();
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeChecked();
 
-  await page.getByText("Edit Red onion", { exact: true }).click();
+  await page.getByLabel("Edit Red onion").click();
   await page.getByLabel("Red onion name").fill("My red onions");
   await page.getByLabel("Red onion quantity").fill("800.000000");
-  await page.getByRole("button", { name: "Save Red onion" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("heading", { name: "My red onions" })).toBeVisible();
 
   await page.getByText("Add something else", { exact: true }).click();
@@ -190,7 +197,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByRole("button", { name: "Add stop" }).click();
   await expect(page.getByLabel("Market stop name")).toBeVisible();
   await captureUi(page, testInfo, "grocery-stops", { focus: page.getByLabel("Market stop name") });
-  await page.getByText("Edit Red onion", { exact: true }).click();
+  await page.getByLabel("Edit Red onion").click();
   await page.getByLabel("Shopping stop for Red onion").selectOption({ label: "Market" });
   await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
@@ -199,7 +206,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
   await expect(page.locator('.grocery-complete [data-companion-moment="milestone"]')).toBeVisible();
   await captureUi(page, testInfo, "grocery-complete");
-  await expect(page.getByText("Edit Red onion", { exact: true })).not.toBeVisible();
+  await expect(page.getByLabel("Edit Red onion")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Remove Red onion" })).toHaveCount(0);
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(0);

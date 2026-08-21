@@ -83,7 +83,7 @@ export function FirstRunJourney({ onboarding }: { onboarding: OnboardingState })
           <div className="first-run__actions first-run__actions--stacked">
             <button type="button" className="option-card" onClick={() => void chooseNutrition("both")} disabled={resolve.isPending}>
               <strong>Install both <span className="badge">Recommended</span></strong>
-              <span>Foundation + SR Legacy (~10,000 foods, ~100 MB) and Branded gym products (~1.5 GB).</span>
+              <span>Foundation + SR Legacy (~10,000 foods, ~100 MB) and optional branded packaged foods (~1.5 GB).</span>
             </button>
             <button type="button" className="option-card" onClick={() => void chooseNutrition("foundation_sr_legacy")} disabled={resolve.isPending}>
               <strong>Foundation + SR Legacy only</strong>

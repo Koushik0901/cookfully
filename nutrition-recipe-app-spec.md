@@ -1,184 +1,214 @@
-# Project Spec: Gym-Focused Recipe & Nutrition Planner
+# Cookfully product and experience spec
 
-## 1. Vision / Philosophy
+## 1. Vision
 
-Build a recipe manager and meal-planning app for one specific persona: someone actively managing body composition (cutting, bulking, or maintaining) who tracks calories and macros and wants their recipe/meal-planning tool to actually understand that goal — not a universal, everything-to-everyone recipe box like [Mealie](https://github.com/mealie-recipes/mealie) or [Tandoor](https://github.com/TandoorRecipes/recipes).
+Cookfully is a polished self-hosted kitchen control center. It combines recipe saving, nutrition-aware
+planning, pantry context, grocery generation, and focused cooking into one calm loop:
 
-And we don't even have to build this from scratch. If it's better to take one of these apps like Mealie or Tandoor and just rework the specific parts I want and declutter some stuff to make it exactly how I want, that's still 100% better.
+**Discover → Understand → Plan → Prep → Shop → Cook → Review**
 
-Core philosophy:
-- **Narrow beats universal.** Every feature should serve "I have a calorie/macro target, help me hit it with real food." Features that don't serve that get cut, even if Mealie/Tandoor have them.
-- **Rough beats missing.** A best-effort nutrition estimate on every recipe is more useful than a perfect estimate on none. Don't gate features behind "AI must be 100% accurate."
-- **AI does structured work, not conversation.** No in-app chatbot. AI is used for specific, bounded processing tasks (parsing ingredients, estimating nutrition, matching to a reference database) that run once per recipe and get cached — not open-ended Q&A.
-- **The app is a tool with an API, not a walled garden.** Expose clean structured data/actions (ideally as an MCP server) so the user's own external AI agent can do deeper reasoning on top of the app's data, instead of the app trying to build that reasoning in-house.
-- **Reuse aggressively.** Don't rebuild solved problems (URL scraping, ingredient string parsing patterns) from scratch. Spend original engineering effort only where existing tools fall short — namely, nutrition-first data modeling and macro-aware meal planning. Reuse wholly or partially from existing open-source apps like [Mealie](https://github.com/mealie-recipes/mealie) or [Tandoor](https://github.com/TandoorRecipes/recipes).
-- **Self-hosted, not subscription.** The polished paid apps in this space (see Section 3) are genuinely good, but the point of this project is to own the tool and the data without an ongoing subscription. Inspiration from their UX is welcome; their business model is not the goal.
-- **Self-hosted doesn't mean second-rate.** Apps like Immich (see Section 3) prove a self-hosted tool can have professional-grade UI and architecture. That's the bar for this project, not "good enough for a personal project."
+The product is cooking-first. It should feel substantially more modern and useful than the dated,
+database-like experience of many self-hosted recipe managers, while preserving their ownership and
+practicality. The Home route at /app is the canonical expression of that direction.
 
-## 2. Pain Points With Existing Apps (Mealie / Tandoor)
+### Product promise
 
-These are the specific frustrations driving this project, based on hands-on use of Tandoor:
+When someone opens Cookfully, it should tell them:
 
-1. **UI is cluttered and dated.** Built to serve every possible recipe-management use case, which makes the everyday flow (import a recipe, check macros, add to plan) slower and busier than it needs to be.
-2. **URL import gets ingredients/instructions/images great, but not nutrition.** When the source website doesn't provide nutrition info (most don't), the app just leaves it blank. No fallback estimation.
-3. **No concept of personal calorie/macro goals.** Nothing in Mealie/Tandoor connects a recipe to "does this fit my day." No TDEE, no deficit/surplus target, no per-meal macro budget.
-4. **No goal-aware meal planning.** Meal calendars exist, but nothing suggests what to eat based on remaining calories/macros for the day or week.
-5. **Built for a general audience, not a gym/health-focused one.** Protein-forward, deficit/surplus-aware, macro-tracking workflows are not the default experience — they're afterthoughts at best.
+- what matters tonight;
+- what is happening in the week;
+- what needs attention before it is forgotten;
+- what could be cooked next and why;
+- what needs to be bought or prepared.
 
-## 3. Inspiration to Draw From
+The interface earns the name Home by being a living summary of the kitchen, not a launchpad into empty
+utilities.
 
-Recipe apps aren't the only place to look. Some of the best examples of what a polished, well-engineered self-hosted app can look like come from entirely outside the recipe/nutrition space — study those for UI and architecture, not just competitors in the same category.
+### Audience
 
-### Paid recipe/meal-planning apps (for UX patterns)
-- **Mob (Meal Planner and Recipes)** — subscription app worth studying for: weekly meal plans built around real-life cooking (not just a recipe archive), a smart shopping list that groups items by supermarket aisle, ingredient-based search ("what can I make with what I have"), adjustable portion sizes, a step-by-step cook mode that keeps the screen awake, and nutrition/macros surfaced directly on every recipe. That last point in particular is exactly the gap this project is trying to close relative to Mealie/Tandoor.
-- **Paprika Recipe Manager** — worth studying for: clean ad-stripped web recipe clipping, offline-first local storage with cross-device sync, portion scaling with automatic unit conversion, a pantry feature that tracks what's on hand, grocery lists with custom/re-orderable aisle categories, and a "keep screen awake" cooking mode. Paprika is not gym/macro-focused, but its import and grocery-list UX is a good bar to aim for.
+Cookfully serves anyone trying to plan and eat better food: home cooks, households, meal-preppers,
+people with dietary requirements, people managing health goals, and people who simply want less friction.
+Nutrition supports those jobs, but the product is not a gym app, calorie counter, weight-loss coach, or
+macro identity.
 
-### Self-hosted apps with standout design, architecture, and AI (for the bigger picture)
-- [**Immich**](https://github.com/immich-app/immich) (self-hosted photo/video manager, a self-hosted Google Photos alternative) — one of the best-designed self-hosted apps that exists, and worth studying on three fronts:
-  - **UI polish:** timeline-based browsing with virtual scrolling that stays smooth across huge libraries, a full-screen asset viewer, and a maintained component library (`@immich/ui`) that keeps every screen visually consistent. Proof that "self-hosted" doesn't have to mean "looks like an admin panel."
-  - **Architecture:** runs as separate Docker services — an API server, a dedicated machine-learning service, Postgres for data, and Redis-backed job queues for background work — so heavy processing (face recognition, semantic-search embeddings) never blocks the main app. This is a pattern directly worth copying: nutrition estimation and ingredient matching should run as background jobs through a queue, not inline in the request that saves a recipe.
-  - **AI done right, not as a gimmick:** on-server ML (face detection, CLIP-based semantic search) runs quietly in the background and just makes search and browsing better — it's not a chat feature bolted on top. That's the exact posture this project wants for its own AI: structured, bounded, and invisible when it's working.
-- General direction: it's fine, and encouraged, to bring in other well-regarded self-hosted projects (from the broader self-hosted ecosystem, not just recipe apps) as references for interaction design and engineering practice.
+### Product principles
 
-## 4. Goals — What "Done" Looks Like
+- **Food before figures.** Dish names, imagery, ingredients, and cooking actions lead.
+- **Quiet intelligence.** Nutrition, serving math, pantry deductions, recommendations, and grocery
+  consolidation are useful evidence close to the task.
+- **Rough is better than absent.** Estimated values are useful when their estimate/coverage state is honest
+  and corrections remain possible.
+- **One useful next step.** Every surface has one clear action and progressive disclosure for the rest.
+- **Self-hosted without second-rate UX.** Own the data and keep the experience polished, reliable, and
+  understandable.
+- **Structured AI, no in-app chatbot.** Optional providers perform bounded parsing/matching work; external
+  agents can use the API/MCP surface for deeper reasoning.
+- **Neutral and inclusive.** Never moralize food or presume a body-composition goal.
 
-- Import a recipe from a URL (same site coverage as Mealie/Tandoor) and get ingredients, instructions, image, **and a rough per-serving calorie/macro estimate**, automatically, even when the source page has no nutrition data.
-- Set personal targets: maintenance/TDEE, daily calorie goal (deficit/surplus), and macro splits — at the day level and, if wanted, per-meal.
-- Build a week of meals from saved recipes and see, at a glance, whether the week/day/meal is on target.
-- Auto-generate a full week of meal suggestions from the recipe library that hits calorie and macro targets, with reasonable variety.
-- Auto-generate a consolidated grocery list from the week's selected meals.
-- All of the above exposed through a clean API/MCP surface so a personal AI agent (e.g. ChatGPT Codex, or Hermes Agent or OpenClaw or the user's own agent setup) can query and act on the data without a bespoke in-app chat feature.
+## 2. Home reference and design requirements
 
-## 5. Feature List (Prioritized)
+Home's visual language is the product-wide design language; DESIGN.md is the implementation authority.
 
-### Must-have (v1)
-- Recipe CRUD (manual entry)
-- Recipe import from URL (reuse `recipe-scrapers` site coverage)
-- Ingredient parsing → structured `{quantity, unit, food}` per line
-- Nutrition estimation pipeline: ingredient → matched reference food → per-serving calorie/macro rollup, cached per recipe
-- User goal profile: TDEE/maintenance, target calories, macro split (protein/carbs/fat), optionally per-meal macro targets
-- Weekly meal calendar (assign recipes to days/meals)
-- Daily/weekly totals vs. goal (calories + macros), visible at a glance
-- Grocery list generated from the current week's planned meals, aggregated and deduplicated
-- Manual override for any auto-estimated nutrition value (user corrects, correction is trusted going forward)
+1. **Intro:** warm ivory canvas, short kitchen/date eyebrow, dynamic Good morning/afternoon/evening
+   greeting, one supporting sentence, unobtrusive desktop search.
+2. **Tonight:** wide editorial hero with food image integrated into the surface, dark herb grounding,
+   recipe title, time/servings/nutrition facts, availability note, and one Start cooking action.
+3. **This week:** compact card with real day labels, open/planned states, current day, and Next up action.
+4. **Use soon:** soft mint pantry surface with expiry attention and an honest empty state.
+5. **Quick actions:** separator-led list for Plan tonight, Add a recipe, Add a grocery item.
+6. **Cook next:** featured plus companion recipe cards with contextual reasons.
+7. **Recently saved:** compact, consistent image shelf; never a second full recipe library.
+8. **Grocery:** dark herb prompt that makes a list one action away.
 
-### Should-have (v2)
-- Auto-suggestion engine: given remaining calorie/macro budget for a day or week, propose recipes/meals from the library that fit
-- Micronutrient tracking (not just macros), where reference data supports it
-- Basic variety/repetition constraints in auto-suggestions (don't suggest the same recipe 5 days running unless the library is small)
-- MCP server exposing tools like: get current goals, get today's/week's totals, list recipes matching macro constraints, add recipe to plan, get grocery list
-- Ingredient-based search ("what can I make with what I have") and a lightweight pantry tracker, inspired by Mob/Paprika
+Across every route, use Afacad Flux Variable for expressive headings, Inclusive Sans Variable for
+interface/data, warm OKLCH tokens, 10px controls, 18px surfaces, 22px media, restrained shadows, and
+occasional organic asymmetric corners. Recipe media/fallback art and RecipeMetadata are shared primitives.
+At every recipe occurrence, show estimated total time, serving count, calories, protein, carbs, and fat
+when available; make missing values explicit.
 
-### Explicit non-goals (do not build)
-- In-app chatbot / conversational AI interface
-- Photo-based food/macro recognition (Cal AI-style) — deliberately out of scope
-- Trying to match Mealie/Tandoor's full feature breadth (multi-cuisine categorization, extensive tagging systems, recipe books/sharing communities, etc.) unless it directly serves the goal-tracking use case
-- Multi-user/social features, unless later decided otherwise — default assumption is single-user or small household use
-- Subscription/paid-service model — this is a self-hosted alternative by design
+Mobile is a cooking context: compact top bar, 72px aligned bottom navigation, stacked task order, large
+touch targets, no fixed-ui collisions, and a composition deliberately adapted from desktop.
 
-## 6. What To Reuse vs. Build From Scratch
+## 3. Problems this solves
 
-### Reuse
-- **`recipe-scrapers` (Python library)** for URL import — this is what both Mealie and Tandoor use under the hood, covers 400+ sites. Use it directly as a dependency rather than reimplementing scraping.
-- **USDA FoodData Central** as the nutrition reference database (free, ~2M entries including branded foods). Use their bulk download or API for ingredient-to-nutrition matching.
-- **Mealie's or Tandoor's ingredient-string parsing logic** (unit/quantity extraction) as a reference implementation, or reused directly — worth reading their source for this narrow, well-solved piece even if the rest of the app diverges from their codebase.
+Existing recipe managers such as Mealie and Tandoor are useful references for ownership and breadth, but
+the everyday experience can feel dated, dense, and database-first. Cookfully addresses:
 
-### Build from scratch
-- **Backend and data model**, designed nutrition-first from day one: `Recipe`, `Ingredient`, `NutritionEstimate`, `UserGoal`, `MealPlan`, `MealPlanEntry`, `GroceryList` as core first-class entities (not bolted onto a schema that wasn't designed for them).
-- **Frontend**, since the whole point is a UI that doesn't feel like Tandoor's — with UX cues from Mob/Paprika, and design/architecture cues from Immich (see Section 3).
-- **Nutrition estimation pipeline**: ingredient parsing (LLM-assisted structured extraction) → reference-database matching (LLM-assisted disambiguation, e.g. "kale" → raw curly kale) → unit-to-gram conversion → per-serving rollup. One-shot per recipe, result cached permanently, user-correctable.
-- **Meal-plan auto-suggestion engine**: treat as a constraint-satisfaction/optimization problem over the recipe library against calorie/macro targets (e.g. via `OR-tools` or `PuLP` for an ILP/greedy approach) — not an ML model, and not something to outsource to an LLM per-request (too slow/expensive for what's fundamentally a search problem).
-- **MCP server / API layer** exposing the app's data and actions as structured tools.
+1. recipes, plans, pantry, grocery, and cooking are disconnected;
+2. the first screen does not tell the user what matters today;
+3. imported recipes often have no honest nutrition estimate;
+4. recommendations lack a reason or pantry/week context;
+5. empty states repeat the absence instead of offering the next useful action;
+6. recipe cards, media fallbacks, metadata, and responsive navigation drift between pages;
+7. self-hosted tools often treat polished interaction as optional.
 
-### On forking vs. rebuilding
-Whether to fork Mealie/Tandoor directly and rework/declutter it, or build fresh while reusing their scraping/parsing pieces, is open — both are acceptable paths. The deciding factor should be practical: how much of Mealie/Tandoor's existing schema and UI can realistically be adapted to a nutrition-first, goal-aware model without fighting the codebase more than building fresh would cost. Evaluate this early, before committing to a direction.
+Cookfully does not copy any reference product wholesale. It adopts useful patterns and rejects breadth,
+density, or visual choices that do not serve a cooking-first tool.
 
-## 7. Suggested Architecture
+## 4. Goals and definition of done
 
-- **Backend:** Python (FastAPI), to sit naturally alongside `recipe-scrapers` and any Python-based nutrition-matching/optimization code (OR-tools, PuLP, pandas for the USDA dataset).
-- **Database:** Postgres.
-- **Frontend:** Modern reactive framework (React/Next.js or Vue) — final choice open, but should be decided before UI work starts.
-- **AI processing:** LLM API calls (e.g. Claude) used narrowly for (a) ingredient-line parsing and (b) reference-food disambiguation/matching. Both are one-shot, cached, structured-output calls — not a chat feature.
-- **Background processing:** follow Immich's pattern — run heavier processing (nutrition estimation, ingredient matching) as background jobs via a queue (e.g. Redis-backed) rather than blocking the request that saves/imports a recipe, so the app stays responsive while an LLM call is in flight.
-- **Agent integration:** MCP server exposing the app's core actions/queries as tools, so external agents can plan, query, and act on the user's behalf without the app needing to host its own reasoning/chat layer.
+- Import a recipe URL with ingredients, method, image, source, and a rough per-serving nutrition estimate
+  even when the source provides no nutrition.
+- Create and edit recipes with structured ingredient rows and numbered method steps.
+- Save, search, filter, organize, archive, and view recipes with consistent food-first cards.
+- Show time, servings, calories, protein, carbs, and fat in recipe, plan, suggestion, Home, and cooking
+  contexts wherever data exists.
+- Build a week of meals with direct, understandable day/meal placement, serving math, leftovers, and
+  plan snapshots.
+- Surface pantry use-by attention and connect it to recipe suggestions.
+- Generate an aggregated, deduplicated grocery list from the plan, with pantry deductions and provenance.
+- Provide focused cook mode with step progression, timers, wake-lock, checklist, serving scaling, and a
+  meaningful completion state.
+- Offer goal and nutrition guidance without making the default experience clinical or macro-first.
+- Expose clean structured API/MCP actions so external agents can query and act without an in-app chatbot.
+- Remain usable with provider degradation, estimated/partial data, manual corrections, and self-hosted
+  backup/erasure requirements.
 
-## 8. Rough Roadmap & Effort (solo, part-time)
+## 5. Feature scope
 
-| Phase | Scope | Estimate |
-|---|---|---|
-| Foundation | Nutrition-first data model, recipe CRUD, URL import via `recipe-scrapers` | 2-3 weeks |
-| Nutrition pipeline | Ingredient parsing, USDA matching, per-serving rollup, caching, manual override UI | 3-4 weeks |
-| Goals & planning | TDEE/goal profile, meal calendar, daily/weekly totals vs. goal, grocery list generation | 1-2 weeks |
-| Auto-suggestion engine | Constraint-based weekly meal suggestion against calorie/macro targets | 2-3 weeks |
-| Agent integration | MCP server / structured API surface | 1 week |
-| Pantry & micronutrients | Pantry inventory/search/deductions and the fixed supported micronutrient set | 1-2 weeks |
-| Release hardening | Security, accessibility, backup/owner-erasure recovery, performance, and deployment gates | 2-3 weeks |
+### Must have
 
-**Total: roughly 13-18 weeks part-time** for implementation of the complete must-have and should-have
-scope, excluding calendar time needed to recruit and conduct the required 20-participant usability study.
-The dependency-ordered tasks and evidence gates in `specs/001-nutrition-recipe-planner/tasks.md` are
-authoritative when they conflict with this rough estimate.
+- Recipe CRUD, structured ingredient/method editing, and URL import using recipe-scrapers.
+- Ingredient parsing into quantity, unit, food, and preserved original text.
+- Nutrition estimation: ingredient match → unit/gram conversion → per-serving rollup, cached and
+  correction-aware.
+- Recipe library with search, useful filters, image/fallback media, favorites/collections, archive/delete.
+- Home dashboard with Tonight, This week, Use soon, Quick actions, Cook next, Recently saved, and Grocery.
+- Weekly meal calendar with day/meal slots, serving adjustment, immutable nutrition snapshots, and
+  planned/open/empty states.
+- Grocery list generated from the current plan, aggregated and deduplicated, with manual items and clear
+  generated-item placement semantics.
+- Pantry inventory with use-by dates and ingredient-based search.
+- Cook mode and real-time portion scaling.
+- Owner settings, sessions/security, backup/erasure contracts, accessibility, and responsive QA.
 
-**Required build order:** assemble the versioned 50-public-page benchmark and pass its stable 30-recipe
-constitutional subset *before* investing in the searchable library, polished editor, recipe-detail UI,
-or later stories. Report all 50 cases for the P1 release checkpoint.
+### Should have
 
-## 9. Resolved Build Decisions
+- Contextual suggestion engine (uses pantry, fits time, balances the plan, avoids repetition).
+- Supported micronutrients with coverage/provenance.
+- Pantry-to-recipe "what can I make?" discovery.
+- MCP tools for goals, recipe search/mutation, plan entries, suggestions, pantry, and grocery.
+- Shared prep/leftover intelligence and aisle grouping.
+- Optional provider-neutral structured AI boundary, disabled by default.
 
-- Use a React 19.2 client-rendered SPA with Vite and a generated client from the OpenAPI 3.1 API v0.2.0 contract.
-- Build a fresh nutrition-first FastAPI/PostgreSQL application while reusing maintained import, parsing,
-  unit, reference-data, optimization, and MCP dependencies rather than forking Mealie or Tandoor.
-- Support one owner or a small household sharing one goal context; broad multi-user administration is out of scope.
-- Keep the complete core product self-hosted and usable without a recurring subscription.
-- Keep optional AI behind a disabled-by-default provider-neutral structured-output boundary. Deterministic
-  parsing and local USDA matching remain the baseline, and provider loss cannot block manual workflows.
-- Implement the exact HTTP/MCP surfaces, decimal contracts, lifecycle behavior, retention, owner erasure,
-  suggestion ranking, micronutrient set, and release evidence defined under
-  `specs/001-nutrition-recipe-planner/`.
+### Explicit non-goals
 
-## 10. Implementation Status (2026-08-12)
+- In-app conversational chatbot.
+- Photo-based calorie or macro recognition.
+- A social feed, public community, subscription service, or multi-user enterprise suite by default.
+- Copying every Mealie/Tandoor taxonomy, admin surface, or feature simply for parity.
+- A macro-first home, streak system, guilt language, or gym-bro visual identity.
+- Decorative animation, gradients, glass, or dashboard modules with no useful action.
 
-### Must-have (v1) — COMPLETE
-- ✅ Recipe CRUD — `RecipeEditorPage`, daily plan entries
-- ✅ Recipe import from URL — `recipe-scrapers` via Celery pipeline
-- ✅ Ingredient parsing — `ingredient-parser-nlp`, structured {qty, unit, food}
-- ✅ Nutrition estimation — USDA-matched via signal-based scoring, density-bridged
-  volume-to-gram conversion, SR Legacy + FDC nutrient codes, Atwater energy fallback
-- ✅ User goal profile — TDEE/maintenance, calorie target, macro splits, per-meal targets
-- ✅ Weekly meal calendar — day tabs, meal slots, plan entry CRUD with nutrition snapshots
-- ✅ Daily/weekly totals vs. goal — per-day and per-week macro budget progress bars
-- ✅ Grocery list — generated from week's plan, aggregated and deduplicated
-- ✅ Manual nutrition override — correction form and `NutritionCorrection` model
+## 6. Inspiration and comparison posture
 
-### Should-have (v2) — MOSTLY COMPLETE
-- ✅ Auto-suggestion engine — OR-Tools CP-SAT, macro constraints, repetition caps, 8s solve
-- ✅ Micronutrient tracking — 9 micronutrients (fiber, sodium, potassium, calcium, iron,
-  magnesium, vitamin C/D/B12) with coverage provenance
-- ✅ MCP server — 9 tools (goals, meal plan, period totals, recipe search, add/update/remove
-  plan entries, grocery list read/regenerate); resource: methodology + export schema docs
-- ✅ Ingredient-based search + pantry — `PantryPage` with item CRUD, search, deductions
-- ✅ Cook mode — full-screen step-by-step at `/app/recipes/:id/cook`, screen wake-lock,
-  ingredient checklist, step navigation with progress bar
-- ✅ Portion scaling — interactive serving adjustment on recipe detail; scaled ingredient
-  quantities + macro totals displayed in real time
-- ⚠️ Suggestion variety — repetition cap works, but no per-day diversity (entries mechanically
-  assigned `position%7` rather than solver-enforced one-per-day) and no consecutive-day
-  avoidance constraint
+- **Mealie/Tandoor:** inspect current code and docs for import, recipe organization, planning, and
+  self-hosted ownership patterns. Adapt only what fits Cookfully's narrower cooking-first flow.
+- **Mob/Paprika:** study clipping, pantry, portion scaling, shopping, and cook-mode interactions.
+- **Immich:** study self-hosted polish, maintained shared components, background processing, and honest
+  degraded states.
+- **Home itself:** the current localhost Home implementation is the strongest design reference. It is more
+  authoritative than a screenshot or a generic trend.
 
-### Extra features (beyond original spec)
-- ✅ Owner-created foods — `owner_foods` model with CRUD API; lexical priority over USDA
-  during recipe save; pre-matching at recipe import; library page at `/app/foods`
-- ✅ Branded USDA food import — `GYM_BRANDED_CATEGORIES` filter (protein powders, nut butters,
-  condiments, etc.); `serving_size_g` + `serving_unit` columns
-- ✅ Food picker for ambiguous ingredients — candidate browser (USDA + owner foods) with
-  "Match food" button on recipe detail; create-from-ingredient modal flow
-- ✅ Full CI/CD — GitHub Actions for backend (ruff, mypy, pytest with coverage, pip-audit)
-  and frontend (lint, typecheck, test, build, Playwright e2e on 12 spec files)
+Material comparisons and adopt/adapt/reject decisions belong in docs/inspiration-review.md.
 
-### Next priorities
-1. **MCP tool completion** — suggestion tools (`request_suggestions`, `get_suggestion_result`),
-   pantry read/write tools, recipe mutation tools (create/update/delete)
-2. **Suggestion variety** — per-day entry cap solver constraint, consecutive-day avoidance
-3. **Shopping list refinement** — aisle/aisle-grouping categories for streamlined grocery trips
-4. **Docker health checks** — worker + outbox container healthchecks
+## 7. Architecture and data contracts
+
+- **Backend:** Python 3.13, FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, Celery, Redis, PostgreSQL.
+- **Frontend:** React 19.2, TypeScript 5.x, Vite 8.1, React Router, TanStack Query, React Hook Form,
+  Zod, Radix primitives, self-hosted variable fonts.
+- **Media:** filesystem/object-compatible storage for recipe images, thumbnails, exports, and diagnostics.
+- **Nutrition:** fixed-precision decimals, preserved serving basis and provenance, deterministic baseline
+  matching, optional provider work behind a structured boundary.
+- **Jobs:** heavy import, matching, and nutrition work runs as idempotent PostgreSQL-authoritative jobs;
+  Redis is delivery/coordination, not the source of truth.
+- **API/MCP:** expose structured data and actions; preserve exact decimal contracts, stale-version guards,
+  lifecycle states, owner erasure, and immutable plan snapshots.
+- **UI:** shared tokens/components are the only way to express color, typography, media, metadata, motion,
+  navigation, and state. Raw feature CSS is not permitted.
+
+## 8. Delivery order
+
+1. Keep the Home contract and shared shell/tokens stable.
+2. Harden recipe media, metadata, fallback art, and structured editor controls.
+3. Finish the recipe-to-plan-to-pantry-to-grocery loop with explicit state handling.
+4. Finish cook mode, serving scaling, prep/leftover intelligence, and contextual suggestions.
+5. Add MCP/provider surfaces and advanced nutrition only behind progressive disclosure.
+6. Validate desktop, 390×844 mobile, keyboard/accessibility, realistic imported recipes, provider
+   degradation, backups, erasure, and performance before polish is considered complete.
+
+The dependency-ordered work and contracts in specs/001-nutrition-recipe-planner remain authoritative for
+backend lifecycle and release gates when they conflict with this product summary.
+
+## 9. Resolved build decisions
+
+- Build a fresh nutrition-first FastAPI/PostgreSQL application rather than fork a recipe manager.
+- Reuse maintained import, parsing, unit, reference-data, optimization, and MCP dependencies.
+- Use React/Vite with generated OpenAPI client contracts.
+- Support one owner or a small household sharing one goal context; broad administration is out of scope.
+- Keep optional AI provider-neutral and disabled by default; deterministic parsing/local matching remain the
+  baseline and provider loss cannot block manual workflows.
+- Keep nutrition evidence adjacent to food and useful actions; never let it dominate Home.
+- Keep Home, DESIGN.md, Law_of_UX.md, and .impeccable.md synchronized when the visual reference changes.
+
+## 10. Implementation status (2026-08-20)
+
+### Complete or shipped
+
+- Recipe CRUD, URL import, structured ingredient parsing, USDA matching, Atwater fallback, nutrition
+  corrections, goals/profile, weekly planning, grocery generation, pantry CRUD/deductions.
+- Auto-suggestion engine, supported micronutrients, MCP read/plan tools, cook mode, portion scaling.
+- Owner-created foods, branded-food import, ambiguous-food picker, import duplicate merge, draft preview,
+  PDF thumbnail attachment, provenance, optimistic feedback, focal-point/zoom metadata.
+- Shared Home dashboard composition, quiet desktop rail, mobile top/bottom shell, RecipeMetadata semantic
+  nutrition colors, deliberate RecipeFallbackArt, and responsive Playwright coverage.
+
+### Known next priorities
+
+1. Complete MCP suggestion, pantry, and recipe mutation tool coverage.
+2. Enforce solver per-day diversity and consecutive-day avoidance.
+3. Refine shopping aisle grouping and generated-item placement.
+4. Add Docker worker/outbox health checks.
+5. Continue visual audits of every route against the Home contract, especially editor, planner, grocery,
+   and cook mode at 1440×900 and 390×844.
 

@@ -9,10 +9,10 @@ export function RecipeMetadata({ recipe, compact = false }: { recipe: RecipeSumm
 
   return (
     <div className={`recipe-meta${compact ? " recipe-meta--compact" : ""}`} aria-label={`${recipe.title} cooking time and nutrition`}>
-      <span>{recipeTimeLabel(recipe)}</span>
-      {calories ? <span>{calories}</span> : null}
-      {recipe.nutrition?.proteinG != null ? <span><span className="recipe-meta__value">{protein}</span> protein</span> : null}
-      {recipe.nutrition?.fatG != null ? <span><span className="recipe-meta__value">{fat}</span> fat</span> : null}
+      <span className="recipe-meta__item recipe-meta__item--time">{recipeTimeLabel(recipe)}</span>
+      {calories ? <span className="recipe-meta__item recipe-meta__item--calories"><strong className="recipe-meta__value">{calories}</strong></span> : null}
+      {recipe.nutrition?.proteinG != null ? <span className="recipe-meta__item recipe-meta__item--protein"><i className="recipe-meta__dot" aria-hidden="true" /><strong className="recipe-meta__value">{protein}</strong> protein</span> : null}
+      {recipe.nutrition?.fatG != null ? <span className="recipe-meta__item recipe-meta__item--fat"><i className="recipe-meta__dot" aria-hidden="true" /><strong className="recipe-meta__value">{fat}</strong> fat</span> : null}
       {!hasNutrition ? <span className="recipe-meta__pending">Nutrition pending</span> : null}
     </div>
   );

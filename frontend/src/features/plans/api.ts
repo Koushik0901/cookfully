@@ -51,6 +51,14 @@ export const planningApi = {
       body: JSON.stringify(value),
     });
   },
+  swapEntries(entryId: string, version: number, targetEntryId: string, targetVersion: number) {
+    return apiRequest<{ source: MealPlanEntry; target: MealPlanEntry }>(`/meal-plan-entries/${entryId}/swap`, {
+      method: "POST",
+      idempotent: true,
+      version,
+      body: JSON.stringify({ targetEntryId, targetVersion }),
+    });
+  },
   removeEntry(entryId: string, version: number) {
     return apiRequest<void>(`/meal-plan-entries/${entryId}`, {
       method: "DELETE",

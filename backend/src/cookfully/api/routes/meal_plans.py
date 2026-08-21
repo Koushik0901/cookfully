@@ -8,6 +8,8 @@ from cookfully.api.dependencies.auth import require_scopes
 from cookfully.api.routes.recipes import expected_version, idempotency_key
 from cookfully.api.schemas.plans import (
     MealPlanEntryResponse,
+    MealPlanEntrySwapRequest,
+    MealPlanEntrySwapResponse,
     MealPlanEntryWriteRequest,
     MealPlanResponse,
 )
@@ -116,6 +118,59 @@ def update_meal_plan_entry(
     try:
         response = MealPlanEntryResponse.from_read(
             service.update(owner.id, entry_id, payload.to_write(), expected_version=version)
+        )
+    except Exception:
+        idempotency.abort(owner_id=owner.id, key=key)
+        raise
+    idempotency.complete(
+        owner_id=owner.id,
+        key=key,
+        response_status=200,
+        resource_id=entry_id,
+        response_body=response.model_dump(mode="json", by_alias=True),
+    )
+    return response
+
+
+@router.post(
+    "/meal-plan-entries/{entryId}/swap",
+    response_model=MealPlanEntrySwapResponse,
+    response_model_by_alias=True,
+)
+def swap_meal_plan_entries(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    payload: MealPlanEntrySwapRequest,
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntrySwapResponse:
+    request_body = {
+        "entryId": str(entry_id),
+        "version": version,
+        **payload.model_dump(mode="json", by_alias=True),
+    }
+    decision = idempotency.begin(
+        owner_id=owner.id, key=key, operation="meal_plan.entry.swap", payload=request_body
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        return MealPlanEntrySwapResponse.model_validate(decision.response_body)
+    try:
+        source, target = service.swap(
+            owner.id,
+            entry_id,
+            payload.target_entry_id,
+            expected_version=version,
+            target_expected_version=payload.target_version,
+        )
+        response = MealPlanEntrySwapResponse(
+            source=MealPlanEntryResponse.from_read(source),
+            target=MealPlanEntryResponse.from_read(target),
         )
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)

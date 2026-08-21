@@ -1,7 +1,6 @@
 import { ExternalLink } from "lucide-react";
-import type { CSSProperties } from "react";
 
-import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { RecipeMedia, SectionHeading } from "../../components";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 
 interface DraftBlock {
@@ -45,7 +44,7 @@ export function RecipeDraftPreview({
     <div className={`recipe-draft-preview${className ? ` ${className}` : ""}`} aria-label="Recipe preview">
       <section className="recipe-hero" aria-labelledby="recipe-preview-title">
         <div className="recipe-hero__media">
-           {photoUrl ? <img src={photoUrl} alt={title} style={thumbnailCrop ? { "--thumbnail-focal-x": thumbnailCrop.focalX, "--thumbnail-focal-y": thumbnailCrop.focalY, "--thumbnail-zoom": thumbnailCrop.zoom } as CSSProperties : undefined} /> : <RecipeFallbackArt title={title} />}
+           <RecipeMedia recipe={{ title, imageUrl: photoUrl, thumbnailCrop }} alt={title} loading="eager" />
         </div>
         <div className="recipe-hero__copy">
           <p className="eyebrow">From your kitchen</p>
@@ -71,7 +70,7 @@ export function RecipeDraftPreview({
 
       <section className="recipe-reading-grid" aria-label="Preview ingredients and method">
         <section className="recipe-reading-panel recipe-reading-panel--ingredients" aria-labelledby="recipe-preview-ingredients-heading">
-          <div className="section-heading"><h2 id="recipe-preview-ingredients-heading">Ingredients</h2><span>{ingredientCount} items</span></div>
+          <SectionHeading id="recipe-preview-ingredients-heading" title="Ingredients" meta={`${ingredientCount} items`} />
           {ingredientCount ? (
             <ul className="ingredient-list">
               {blocks.map((block, blockIndex) => {
@@ -93,7 +92,7 @@ export function RecipeDraftPreview({
         </section>
 
         <section className="recipe-reading-panel recipe-reading-panel--method" aria-labelledby="recipe-preview-method-heading">
-          <div className="section-heading"><h2 id="recipe-preview-method-heading">Method</h2><span>{stepCount} steps</span></div>
+          <SectionHeading id="recipe-preview-method-heading" title="Method" meta={`${stepCount} steps`} />
           {stepCount ? (
             <ol className="instruction-list">
               {blocks.map((block, blockIndex) => {

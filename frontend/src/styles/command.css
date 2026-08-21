@@ -32,8 +32,8 @@
 .command-group button > span:nth-child(2) { display: grid; min-width: 0; gap: 0.1rem; }
 .command-group button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .command-group button small { overflow: hidden; font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
-.command-group button .recipe-meta { gap: 0.15rem 0.45rem; font-size: 0.65rem; }
-.command-group button .recipe-meta span + span::before { margin-right: 0.45rem; }
+.command-group button .recipe-meta { gap: 0.2rem 0.5rem; font-size: var(--text-data-sm); }
+.command-group button .recipe-meta > .recipe-meta__item + .recipe-meta__item::before { margin-right: 0.45rem; }
 .command-group kbd,
 .command-footer kbd { border-radius: var(--radius-sm); padding: 0.12rem 0.3rem; color: var(--color-on-surface-variant); background: var(--color-surface-low); font-family: var(--font-body); font-size: 0.68rem; }
 .command-recipe-media { width: 2.5rem; height: 2.5rem; overflow: hidden; border-radius: var(--radius); background: var(--color-surface-low); }
@@ -43,7 +43,7 @@
 .command-empty svg { width: 1.5rem; color: var(--color-primary); }
 .command-empty p { max-width: 34ch; color: var(--color-on-surface-variant); }
 .command-note { padding: 0.75rem; color: var(--status-warning); background: var(--status-warning-container); font-size: 0.8rem; }
-.command-footer { display: flex; min-height: 2.8rem; align-items: center; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--color-outline-variant); padding-inline: 1rem; color: var(--color-on-surface-variant); font-size: 0.72rem; }
+.command-footer { display: flex; min-height: 2.8rem; align-items: center; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--color-outline-variant); padding-inline: 1rem; color: var(--color-on-surface-variant); font-size: var(--text-caption); }
 .command-footer span { display: flex; align-items: center; gap: 0.25rem; }
 
 @keyframes command-overlay-in { from { opacity: 0; } to { opacity: 1; } }

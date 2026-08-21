@@ -1,21 +1,24 @@
 ---
 name: Cookfully
-version: 2.2
-direction: Calm kitchen utility
+version: 3.0
+direction: Editorial kitchen utility
+sourceOfTruth: Home at /app
 defaultTheme: light
 fonts:
   display: Afacad Flux Variable
   body: Inclusive Sans Variable
 colors:
   canvas: oklch(0.985 0.007 92)
-  surface: oklch(0.985 0.007 92)
+  surface: oklch(0.998 0.002 92)
   surface-muted: oklch(0.968 0.011 94)
+  surface-high: oklch(0.932 0.020 96)
   ink: oklch(0.218 0.038 148)
   ink-muted: oklch(0.455 0.030 145)
   line: oklch(0.858 0.027 96)
   primary: oklch(0.405 0.126 148)
   primary-hover: oklch(0.350 0.118 148)
   on-primary: oklch(0.988 0.008 92)
+  primary-container: oklch(0.880 0.100 138)
   accent: oklch(0.790 0.158 72)
   accent-soft: oklch(0.940 0.062 78)
   tomato: oklch(0.535 0.160 34)
@@ -38,323 +41,284 @@ spacing:
 
 # Cookfully design system
 
-This document is authoritative for Cookfully interface work. It translates the product persona into
-component rules that can be reviewed in code and verified in the browser. If a screen is attractive but
-breaks these rules, the screen is not finished. If a rule creates friction for the user, change this
-document deliberately rather than adding a local exception.
+This is the authoritative interface contract. The live Home route at `/app` is the reference
+implementation: it defines the visual language, density, component relationships, and emotional
+register that every other route must inherit. A page may have a different task, but it must still
+look like it belongs to the same kitchen.
 
-## Product feeling
+## North star
 
-Cookfully is a cooking tool with nutritional intelligence. It is for anyone trying to eat with more
-care: a household planning weeknight meals, someone managing dietary targets, a person cutting or
-bulking, or a cook who simply wants balanced food. It must never assume that exercise, weight loss,
-body composition, or macro optimization is the user's identity.
+Cookfully is a living kitchen control center: a cooking-first, self-hosted tool with quiet nutritional
+intelligence. It should feel like a contemporary food publication made useful, not like a database,
+fitness dashboard, or generic wellness SaaS.
 
-The visual direction is **editorial kitchen utility**: the appetite and pacing of a contemporary food
-publication, combined with the clarity and reliability of a calm personal tool.
+- **People:** home cooks, households, meal-preppers, people with dietary requirements, and people who
+  want balanced food without making nutrition their identity.
+- **Jobs:** discover/save recipes, understand a dish, plan a realistic week, use the pantry, shop,
+  cook, and review what happened.
+- **Feeling:** warm, assured, appetizing, calm, capable, personal, and quietly intelligent.
+- **Food first:** images, dish names, ingredients, and the next cooking action lead. Nutrition is useful
+  evidence that appears close to the food, never the personality of the product.
+- **One useful next step:** each region has one clear primary action. Secondary detail is disclosed when
+  it becomes useful.
 
-- **Personality:** warm, assured, appetizing.
-- **Not:** clinical, gym-coded, rustic, childish, luxury-theatre, or generic wellness SaaS.
-- **Memorable idea:** food is the foreground; nutrition is the quiet evidence layer beneath it.
-- **Default theme:** light. A dark theme may be added, but it cannot delay or weaken the light theme.
+## Home-derived composition
 
-## Product principles
+Home answers five questions in scan order: what matters tonight, what is happening this week, what needs
+attention in the pantry, what could be cooked next, and what should be shopped. Keep this order unless a
+route's task makes a deliberate exception.
 
-1. **Food before figures.** Recipe imagery, names, ingredients, and cooking context lead. Nutrition
-   supports the decision; it does not dominate every surface.
-2. **Start with the next useful action.** Every page answers what the user can do now. A region has at
-   most one primary action.
-3. **Reveal complexity on demand.** Quick paths stay visible. Advanced nutrition, provenance, import
-   diagnostics, and system settings live behind deliberate disclosure.
-4. **Never judge.** Use neutral language such as `remaining`, `planned`, and `outside target`; never
-   `bad`, `cheat`, `failed`, or celebratory weight-loss language.
-5. **Honesty without noise.** Estimated, partial, manual, corrected, stale, and failed data remain
-   explicit, but compact. Precision belongs in detail and editing surfaces, not discovery cards.
-6. **Mobile is a cooking context.** Mobile layouts prioritize touch, one-handed navigation, readable
-   ingredients, and quick plan edits. They are redesigned, not shrunk desktop pages.
+1. **Kitchen intro** — a short eyebrow (`Your kitchen · Thursday`), a dynamic greeting, one calm
+   supporting sentence, and unobtrusive search on desktop.
+2. **Tonight + This week** — a wide editorial hero beside a compact week card. The hero owns the first
+   visual moment; the week card gives an actionable calendar summary.
+3. **Use soon + Quick actions** — a pale-green pantry attention surface beside a quiet list of three
+   useful actions. This is information density without dashboard noise.
+4. **Cook next** — one featured recipe and two companion recommendations. Every suggestion has a reason,
+   such as `A good next choice from your recipe box`, `Uses spinach from your pantry`, or `Ready in 20 min`.
+5. **Recently saved + Grocery** — a compact four-item image shelf and a dark herb grocery prompt.
+
+The page should use the ordinary desktop viewport rather than ending halfway down the screen. It may
+continue below the fold when data warrants it, but never add height just to make a dashboard look full.
 
 ## Visual foundation
 
 ### Color roles
 
-Use the semantic tokens in the front matter through CSS custom properties. Raw colors are prohibited in
-feature CSS. Neutrals are warm and subtly herb-tinted; pure white and pure black are prohibited.
+Use the front-matter tokens through CSS custom properties. Raw feature colors are prohibited. Pure white
+and pure black are prohibited; the warm ivory canvas and herb ink are part of the brand.
 
-- `canvas` is the page field.
-- `surface` is used sparingly for interactive or raised regions.
-- `surface-muted` groups quiet secondary material without creating another card.
-- `ink` and `ink-muted` are the only default text colors.
-- `primary` is deep herb green and is reserved for the page's primary action, active navigation, and
-  successful completion.
-- `accent` is saffron. It marks moments of discovery, a new suggestion, or a small decorative detail;
-  it is not a second primary action color.
-- Nutrient colors are semantic and based on familiar food associations: protein is blue (structure),
-  carbohydrate is orange (energy), fat is oil/golden yellow, and fiber/plants are green. Calories and
-  totals stay neutral ink. These assignments are global and cannot be changed page-by-page merely to
-  create visual variety.
-- Nutrient colors carry meaning only when the category is also named. They never color general
-  navigation, buttons, or headings. Color reinforces a label; it never replaces one.
-- Interface states use a separate registry so they never borrow a nutrient meaning: blue is
-  processing/information, amber is partial/stale attention, green is confirmed/manual success, and
-  red is failed/destructive. A status color always appears with text or an accessible name.
-- Error/destructive red is reserved for errors and destructive actions.
+- `canvas` is the page field; `surface` is a raised, readable region; `surface-muted` groups quiet
+  secondary material; `surface-high` is a media/fallback field.
+- `primary` is deep herb green for active navigation, the main action, confirmed completion, and the
+  dark surfaces that anchor the page. `primary-container` is the soft mint selected/attention field.
+- `accent` is saffron. Use it sparingly for discovery, a small state dot, or a food-forward highlight;
+  it is never a second primary-action system. `tomato` is a food accent, not a general status color.
+- `ink` and `ink-muted` are the default text colors. Strong contrast comes from hierarchy and imagery,
+  not from black text.
+- Nutrition uses one global semantic registry: protein blue, carbohydrate orange, fat golden yellow,
+  fiber plant green, calories neutral ink. The category name is always present; color never carries
+  meaning alone.
+- Interface states are separate from nutrition: processing/info blue, partial/stale amber,
+  confirmed/manual green, failed/destructive red. Pair every state color with text or an accessible name.
 
-Minimum contrast is WCAG 2.2 AA: 4.5:1 for normal text and 3:1 for large text, icons, controls, focus
-indicators, and meaningful chart marks.
+Maintain WCAG 2.2 AA contrast: 4.5:1 for normal text and 3:1 for large text, controls, icons, focus
+indicators, and meaningful marks.
 
 ### Typography
 
-Self-host the variable faces. Do not load fonts from a third-party CDN.
+Self-host the variable faces. Never use a third-party font CDN.
 
-- **Afacad Flux Variable**: wordmark, display, page, section, and card headings.
-- **Inclusive Sans Variable**: body, controls, labels, instructions, and data.
-- Numbers use `font-variant-numeric: tabular-nums`; a monospace face is not used as shorthand for
-  nutrition or technical credibility.
+- **Afacad Flux Variable** for wordmark, greeting, page/section titles, recipe names, and display moments.
+- **Inclusive Sans Variable** for body copy, buttons, labels, navigation, forms, metadata, and data.
+- Use `font-variant-numeric: tabular-nums` for quantities and comparisons; do not use monospace as a
+  visual shorthand for nutrition or technical credibility.
 
-| Token | Desktop | Mobile | Weight | Use |
+| Role | Desktop | Mobile | Weight | Use |
 |---|---:|---:|---:|---|
-| `display` | 56/58 | 40/43 | 650 | Marketing statement only |
-| `page-title` | 38/38 | 34/36 | 500 | One per page |
-| `section-title` | 28/31 | 24/28 | 500 | Major content section |
-| `card-title` | 17–25/21–27 | 17–24/21–27 | 500 | Recipe and plan titles |
-| `body` | 16/24 | 16/24 | 400 | Default copy |
-| `body-small` | 12–14/18–20 | 12–14/18–20 | 400 | Metadata and helper text |
-| `label` | 12–13/16 | 12–13/16 | 500 | Form and compact UI labels |
+| Display | 56/58 | 40/43 | 650 | Marketing or milestone moments only |
+| Page title | 38/38 | 34/36 | 500 | One route title; Home greeting |
+| Section title | 28/31 | 24/28 | 500 | Major module headings |
+| Card title | 17–25/21–27 | 17–24/21–27 | 500 | Recipe, meal, and prompt titles |
+| Body | 16/24 | 16/24 | 400 | Explanatory copy |
+| Small | 14–15/20–22 | 14–15/20–22 | 400 | Metadata and helper text |
+| Eyebrow/label | 12–13/16 | 12–13/16 | 500 | Short context labels; never all caps |
 
-Letter spacing is normal for body copy, `-0.015em` for headings, and `0.02em` only for short eyebrow
-labels. All-caps labels are prohibited. Body line length is 45–72 characters.
+Headings use approximately `-0.015em` tracking; short eyebrows may use `0.02em`. Keep body lines
+between 45 and 72 characters. Avoid making every label bold or every sentence a heading.
 
-### Spacing and rhythm
+### Space, shape, and depth
 
-The base unit is 4px. Approved gaps are 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, and 96px.
+The base unit is 4px. Approved rhythm is 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, and 96px.
 
-- Tight internal grouping: 4–12px.
-- Related controls/content: 16–24px.
-- Section separation: 40–64px.
-- Major page transitions: 64–96px.
-- Do not use identical padding on every region. Rhythm must visibly alternate between tight groups and
-  open transitions.
+- Tight internal groups: 4–12px. Related content and controls: 16–24px. Major module transitions:
+  40–64px.
+- Controls use a 10px radius and a 44px minimum target (48px for primary fields). Content surfaces use
+  18px. Media uses 22px. Pills (`999px`) are reserved for filters, statuses, and compact categories.
+- Home uses occasional organic asymmetry: the hero, pantry, recommendation, and grocery surfaces may
+  have one larger corner (typically 56–72px) while the remaining corners stay 18–24px. This is a quiet
+  food/editorial signature, not a license for random geometry.
+- Use tonal contrast and a one-pixel line before reaching for shadow. Shadows belong to floating sheets,
+  menus, and surfaces intentionally overlapping another plane. Never nest cards inside cards.
+- Avoid glassmorphism, ornamental gradients, side stripes, rings, and decorative borders that do not
+  clarify grouping.
 
-### Shape and depth
+## Application shell and responsive rules
 
-- Controls: 10px radius; 44px minimum height, 48px for primary form fields.
-- Content surfaces: 18px radius.
-- Recipe media: 22px radius.
-- Pills are reserved for filters, status, and compact categories—not every button.
-- Default surfaces use tonal contrast and a one-pixel line. Shadows are reserved for floating sheets,
-  menus, and media that intentionally overlaps another plane.
-- Never nest cards inside cards. Flatten with spacing, headings, separators, or a muted field.
-- Glass blur is allowed only on persistent navigation over scrolling content.
+### Desktop and tablet (768px and above)
 
-## Layout system
+- Use a fixed 112px warm-ivory rail. The rail is quiet: centered 20px icons, short visible labels,
+  generous hit boxes, and a mint active field with a small saffron state dot. It must not compete with
+  food imagery.
+- The content area uses the remaining width with a readable maximum of 1440px, 48px desktop inset, and
+  28px tablet inset. At wide monitors, fill useful width before increasing empty margins.
+- Home's first dashboard grid is approximately 1.32fr / 0.68fr: the tonight hero is wide, the week
+  card is compact. Preserve that visual priority rather than giving every column equal weight.
 
-### Application shell
+### Mobile (below 768px)
 
-- Desktop and tablet (`>= 768px`): a fixed 112px warm-ivory navigation strip with a 20px icon and
-  short visible label. The selected destination uses a mint field and a small amber state dot;
-  content uses the remaining width and a maximum readable width of 1440px.
-- Mobile (`< 768px`): compact top bar plus a 72px bottom navigation with Home, Recipes, Plan, Grocery,
-  and one `More` entry. Safe-area padding is mandatory.
-- Primary kitchen destinations on desktop are Home, Recipes, Plan, Grocery, and Pantry. Foods, Goals,
-  agent/system access, and account are utilities. Suggestions are contextual to Home, Recipes, and Plan
-  rather than a permanent navigation category.
-- Navigation labels are always visible at every breakpoint. Icons supplement text; they never replace it.
-- Home is the visual reference for app density: a 38px/500 greeting, a compact two-card dinner/week
-  dashboard, and a three-item recent-recipe shelf should fit in one ordinary desktop viewport.
+- Use a compact top bar with no heavy bottom rule, an 18px Afacad Flux wordmark, and a fixed 72px bottom
+  navigation. Include safe-area padding. The navigation has five evenly distributed destinations: Home,
+  Recipes, Plan, Grocery, More.
+- Bottom-nav icons and labels are centered in equal-width, full-height hit areas. The active item uses the
+  same mint field as desktop. Never allow icons, labels, or the More menu to collide or drift.
+- Mobile is a cooking context, not a shrunk desktop. Stack modules in task order, let the hero become an
+  image-led vertical surface, keep the week card and pantry attention readable, and move secondary
+  actions into a sheet/menu when necessary.
+- Do not use page-entry transforms on mobile; they create visible seams around the fixed navigation.
+  Preserve opacity-only or no entrance motion when the viewport is narrow.
+- The mobile Week view is a vertical agenda, not a seven-column canvas or horizontal card carousel. Empty
+  days remain compact; days with meals reveal those meals; tapping a day opens its full editing view.
 
-### Page frame
+## Reusable component contracts
 
-- Horizontal page inset: 16px mobile, 28px tablet, 48px desktop.
-- Page header has a short optional eyebrow, one title, and at most one sentence of supporting copy.
-- Desktop header actions sit opposite the title. Mobile actions sit immediately below the copy.
-- A page title must not exceed two lines at 390px.
-- Do not repeat the page title in the first section heading.
+These are product patterns, not suggestions for one page. Reuse them before creating a local variant.
 
-## Component contracts
+### `KitchenShell` / `RailNav` / `MobileNav`
 
-### Buttons
+Own the app frame, route-aware active states, keyboard focus, safe areas, and responsive transition. Labels
+remain visible; icons supplement them. Settings, Foods, Goals, System, and account controls are utilities
+and belong in the desktop rail's lower area or Mobile `More`, not in the five primary mobile slots.
 
-- Primary: filled herb green. One per region.
-- Secondary: quiet tonal surface with visible boundary.
-- Ghost: secondary navigation and reversible actions.
-- Destructive: ghost by default; filled red only inside the final confirmation.
-- Icon-only buttons require an accessible name and tooltip.
-- Loading preserves width, disables repeated submission, and shows a spinner plus verb when space allows.
-- Touch target is at least 44x44px; adjacent targets have at least 8px separation.
+### `PageIntro`
 
-### Forms
+Accepts an optional eyebrow, one title, one sentence, and one action cluster. The Home variant uses the
+dynamic greeting (`Good morning`, `Good afternoon`, `Good evening`) and never renders an awkward `Good
+night`; use `Good evening` for the late-day range. Do not repeat the page title in the first section.
 
-- Labels are persistent and sit above controls. Placeholder text is an example, never the label.
-- Helper or error text reserves a stable row below the control to avoid layout jumps.
-- Group related fields with a visible legend and one sentence explaining why they matter.
-- Two to seven exclusive options use a segmented or toggle group, not a select.
-- Long recipe entry uses sections with a visible completion path: Basics → Ingredients → Method →
-  Nutrition. Only the current section expands on mobile.
-- Advanced nutrition, import diagnostics, external services, and automation settings are collapsed by
-  default and state what opening them will reveal.
-- Validation happens on blur and submit. Focus the first invalid field and provide a summary for long
-  forms.
+### `EditorialHero` / `TonightCard`
 
-### Search, filters, and selection
+Food imagery bleeds into the entire surface or enters from one side with a soft overlay. Do not place a
+small circular thumbnail or a sharp stitched boundary in the center. Copy sits on the high-contrast side:
+eyebrow, recipe title, serving/time/nutrition facts, availability or grocery note, and one primary action.
+The hero remains useful without an image through deliberate `RecipeFallbackArt` or a simple plated-food
+illustration.
 
-- Search is the dominant recipe-library control.
-- Common filters appear as no more than three chips. Remaining filters live in a popover or mobile sheet.
-- Active filter count appears in the trigger. `Clear filters` is available whenever any filter is active.
-- Selection is optimistic and reversible; success is acknowledged quietly without a blocking modal.
+### `WeekCard`
 
-### Recipe cards
+Shows the actual seven-day rhythm, with explicit open/planned states, the current day, and one `Next up`
+row. It is a compact summary and route to Plan, not a second planner. A line of anonymous progress marks
+without day meaning is not sufficient.
 
-- Image-first with a 4:3 media field. If no image exists, use a Cookfully ingredient/plate illustration,
-  never initials or a generic gray box.
-- Image, title, and entire primary card area open the recipe. Archive/edit actions appear on hover/focus
-  or in a compact menu.
-- The visible metadata line contains at most three useful facts: total time, serving count, and one
-  contextual nutrition summary.
-- Discovery surfaces round values for scanning (`540 kcal`, `32 g protein`). Exact decimals and
-  provenance remain available in recipe detail/editing.
-- Nutrition is never placed in a blurred overlay that obscures food.
-- Desktop grid: 3 columns above 1180px, 2 columns from 760–1179px, 1 column below 760px. A deliberate
-  featured card may span two columns; identical dashboard-card grids are prohibited.
+### `ModuleHeading`
 
-### Nutrition ribbon
+Combines an optional eyebrow, a human section title, and one trailing route action. Prefer `Cook next`,
+`Use soon`, `Recently saved`, and `Grocery` over internal language such as `Context, not guesswork`.
 
-The compact evidence layer used on recipe, plan, and suggestion summaries:
+### `UseSoon`
 
-- Calories are plain ink text; protein, carbohydrate, fat, and fiber use a 6px semantic dot plus category
-  name and the global nutrient-color registry above.
-- Maximum four values in one row. Collapse to two rows before horizontal scrolling.
-- No rings, gauges, or progress bars unless a real target comparison exists.
-- Target comparison states both values (`32 of 45 g protein`) and never relies on color alone.
-- Coverage/provenance is one compact status trigger that opens explanatory detail.
+Surfaces pantry items with use-by dates and a direct `Find recipes using these` or `Open pantry` path.
+The empty state teaches how dates make the module useful. It never invents urgency when no expiry data is
+known.
 
-### Planning
+### `QuickActions`
 
-- Week and day navigation remain visible while planning.
-- A day begins with a concise balance summary, followed by Breakfast, Lunch, Dinner, and Snacks.
-- Empty meal slots show a single `Add a recipe` action. The recipe picker is a search-first sheet, not a
-  permanently visible select/input pair repeated four times.
-- Planned recipes show image thumbnail, recipe name, serving count, and contribution. Editing happens
-  inline or in the same picker sheet.
-- Suggestions appear only where they resolve a visible gap; they do not become another dashboard panel.
+Three high-value actions presented as a separator-led list (`Plan tonight`, `Add a recipe`, `Add a grocery
+item`). Each row has one icon, a verb, a short explanation, and a clear hit target. Do not turn each action
+into a competing colorful card.
 
-### Goals and settings
+### `RecipeMedia` / `RecipeFallbackArt`
 
-- Goals begin with intent in human language, then show calculated targets for review.
-- The default path contains only the inputs necessary to calculate a useful plan. Manual macro targets,
-  micronutrients, and advanced calculation assumptions are separate disclosures.
-- Settings use a scannable index and focused detail groups. No page presents a wall of unrelated inputs.
-- AI, MCP, database, import provider, and maintenance options are system administration, not ordinary
-  cooking settings; place them in a clearly named `System` area with consequences explained.
+Every recipe surface has food media or a deliberate ingredient/plate fallback. The fallback keeps the same
+frame, curve, crop behavior, and visual weight as a real image; no emoji-only or generic gray placeholder.
+Use focal-point/zoom metadata when available. Alt text is empty when adjacent text names the recipe.
 
-### Overlays and feedback
+### `RecipeCard` / `RecipeShelf`
 
-- Use a popover for a small contextual choice, a sheet for browse/search/quick-edit workflows, and a
-  dialog only when the user must resolve a blocking decision.
-- Every dialog and sheet has a semantic title, optional description, visible close action, initial focus,
-  focus trap, and focus restoration.
-- Toasts acknowledge background or reversible actions. Errors that block the current task stay inline.
-- Empty states teach the first action and show an illustrative food-related cue; they do not merely say
-  `Nothing here`.
-- Loading uses skeletons shaped like the destination content. Never replace a whole page with a spinner.
-- First-run guidance may replace a relevant empty surface for an explicitly new account. It is never
-  mounted above the route outlet, repeated across pages, or inferred merely from a missing preference row.
-- Once a kitchen has existing data or the welcome has been resolved, ordinary contextual empty states
-  take over permanently. Returning users are never sent back through first-run guidance.
-- Educational guidance must stay attached to the state that makes it useful. Do not stack coach panels
-  below a complete empty state, repeat the same optional action in a toolbar and every empty row, or keep
-  introductory explanations open beside established content. Keep one clear action and put optional help
-  behind a user-controlled disclosure.
+Image first, consistent media ratio and curve across Recipes, Home, Plan, suggestions, and search. Home's
+recent shelf is compact (four items on desktop), not Recipes Lite. On mobile it remains a touch/keyboard
+scrollable shelf while hiding scrollbar chrome; the partial next card and snap spacing preserve the scroll
+affordance. Titles and metadata align to a common baseline; cards do not become different heights because
+one has extra copy. A deliberate featured card may span space, but identical dashboard-card grids are
+prohibited.
 
-## shadcn component foundation
+### `RecipeMetadata` / `NutritionRibbon`
 
-Cookfully may use shadcn components as source-owned accessible primitives. The component library is not
-the visual identity.
+Anywhere a recipe is shown, expose the useful cooking facts available: estimated total time, serving count,
+calories, protein, carbs, and fat. Discovery surfaces keep this compact and round values for scanning;
+detail/edit surfaces may show exact decimals, source, coverage, and correction history.
 
-- Store primitives under `frontend/src/components/ui` and shared Cookfully compositions under
-  `frontend/src/components/cookfully`.
-- Map shadcn semantic variables to the tokens above; never keep an untouched preset palette.
-- Prefer shadcn Button, Field/Input, Select/Combobox, ToggleGroup, Tabs, Sheet, Dialog, Popover,
-  Tooltip, DropdownMenu, Badge, Separator, Skeleton, Progress, Empty, and Sonner behavior.
-- Feature code must not restyle primitives with raw colors. Add documented variants when a repeated
-  product pattern needs them.
-- A recipe card, nutrition ribbon, meal slot, day selector, and food media fallback are Cookfully
-  components, not generic registry blocks.
+- Calories stay neutral ink.
+- Protein, carbs, fat, and fiber get a 6px semantic dot plus a visible category label/value.
+- Show no more than four nutrient values in one compact row; wrap before horizontal scrolling.
+- Missing data is explicit (`Time not set`, `Nutrition pending`) rather than silently omitted.
+- Compact metadata never drops below 14px; primary recipe facts use 15px so they remain comfortably scannable.
+- A status color never substitutes for a word. Rings and gauges need a real target comparison and are not
+  default decoration.
 
-## Motion and interaction
+### `KitchenCompanion` / `EmptyState` / `ErrorRecovery`
 
-- Default duration: 160ms for hover/focus, 220ms for disclosure, 280ms for sheet/page entrances.
-- Easing: `cubic-bezier(0.22, 1, 0.36, 1)` for entrances; standard ease for color transitions.
-- Animate opacity and transform. Do not animate width, height, margin, or padding.
-- Page entrances may stagger the header and first content group once; repeated scroll reveals are
-  prohibited.
-- Hover translation is at most 2px. No bounce, elastic easing, floating decoration, or decorative
-  infinite motion.
-- Respect `prefers-reduced-motion` by removing non-essential movement and using instant state changes.
+Use small food/ingredient illustrations to make empty, success, and recovery moments feel like Cookfully.
+Copy explains what happened and gives the next useful action. Loading skeletons match the eventual shape;
+whole-page spinners are prohibited.
 
-### Illustration and companion language
+### `CommandPalette` / `Sheet` / `Dialog`
 
-- The recurring Cookfully companion is a small bowl-and-sprig character: warm, food-specific, and
-  recognizable without becoming a named mascot or competing with recipe photography.
-- Use it only for genuine system moments: loading, instructive empty states, task-blocking errors,
-  successful saves, completed plans or shopping passes, and finishing cook mode. Ordinary clicks,
-  navigation, and inline selection changes do not trigger character animation.
-- Loading may loop a functional whisk-and-steam motion while shaped skeletons still communicate page
-  structure. Empty, error, success, and milestone variants animate once, then remain still.
-- Success uses a drawn check; milestones add a restrained saffron seed burst. Error states stay calm
-  and empathic—never comic, punitive, or alarmist.
-- Implement the companion as an inline, decorative SVG using semantic color tokens. Animation is CSS
-  transform, opacity, and stroke drawing only, with no network asset, video, GIF, or animation runtime.
-- Under `prefers-reduced-motion`, render the final illustrated state immediately and remove all movement.
+Search and command surfaces are keyboard reachable (`⌘/Ctrl K`). Use a popover for a small choice, a sheet
+for browse/search/quick edit, and a dialog only for a blocking decision. All overlays have a title,
+description when needed, close action, focus trap, restoration, and escape behavior.
 
-## Content language
+## Route inheritance
 
-- Lead with what the person can accomplish: `Plan this week`, `Add a recipe`, `Review nutrition`.
-- Use `you` and plain language; avoid marketing claims inside the application.
-- Prefer `Nutrition estimate is incomplete` over `Pipeline coverage failure`.
-- Prefer `System` over `Database`, `Agent access` over `MCP configuration`, and explain unfamiliar terms
-  before showing controls.
-- Never call food clean/dirty, good/bad, guilt-free, cheat, or sinful. Cookfully supports mindful choices
-  without moralizing them.
+- **Recipes:** visual browsing first; search and a small filter set; cards use the same media and metadata
+  contract as Home. Editing uses structured ingredient rows and numbered method steps, not giant textareas.
+- **Plan:** the week is the object. Use direct manipulation, visible day/meal context, recipe thumbnails,
+  servings, prep, and a nutrition summary that stays adjacent rather than taking over.
+- **Pantry:** current shelf and use-by attention. Empty states explain how a small, approximate pantry makes
+  dinner easier; connect `Use soon` to recipe discovery.
+- **Grocery:** a practical shop list derived from the plan, with categories, checkable rows, provenance back
+  to meals, and a calm completion moment. Home uses only a compact prompt, never a duplicate list.
+- **Cook mode:** focused, high-contrast, large touch controls, current step, relevant quantities, timer,
+  progress, wake-lock, and a clear completion state. Hide unrelated admin and navigation.
+- **Goals / Settings / System:** scannable index, human intent first, advanced controls disclosed. Never
+  make a user learn database or macro terminology before they can cook.
 
-## Required states and accessibility
+## Interaction and motion
 
-Every data surface explicitly implements and tests: loading, empty, partial, estimated, manual,
-corrected, stale, failed, and unavailable/provider-degraded where applicable.
+Modernity comes from clear interaction design first. Motion reinforces causality and orientation.
 
-- Semantic HTML first; ARIA supplements only when needed.
-- Full keyboard navigation with visible 2px focus ring and 2px offset.
-- Focus order follows reading order. Roving tab index is required for day tabs and composite controls.
-- Images have useful alt text or empty alt when decorative.
-- At 200% zoom, controls and content reflow without loss.
-- Verify 1440x900 desktop and 390x844 mobile. No page may create document-level horizontal overflow.
+- Fast feedback/hover/focus: 160ms. Disclosure/sheet: 220ms. Meaningful entrance: 280ms.
+- Use opacity and transform with an ease-out curve. Recipe image hover may scale to 1.035; quick-action
+  arrows may move a few pixels; cards may lift subtly. Never animate layout dimensions or cause content jumps.
+- Good signature moments: recipe shelf → detail shared image, plan drop snapping into a day, serving/macros
+  recalculating, favorite confirmation, grocery completion, cooking-step transition, skeleton → content.
+- Bad motion: headings flying in, every page fading, animated backgrounds, gratuitous parallax, or motion
+  that delays a task. Respect `prefers-reduced-motion` with near-zero duration and no transform.
 
-## AI-slop rejection list
+## Content, accessibility, and honest states
 
-Reject the implementation if it contains any of the following:
+- Copy is human, cooking-first, and neutral. Say `planned`, `remaining`, `outside target`, or `needs a
+  review`; never moralize food or use gym-bro language.
+- Every route has explicit loading, empty, partial, estimated, manual, stale, and failed states where the
+  data model allows them. A missing image, time, or nutrition value has a designed fallback.
+- Use semantic landmarks and headings, keyboard order that matches visual order, visible focus, labels for
+  every control, `aria-live` for async status, and at least 44×44px touch targets.
+- Do not rely on color, hover, imagery, or an icon alone to convey meaning. Preserve text alternatives,
+  contrast, reduced motion, zoom, and narrow-width reflow.
 
-- a generic hero with oversized centered copy, gradient text, floating glass cards, or meaningless blobs;
-- a dashboard made of identical rounded statistic cards;
-- icons in colored rounded squares above every heading;
-- a card around every section or nested card stacks;
-- default shadcn colors/typography presented as the finished brand;
-- an empty page with one lonely input;
-- a wall of inputs exposed before the user chooses the task;
-- dark navy with electric blue as a shortcut for technical credibility;
-- macros treated as the product's personality;
-- nutrient colors assigned decoratively or inconsistently rather than by the global semantic registry;
-- precision-heavy decimal strings on recipe discovery cards;
-- side-stripe accents, decorative sparklines, gradient text, or pervasive glassmorphism;
-- mobile produced solely by shrinking desktop measurements.
+## Rejection list
 
-## Page acceptance checklist
+Reject a screen or component that feels like: a gym dashboard, a dark admin panel, a wall of form fields,
+an anonymous card grid, a monochrome spreadsheet, a collection of floating pills, a generic shadcn demo,
+or a marketing landing page with no useful action. Also reject any “modernization” that adds animation,
+gradients, or decorative color without making planning, shopping, or cooking easier.
 
-A page is ready for visual review only when all answers are yes:
+## Acceptance checklist
 
-1. Does the first viewport clearly communicate the next useful action?
-2. Is there at most one primary action in each region?
-3. Is food or cooking context visually ahead of nutrition metrics?
-4. Has complexity been progressively disclosed instead of merely restyled?
-5. Are typography, color, spacing, radius, and states expressed through system tokens/components?
-6. Does the page remain coherent with realistic long text, missing images, partial nutrition, and errors?
-7. Is it fully usable at 390x844 with touch and at 1440x900 with keyboard?
-8. Would the page still feel recognizably Cookfully if the wordmark were removed?
+Before calling a UI change complete, verify in the browser at 1440×900 (or the closest desktop viewport)
+and 390×844:
+
+1. The primary object and next action are obvious within one scan.
+2. Food imagery or an intentional food fallback leads every recipe surface.
+3. The page uses Home's tokens, type, curves, density, and restrained depth; no local raw colors.
+4. Recipe time, servings, calories, protein, carbs, and fat appear wherever data exists, with honest
+   missing/provenance states.
+5. The page has useful content above the fold without arbitrary empty height.
+6. Mobile composition is redesigned, the top/bottom navigation has aligned hit boxes, and nothing is
+   hidden behind fixed UI.
+7. Keyboard, focus, reduced-motion, zoom, error, loading, and empty paths remain usable.
+8. A visual review compares the result with `/app`, not only with a unit test or a screenshot of the
+   changed component.
+
+If the current Home reference changes intentionally, update this document and the supporting context files
+in the same change so the design system does not drift.

@@ -1,4 +1,4 @@
-import { Button, PollingStatusBadge } from "../../components";
+import { Button, PollingStatusBadge, SectionHeading } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
 import type { Job, ResolvedNutrition } from "./types";
 
@@ -54,13 +54,7 @@ export function NutritionPanel({
 
   return (
     <section className="nutrition-evidence-panel" aria-labelledby="nutrition-evidence-heading">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">How Cookfully got the numbers</p>
-          <h2 id="nutrition-evidence-heading">Nutrition details</h2>
-        </div>
-        <Button variant="secondary" onClick={() => void onRecalculate()}>Recalculate nutrition</Button>
-      </div>
+      <SectionHeading eyebrow="How Cookfully got the numbers" title="Nutrition details" id="nutrition-evidence-heading" action={<Button variant="secondary" onClick={() => void onRecalculate()}>Recalculate nutrition</Button>} />
 
       <p className="nutrition-caution">Estimated nutrition is a planning aid, not medical advice. Verify values when clinical precision matters.</p>
       {nutrition ? <p className="muted">Basis: {Number(nutrition.basisServings).toLocaleString()} servings · {Math.round(Number(nutrition.coverageRatio) * 100)}% ingredient coverage</p> : null}

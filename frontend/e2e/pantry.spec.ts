@@ -44,6 +44,7 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await mockPantryApi(page);
   await page.goto("/app/pantry");
   await expect(page.getByRole("heading", { name: "What’s already at home?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nothing needs attention yet" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
   await captureUi(page, testInfo, "pantry");
 

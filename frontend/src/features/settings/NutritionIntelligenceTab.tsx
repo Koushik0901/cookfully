@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Cpu, Database, Gauge, HardDrive, RotateCcw, Save } from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 
-import { Button, ErrorRecovery, Field, Select, Skeleton } from "../../components";
+import { Button, ErrorRecovery, Field, SectionHeading, Select, Skeleton } from "../../components";
 import { nutritionIntelligenceApi } from "./api";
 
 const DEFAULT_MODEL = "BAAI/bge-small-en-v1.5";
@@ -68,17 +68,9 @@ export function NutritionIntelligenceTab() {
 
   return (
     <section className="settings-section nutrition-intelligence-section" aria-labelledby="nutrition-intelligence-title">
-      <div className="section-heading">
-        <div>
-          <h2 id="nutrition-intelligence-title">Nutrition intelligence</h2>
-          <p className="muted">
-            Tune semantic ingredient matching for this Cookfully installation. Deterministic safety gates stay active in every mode.
-          </p>
-        </div>
-        <span className={`settings-status settings-status--${settings.data.runtimeStatus}`}>
+      <SectionHeading id="nutrition-intelligence-title" title="Nutrition intelligence" description="Tune semantic ingredient matching for this Cookfully installation. Deterministic safety gates stay active in every mode." action={<span className={`settings-status settings-status--${settings.data.runtimeStatus}`}>
           {settings.data.runtimeStatus === "ready" ? "Ready" : "Configured"}
-        </span>
-      </div>
+        </span>} />
 
       <div className="settings-system-intro">
         <strong>Plan the load before you save.</strong>

@@ -3,8 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CalendarDays, CalendarRange, Check, ChefHat, ShieldCheck, SlidersHorizontal, Soup, UtensilsCrossed } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, Select, Skeleton } from "../../components";
-import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, RecipeMedia, SearchField, Select, Skeleton } from "../../components";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
@@ -156,9 +155,9 @@ export function SuggestionPage() {
     setSelectedIds([]);
   }
 
-  if (preferences.isPending || recipes.isPending || !weekStart) return <Skeleton label="Loading suggestion workspace" lines={8} />;
-  if (preferences.isError) return <ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} />;
-  if (recipes.isError) return <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} />;
+  if (preferences.isPending || recipes.isPending || !weekStart) return <PageState><Skeleton label="Loading suggestion workspace" lines={8} /></PageState>;
+  if (preferences.isError) return <PageState><ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
+  if (recipes.isError) return <PageState><ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /></PageState>;
 
   const previewTotal = result ? primaryTotal(result) : undefined;
   return (
@@ -182,7 +181,7 @@ export function SuggestionPage() {
           <Field label="Fat tolerance"><DecimalInput value={tolerances.fatG} onValueChange={(value) => updateTolerance("fatG", value)} /></Field>
         </fieldset></div></details>
         <details className="suggestion-tune"><summary><ChefHat aria-hidden="true" /><span><strong>Use or avoid specific recipes</strong><small>Optional rules that Cookfully will always respect</small></span></summary><fieldset className="recipe-constraints suggestion-tune__body"><legend>Recipe preferences</legend>
-          {availableRecipes.length ? <><Field label="Find a recipe"><input className="input" type="search" value={recipeRuleQuery} onChange={(event) => setRecipeRuleQuery(event.target.value)} placeholder="Search your recipe library" /></Field><div className="recipe-rule-list">{visibleRuleRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><strong>{recipe.title}</strong><label><Checkbox checked={requiredIds.includes(recipe.id)} onCheckedChange={(checked) => toggleRequired(recipe.id, checked === true)} /> Use <span className="visually-hidden">{recipe.title}</span></label><label><Checkbox checked={excludedIds.includes(recipe.id)} onCheckedChange={(checked) => toggleExcluded(recipe.id, checked === true)} /> Avoid <span className="visually-hidden">{recipe.title}</span></label></div>)}</div>{recipeRuleQuery && !visibleRuleRecipes.length ? <p className="muted">No recipes match that search.</p> : null}{availableRecipes.length > visibleRuleRecipes.length ? <p className="muted">Showing {visibleRuleRecipes.length} of {availableRecipes.length}. Search to find another recipe.</p> : null}</> : <p className="muted">No nutrition-ready recipes are available.</p>}
+          {availableRecipes.length ? <><SearchField label="Find a recipe" value={recipeRuleQuery} onChange={(event) => setRecipeRuleQuery(event.target.value)} onClear={() => setRecipeRuleQuery("")} placeholder="Search your recipe library" /><div className="recipe-rule-list">{visibleRuleRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><span className="recipe-rule__identity"><strong>{recipe.title}</strong><RecipeMetadata recipe={recipe} compact /></span><label><Checkbox checked={requiredIds.includes(recipe.id)} onCheckedChange={(checked) => toggleRequired(recipe.id, checked === true)} /> Use <span className="visually-hidden">{recipe.title}</span></label><label><Checkbox checked={excludedIds.includes(recipe.id)} onCheckedChange={(checked) => toggleExcluded(recipe.id, checked === true)} /> Avoid <span className="visually-hidden">{recipe.title}</span></label></div>)}</div>{recipeRuleQuery && !visibleRuleRecipes.length ? <p className="muted">No recipes match that search.</p> : null}{availableRecipes.length > visibleRuleRecipes.length ? <p className="muted">Showing {visibleRuleRecipes.length} of {availableRecipes.length}. Search to find another recipe.</p> : null}</> : <p className="muted">No nutrition-ready recipes are available.</p>}
         </fieldset></details>
         <div className="suggestion-create"><div><Soup aria-hidden="true" /><p><strong>Ready to find a good fit</strong><span>Uses your saved recipes, current plan, and nutrition guide.</span></p></div><Button disabled={create.isPending || !availableRecipes.length} onClick={() => create.mutate()}>{create.isPending ? "Finding ideas…" : "Find meal ideas"}</Button></div>
         {create.error instanceof Error ? <p className="error-text" role="alert">{create.error.message}</p> : null}
@@ -199,7 +198,7 @@ export function SuggestionPage() {
           const recipe = availableRecipes.find((candidate) => candidate.id === item.recipeId);
           const mealName = item.mealSlot[0].toUpperCase() + item.mealSlot.slice(1);
           return <article className="suggestion-item" key={item.id}>
-            <Link className="suggestion-item__media" to={`/app/recipes/${item.recipeId}`} aria-label={`Open ${item.recipeTitle}`}>{recipe?.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={item.recipeTitle} />}</Link>
+            <Link className="suggestion-item__media" to={`/app/recipes/${item.recipeId}`} aria-label={`Open ${item.recipeTitle}`}><RecipeMedia recipe={recipe ?? { title: item.recipeTitle }} /></Link>
             <label className="suggestion-item__select"><Checkbox checked={selectedIds.includes(item.id)} disabled={item.accepted} aria-label={`Accept ${item.recipeTitle}`} onCheckedChange={(checked) => setSelectedIds((current) => checked === true ? [...current, item.id] : current.filter((id) => id !== item.id))} /><span className="visually-hidden">Add {item.recipeTitle}</span></label>
             <div className="suggestion-item__body"><p className="eyebrow">{mealName} · {item.localDate}</p><h3><Link to={`/app/recipes/${item.recipeId}`}>{item.recipeTitle}</Link></h3><p className="suggestion-item__servings">{Number(item.servings)} {Number(item.servings) === 1 ? "serving" : "servings"}</p><RecipeMetadata recipe={recipe ?? { title: item.recipeTitle, prepMinutes: null, cookMinutes: null, nutrition: item.projectedNutrition }} compact /><p className="suggestion-item__reason">A practical fit for this {item.mealSlot}, balanced against the rest of your plan.</p><MacroTotals total={item.projectedNutrition} /><Link className="suggestion-item__open" to={`/app/recipes/${item.recipeId}`}>See recipe <ArrowRight aria-hidden="true" /></Link></div>
           </article>;

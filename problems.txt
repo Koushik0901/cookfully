@@ -11,3 +11,6 @@
 11. Importing a pdf based cookbook doesnt parse the recipe images correctly. We should implement a more robust parsing algorithm that can accurately extract images from PDF cookbooks, ensuring that all recipe images are properly displayed in the user's collection. This may involve using advanced image recognition techniques or leveraging existing libraries that specialize in PDF parsing and image extraction. Example cookbook: https://theeburgerdude.com/wp-content/uploads/2025/01/10-Most-Popular-Recipes-Thee-Burger-Dude.pdf
 
 ---
+
+1. "Start an empty list" button on the "Grocery" page isnt working.
+2. I have already set the values for nutritional goals in the "Goals" page but when I click the "Help fill this week" button in the "Plan" page, it takes me to the ideas page and in that page, when I click the button "find meal ideas", it throws this error: "No goal is effective on that date."

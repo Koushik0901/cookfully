@@ -37,10 +37,10 @@ export function RecipeNutritionSummary({
          <span className={`nutrition-state nutrition-state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
       </div>
       <dl className="recipe-nutrition-summary__metrics">
-        <div><dt>Calories</dt><dd>{display(nutrition?.caloriesKcal, 0)} <small>kcal</small></dd></div>
-        <div><dt>Protein</dt><dd>{display(nutrition?.proteinG, 1)} <small>g</small></dd></div>
-        <div><dt>Carbs</dt><dd>{display(nutrition?.carbohydrateG, 1)} <small>g</small></dd></div>
-        <div><dt>Fat</dt><dd>{display(nutrition?.fatG, 1)} <small>g</small></dd></div>
+        <div className="recipe-nutrition-summary__metric recipe-nutrition-summary__metric--calories"><dt>Calories</dt><dd>{display(nutrition?.caloriesKcal, 0)} <small>kcal</small></dd></div>
+        <div className="recipe-nutrition-summary__metric recipe-nutrition-summary__metric--protein"><dt>Protein</dt><dd>{display(nutrition?.proteinG, 1)} <small>g</small></dd></div>
+        <div className="recipe-nutrition-summary__metric recipe-nutrition-summary__metric--carbs"><dt>Carbs</dt><dd>{display(nutrition?.carbohydrateG, 1)} <small>g</small></dd></div>
+        <div className="recipe-nutrition-summary__metric recipe-nutrition-summary__metric--fat"><dt>Fat</dt><dd>{display(nutrition?.fatG, 1)} <small>g</small></dd></div>
       </dl>
       {failed ? <p className="recipe-nutrition-summary__message" role="alert">{job.failureMessage ?? "Nutrition could not be calculated."}</p> : null}
       {processing ? <p className="recipe-nutrition-summary__message" role="status">Calculating nutrition… You can keep using the recipe.</p> : null}

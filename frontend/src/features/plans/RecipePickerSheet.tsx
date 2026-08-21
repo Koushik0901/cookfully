@@ -1,9 +1,9 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { CookingPot, Search, X } from "lucide-react";
+import { CookingPot } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { DialogCloseButton, RecipeMedia, SearchField } from "../../components";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { formatCookingNumber } from "../recipes/formatCooking";
 import type { RecipePage } from "./types";
@@ -60,14 +60,10 @@ export function RecipePickerSheet({
               <Dialog.Title>Add a recipe</Dialog.Title>
               <Dialog.Description>Choose something you already love. Cookfully will add one serving, ready for you to adjust.</Dialog.Description>
             </div>
-            <Dialog.Close className="recipe-picker__close" aria-label="Close recipe picker"><X aria-hidden="true" /></Dialog.Close>
+            <DialogCloseButton label="Close recipe picker" />
           </div>
 
-          <label className="recipe-picker__search">
-            <span className="visually-hidden">Search recipes</span>
-            <Search aria-hidden="true" />
-            <input autoFocus className="input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your recipes" />
-          </label>
+          <SearchField autoFocus className="recipe-picker__search" label="Search recipes" value={query} onChange={(event) => setQuery(event.target.value)} onClear={() => setQuery("")} placeholder="Search your recipes" />
 
           {error ? <p className="error-text" role="alert">{error}</p> : null}
 
@@ -87,7 +83,7 @@ export function RecipePickerSheet({
               return (
                 <button className="recipe-pick" type="button" key={recipe.id} disabled={Boolean(pendingRecipeId)} onClick={() => onChoose(recipe.id)} aria-label={`Add ${recipe.title} to ${slotLabel}`}>
                   <span className={`recipe-pick__media ${recipe.imageUrl ? "" : "recipe-pick__media--fallback"}`}>
-                    {recipe.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={recipe.title} />}
+                    <RecipeMedia recipe={recipe} />
                   </span>
                   <span className="recipe-pick__copy">
                     <strong>{recipe.title}</strong>

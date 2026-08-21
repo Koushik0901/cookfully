@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 
-import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, Skeleton } from "../../components";
+import { Button, ConfirmDialog, EmptyState, ErrorRecovery, Field, SectionHeading, Skeleton } from "../../components";
 import { accountApi } from "./api";
 import { useSignOut } from "./useSignOut";
 
@@ -69,12 +69,7 @@ export function SecurityTab() {
   return (
     <div className="stack">
       <form className="settings-section" onSubmit={submitPassword}>
-        <div className="section-heading">
-          <div>
-            <h2>Change password</h2>
-            <p className="muted">Rotate your sign-in credential. Every other session is signed out.</p>
-          </div>
-        </div>
+        <SectionHeading title="Change password" description="Rotate your sign-in credential. Every other session is signed out." />
         <div className="form-grid">
           <Field label="Current password">
             <input
@@ -108,12 +103,7 @@ export function SecurityTab() {
       </form>
 
       <section className="settings-section" aria-labelledby="sessions-heading">
-        <div className="section-heading">
-          <div>
-            <h2 id="sessions-heading">Active sessions</h2>
-            <p className="muted">Devices currently signed in to your account.</p>
-          </div>
-        </div>
+        <SectionHeading id="sessions-heading" title="Active sessions" description="Devices currently signed in to your account." />
         {notice ? (
           <p className="notice" role="status">
             {notice}
@@ -125,15 +115,7 @@ export function SecurityTab() {
           <div className="token-list">
             {sessionList.map((session) => (
               <article key={session.id} className="token-card" aria-label={session.clientLabel ?? "Session"}>
-                <div className="section-heading">
-                  <div>
-                    <h3>{session.clientLabel ?? "Unknown device"}</h3>
-                    <p className="muted">
-                      {session.isCurrent ? "This device · " : ""}signed in {dateLabel(session.createdAt)} ·
-                      last seen {dateLabel(session.lastSeenAt)}
-                    </p>
-                  </div>
-                  {session.isCurrent ? null : (
+                <SectionHeading headingLevel="h3" title={session.clientLabel ?? "Unknown device"} description={`${session.isCurrent ? "This device · " : ""}signed in ${dateLabel(session.createdAt)} · last seen ${dateLabel(session.lastSeenAt)}`} action={session.isCurrent ? undefined : (
                     <ConfirmDialog
                       trigger={<Button type="button" variant="destructive">Sign out</Button>}
                       title="Sign out this device?"
@@ -141,8 +123,7 @@ export function SecurityTab() {
                       confirmLabel="Sign out device"
                       onConfirm={() => revokeSession.mutate(session.id)}
                     />
-                  )}
-                </div>
+                  )} />
               </article>
             ))}
           </div>
@@ -150,12 +131,7 @@ export function SecurityTab() {
       </section>
 
       <section className="settings-section" aria-labelledby="signout-heading">
-        <div className="section-heading">
-          <div>
-            <h2 id="signout-heading">Sign out</h2>
-            <p className="muted">End your current session on this device.</p>
-          </div>
-        </div>
+        <SectionHeading id="signout-heading" title="Sign out" description="End your current session on this device." />
         <div className="actions">
           <Button
             type="button"

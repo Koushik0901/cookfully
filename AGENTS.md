@@ -1,6 +1,6 @@
-# Gym-Focused Recipe & Nutrition Planner Development Guidelines
+# Cookfully Development & Design Guidelines
 
-Auto-generated from feature plans and corrected for the repository layout. Last updated: 2026-08-12
+Auto-generated from feature plans and corrected for the repository layout. Last updated: 2026-08-20
 
 ## Active Technologies
 - Python 3.13 for server and workers; TypeScript 5.x on Node.js 22 LTS for the web client + FastAPI, Pydantic 2, SQLAlchemy 2, Alembic, psycopg 3, Celery 5.6, Redis, HTTPX, `recipe-scrapers`, `ingredient-parser-nlp`, Pint, OR-Tools 9.15 (P4), MCP Python SDK 2.x (P5), React 19.2, Vite 8.1, React Router, TanStack Query, React Hook Form, Zod, Radix UI primitives (001-nutrition-recipe-planner)
@@ -44,12 +44,11 @@ pnpm --dir frontend exec playwright test
 
 ## Product Persona
 
-Cookfully helps people who want to take control of their personal health through food
-and stay organized in the process. The core audience is meal-preppers, health-conscious home
-cooks, and anyone who wants recipes to "do the macro math for them" without feeling like a
-spreadsheet. The app is deliberately not a gym-bro calorie counter — it is a cooking tool
-that happens to be nutrition-aware. Every feature decision should start with: "Does this
-help someone plan, cook, and eat better food with less friction?"
+Cookfully helps people plan, cook, shop, and eat better food with less friction. The audience includes
+home cooks, households, meal-preppers, people with dietary needs, people pursuing health goals, and
+anyone who wants a more organized kitchen. Nutrition is quiet supporting intelligence, not the user's
+identity; the app is deliberately not a gym-bro calorie counter or a spreadsheet. Every feature decision
+should start with: "Does this help someone plan, cook, and eat better food with less friction?"
 
 ## Code Style and Architecture
 

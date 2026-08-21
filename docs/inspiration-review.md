@@ -845,3 +845,57 @@ Evidence is defined by the recipe crop/origin contract, `RecipeProcessingBanner`
 collection strip, optimistic organization mutations, and focused Vitest coverage. Revisit these choices
 if Cookfully becomes shared or gains a substantially larger media library.
 
+## Home as the product-wide visual reference — 2026-08-20
+
+### Problem being solved
+
+The Home screen had become attractive but needed to carry the identity of the entire product. A screenshot
+could communicate a mood, but it did not give implementation work a reusable contract for shell, type,
+recipe media, nutrition, density, responsive behavior, or interaction quality.
+
+### Sources inspected
+
+- The live Cookfully Home route at `http://localhost:5173/app`, including its DOM boxes and computed
+  styles at a 1734×1272 desktop viewport.
+- The current Cookfully Home implementation and shared components: `HomePage`, `RecipeMetadata`,
+  `RecipeFallbackArt`, `KitchenCompanion`, `CommandPalette`, and the responsive shell.
+- The earlier visual review in `critique-UI.md`, plus the product requirements in `Law_of_UX.md` and
+  `nutrition-recipe-app-spec.md`.
+- Mealie, Tandoor, and Immich as recurring comparison points for ownership and practical flows, not as
+  visual authorities.
+
+### Benefits and liabilities observed
+
+The live Home composition provides a strong product signature: a quiet 112px rail; 38px Afacad Flux
+greeting; wide editorial Tonight hero; compact This week card; pale-mint Use soon; separator-led Quick
+actions; contextual Cook next recommendations; compact Recently saved shelf; and dark herb Grocery prompt.
+Food imagery is integrated into the hero rather than stitched into a small circular widget. Recipe cards
+share media and metadata contracts, while nutrition colors communicate category without turning the app
+into a rainbow dashboard.
+
+The liability is that a strong reference can become a collection of one-off CSS if it is copied by eye.
+The asymmetric corners, dense module sequence, and food-led contrast must therefore be expressed as shared
+tokens and components. Mobile also cannot be inferred by simply stacking the desktop grid; fixed navigation,
+touch targets, and cooking context need their own composition.
+
+### Local decision
+
+Adopt Home as the product-wide visual source of truth and codify it in `DESIGN.md`, `.impeccable.md`,
+`Law_of_UX.md`, and `critique-UI.md`:
+
+- use the warm ivory/herb/mint/saffron palette, Afacad Flux + Inclusive Sans typography, 4px rhythm,
+  10px controls, 18px surfaces, 22px media, and restrained organic asymmetry globally;
+- reuse `KitchenShell`, `PageIntro`, `EditorialHero`, `WeekCard`, `UseSoon`, `QuickActions`, recipe
+  media/fallback art, `RecipeCard`/`RecipeShelf`, `RecipeMetadata`/`NutritionRibbon`, and state helpers;
+- keep food before figures while showing time, servings, calories, protein, carbs, and fat wherever a
+  recipe appears, with honest missing/coverage/manual/stale states;
+- preserve Home's density and question order, while letting Recipes, Plan, Pantry, Grocery, Cook mode,
+  and Settings adapt the pattern to their own task;
+- keep Mealie/Tandoor's useful ownership and organization ideas, reject their dated/dense presentation,
+  and use Immich's self-hosted polish and resilient processing as an architectural bar;
+- validate every route against Home at 1440×900 and 390×844, including keyboard, reduced motion, safe
+  areas, focus, and real loading/empty/error states.
+
+The Home reference is deliberately adopted rather than copied from any external product. Revisit the
+decision only through a new live review and update all four context documents together.
+

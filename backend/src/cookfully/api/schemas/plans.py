@@ -136,6 +136,11 @@ class MealPlanEntryWriteRequest(ApiModel):
         )
 
 
+class MealPlanEntrySwapRequest(ApiModel):
+    target_entry_id: UUID = Field(alias="targetEntryId")
+    target_version: int = Field(alias="targetVersion", ge=1)
+
+
 class NutritionSnapshotResponse(ApiModel):
     basis_servings: str = Field(alias="basisServings")
     calories_kcal: str | None = Field(alias="caloriesKcal")
@@ -202,6 +207,11 @@ class MealPlanEntryResponse(ApiModel):
             origin=value.origin,
             version=value.version,
         )
+
+
+class MealPlanEntrySwapResponse(ApiModel):
+    source: MealPlanEntryResponse
+    target: MealPlanEntryResponse
 
 
 class SignedMacroResponse(ApiModel):

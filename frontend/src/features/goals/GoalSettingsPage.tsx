@@ -3,7 +3,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Gauge, Leaf, PencilLine, Sprout, TrendingDown, TrendingUp } from "lucide-react";
 
-import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
 import { todayInTimezone } from "../plans/dates";
@@ -123,9 +123,9 @@ export function GoalSettingsPage() {
   }
 
   const goalMissing = currentGoal.error instanceof ApiProblem && currentGoal.error.status === 404;
-  if (preferences.isPending || currentGoal.isPending) return <Skeleton label="Loading goal settings" lines={8} />;
-  if (preferences.isError) return <ErrorRecovery title="Preferences could not be loaded" onRetry={() => void preferences.refetch()} />;
-  if (currentGoal.isError && !goalMissing) return <ErrorRecovery title="Targets could not be loaded" onRetry={() => void currentGoal.refetch()} />;
+  if (preferences.isPending || currentGoal.isPending) return <PageState><Skeleton label="Loading goal settings" lines={8} /></PageState>;
+  if (preferences.isError) return <PageState><ErrorRecovery title="Preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
+  if (currentGoal.isError && !goalMissing) return <PageState><ErrorRecovery title="Targets could not be loaded" onRetry={() => void currentGoal.refetch()} /></PageState>;
   const showTargetInputs = !currentGoal.data || editingTargets;
   const showSaveAction = !currentGoal.data || editingTargets || changed;
   const macroEnergy = [proteinG, carbohydrateG, fatG, caloriesKcal].every((value) => decimal.test(value))

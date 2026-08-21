@@ -184,7 +184,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Place the meals that matter" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Your week at a glance" })).toBeVisible();
     expect(screen.getByRole("button", { name: /open day view for monday.*march 9/i })).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Prep" }));
     expect(screen.getByRole("heading", { name: "Cook 1 dish for 1 meal" })).toBeVisible();
@@ -228,13 +228,17 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "planner-panel-day");
   });
 
-  it("moves a weekly meal without requiring drag and preserves the version guard", async () => {
+  it("makes the full meal card the move surface and keeps copy distinct", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
       if (init?.method === "PATCH") {
         const body = JSON.parse(String(init.body)) as { localDate: string; mealSlot: string; position: number };
         return json({ ...entry, ...body, version: 2 });
+      }
+      if (init?.method === "POST" && path.includes("/entries")) {
+        const body = JSON.parse(String(init.body)) as { localDate: string; mealSlot: string; position: number };
+        return json({ ...entry, ...body, id: "copy-id", version: 1 }, 201);
       }
       if (path.includes("/owner/preferences")) return json(preferences);
       if (path.includes("/goals/current")) return json(goal);
@@ -245,19 +249,19 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: "Place the meals that matter" });
-    await user.click(screen.getByRole("button", { name: "Move Protein oats" }));
-    expect(screen.getByRole("dialog", { name: "Protein oats" })).toBeVisible();
-    await user.selectOptions(screen.getByLabelText("Day"), "2026-03-10");
-    await user.selectOptions(screen.getByLabelText("Meal"), "dinner");
-    await user.click(screen.getByRole("button", { name: "Move meal" }));
+    await screen.findByRole("heading", { name: "Your week at a glance" });
+    expect(screen.queryByRole("button", { name: "Move Protein oats" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Protein oats" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Copy Protein oats" }));
+    expect(screen.getByText("Choose another day and meal. The original will stay where it is.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Copy Protein oats to Lunch on Wednesday" }));
 
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
-      expect(new Headers(call?.[1]?.headers).get("if-match")).toBe('"1"');
-      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ localDate: "2026-03-10", mealSlot: "dinner", position: 0 });
+      const call = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/entries") && init?.method === "POST");
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ localDate: "2026-03-11", mealSlot: "lunch", recipeId: entry.recipeId, servings: entry.servings, position: 0 });
     });
-    expect(await screen.findByText("Protein oats moved to dinner.")).toBeVisible();
+    expect(await screen.findByText("Protein oats copied to lunch.")).toBeVisible();
   });
 
   it("lets someone plan meals before creating a nutrition guide", async () => {

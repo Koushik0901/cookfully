@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Copy, RefreshCw, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { Button, DecimalInput, Field, Select } from "../../components";
+import { Button, DecimalInput, Field, RecipeMedia, Select } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
@@ -24,10 +24,10 @@ export function MealPlanEntry({ entry, weekStart, recipe }: { entry: Entry; week
   return (
     <article className="plan-entry">
       <div className="plan-entry__main">
-        {entry.recipeId ? <Link className={`plan-entry__media ${recipe?.imageUrl ? "" : "plan-entry__media--fallback"}`} to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`}>{recipe?.imageUrl ? <img src={recipe.imageUrl} alt="" loading="lazy" decoding="async" /> : <RecipeFallbackArt title={entry.recipeTitle} />}</Link> : <span className="plan-entry__media plan-entry__media--fallback"><RecipeFallbackArt title={entry.recipeTitle} /></span>}
+        {entry.recipeId ? <Link className={`plan-entry__media ${recipe?.imageUrl ? "" : "plan-entry__media--fallback"}`} to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`}>{recipe ? <RecipeMedia recipe={recipe} /> : <RecipeFallbackArt title={entry.recipeTitle} />}</Link> : <span className="plan-entry__media plan-entry__media--fallback"><RecipeFallbackArt title={entry.recipeTitle} /></span>}
         <div className="plan-entry__body">
           <div className="plan-entry__heading"><div className="plan-entry__title"><h4>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : entry.recipeTitle}</h4></div><details className="nutrition-confidence nutrition-confidence--meal"><summary>{nutritionConfidenceLabel(entry.nutrition.status, entry.nutrition.coverageRatio)}</summary><p>{entry.nutrition.status.replace("_", " ")} nutrition · {Math.round(Number(entry.nutrition.coverageRatio) * 100)}% source coverage</p></details></div>
-          <div className="plan-entry__nutrition" aria-label={`${entry.recipeTitle} plan contribution`}><span><strong>{formatCookingNumber(entry.servings)}</strong> {Number(entry.servings) === 1 ? "serving" : "servings"}</span><RecipeMetadata recipe={recipe ?? { title: entry.recipeTitle, prepMinutes: null, cookMinutes: null, nutrition: entry.nutrition }} compact /></div>
+          <div className="plan-entry__nutrition" aria-label={`${entry.recipeTitle} plan contribution`}><span><strong>{formatCookingNumber(entry.servings)}</strong> {Number(entry.servings) === 1 ? "serving" : "servings"}</span><RecipeMetadata recipe={{ title: entry.recipeTitle, prepMinutes: recipe?.prepMinutes ?? null, cookMinutes: recipe?.cookMinutes ?? null, nutrition: entry.nutrition }} compact /></div>
         </div>
       </div>
       {!entry.recipeId ? <p className="notice">Historical snapshot retained; the source recipe was deleted.</p> : null}

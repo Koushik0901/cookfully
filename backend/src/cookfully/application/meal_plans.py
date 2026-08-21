@@ -389,6 +389,66 @@ class MealPlanService:
             session.flush()
             return self._entry_read(entry, snapshot)
 
+    def swap(
+        self,
+        owner_id: UUID,
+        entry_id: UUID,
+        target_entry_id: UUID,
+        *,
+        expected_version: int,
+        target_expected_version: int,
+    ) -> tuple[MealPlanEntryRead, MealPlanEntryRead]:
+        if entry_id == target_entry_id:
+            raise DomainError("plan_swap_same_entry", "A meal cannot swap with itself.", 422)
+        with self._session_factory.begin() as session:
+            repository = MealPlanRepository(session)
+            first_id, second_id = sorted((entry_id, target_entry_id), key=str)
+            first = repository.get_entry(owner_id, first_id, for_update=True)
+            second = repository.get_entry(owner_id, second_id, for_update=True)
+            source = first if first.id == entry_id else second
+            target = second if source is first else first
+            require_version(expected_version, source.version)
+            require_version(target_expected_version, target.version)
+            if source.meal_plan_id != target.meal_plan_id:
+                raise DomainError(
+                    "plan_swap_different_plans", "Meals must belong to the same plan.", 422
+                )
+
+            source_date, source_slot, source_position = (
+                source.local_date,
+                source.meal_slot,
+                source.position,
+            )
+            target_date, target_slot, target_position = (
+                target.local_date,
+                target.meal_slot,
+                target.position,
+            )
+            temporary_position = session.scalar(
+                select(func.max(MealPlanEntry.position)).where(
+                    MealPlanEntry.meal_plan_id == source.meal_plan_id,
+                    MealPlanEntry.local_date == source_date,
+                    MealPlanEntry.meal_slot == source_slot,
+                )
+            )
+            source.position = (temporary_position if temporary_position is not None else -1) + 1
+            session.flush()
+
+            target.local_date = source_date
+            target.meal_slot = source_slot
+            target.position = source_position
+            source.local_date = target_date
+            source.meal_slot = target_slot
+            source.position = target_position
+            source.version += 1
+            target.version += 1
+            source.meal_plan.version += 1
+            GroceryListService.mark_dirty(session, source.meal_plan_id)
+            session.flush()
+            return self._entry_read(source, source.nutrition_snapshot), self._entry_read(
+                target, target.nutrition_snapshot
+            )
+
     def remove(self, owner_id: UUID, entry_id: UUID, *, expected_version: int) -> None:
         with self._session_factory.begin() as session:
             entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)

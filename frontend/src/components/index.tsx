@@ -2,12 +2,14 @@ import * as Dialog from "@radix-ui/react-dialog";
 import {
   type ComponentProps,
   type InputHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactElement,
   type ReactNode,
   cloneElement,
   useId,
   useState,
 } from "react";
+import { Search, X } from "lucide-react";
 
 import { decimal6 } from "../app/api/generated/decimal";
 import { KitchenCompanion } from "./cookfully/KitchenCompanion";
@@ -106,6 +108,97 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: 
   );
 }
 
+export function PageState({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <main className={`page-shell page-state${className ? ` ${className}` : ""}`}>{children}</main>;
+}
+
+export function TabList({ label, className = "", children }: { label: string; className?: string; children: ReactNode }) {
+  function moveFocus(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!(event.target instanceof HTMLElement) || event.target.getAttribute("role") !== "tab") return;
+    const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled])'));
+    const current = tabs.indexOf(event.target);
+    if (current < 0) return;
+    let next = current;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (current + 1) % tabs.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    tabs[next]?.focus();
+    tabs[next]?.click();
+  }
+
+  return <div className={className} role="tablist" aria-label={label} onKeyDown={moveFocus}>{children}</div>;
+}
+
+export function DialogCloseButton({ label, className = "" }: { label: string; className?: string }) {
+  return <Dialog.Close className={`dialog-close-button${className ? ` ${className}` : ""}`} aria-label={label}><X aria-hidden="true" /></Dialog.Close>;
+}
+
+export function SearchField({
+  label,
+  className = "",
+  inputClassName = "",
+  onClear,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label: string;
+  inputClassName?: string;
+  onClear?: () => void;
+}) {
+  const hasValue = typeof props.value === "string" && props.value.length > 0;
+  return (
+    <label className={`search-field${className ? ` ${className}` : ""}`}>
+      <span className="visually-hidden">{label}</span>
+      <Search className="search-field__icon" aria-hidden="true" />
+      <input {...props} className={`input search-field__input${inputClassName ? ` ${inputClassName}` : ""}`} type="search" />
+      {onClear && hasValue && !props.disabled ? (
+        <button
+          className="search-field__clear"
+          type="button"
+          aria-label={`Clear ${label.toLocaleLowerCase()}`}
+          onClick={onClear}
+        >
+          <X aria-hidden="true" />
+        </button>
+      ) : null}
+    </label>
+  );
+}
+
+export function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  meta,
+  action,
+  id,
+  headingLevel = "h2",
+  className = "",
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  meta?: ReactNode;
+  action?: ReactNode;
+  id?: string;
+  headingLevel?: "h2" | "h3";
+  className?: string;
+}) {
+  const Heading = headingLevel;
+  return (
+    <div className={`section-heading${description ? " section-heading--with-description" : ""}${className ? ` ${className}` : ""}`}>
+      <div>
+        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+        <Heading id={id}>{title}</Heading>
+        {description ? <p className="section-heading__description">{description}</p> : null}
+      </div>
+      {action ? <div className="section-heading__action">{action}</div> : meta ? <span className="data-value">{meta}</span> : null}
+    </div>
+  );
+}
+
 export function Skeleton({ label, lines = 2 }: { label: string; lines?: number }) {
   return (
     <div className="skeleton" role="status" aria-label={label}>
@@ -134,4 +227,5 @@ export function ErrorRecovery({ title, description = "Try again. If it keeps hap
 
 export { MacroPreview, MacroRing };
 export { KitchenCompanion } from "./cookfully/KitchenCompanion";
+export { RecipeMedia, type RecipeMediaSource } from "./cookfully/RecipeMedia";
 export { Select };
