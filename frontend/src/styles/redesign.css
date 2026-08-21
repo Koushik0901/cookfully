@@ -901,3 +901,17 @@
   .food-picker__create .cf-button,
   .food-picker__footer .cf-button { width: 100%; }
 }
+
+@media (pointer: coarse) {
+  .grocery-item__remove,
+  .grocery-item__edit > summary { width: 2.75rem; height: 2.75rem; }
+  .grocery-item__heading > div:nth-child(2) { padding-right: 6.6rem; }
+  .grocery-item__controls { padding-right: 6.6rem; }
+  .grocery-item__edit > summary { right: 3.8rem; }
+}
+
+@media (pointer: coarse) and (max-width: 47.99rem) {
+  .grocery-item__heading > div:nth-child(2) { padding-right: 6.6rem; }
+  .grocery-item__controls { right: 6.6rem; padding-right: 0; }
+  .grocery-item__edit > summary { right: 3.6rem; }
+}
