@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { type Dispatch, type FormEvent, type SetStateAction, useContext, useEffect, useMemo, useState } from "react";
+import { Link, UNSAFE_DataRouterContext, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Button, DecimalInput, ErrorRecovery, Field, PageHeader, PageState, Skeleton } from "../../components";
+import { Button, ConfirmDialog, DecimalInput, ErrorRecovery, Field, PageHeader, PageState, Skeleton } from "../../components";
 import { Undo2 } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
@@ -41,6 +41,21 @@ type NutritionField = typeof NUTRITION_FIELDS[number][0];
 type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
 const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
+
+function DataRouterNavigationBlocker({ dirty }: { dirty: boolean }) {
+  const blocker = useBlocker(dirty);
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    if (window.confirm("Leave without saving your recipe changes?")) blocker.proceed();
+    else blocker.reset();
+  }, [blocker]);
+  return null;
+}
+
+function OptionalNavigationBlocker({ dirty }: { dirty: boolean }) {
+  const dataRouter = useContext(UNSAFE_DataRouterContext);
+  return dataRouter ? <DataRouterNavigationBlocker dirty={dirty} /> : null;
+}
 
 export function RecipeEditorPage() {
   const { recipeId } = useParams();
@@ -129,6 +144,21 @@ const [title, setTitle] = useState("");
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    function guardInternalNavigation(event: MouseEvent) {
+      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(target instanceof HTMLAnchorElement) || target.target === "_blank" || target.download) return;
+      const href = target.getAttribute("href");
+      if (!href || !href.startsWith("/app") || href === location.pathname + location.search + location.hash) return;
+      if (window.confirm("Leave without saving your recipe changes?")) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    document.addEventListener("click", guardInternalNavigation, true);
+    return () => document.removeEventListener("click", guardInternalNavigation, true);
+  }, [dirty, location.hash, location.pathname, location.search]);
 
   const save = useMutation({
     mutationFn: (value: RecipeWrite) => recipeId && detail.data ? recipesApi.update(recipeId, detail.data.version, value) : recipesApi.create(value),
@@ -224,8 +254,10 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
   if (recipeId && detail.isError) return <PageState><ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} /></PageState>;
 
   return (
-    <main className="page-shell recipe-editor-page">
-      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"} onClick={(event) => { if (dirty && !window.confirm("Leave without saving your recipe changes?")) event.preventDefault(); }}>Cancel</Link>} />
+    <>
+      <OptionalNavigationBlocker dirty={dirty} />
+      <main className="page-shell recipe-editor-page">
+      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
       <nav className="recipe-editor__view-toggle" aria-label="Recipe editor views">
         <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}>Edit</button>
         <button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}>Preview</button>
@@ -279,11 +311,12 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
           </div>
         </details>
         {photoPreview || (detail.data?.imageUrl && !removePhoto) ? <section className="recipe-editor__crop" aria-labelledby="recipe-crop-heading"><p className="eyebrow" id="recipe-crop-heading">Frame your cover</p><ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /></section> : null}
-        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h3 id="recipe-photo-heading">Choose the cover</h3><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button> : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
+        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h3 id="recipe-photo-heading">Choose the cover</h3><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? (detail.data?.imageUrl && !photoPreview ? <ConfirmDialog trigger={<Button type="button" variant="ghost">Remove photo</Button>} title="Remove this recipe photo?" description="The photo will be removed when you save these recipe changes. You can upload a replacement before saving." confirmLabel="Remove photo" onConfirm={() => { setPhoto(null); setRemovePhoto(true); }} /> : <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button>) : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
         <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
-    </main>
+      </main>
+    </>
   );
 }

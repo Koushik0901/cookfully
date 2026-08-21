@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createBrowserRouter, Link, Navigate, NavLink, Route, Routes, RouterProvider, useLocation } from "react-router-dom";
 
 import {
   BookOpenText,
@@ -270,9 +270,9 @@ function AppRoutes() {
 }
 
 export function App() {
-  return (
-    <AppProviders>
-      <AppRoutes />
-    </AppProviders>
+  const router = useMemo(
+    () => createBrowserRouter([{ path: "*", element: <AppProviders><AppRoutes /></AppProviders> }]),
+    [],
   );
+  return <RouterProvider router={router} />;
 }

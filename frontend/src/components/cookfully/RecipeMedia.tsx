@@ -1,4 +1,5 @@
 import type { CSSProperties, ImgHTMLAttributes } from "react";
+import { useEffect, useState } from "react";
 
 import { RecipeFallbackArt } from "./RecipeFallbackArt";
 
@@ -25,7 +26,9 @@ export function RecipeMedia({
   loading?: ImgHTMLAttributes<HTMLImageElement>["loading"];
   decoding?: ImgHTMLAttributes<HTMLImageElement>["decoding"];
 }) {
-  if (!recipe.imageUrl) return <RecipeFallbackArt title={recipe.title} className={className} />;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [recipe.imageUrl]);
+  if (!recipe.imageUrl || failed) return <RecipeFallbackArt title={recipe.title} className={className} />;
   const crop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
   return (
     <img
@@ -34,6 +37,8 @@ export function RecipeMedia({
       alt={alt}
       loading={loading}
       decoding={decoding}
+      draggable={false}
+      onError={() => setFailed(true)}
       style={{
         "--thumbnail-focal-x": crop.focalX,
         "--thumbnail-focal-y": crop.focalY,

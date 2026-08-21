@@ -21,8 +21,10 @@ from cookfully.domain.common import (
     canonical_decimal,
     quantize_decimal,
     require_version,
+    today_in_timezone,
     utc_now,
 )
+from cookfully.domain.goals import week_start_for
 from cookfully.domain.meal_snapshots import (
     NutritionReliability,
     SnapshotSource,
@@ -111,9 +113,12 @@ class SuggestionService:
     def request(
         self, owner_id: UUID, value: SuggestionWrite, *, trace_id: str
     ) -> SuggestionAccepted:
-        value = self._validate(value)
         now = utc_now()
         with self._session_factory.begin() as session:
+            owner = session.get(OwnerAccount, owner_id)
+            if owner is None:
+                raise DomainError("owner_not_found", "Owner account was not found.", 404)
+            value = self._validate(value, owner)
             plan = self._ensure_plan(session, owner_id, value.week_start)
             target = self._remaining_target(plan, value)
             fingerprint = self._input_hash(plan, value, target)
@@ -249,6 +254,9 @@ class SuggestionService:
         now = utc_now()
         with self._session_factory.begin() as session:
             run = self._get_model(session, suggestion_id, owner_id=owner_id, for_update=True)
+            owner = session.get(OwnerAccount, owner_id)
+            if owner is None:
+                raise DomainError("owner_not_found", "Owner account was not found.", 404)
             if run.expires_at is not None and run.expires_at <= now:
                 run.status = "expired"
                 raise DomainError("suggestion_expired", "This suggestion has expired.", 409)
@@ -269,6 +277,13 @@ class SuggestionService:
                     )
                 selected_items.append(item)
             for item in selected_items:
+                if item.local_date < today_in_timezone(owner.timezone):
+                    raise DomainError(
+                        "suggestion_date_past",
+                        "This suggestion includes a past day. Create a fresh suggestion for today "
+                        "or a future day.",
+                        409,
+                    )
                 maximum = session.scalar(
                     select(func.max(MealPlanEntry.position)).where(
                         MealPlanEntry.meal_plan_id == plan.id,
@@ -310,7 +325,7 @@ class SuggestionService:
         return self._plans.get(owner_id, run.week_start)
 
     @staticmethod
-    def _validate(value: SuggestionWrite) -> SuggestionWrite:
+    def _validate(value: SuggestionWrite, owner: OwnerAccount) -> SuggestionWrite:
         if value.scope not in {"meal", "day", "week"}:
             raise DomainError("suggestion_scope_invalid", "Suggestion scope is invalid.", 422)
         if value.scope in {"meal", "day"} and value.local_date is None:
@@ -321,6 +336,25 @@ class SuggestionService:
             value.week_start <= value.local_date <= value.week_start + timedelta(days=6)
         ):
             raise DomainError("suggestion_date_outside_week", "Date is outside the week.", 422)
+        if week_start_for(value.week_start, owner.week_starts_on) != value.week_start:
+            raise DomainError(
+                "suggestion_week_start_invalid",
+                "Choose the start of a planning week that matches your account settings.",
+                422,
+            )
+        today = today_in_timezone(owner.timezone)
+        if value.local_date is not None and value.local_date < today:
+            raise DomainError(
+                "suggestion_date_past",
+                "Past planning days are read-only. Choose today or a future day.",
+                409,
+            )
+        if value.week_start + timedelta(days=6) < today:
+            raise DomainError(
+                "suggestion_week_past",
+                "This planning week has already passed. Choose today or a future week.",
+                409,
+            )
         if value.required_recipe_ids & value.excluded_recipe_ids:
             raise DomainError(
                 "suggestion_recipe_conflict", "A required recipe cannot also be excluded.", 422
@@ -452,7 +486,9 @@ class SuggestionService:
         return {
             recipe.id: recipe
             for recipe in page.items
-            if recipe.nutrition is not None
+            if recipe.status != "archived"
+            and recipe.nutrition_state not in {"stale", "pending", "failed"}
+            and recipe.nutrition is not None
             and all(
                 getattr(recipe.nutrition.macros, field) is not None
                 for field in ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
@@ -519,7 +555,22 @@ class SuggestionService:
         for position, selection in enumerate(solution.items):
             recipe = recipes[selection.recipe_id]
             assert recipe.nutrition is not None
-            local_date = run.local_date or run.week_start + timedelta(days=position % 7)
+            if run.local_date:
+                local_date = run.local_date
+            else:
+                today = today_in_timezone(plan.timezone)
+                writable_dates = [
+                    run.week_start + timedelta(days=index)
+                    for index in range(7)
+                    if run.week_start + timedelta(days=index) >= today
+                ]
+                if not writable_dates:
+                    raise DomainError(
+                        "suggestion_date_past",
+                        "There are no writable days left in this planning week.",
+                        409,
+                    )
+                local_date = writable_dates[position % len(writable_dates)]
             meal_slot = run.meal_slot or "suggested"
             snapshot = create_snapshot(
                 SnapshotSource(

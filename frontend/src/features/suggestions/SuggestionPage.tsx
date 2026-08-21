@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, RecipeMedia, SearchField, Select, Skeleton } from "../../components";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
+import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
 import { suggestionsApi } from "./api";
@@ -123,8 +124,10 @@ export function SuggestionPage() {
     setSelectedIds(result.items.filter((item) => !item.accepted).map((item) => item.id));
   }, [result]);
   const accept = useAcceptSuggestion(result, selectedIds);
+  const today = preferences.data ? todayInTimezone(preferences.data.timezone) : "";
+  const selectedDateIsPast = Boolean(localDate && today && localDate < today);
   const availableRecipes = useMemo(
-    () => recipes.data?.items.filter((recipe) => recipe.status !== "archived" && !["failed", "pending"].includes(recipe.nutritionState)) ?? [],
+    () => recipes.data?.items.filter(isRecipeReadyToPlan) ?? [],
     [recipes.data],
   );
   const visibleRuleRecipes = useMemo(() => {
@@ -170,7 +173,7 @@ export function SuggestionPage() {
           {SCOPES.map(({ value, title, description, Icon }) => <label className={`suggestion-scope ${scope === value ? "suggestion-scope--selected" : ""}`} key={value}><input type="radio" name="suggestion-scope" value={value} checked={scope === value} onChange={() => setScope(value)} /><Icon aria-hidden="true" /><span><strong>{title}</strong><small>{description}</small></span>{scope === value ? <Check className="choice-check" aria-hidden="true" /> : null}</label>)}
         </div>
         <div className="suggestion-when">
-          {scope === "week" ? <Field label="Planning week"><input className="input data-value" type="date" value={weekStart} onChange={(event) => setWeekStart(event.target.value)} /></Field> : <Field label="Day to plan"><input className="input data-value" type="date" value={localDate} onChange={(event) => setLocalDate(event.target.value)} /></Field>}
+          {scope === "week" ? <Field label="Planning week"><input className="input data-value" type="date" value={weekStart} min={weekStartFor(today, preferences.data.weekStartsOn)} onChange={(event) => setWeekStart(event.target.value)} /></Field> : <Field label="Day to plan"><input className="input data-value" type="date" value={localDate} min={today} onChange={(event) => setLocalDate(event.target.value)} /></Field>}
           {scope === "meal" ? <Field label="Meal"><Select value={mealSlot} onChange={(event) => setMealSlot(event.target.value)}>{MEAL_SLOTS.map((slot) => <option key={slot} value={slot}>{slot[0].toUpperCase()}{slot.slice(1)}</option>)}</Select></Field> : null}
           <div className="suggestion-when__promise"><ShieldCheck aria-hidden="true" /><span><strong>Nothing changes yet</strong><small>You’ll preview every meal before it joins your plan.</small></span></div>
         </div>
@@ -183,7 +186,8 @@ export function SuggestionPage() {
         <details className="suggestion-tune"><summary><ChefHat aria-hidden="true" /><span><strong>Use or avoid specific recipes</strong><small>Optional rules that Cookfully will always respect</small></span></summary><fieldset className="recipe-constraints suggestion-tune__body"><legend>Recipe preferences</legend>
           {availableRecipes.length ? <><SearchField label="Find a recipe" value={recipeRuleQuery} onChange={(event) => setRecipeRuleQuery(event.target.value)} onClear={() => setRecipeRuleQuery("")} placeholder="Search your recipe library" /><div className="recipe-rule-list">{visibleRuleRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><span className="recipe-rule__identity"><strong>{recipe.title}</strong><RecipeMetadata recipe={recipe} compact /></span><label><Checkbox checked={requiredIds.includes(recipe.id)} onCheckedChange={(checked) => toggleRequired(recipe.id, checked === true)} /> Use <span className="visually-hidden">{recipe.title}</span></label><label><Checkbox checked={excludedIds.includes(recipe.id)} onCheckedChange={(checked) => toggleExcluded(recipe.id, checked === true)} /> Avoid <span className="visually-hidden">{recipe.title}</span></label></div>)}</div>{recipeRuleQuery && !visibleRuleRecipes.length ? <p className="muted">No recipes match that search.</p> : null}{availableRecipes.length > visibleRuleRecipes.length ? <p className="muted">Showing {visibleRuleRecipes.length} of {availableRecipes.length}. Search to find another recipe.</p> : null}</> : <p className="muted">No nutrition-ready recipes are available.</p>}
         </fieldset></details>
-        <div className="suggestion-create"><div><Soup aria-hidden="true" /><p><strong>Ready to find a good fit</strong><span>Uses your saved recipes, current plan, and nutrition guide.</span></p></div><Button disabled={create.isPending || !availableRecipes.length} onClick={() => create.mutate()}>{create.isPending ? "Finding ideas…" : "Find meal ideas"}</Button></div>
+        <div className="suggestion-create"><div><Soup aria-hidden="true" /><p><strong>Ready to find a good fit</strong><span>Uses your saved recipes, current plan, and nutrition guide.</span></p></div><Button disabled={create.isPending || !availableRecipes.length || selectedDateIsPast} onClick={() => create.mutate()}>{create.isPending ? "Finding ideas…" : "Find meal ideas"}</Button></div>
+        {selectedDateIsPast ? <p className="error-text" role="alert">Past planning days are read-only. Choose today or a future day.</p> : null}
         {create.error instanceof Error ? <p className="error-text" role="alert">{create.error.message}</p> : null}
       </section>
 

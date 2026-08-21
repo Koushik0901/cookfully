@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
-import { BrowserRouter } from "react-router-dom";
 
 import { BrandMark, ErrorRecovery, Skeleton } from "../components";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
@@ -66,9 +65,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
   setSessionQueryClient(queryClient);
   return (
-    <GlobalErrorBoundary>
+      <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>{children}</BrowserRouter>
+        {children}
       </QueryClientProvider>
     </GlobalErrorBoundary>
   );

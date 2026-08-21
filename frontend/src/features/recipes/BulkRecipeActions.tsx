@@ -1,6 +1,6 @@
 import { Archive, X } from "lucide-react";
 
-import { Button } from "../../components";
+import { Button, ConfirmDialog } from "../../components";
 
 export function BulkRecipeActions({
   selectedCount,
@@ -18,10 +18,10 @@ export function BulkRecipeActions({
     <div className="bulk-recipe-actions" role="region" aria-label="Selected recipe actions">
       <strong>{selectedCount} {noun} selected</strong>
       <div className="bulk-recipe-actions__buttons">
-        <Button onClick={onArchive} disabled={pending || selectedCount === 0}>
+        <ConfirmDialog trigger={<Button disabled={pending || selectedCount === 0}>
           <Archive aria-hidden="true" />
           {pending ? "Archiving…" : `Archive ${selectedCount} selected ${noun}`}
-        </Button>
+        </Button>} title={`Archive ${selectedCount} selected ${noun}?`} description="They will leave active planning but remain available in Archived recipes. You can restore them later." confirmLabel={`Archive ${selectedCount} ${noun}`} onConfirm={onArchive} />
         <Button variant="ghost" onClick={onClear} disabled={pending}>
           <X aria-hidden="true" />
           Clear selection

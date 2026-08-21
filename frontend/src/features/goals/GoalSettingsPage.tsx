@@ -6,7 +6,7 @@ import { Check, Gauge, Leaf, PencilLine, Sprout, TrendingDown, TrendingUp } from
 import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, Skeleton } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
-import { todayInTimezone } from "../plans/dates";
+import { addDays, longDate, todayInTimezone, weekStartFor } from "../plans/dates";
 import type { MealTarget, UserGoalWrite } from "../plans/types";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 
@@ -132,6 +132,14 @@ export function GoalSettingsPage() {
     ? Number(proteinG) * 4 + Number(carbohydrateG) * 4 + Number(fatG) * 9
     : null;
   const difference = macroEnergy == null ? null : macroEnergy - Number(caloriesKcal);
+  const currentWeekStart = preferences.data
+    ? weekStartFor(todayInTimezone(preferences.data.timezone), preferences.data.weekStartsOn)
+    : "";
+  const currentWeekEnd = currentWeekStart ? addDays(currentWeekStart, 6) : "";
+  const guideMissesCurrentWeek = Boolean(
+    effectiveFrom && currentWeekEnd && effectiveFrom > currentWeekEnd
+      || effectiveTo && currentWeekStart && effectiveTo < currentWeekStart,
+  );
 
   return (
     <main className="page-shell goals-page">
@@ -165,6 +173,7 @@ export function GoalSettingsPage() {
           <details className="goal-disclosure"><summary><span><Gauge aria-hidden="true" /><span><strong>Energy baseline and dates</strong><small>Maintenance estimate and when this guide applies</small></span></span></summary><div className="form-grid goal-disclosure__content"><Field label="Maintenance calories" error={errors.maintenanceKcal}><DecimalInput value={maintenanceKcal} onInput={(event) => { markChanged(); setMaintenanceKcal(event.currentTarget.value); }} /></Field><Field label="Effective from" error={errors.effectiveFrom}><input className="input" type="date" value={effectiveFrom} onChange={(event) => { markChanged(); setEffectiveFrom(event.target.value); }} /></Field><Field label="Effective to (optional)" error={errors.effectiveTo}><input className="input" type="date" value={effectiveTo} onChange={(event) => { markChanged(); setEffectiveTo(event.target.value); }} /></Field></div></details>
           <details className="goal-disclosure"><summary><span><Sprout aria-hidden="true" /><span><strong>Meal-by-meal targets</strong><small>Optional guidance for breakfast, lunch, dinner, or snacks</small></span></span></summary><div className="meal-targets goal-disclosure__content">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></details>
         </section>
+        {guideMissesCurrentWeek ? <p className="notice goal-date-warning" role="status">This guide does not cover the current planning week ({longDate(currentWeekStart)}–{longDate(currentWeekEnd)}), so it will not change the meals you are viewing right now.</p> : null}
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {saved ? <p className="success-text goal-saved-status" role="status"><KitchenCompanion moment="success" size="sm" />Your planning guide is saved.</p> : null}
         {showSaveAction ? <div className="goal-save"><div><p><strong>Ready when you are.</strong><span>Your existing meal plan will use the updated guide.</span></p></div><Button type="submit" disabled={save.isPending}>{save.isPending ? "Saving…" : "Save my guide"}</Button></div> : null}

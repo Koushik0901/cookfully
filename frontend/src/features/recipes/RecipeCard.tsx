@@ -42,6 +42,7 @@ export function RecipeCard({
   const queryClient = useQueryClient();
   const recipeCollections = recipe.collections ?? EMPTY_COLLECTIONS;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [favorite, setFavorite] = useState(Boolean(recipe.favorite));
   const [membership, setMembership] = useState(recipeCollections.map((item) => item.id));
   useEffect(() => {
@@ -125,7 +126,7 @@ export function RecipeCard({
           {recipe.status === "archived" ? (
            <DropdownMenuItem disabled={actionPending} onSelect={() => onRestore(recipe.id, recipe.version)}><RotateCcw aria-hidden="true" />Restore recipe</DropdownMenuItem>
           ) : (
-             <DropdownMenuItem disabled={actionPending} onSelect={() => onArchive(recipe.id, recipe.version)}><Archive aria-hidden="true" />Archive recipe</DropdownMenuItem>
+             <DropdownMenuItem disabled={actionPending} onSelect={(event) => { event.preventDefault(); setConfirmArchive(true); }}><Archive aria-hidden="true" />Archive recipe</DropdownMenuItem>
           )}
            <DropdownMenuItem disabled={actionPending} variant="destructive" onSelect={() => setConfirmDelete(true)}><Trash2 aria-hidden="true" />Delete recipe</DropdownMenuItem>
         </DropdownMenuContent>
@@ -138,6 +139,15 @@ export function RecipeCard({
         confirmLabel="Delete permanently"
         onConfirm={() => { setConfirmDelete(false); onDelete(recipe.id, recipe.version); }}
       />
+      <ConfirmDialog
+        open={confirmArchive}
+        onOpenChange={setConfirmArchive}
+        title={`Archive ${recipe.title}?`}
+        description="This hides the recipe from active planning but keeps it safe in Archived recipes for later restoration."
+        confirmLabel="Archive recipe"
+        onConfirm={() => { setConfirmArchive(false); onArchive(recipe.id, recipe.version); }}
+      />
+      {organize.error instanceof Error ? <p className="error-text recipe-card__feedback" role="alert">{organize.error.message}</p> : null}
     </article>
   );
 }

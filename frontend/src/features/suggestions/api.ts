@@ -5,8 +5,17 @@ export const suggestionsApi = {
   preferences() {
     return apiRequest<OwnerPreferences>("/owner/preferences");
   },
-  recipes() {
-    return apiRequest<RecipePage>("/recipes?limit=100");
+  async recipes() {
+    const items: RecipePage["items"] = [];
+    let cursor: string | undefined;
+    do {
+      const params = new URLSearchParams({ limit: "100" });
+      if (cursor) params.set("cursor", cursor);
+      const page = await apiRequest<RecipePage>(`/recipes?${params.toString()}`);
+      items.push(...page.items);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    return { items, nextCursor: null } satisfies RecipePage;
   },
   create(value: SuggestionRequest) {
     return apiRequest<JobAccepted>("/suggestions", {

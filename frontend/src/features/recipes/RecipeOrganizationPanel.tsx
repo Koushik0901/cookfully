@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button, Field } from "../../components";
+import { Button, ConfirmDialog, Field } from "../../components";
 import { Checkbox } from "@/components/ui/checkbox";
 import { recipesApi } from "./api";
 import { RecipeCollectionManager } from "./RecipeCollectionManager";
@@ -35,12 +35,12 @@ export function RecipeOrganizationPanel({ recipe, onSaved }: { recipe: RecipeDet
     </button>
     <details className="recipe-organization" onToggle={(event) => setOpen(event.currentTarget.open)}><summary><Heart aria-hidden="true" /><span><strong>Keep this easy to find</strong><small>Optional favorites, collections, and meal moments.</small></span></summary><div className="recipe-organization__body">
     <label className="check-label"><Checkbox checked={favorite} onCheckedChange={(checked) => setFavorite(checked === true)} />Favorite this recipe</label>
-    <fieldset><legend>Collections</legend><div className="organization-chips">{availableCollections.map((collection) => <span key={collection.id}><label><Checkbox checked={selected.includes(collection.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, collection.id] : selected.filter((id) => id !== collection.id))} />{collection.name}</label><button type="button" aria-label={`Remove collection ${collection.name}`} className="organization-chip-delete" onClick={() => remove.mutate(collection)}><Trash2 aria-hidden="true" /></button></span>)}</div></fieldset>
+    <fieldset><legend>Collections</legend><div className="organization-chips">{availableCollections.map((collection) => <span key={collection.id}><label><Checkbox checked={selected.includes(collection.id)} onCheckedChange={(checked) => setSelected(checked === true ? [...selected, collection.id] : selected.filter((id) => id !== collection.id))} />{collection.name}</label><ConfirmDialog trigger={<button type="button" aria-label={`Remove collection ${collection.name}`} className="organization-chip-delete" disabled={remove.isPending}><Trash2 aria-hidden="true" /></button>} title={`Delete ${collection.name}?`} description="This removes the collection label from every recipe that uses it. Your recipes and their content stay safe." confirmLabel="Delete collection" onConfirm={() => remove.mutate(collection)} /></span>)}</div></fieldset>
     <fieldset><legend>Good for</legend><div className="organization-chips">{roles.map((role) => <label key={role}><Checkbox checked={mealRoles.includes(role)} onCheckedChange={(checked) => setMealRoles(checked === true ? [...mealRoles, role] : mealRoles.filter((value) => value !== role))} />{role}</label>)}</div></fieldset>
     <div className="organization-new"><Field label="New collection"><input className="input" value={newCollection} placeholder="e.g. Weeknight favourites" onChange={(event) => setNewCollection(event.currentTarget.value)} /></Field><Button variant="secondary" onClick={() => create.mutate()} disabled={!newCollection.trim() || create.isPending}><Plus aria-hidden="true" />Add</Button></div>
     <RecipeCollectionManager collections={availableCollections} />
      <Button onClick={() => save.mutate(organizationValue())} disabled={save.isPending}>{save.isPending ? "Saving…" : "Save organization"}</Button>
-     {save.error instanceof Error || create.error instanceof Error ? <p className="error-text" role="alert">{(save.error ?? create.error as Error).message}</p> : null}
+     {save.error instanceof Error || create.error instanceof Error || remove.error instanceof Error ? <p className="error-text" role="alert">{(save.error ?? create.error ?? remove.error as Error).message}</p> : null}
    </div></details>
   </>;
 }

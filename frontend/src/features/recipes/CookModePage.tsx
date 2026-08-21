@@ -10,6 +10,17 @@ import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
 
+type CookSession = { currentStep: number; complete: boolean; checkedIngredients: number[] };
+function loadCookSession(recipeId?: string): CookSession | null {
+  if (!recipeId || typeof window === "undefined") return null;
+  try {
+    const value = window.sessionStorage.getItem(`cookfully:cook:${recipeId}`);
+    return value ? JSON.parse(value) as CookSession : null;
+  } catch {
+    return null;
+  }
+}
+
 export function CookModePage() {
   const { recipeId } = useParams();
   const recipe = useQuery({
@@ -17,9 +28,9 @@ export function CookModePage() {
     queryFn: () => recipesApi.get(recipeId!),
     enabled: Boolean(recipeId),
   });
-  const [currentStep, setCurrentStep] = useState(0);
-  const [complete, setComplete] = useState(false);
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+  const [currentStep, setCurrentStep] = useState(() => loadCookSession(recipeId)?.currentStep ?? 0);
+  const [complete, setComplete] = useState(() => loadCookSession(recipeId)?.complete ?? false);
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => new Set(loadCookSession(recipeId)?.checkedIngredients ?? []));
   const [ingredientsOpen, setIngredientsOpen] = useState(
     () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 60rem)").matches,
   );
@@ -50,6 +61,15 @@ export function CookModePage() {
       wakeLock.current?.release().catch(() => {});
     };
   }, []);
+
+  useEffect(() => {
+    if (!recipeId || typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(`cookfully:cook:${recipeId}`, JSON.stringify({ currentStep, complete, checkedIngredients: [...checkedIngredients] } satisfies CookSession));
+    } catch {
+      // Cooking still works if storage is unavailable (private browsing or a restricted WebView).
+    }
+  }, [checkedIngredients, complete, currentStep, recipeId]);
 
   const toggleIngredient = useCallback((index: number) => {
     setCheckedIngredients((previous) => {
@@ -126,7 +146,7 @@ export function CookModePage() {
             <p>{currentRecipe.title} is ready. Plate it, take a breath, and enjoy what you made.</p>
             <div className="cook-mode__complete-actions">
               <Button asChild><Link to={"/app/recipes/" + recipeId}>Back to recipe</Link></Button>
-              <Button variant="secondary" onClick={() => { setCurrentStep(0); setComplete(false); }}><RotateCcw aria-hidden="true" />Cook again</Button>
+              <Button variant="secondary" onClick={() => { setCurrentStep(0); setComplete(false); setCheckedIngredients(new Set()); }}><RotateCcw aria-hidden="true" />Cook again</Button>
             </div>
           </div>
         </main>

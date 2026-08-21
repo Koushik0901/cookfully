@@ -16,6 +16,7 @@ import { formatCookingNumber, servingLabel } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { recipeTimeLabel } from "../recipes/recipeMetadataUtils";
 import type { Recipe } from "../recipes/types";
+import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
 
 const DAY_MS = 86_400_000;
 const MEAL_ORDER = new Map(["breakfast", "lunch", "dinner", "snack"].map((slot, index) => [slot, index]));
@@ -97,6 +98,7 @@ export function HomePage() {
   });
 
   const activeRecipes = useMemo(() => recipes.data?.items.filter((recipe) => recipe.status !== "archived") ?? [], [recipes.data?.items]);
+  const readyRecipes = useMemo(() => activeRecipes.filter(isRecipeReadyToPlan), [activeRecipes]);
   const recipesById = useMemo(() => new Map(activeRecipes.map((recipe) => [recipe.id, recipe])), [activeRecipes]);
   const recentRecipes = useMemo(() => [...activeRecipes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 4), [activeRecipes]);
 
@@ -106,7 +108,14 @@ export function HomePage() {
   const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
   const groceryMissing = grocery.error instanceof ApiProblem && grocery.error.status === 404;
   const entries = plan.data?.entries ?? [];
-  const dinner = entries.filter((entry) => entry.localDate === today && entry.mealSlot === "dinner").sort((a, b) => a.position - b.position)[0];
+  const todayEntries = entries.filter((entry) => entry.localDate === today).sort((a, b) => {
+    const order = new Map(["breakfast", "lunch", "dinner", "snack"].map((slot, index) => [slot, index]));
+    return (order.get(a.mealSlot) ?? 99) - (order.get(b.mealSlot) ?? 99) || a.position - b.position;
+  });
+  const dinner = todayEntries.find((entry) => entry.mealSlot === "dinner") ?? todayEntries[0];
+  const focusSlot = dinner?.mealSlot ?? "dinner";
+  const focusLabel = focusSlot[0].toUpperCase() + focusSlot.slice(1);
+  const focusTimeLabel = focusSlot === "dinner" ? "Tonight" : focusLabel;
   const dinnerRecipe = dinner?.recipeId ? recipesById.get(dinner.recipeId) : undefined;
   const days = weekStart ? weekDates(weekStart) : [];
   const entriesByDate = new Map(days.map((date) => [date, entries.filter((entry) => entry.localDate === date)]));
@@ -114,7 +123,7 @@ export function HomePage() {
   const plannedRecipeIds = new Set(entries.flatMap((entry) => entry.recipeId ? [entry.recipeId] : []));
   const matchesByRecipeId = new Map((pantryMatches.data ?? []).map((match) => [match.recipeId, match]));
   const dinnerMatch = dinner?.recipeId ? matchesByRecipeId.get(dinner.recipeId) : undefined;
-  const recommendations = [...activeRecipes]
+  const recommendations = [...readyRecipes]
     .filter((recipe) => recipe.id !== dinner?.recipeId)
     .sort((a, b) => recommendationRank(b, matchesByRecipeId.get(b.id), plannedRecipeIds) - recommendationRank(a, matchesByRecipeId.get(a.id), plannedRecipeIds) || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 3);
@@ -125,7 +134,7 @@ export function HomePage() {
   const activeGroceryItems = grocery.data?.items.filter((item) => !item.checked) ?? [];
   const purchasedCount = grocery.data?.items.filter((item) => item.checked).length ?? 0;
   const groceryUnavailable = grocery.isError && !groceryMissing;
-  const groceryHeading = grocery.isPending ? "Checking your list…"
+  const groceryHeading = grocery.isPending || grocery.data?.status === "generating" ? "Updating your list…"
     : groceryUnavailable ? "Your list is out of reach"
     : groceryMissing || !grocery.data ? "Start your grocery list"
     : activeGroceryItems.length ? `${activeGroceryItems.length} ${activeGroceryItems.length === 1 ? "thing" : "things"} to pick up`
@@ -149,20 +158,20 @@ export function HomePage() {
         <article className={`home-tonight${dinnerRecipe?.imageUrl ? " home-tonight--with-image" : ""}`} aria-labelledby="tonight-heading">
           <div className="home-tonight__art" aria-hidden="true">{dinnerRecipe ? <span className="home-tonight__photo"><RecipeMedia recipe={dinnerRecipe} loading="eager" /></span> : <span className="home-plate"><i className="home-plate__greens" /><i className="home-plate__main" /><i className="home-plate__sauce" /></span>}</div>
           <div className="home-tonight__copy">
-            <p className="eyebrow" id="tonight-heading">Tonight</p>
+            <p className="eyebrow" id="tonight-heading">{focusTimeLabel}</p>
             {plan.isPending || recipes.isPending ? <><h2>Checking tonight’s plan…</h2><p>Opening this week.</p></> : plan.isError && !planMissing ? <><h2>Your plan is out of reach</h2><p>Recipes are still safe.</p><Button variant="secondary" onClick={() => void plan.refetch()}>Try again</Button></> : dinner ? <>
               <h2>{dinner.recipeTitle}</h2>
               {heroFacts.length ? <ul className="home-tonight__facts">{heroFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : null}
               {dinnerMatch?.availability === "full" ? <p className="home-tonight__availability">Everything you need is already in the pantry.</p> : dinnerMatch?.missingIngredients.length ? <p className="home-tonight__availability">{dinnerMatch.missingIngredients.length} {dinnerMatch.missingIngredients.length === 1 ? "ingredient" : "ingredients"} still needed. <Link to="/app/grocery">Check groceries</Link></p> : null}
               {dinner.recipeId ? <Button asChild><Link to={`/app/recipes/${dinner.recipeId}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : <Button asChild><Link to="/app/plan">Review dinner</Link></Button>}
-            </> : activeRecipes.length ? <><h2>Choose tonight’s dinner</h2><p>Make one good decision now.</p><Button asChild><Link to={`/app/plan?date=${today}&slot=dinner`}><CalendarDays aria-hidden="true" />Plan tonight</Link></Button></> : <><h2>Save your first recipe</h2><p>Start with a dish you already love.</p><Button asChild><Link to="/app/recipes/new">Add a recipe</Link></Button></>}
+            </> : readyRecipes.length ? <><h2>Plan today’s next meal</h2><p>Make one good decision now.</p><Button asChild><Link to={`/app/plan?date=${today}&slot=${focusSlot}`}><CalendarDays aria-hidden="true" />Plan {focusSlot === "dinner" ? "tonight" : focusSlot}</Link></Button></> : <><h2>Save your first recipe</h2><p>Start with a dish you already love.</p><Button asChild><Link to="/app/recipes/new">Add a recipe</Link></Button></>}
           </div>
         </article>
 
         <section className="home-week-card" aria-labelledby="home-week-heading">
           <div className="home-week-card__heading"><div><p className="eyebrow">This week</p><h2 id="home-week-heading">{mealHeadline(entries.length)}</h2></div><Link to="/app/plan" aria-label="Open full meal plan"><ArrowRight aria-hidden="true" /></Link></div>
           <div className="home-week-grid" aria-label={`${plannedDates.size} of 7 days have planned meals`}>{days.map((date) => <WeekDay key={date} date={date} entries={entriesByDate.get(date) ?? []} recipesById={recipesById} today={today} />)}</div>
-          <div className="home-week-card__next"><span>Next up</span><strong>{dinner ? dinner.recipeTitle : "Nothing planned for tonight"}</strong><Link to={`/app/plan?date=${today}&slot=dinner`}>{dinner ? "Review today" : "Plan tonight"} <ArrowRight aria-hidden="true" /></Link></div>
+          <div className="home-week-card__next"><span>Next up</span><strong>{dinner ? dinner.recipeTitle : "Nothing planned today"}</strong><Link to={`/app/plan?date=${today}&slot=${focusSlot}`}>{dinner ? "Review today" : "Plan today"} <ArrowRight aria-hidden="true" /></Link></div>
         </section>
       </div>
 
@@ -193,7 +202,7 @@ export function HomePage() {
 
         <section className="home-grocery" aria-labelledby="home-grocery-heading">
           <div className="home-grocery__mark" aria-hidden="true"><PackageOpen /></div><p className="eyebrow">Grocery</p><h2 id="home-grocery-heading">{groceryHeading}</h2>
-          {grocery.isPending ? null : groceryUnavailable ? <p>Nothing was changed. Try opening the list again when the connection settles.</p> : groceryMissing || !grocery.data ? <p>Build a list from this week’s meals, or start with one thing you need.</p> : activeGroceryItems.length ? <><ul>{activeGroceryItems.slice(0, 3).map((item) => <li key={item.id}>{item.displayName}</li>)}{activeGroceryItems.length > 3 ? <li>+{activeGroceryItems.length - 3} more</li> : null}</ul><p>{purchasedCount ? `${purchasedCount} already in your basket.` : grocery.data.status === "dirty" ? "Your plan changed; the list is ready to refresh." : "Ready for your next shop."}</p></> : <p>{purchasedCount ? `${purchasedCount} picked up. Nice work.` : "Your current list is clear."}</p>}
+          {grocery.isPending || grocery.data?.status === "generating" ? <p>Your latest plan is being turned into a shopping list.</p> : groceryUnavailable ? <p>Nothing was changed. Try opening the list again when the connection settles.</p> : groceryMissing || !grocery.data ? <p>Build a list from this week’s meals, or start with one thing you need.</p> : activeGroceryItems.length ? <><ul>{activeGroceryItems.slice(0, 3).map((item) => <li key={item.id}>{item.displayName}</li>)}{activeGroceryItems.length > 3 ? <li>+{activeGroceryItems.length - 3} more</li> : null}</ul><p>{purchasedCount ? `${purchasedCount} already in your basket.` : grocery.data.status === "dirty" ? "Your plan changed; refresh the list before shopping." : "Ready for your next shop."}</p></> : <p>{purchasedCount ? `${purchasedCount} picked up. Nice work.` : "Your current list is clear."}</p>}
           <Link to="/app/grocery">{groceryMissing ? "Start a grocery list" : "Open grocery list"} <ArrowRight aria-hidden="true" /></Link>
         </section>
       </div>

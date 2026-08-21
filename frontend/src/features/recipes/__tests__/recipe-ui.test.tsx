@@ -160,6 +160,7 @@ describe("recipe UI", () => {
     expect(screen.getByRole("menuitem", { name: /archive recipe/i })).toBeVisible();
     expect(screen.getByRole("menuitem", { name: /delete recipe/i })).toBeVisible();
     await user.click(screen.getByRole("menuitem", { name: /archive recipe/i }));
+    await user.click(screen.getByRole("button", { name: "Archive recipe" }));
     expect(onArchive).toHaveBeenCalledWith(recipe.id, 3);
   });
 

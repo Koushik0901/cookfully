@@ -24,5 +24,5 @@ function recipeFallbackKind(title: string): FallbackKind {
 
 export function RecipeFallbackArt({ title, className = "" }: { title: string; className?: string }) {
   const kind = recipeFallbackKind(title);
-  return <img className={`recipe-fallback-art ${className}`} src={FALLBACKS[kind]} alt="" loading="lazy" decoding="async" data-fallback-kind={kind} />;
+  return <img className={`recipe-fallback-art ${className}`} src={FALLBACKS[kind]} alt="" loading="lazy" decoding="async" draggable={false} data-fallback-kind={kind} />;
 }

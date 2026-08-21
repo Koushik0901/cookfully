@@ -117,6 +117,7 @@ describe("recipe library density", () => {
     expect(screen.getByRole("button", { name: "Archive 2 selected recipes" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "Archive 2 selected recipes" }));
+    await user.click(screen.getByRole("button", { name: "Archive 2 recipes" }));
     await waitFor(() => expect(screen.getByText("2 recipes archived.")).toBeVisible());
     expect(screen.queryByRole("checkbox", { name: "Select Roasted salmon bowl" })).not.toBeInTheDocument();
   });

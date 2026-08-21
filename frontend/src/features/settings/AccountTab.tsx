@@ -2,17 +2,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { Button, ErrorRecovery, Field, SectionHeading, Select, Skeleton } from "../../components";
+import { longDate, todayInTimezone, weekStartFor } from "../plans/dates";
 import { planningApi } from "../plans/api";
 
-const TIMEZONES = ["UTC", "America/Vancouver", "America/New_York", "Europe/London"];
+const TIMEZONES = (() => {
+  const supportedValuesOf = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+  return [...new Set(["UTC", ...(supportedValuesOf?.("timeZone") ?? ["America/Vancouver", "America/New_York", "Europe/London"])])].sort();
+})();
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export function AccountTab() {
   const queryClient = useQueryClient();
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const [displayName, setDisplayName] = useState("");
-  const [timezone, setTimezone] = useState("UTC");
+  const [timezone, setTimezone] = useState(BROWSER_TIMEZONE);
   const [weekStartsOn, setWeekStartsOn] = useState("1");
   const [saved, setSaved] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   useEffect(() => {
     if (!preferences.data) return;
@@ -35,10 +41,19 @@ export function AccountTab() {
     },
   });
 
+  const timezoneChanged = Boolean(preferences.data && timezone !== preferences.data.timezone);
+  const weekStartChanged = Boolean(preferences.data && Number(weekStartsOn) !== preferences.data.weekStartsOn);
+  const previewToday = todayInTimezone(timezone);
+  const previewWeekStart = weekStartFor(previewToday, Number(weekStartsOn));
+
   function submit(event: FormEvent) {
     event.preventDefault();
     setSaved(false);
-    if (!displayName.trim()) return;
+    if (!displayName.trim()) {
+      setNameError("Add a name so Cookfully knows how to address you.");
+      return;
+    }
+    setNameError("");
     save.mutate();
   }
 
@@ -56,26 +71,20 @@ export function AccountTab() {
     <form className="settings-section" onSubmit={submit}>
       <SectionHeading title="Account" description="How Cookfully refers to you and when your planning week begins." />
       <div className="form-grid">
-        <Field label="Display name">
+        <Field label="Display name" error={nameError}>
           <input
             className="input"
             value={displayName}
             maxLength={80}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onChange={(event) => { setDisplayName(event.target.value); setNameError(""); }}
           />
         </Field>
-        <Field label="Timezone">
-          <Select
-            value={timezone}
-            onChange={(event) => setTimezone(event.target.value)}
-          >
-            {!TIMEZONES.includes(timezone) ? <option value={timezone}>{timezone}</option> : null}
-            {TIMEZONES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
+        <Field label="Timezone" hint="Search any IANA timezone, or use the timezone detected by this browser.">
+          <div>
+            <input className="input" list="cookfully-timezones" value={timezone} onChange={(event) => setTimezone(event.target.value)} />
+            <datalist id="cookfully-timezones">{TIMEZONES.map((value) => <option key={value} value={value} />)}</datalist>
+            {timezone !== BROWSER_TIMEZONE ? <button className="text-link" type="button" onClick={() => setTimezone(BROWSER_TIMEZONE)}>Use browser timezone ({BROWSER_TIMEZONE})</button> : null}
+          </div>
         </Field>
         <Field label="Week starts on">
           <Select
@@ -83,11 +92,20 @@ export function AccountTab() {
             onChange={(event) => setWeekStartsOn(event.target.value)}
           >
             <option value="1">Monday</option>
-            <option value="7">Sunday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
             <option value="6">Saturday</option>
+            <option value="7">Sunday</option>
           </Select>
         </Field>
       </div>
+      {timezoneChanged || weekStartChanged ? <div className="settings-impact" role="status">
+        <strong>Before you save</strong>
+        <p>{timezoneChanged ? `Today will be ${longDate(previewToday)} in ${timezone}.` : null}{timezoneChanged && weekStartChanged ? " " : null}{weekStartChanged ? `Your current planning week will begin on ${longDate(previewWeekStart)}.` : null}</p>
+        <small>These settings change which days are locked as past, which week Home summarizes, and when grocery lists are generated.</small>
+      </div> : null}
       {save.error instanceof Error ? (
         <p className="error-text" role="alert">
           {save.error.message}

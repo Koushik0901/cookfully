@@ -1062,6 +1062,10 @@
 .settings-tabs button[aria-selected="true"] small { color: color-mix(in oklch, var(--color-on-primary) 78%, transparent); }
 .settings-panels { min-width: 0; }
 .settings-section { display: grid; gap: 1.25rem; max-width: 52rem; border-bottom: 1px solid var(--color-outline-variant); padding-bottom: 2rem; }
+.settings-impact { display: grid; gap: 0.35rem; border-radius: var(--radius-lg); padding: 0.9rem 1rem; color: var(--color-on-primary-container); background: var(--color-primary-container); }
+.settings-impact p,
+.settings-impact small { margin: 0; color: inherit; }
+.settings-impact small { opacity: 0.82; }
 .settings-section + .settings-section { padding-top: 0.5rem; }
 .settings-section > .section-heading { align-items: start; }
 .settings-section > .section-heading > div { display: grid; gap: 0.35rem; }
@@ -1409,6 +1413,9 @@
 .week-meal__media { display: block; width: 3.25rem; height: 3.25rem; overflow: hidden; border-radius: 0.75rem; background: var(--color-surface-high); }
 .week-meal__media img,
 .week-meal__media .recipe-fallback-art { width: 100%; height: 100%; object-fit: cover; }
+.week-meal { cursor: grab; touch-action: none; user-select: none; }
+.week-meal:active { cursor: grabbing; }
+.week-meal.is-dragging { cursor: grabbing; }
 .week-day__meals li > div { display: grid; min-width: 0; align-content: center; gap: 0.1rem; }
 .week-day__meals small { color: var(--color-tomato); font-size: 0.67rem; font-weight: 650; text-transform: capitalize; }
 .week-day__meals strong { overflow: hidden; font-size: 0.82rem; line-height: 1.2; text-overflow: ellipsis; }

@@ -2,9 +2,18 @@ from functools import lru_cache
 from ipaddress import ip_network
 from pathlib import Path
 from typing import Annotated, Literal
+from urllib.parse import quote
 from uuid import UUID
 
-from pydantic import AnyHttpUrl, EmailStr, Field, SecretStr, field_validator
+from pydantic import (
+    AliasChoices,
+    AnyHttpUrl,
+    EmailStr,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -12,7 +21,10 @@ class Settings(BaseSettings):
     """Validated server-only configuration with safe local defaults."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # The API is commonly started from either the repository root or the
+        # backend directory. Check both locations so the shared repository
+        # .env is loaded in either case.
+        env_file=(".env", "../.env"),
         env_prefix="COOKFULLY_",
         extra="ignore",
         case_sensitive=False,
@@ -24,6 +36,18 @@ class Settings(BaseSettings):
     owner_email: EmailStr = "owner@example.com"
     owner_bootstrap_password: SecretStr = SecretStr("development-only")
     database_url: str = "postgresql+psycopg://cookfully:cookfully@localhost:5432/cookfully"
+    postgres_user: str = Field(
+        "cookfully",
+        validation_alias=AliasChoices("POSTGRES_USER", "COOKFULLY_POSTGRES_USER"),
+    )
+    postgres_password: SecretStr = Field(
+        SecretStr("cookfully"),
+        validation_alias=AliasChoices("POSTGRES_PASSWORD", "COOKFULLY_POSTGRES_PASSWORD"),
+    )
+    postgres_db: str = Field(
+        "cookfully",
+        validation_alias=AliasChoices("POSTGRES_DB", "COOKFULLY_POSTGRES_DB"),
+    )
     redis_url: str = "redis://localhost:6379/0"
     public_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost:5173")
     api_base_url: AnyHttpUrl = AnyHttpUrl("http://localhost:8000")
@@ -46,6 +70,17 @@ class Settings(BaseSettings):
     semantic_matching_backend: Literal["hashing", "fastembed"] = "hashing"
     semantic_matching_model: str = "BAAI/bge-small-en-v1.5"
     semantic_matching_model_dir: Path = Path("semantic-models")
+
+    @model_validator(mode="after")
+    def build_database_url_from_postgres_credentials(self) -> "Settings":
+        """Build a host URL from Compose-style POSTGRES_* values when needed."""
+
+        if "database_url" not in self.model_fields_set:
+            user = quote(self.postgres_user, safe="")
+            password = quote(self.postgres_password.get_secret_value(), safe="")
+            database = quote(self.postgres_db, safe="")
+            self.database_url = f"postgresql+psycopg://{user}:{password}@localhost:5432/{database}"
+        return self
 
     @field_validator("job_retry_delays_seconds", mode="before")
     @classmethod

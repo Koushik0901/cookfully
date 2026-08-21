@@ -9,12 +9,13 @@ import { planningApi } from "./api";
 import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
 import { DayTabs } from "./DayTabs";
 import { MacroSummary } from "./MacroSummary";
-import { MealPlanEntry } from "./MealPlanEntry";
 import { NutritionPulse } from "./NutritionPulse";
 import { PrepOverview } from "./PrepOverview";
 import { RecipePickerSheet } from "./RecipePickerSheet";
+import { DayMealBoard } from "./DayMealBoard";
 import { WeekOverview } from "./WeekOverview";
 import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
+import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
@@ -46,9 +47,10 @@ export function WeeklyPlannerPage() {
     if (!weekStart || !selectedDate || !requestedSlot || shortcutHandled || !SLOTS.includes(requestedSlot)) return;
     setPickerSlot(requestedSlot);
     setView("day");
-    setPickerOpen(true);
+    if (selectedDate >= todayInTimezone(preferences.data!.timezone)) setPickerOpen(true);
+    else setAddMessage("Past days are read-only. Choose today or a future day.");
     setShortcutHandled(true);
-  }, [searchParams, selectedDate, shortcutHandled, weekStart]);
+  }, [preferences.data, searchParams, selectedDate, shortcutHandled, weekStart]);
 
   const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
   const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes });
@@ -57,9 +59,11 @@ export function WeeklyPlannerPage() {
   const goalMissing = goal.error instanceof ApiProblem && goal.error.status === 404;
   const add = useMutation({
     mutationFn: ({ recipeId, mealSlot }: { recipeId: string; mealSlot: string }) => {
+      if (selectedDate < todayInTimezone(preferences.data!.timezone)) throw new Error("Past days are read-only. Choose today or a future day.");
       return planningApi.addEntry(weekStart, { localDate: selectedDate, mealSlot, recipeId, servings: "1.000", refreshNutrition: false });
     },
     onSuccess: () => { setAddMessage("Meal added to your plan."); setPickerOpen(false); void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] }); },
+    onError: (error) => { setAddMessage(error instanceof Error ? error.message : "Past days are read-only. Choose today or a future day."); setPickerOpen(true); },
   });
   const move = useMutation({
     mutationFn: ({ entry, date, slot, position }: { entry: PlannedEntry; date: string; slot: string; position: number }) => {
@@ -168,11 +172,15 @@ export function WeeklyPlannerPage() {
   if (goal.isError && !goalMissing) return <PageState><ErrorRecovery title="Goal could not be loaded" onRetry={() => void goal.refetch()} /></PageState>;
   if (plan.isError && !planMissing) return <PageState><ErrorRecovery title="Weekly plan could not be loaded" onRetry={() => void plan.refetch()} /></PageState>;
   const entries = plan.data?.entries ?? [];
+  const today = todayInTimezone(preferences.data.timezone);
+  const selectedDateIsPast = Boolean(selectedDate && selectedDate < today);
   const selectedEntries = entries.filter((entry) => entry.localDate === selectedDate);
   const openSlots = SLOTS.filter((slot) => !selectedEntries.some((entry) => entry.mealSlot === slot));
   const totals = plan.data?.dayTotals ?? {};
-  const availableRecipes = recipes.data?.items.filter((recipe) => recipe.status !== "archived" && !["failed", "pending", "stale"].includes(recipe.nutritionState)) ?? [];
-  const recipesById = new Map(availableRecipes.map((recipe) => [recipe.id, recipe]));
+  const availableRecipes = recipes.data?.items.filter(isRecipeReadyToPlan) ?? [];
+  // Keep historical/stale recipe media available for cards already on the plan;
+  // only the picker is restricted to recipes that are safe to add.
+  const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
   const plannedDays = new Set(entries.map((entry) => entry.localDate)).size;
   const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
 
@@ -195,6 +203,7 @@ export function WeeklyPlannerPage() {
            entries={entries}
            recipesById={recipesById}
            selectedDate={selectedDate}
+           today={today}
            copyPending={copy.isPending}
            swapPending={swap.isPending}
            deletePending={remove.isPending}
@@ -209,17 +218,23 @@ export function WeeklyPlannerPage() {
        </section> : null}
 
        {view === "day" ? <section id="planner-panel-day" role="tabpanel" aria-labelledby="planner-tab-day">
-         <DayTabs dates={dates} selected={selectedDate} onSelect={(date) => { setSelectedDate(date); setAddMessage(""); }} totals={totals} entryCounts={entryCounts} />
+         <DayTabs dates={dates} selected={selectedDate} onSelect={(date) => { setSelectedDate(date); setAddMessage(""); }} totals={totals} entryCounts={entryCounts} today={today} />
         <div className={`plan-workspace${goal.data ? "" : " plan-workspace--single"}`}>
         <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
           <div className="planner-day__heading"><div><p className="eyebrow">Selected day</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
-          {addMessage ? <p className="planner-day__feedback success-text" role="status">{addMessage}</p> : null}
-          {SLOTS.map((slot) => {
-            const slotEntries = selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position);
-            const slotLabel = slot[0].toUpperCase() + slot.slice(1);
-             return <section className="meal-slot" key={slot}><div className="section-heading"><h3>{slotLabel}</h3><span>{slotEntries.length ? `${slotEntries.length} planned` : "Open"}</span></div>{slotEntries.length ? <div className="entry-list">{slotEntries.map((entry) => <MealPlanEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} />)}</div> : <div className="meal-slot__empty meal-slot__empty--quiet"><Button variant="secondary" aria-label={`Add a recipe to ${slotLabel}`} onClick={() => { add.reset(); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a recipe</Button></div>}</section>;
-           })}
-           {goal.data && openSlots.length ? <div className="planner-day__gap-action"><div><strong>{openSlots.length} open meal {openSlots.length === 1 ? "spot" : "spots"}</strong><span>Let Cookfully suggest a practical fit for the gaps.</span></div><Link to={`/app/suggestions?scope=day&localDate=${selectedDate}`}><Sparkles aria-hidden="true" />Suggest meals for open spots</Link></div> : null}
+          {selectedDateIsPast ? <div className="planner-day__readonly" role="status"><strong>Past day</strong><span>This day has already passed. You can review it, but new changes start today.</span></div> : null}
+          {addMessage ? <p className={`planner-day__feedback ${move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "error-text" : "success-text"}`} role={move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "alert" : "status"}>{addMessage}</p> : null}
+          <DayMealBoard
+            date={selectedDate}
+            slots={SLOTS.map((slot) => ({ slot, label: slot[0].toUpperCase() + slot.slice(1), entries: selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position) }))}
+            weekStart={weekStart}
+            recipesById={recipesById}
+            readOnly={selectedDateIsPast}
+            onMove={(entry, targetSlot, position) => move.mutate({ entry, date: selectedDate, slot: targetSlot, position })}
+            onSwap={(source, target) => swap.mutate({ source, target })}
+            renderEmpty={(slot, readOnly) => { const label = slot[0].toUpperCase() + slot.slice(1); return readOnly ? <div className="meal-slot__past" aria-label={`${label} is in the past`}>Past · no changes</div> : <div className="meal-slot__empty meal-slot__empty--quiet"><Button variant="secondary" aria-label={`Add a recipe to ${label}`} onClick={() => { add.reset(); setPickerSlot(slot); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a recipe</Button></div>; }}
+          />
+           {goal.data && openSlots.length && !selectedDateIsPast ? <div className="planner-day__gap-action"><div><strong>{openSlots.length} open meal {openSlots.length === 1 ? "spot" : "spots"}</strong><span>Let Cookfully suggest a practical fit for the gaps.</span></div><Link to={`/app/suggestions?scope=day&localDate=${selectedDate}`}><Sparkles aria-hidden="true" />Suggest meals for open spots</Link></div> : null}
          </section>
         {goal.data ? <aside className="plan-nutrition" aria-label="Nutrition guidance">
           <div className="plan-nutrition__intro"><p className="eyebrow">Nutrition guidance</p><h2>Shape the day as you plan</h2><p>Use the remaining amounts to adjust servings or choose the next meal—not to grade the food you’ve already chosen.</p></div>

@@ -27,6 +27,38 @@ def test_comma_separated_values_parse_from_environment_source(
     assert settings.trusted_proxy_cidrs == ()
 
 
+def test_database_url_uses_postgres_credentials_from_env_file(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "POSTGRES_USER=local user\nPOSTGRES_PASSWORD=p@ss/word\nPOSTGRES_DB=meal planner\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("COOKFULLY_DATABASE_URL", raising=False)
+
+    settings = Settings(_env_file=env_file)
+
+    assert settings.database_url == (
+        "postgresql+psycopg://local%20user:p%40ss%2Fword@localhost:5432/meal%20planner"
+    )
+
+
+def test_explicit_database_url_takes_precedence_over_postgres_credentials(tmp_path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "POSTGRES_USER=compose-user\nPOSTGRES_PASSWORD=compose-password\n",
+        encoding="utf-8",
+    )
+
+    settings = Settings(
+        _env_file=env_file,
+        database_url="postgresql+psycopg://explicit:password@db.example/cookfully",
+    )
+
+    assert settings.database_url == "postgresql+psycopg://explicit:password@db.example/cookfully"
+
+
 def test_production_rejects_development_secrets() -> None:
     with pytest.raises(ValidationError):
         Settings(environment="production")

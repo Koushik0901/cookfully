@@ -41,6 +41,18 @@ async function mockPlanningApi(page: Page) {
       planVersion += 1;
       return fulfill(item, 201);
     }
+    if (path.match(/\/api\/v1\/meal-plan-entries\/[^/]+\/swap$/) && method === "POST") {
+      const sourceId = path.split("/").at(-2);
+      const { targetEntryId } = request.postDataJSON() as { targetEntryId: string };
+      const sourceIndex = entries.findIndex((item) => item.id === sourceId);
+      const targetIndex = entries.findIndex((item) => item.id === targetEntryId);
+      const source = entries[sourceIndex];
+      const target = entries[targetIndex];
+      entries[sourceIndex] = { ...source, localDate: target.localDate, mealSlot: target.mealSlot, position: target.position, version: Number(source.version) + 1 };
+      entries[targetIndex] = { ...target, localDate: source.localDate, mealSlot: source.mealSlot, position: source.position, version: Number(target.version) + 1 };
+      planVersion += 1;
+      return fulfill({ source: entries[sourceIndex], target: entries[targetIndex] });
+    }
     if (path.startsWith("/api/v1/meal-plan-entries/") && method === "PATCH") {
       const id = path.split("/").at(-1);
       const value = request.postDataJSON();
@@ -115,7 +127,112 @@ test("reflows the mobile week into a readable vertical agenda", async ({ page },
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes snapshots", async ({ page }, testInfo) => {
+test("keeps dates before today visible but read-only", async ({ page }) => {
+  await mockPlanningApi(page);
+  await page.goto("/app/plan");
+
+  await expect(page.locator(".week-day--past")).toHaveCount(2);
+  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: /monday.*march 9.*past/i }).click();
+  await expect(page.getByText("Past day", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a recipe to Breakfast" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add a recipe to Lunch" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add a recipe to Dinner" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add a recipe to Snack" })).toHaveCount(0);
+});
+
+test("moves a meal with the whole card drag surface", async ({ page }) => {
+  await mockPlanningApi(page);
+  await page.goto("/app/plan");
+
+  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
+  await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
+  await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Week" }).click();
+  const meal = page.locator(".week-meal").first();
+  const destination = page.locator('.week-slot[aria-label="Breakfast on Wednesday"]');
+  const moveRequest = page.waitForRequest((request) => request.method() === "PATCH" && request.url().includes("/meal-plan-entries/"));
+  // The mobile week board is horizontally scrollable; bring the source day
+  // into the viewport before sending a touch gesture.
+  await meal.scrollIntoViewIfNeeded();
+  const sourceBox = await meal.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  const sourcePoint = { x: sourceBox!.x + sourceBox!.width / 2, y: sourceBox!.y + sourceBox!.height / 2 };
+  const touchEnvironment = await page.evaluate(() => navigator.maxTouchPoints > 0);
+  const touchClient = touchEnvironment ? await page.context().newCDPSession(page) : null;
+  if (touchEnvironment) {
+    await touchClient!.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: sourcePoint.x, y: sourcePoint.y, id: 1 }], modifiers: 0 });
+  } else {
+    await page.mouse.move(sourcePoint.x, sourcePoint.y);
+    await page.mouse.down();
+  }
+  // The touch pointer sensor intentionally waits 250ms before activating so
+  // a scroll gesture is not mistaken for a drag.
+  await page.waitForTimeout(350);
+  await expect(page.locator(".week-overview--dragging")).toBeVisible();
+  await destination.scrollIntoViewIfNeeded();
+  const destinationBox = await destination.boundingBox();
+  expect(destinationBox).not.toBeNull();
+  const destinationPoint = { x: destinationBox!.x + destinationBox!.width / 2, y: destinationBox!.y + destinationBox!.height / 2 };
+  if (touchEnvironment) {
+    await touchClient!.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: destinationPoint.x, y: destinationPoint.y, id: 1 }], modifiers: 0 });
+  } else {
+    await page.mouse.move(destinationPoint.x, destinationPoint.y, { steps: 12 });
+  }
+  await page.waitForTimeout(250);
+  if (touchEnvironment) {
+    await touchClient!.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [], modifiers: 0 });
+  } else {
+    await page.mouse.up();
+  }
+  await moveRequest;
+  await expect(destination).toContainText("Protein oats");
+});
+
+test("only stages an occupied-slot swap after the card is released", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "The touch release path is covered by the mobile drag test.");
+  await mockPlanningApi(page);
+  await page.goto("/app/plan");
+
+  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
+  await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
+  await page.getByRole("button", { name: "Add a recipe to Lunch" }).click();
+  await page.getByRole("button", { name: "Add Protein oats to Lunch" }).click();
+  await page.getByRole("tab", { name: "Week" }).click();
+
+  const meals = page.locator(".week-meal");
+  await expect(meals).toHaveCount(2);
+  const source = meals.nth(0);
+  const target = meals.nth(1);
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+  let swapRequests = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("/swap")) swapRequests += 1;
+  });
+
+  await page.mouse.move(sourceBox!.x + sourceBox!.width / 2, sourceBox!.y + sourceBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox!.x + targetBox!.width / 2, targetBox!.y + targetBox!.height / 2, { steps: 12 });
+  await page.waitForTimeout(150);
+  expect(swapRequests).toBe(0);
+  await expect(page.getByRole("alert").filter({ hasText: "Swap these meals?" })).toHaveCount(0);
+  await page.mouse.up();
+
+  await expect(page.getByRole("alert").filter({ hasText: "Swap these meals?" })).toBeVisible();
+  expect(swapRequests).toBe(0);
+  const swapRequest = page.waitForRequest((request) => request.method() === "POST" && request.url().includes("/swap"));
+  await page.getByRole("button", { name: "Swap meals" }).click();
+  await swapRequest;
+  await expect(page.getByText("Protein oats swapped places.")).toBeVisible();
+});
+
+test("creates a goal, fills the remaining days, adjusts, copies, moves, and refreshes snapshots", async ({ page }, testInfo) => {
   await mockPlanningApi(page);
   await page.goto("/app/goals");
   await expect(page.getByRole("heading", { name: "Shape how Cookfully plans for you" })).toBeVisible();
@@ -140,14 +257,14 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   await page.getByRole("tab", { name: "Day" }).click();
   const dayTabs = page.getByRole("tablist", { name: "Days in planning week" }).getByRole("tab");
   await expect(dayTabs).toHaveCount(7);
-  for (let index = 0; index < 7; index += 1) {
+  for (let index = 2; index < 7; index += 1) {
     await dayTabs.nth(index).click();
     await page.getByRole("button", { name: "Add a recipe to Breakfast" }).click();
     await page.getByRole("button", { name: "Add Protein oats to Breakfast" }).click();
     await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   }
 
-  await dayTabs.first().click();
+  await dayTabs.nth(2).click();
   const plannedEntry = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Protein oats" }) });
   const ensureAdjustmentsOpen = async () => {
     const disclosure = plannedEntry.locator("details.plan-entry__adjust");
@@ -176,8 +293,8 @@ test("creates a goal, fills seven days, adjusts, copies, moves, and refreshes sn
   expect(overflowingMeals).toBe(0);
   await captureUi(page, testInfo, "planner-week-guided");
   await page.getByRole("tab", { name: "Prep" }).click();
-  await expect(page.getByRole("heading", { name: "Cook 1 dish for 8 meals" })).toBeVisible();
-  await expect(page.getByText("10 total servings")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cook 1 dish for 6 meals" })).toBeVisible();
+  await expect(page.getByText("8 total servings")).toBeVisible();
   await captureUi(page, testInfo, "planner-prep");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -24,6 +24,7 @@ import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { planningApi } from "../plans/api";
+import { todayInTimezone } from "../plans/dates";
 import { pantryApi } from "./api";
 import type { PantryItem, PantryItemWrite } from "./types";
 
@@ -33,11 +34,10 @@ function formatUseBy(value: string) {
   return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
-function formatUseByUrgency(value: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const expires = new Date(`${value}T00:00:00`);
-  const days = Math.ceil((expires.getTime() - today.getTime()) / 86_400_000);
+function formatUseByUrgency(value: string, todayValue: string) {
+  const today = new Date(`${todayValue}T00:00:00Z`);
+  const expires = new Date(`${value}T00:00:00Z`);
+  const days = Math.round((expires.getTime() - today.getTime()) / 86_400_000);
   if (days < 0) return "Past use-by";
   if (days === 0) return "Use today";
   if (days === 1) return "1 day left";
@@ -119,13 +119,13 @@ function PantryItemCard({ item }: { item: PantryItem }) {
         <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
           <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
         </Field>
-        <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending}>Save {item.displayName}</Button>
+        <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>Save {item.displayName}</Button>
       </form></details>
       {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
       <div className="actions">
         {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
         <ConfirmDialog
-          trigger={<Button variant="ghost">Remove {item.displayName}</Button>}
+          trigger={<Button variant="ghost" disabled={update.isPending || remove.isPending}>Remove {item.displayName}</Button>}
           title={`Remove ${item.displayName}?`}
           description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
           confirmLabel="Remove pantry item"
@@ -196,6 +196,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
 }
 
 export function PantryPage() {
+  const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const items = useQuery({ queryKey: ["pantry-items"], queryFn: pantryApi.list });
   const [recipeQuery, setRecipeQuery] = useState("");
   const [searchEnabled, setSearchEnabled] = useState(false);
@@ -205,11 +206,15 @@ export function PantryPage() {
     enabled: searchEnabled,
   });
   const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes, enabled: searchEnabled });
-  if (items.isPending) return <PageState><Skeleton label="Loading pantry" lines={8} /></PageState>;
+  if (items.isPending || preferences.isPending) return <PageState><Skeleton label="Loading pantry" lines={8} /></PageState>;
+  if (preferences.isError) return <PageState><ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
   if (items.isError) return <PageState><ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} /></PageState>;
+  const today = todayInTimezone(preferences.data.timezone);
   const datedItems = items.data
     .filter((item) => item.expiresOn)
     .sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
+  const expiredItems = datedItems.filter((item) => item.expiresOn! < today);
+  const useSoonItems = datedItems.filter((item) => item.expiresOn! >= today);
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
 
   return (
@@ -219,13 +224,23 @@ export function PantryPage() {
       <section className="pantry-attention" aria-labelledby="pantry-use-soon-title">
         <SectionHeading
           eyebrow="Use soon"
-          title={datedItems.length ? "Cook these before they’re forgotten" : "Nothing needs attention yet"}
-          description={datedItems.length ? "The nearest use-by dates lead the shelf, so dinner can solve waste before it starts." : "Add dates only to fresh food that benefits from a reminder. Shelf-stable staples can stay undated."}
+          title={useSoonItems.length ? "Cook these before they’re forgotten" : "Nothing needs attention yet"}
+          description={useSoonItems.length ? "The nearest use-by dates lead the shelf, so dinner can solve waste before it starts." : "Add dates only to fresh food that benefits from a reminder. Shelf-stable staples can stay undated."}
           id="pantry-use-soon-title"
           action={<Button asChild variant="ghost"><a href="#pantry-shelf">Review the shelf</a></Button>}
         />
-        {datedItems.length ? <div className="pantry-attention__items">{datedItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">{formatUseByUrgency(item.expiresOn!)}</span></article>)}</div> : null}
+        {useSoonItems.length ? <div className="pantry-attention__items">{useSoonItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">{formatUseByUrgency(item.expiresOn!, today)}</span></article>)}</div> : null}
       </section>
+
+      {expiredItems.length ? <section className="pantry-attention pantry-attention--expired" aria-labelledby="pantry-expired-title">
+        <SectionHeading
+          eyebrow="Expired"
+          title={`${expiredItems.length} item${expiredItems.length === 1 ? "" : "s"} past use-by`}
+          description="These items are no longer in the use-soon window. Check them before planning with them."
+          id="pantry-expired-title"
+        />
+        <div className="pantry-attention__items">{expiredItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item pantry-attention__item--expired"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">Past use-by</span></article>)}</div>
+      </section> : null}
 
       <section className="pantry-section pantry-section--inventory" id="pantry-shelf">
         <SectionHeading eyebrow="Your shelf" title="On hand" meta={`${items.data.length} item${items.data.length === 1 ? "" : "s"}`} />

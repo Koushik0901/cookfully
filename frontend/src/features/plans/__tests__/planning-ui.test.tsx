@@ -32,7 +32,7 @@ const goal: UserGoal = {
 };
 const entry = {
   id: "00000000-0000-4000-8000-000000000020",
-  localDate: "2026-03-09",
+  localDate: "2026-03-11",
   mealSlot: "breakfast",
   recipeId: "00000000-0000-4000-8000-000000000001",
   recipeTitle: "Protein oats",
@@ -59,7 +59,7 @@ const plan: MealPlan = {
   timezone: "America/Vancouver",
   goal,
   entries: [entry],
-  dayTotals: { "2026-03-09": total },
+  dayTotals: { "2026-03-11": total },
   weekTotal: total,
   groceryStatus: "absent",
   version: 2,
@@ -190,8 +190,8 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("heading", { name: "Cook 1 dish for 1 meal" })).toBeVisible();
     expect(screen.getByText("1.5 total servings")).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Day" }));
-    await user.click(screen.getByRole("tab", { name: /monday.*march 9/i }));
-    expect(screen.getByRole("tab", { name: /monday.*march 9/i })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: /wednesday.*march 11/i }));
+    expect(screen.getByRole("tab", { name: /wednesday.*march 11/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: "Breakfast" })).toBeVisible();
     expect(await screen.findByRole("heading", { name: "Protein oats" })).toBeVisible();
     expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
@@ -208,6 +208,7 @@ describe("goal and weekly planning UI", () => {
     await user.click(screen.getByRole("button", { name: "Refresh nutrition" }));
     await user.click(screen.getByRole("button", { name: "Copy to next day" }));
     await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Remove meal" }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(true));
   });
 
@@ -226,6 +227,18 @@ describe("goal and weekly planning UI", () => {
     );
     expect(screen.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-controls", "planner-panel-day");
     expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "planner-panel-day");
+  });
+
+  it("keeps past planner days visible but read-only", async () => {
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: /week of march 9/i });
+    expect(document.querySelectorAll(".week-day--past")).toHaveLength(2);
+    await user.click(screen.getByRole("tab", { name: "Day" }));
+    await user.click(screen.getByRole("tab", { name: /monday.*march 9.*past/i }));
+    expect(screen.getByText("Past day", { exact: true })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add a recipe to Breakfast" })).not.toBeInTheDocument();
   });
 
   it("makes the full meal card the move surface and keeps copy distinct", async () => {

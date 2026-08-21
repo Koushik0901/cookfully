@@ -122,6 +122,8 @@
 .week-day { min-height: 0; grid-template-rows: auto 1fr; overflow: hidden; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-xl); background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
 .week-day:last-child { border-right: 1px solid var(--color-outline-variant); }
 .week-day--selected { border-color: color-mix(in oklch, var(--color-primary) 48%, var(--color-outline-variant)); background: color-mix(in oklch, var(--color-primary-container) 44%, var(--color-surface-bright)); }
+.week-day--past { border-color: var(--color-outline-variant); background: var(--color-surface-low); box-shadow: none; opacity: 0.68; }
+.week-day--past .week-day__date > span { color: var(--color-on-surface-variant); }
 .week-day__header { display: flex; min-height: 4.5rem; align-items: center; justify-content: space-between; gap: 1rem; border: 0; padding: 0.9rem 1rem; text-align: left; background: transparent; }
 .week-day__date { display: grid; gap: 0.15rem; }
 .week-day__date > span { color: var(--color-primary); font-size: var(--text-caption); font-weight: 650; }
@@ -131,6 +133,8 @@
 .week-slot { display: grid; min-height: 4.5rem; align-content: start; gap: 0.55rem; border-top: 1px solid color-mix(in oklch, var(--color-outline-variant) 72%, transparent); padding: 0.75rem 0.35rem; transition: background-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
 .week-slot:last-child { border-bottom: 0; }
 .week-slot.is-drop-target { background: var(--color-accent-soft); transform: scale(1.01); }
+.week-slot--past { color: var(--color-on-surface-variant); background: color-mix(in oklch, var(--color-surface-low) 72%, transparent); }
+.week-slot__past { display: grid; min-height: 2.75rem; place-items: center; border: 1px dashed var(--color-outline-variant); border-radius: var(--radius); color: var(--color-on-surface-variant); font-size: var(--text-caption); font-weight: 620; }
 .week-slot--placement-target { background: color-mix(in oklch, var(--color-primary-container) 34%, transparent); }
 .week-slot > header { display: flex; min-height: 1.5rem; align-items: center; justify-content: space-between; gap: 0.5rem; padding-inline: 0.2rem; color: var(--color-on-surface-variant); }
 .week-slot > header span { font-size: var(--text-caption); font-weight: 650; }
@@ -143,10 +147,13 @@
 .week-slot__placement strong { font-size: 0.75rem; font-weight: 580; text-transform: capitalize; }
 .week-slot__placement:hover:not(:disabled) { background: var(--color-primary); color: var(--color-on-primary); transform: translateY(-1px); }
 .week-slot__placement:disabled { cursor: default; opacity: 0.56; }
+.day-tab--past { color: var(--color-on-surface-variant); opacity: 0.56; }
+.day-tab--past > strong { color: var(--color-on-surface-variant); }
 
 .week-meal { position: relative; display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); border-radius: var(--radius-lg); padding: 0.55rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart), box-shadow var(--motion-fast) ease; }
 .week-meal + .week-meal { margin-top: 0.25rem; }
 .week-meal.is-dragging { opacity: 0.28; }
+.week-day--past .week-meal { box-shadow: none; }
 .week-meal__body { display: grid; min-width: 0; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 0.75rem; border-radius: var(--radius); padding: 0.2rem 2.8rem 0.2rem 0.2rem; color: inherit; text-decoration: none; cursor: grab; }
 .week-meal__body:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .week-meal__body:active { cursor: grabbing; }
@@ -170,10 +177,24 @@
 .week-meal-overlay svg { width: 1rem; color: var(--color-primary); }
 .week-meal-overlay strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .week-meal-overlay span { grid-column: 2; color: var(--color-on-surface-variant); font-size: 0.7rem; text-transform: capitalize; }
+.planner-day__readonly { display: grid; gap: 0.2rem; margin-bottom: 1rem; border-radius: var(--radius-lg); padding: 0.8rem 1rem; color: var(--color-on-surface-variant); background: var(--color-surface-low); }
+.planner-day__readonly strong { color: var(--color-on-surface); font-family: var(--font-display); }
+.planner-day__readonly span, .plan-entry__past-note { font-size: var(--text-caption); }
+.meal-slot__past { display: grid; min-height: 5rem; place-items: center; border-radius: var(--radius); color: var(--color-on-surface-variant); background: var(--color-surface-low); font-size: var(--text-caption); }
+.plan-entry--past { opacity: 0.72; box-shadow: none; }
+.plan-entry__past-note { margin: 0; color: var(--color-on-surface-variant); }
+.day-meal-board { display: grid; gap: 0.75rem; }
+.day-entry-drag { border-radius: var(--radius-lg); transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
+.day-entry-drag.is-dragging { opacity: 0.35; transform: scale(0.99); }
+.day-meal-board .meal-slot.is-drop-target { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary-container) 34%, transparent); }
+.day-meal-overlay > div { display: inline-flex; align-items: center; gap: 0.55rem; border: 1px solid var(--color-card-raised-border); border-radius: var(--radius-lg); padding: 0.8rem 1rem; background: var(--color-card-raised); box-shadow: var(--shadow-card-hover); color: var(--color-on-surface); }
+.day-meal-overlay svg { width: 1rem; color: var(--color-primary); }
+.recipe-card__feedback { grid-column: 1 / -1; margin: 0; font-size: var(--text-caption); }
 
 /* Pantry leads with the decision that can expire. Inventory and discovery
    remain below it as progressively deeper layers. */
 .pantry-attention { display: grid; gap: 1.25rem; border-radius: var(--radius-xl) 4.5rem var(--radius-xl) var(--radius-xl); padding: clamp(1.25rem, 2.5vw, 2rem); background: var(--color-primary-container); }
+.pantry-attention--expired { background: color-mix(in oklch, var(--status-error-container) 52%, var(--color-surface)); }
 .pantry-attention .section-heading__description { color: var(--color-on-primary-container); }
 .pantry-attention__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .pantry-attention__item { display: grid; min-width: 0; grid-template-columns: 2.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.75rem; background: color-mix(in oklch, var(--color-surface-bright) 88%, transparent); box-shadow: var(--shadow-card-rest); }
@@ -182,6 +203,8 @@
 .pantry-attention__item > div { display: grid; min-width: 0; gap: 0.15rem; }
 .pantry-attention__item strong,
 .pantry-attention__item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pantry-attention__item--expired { border-color: color-mix(in oklch, var(--color-tomato) 35%, var(--color-outline-variant)); background: color-mix(in oklch, var(--status-error-container) 28%, var(--color-surface-bright)); }
+.pantry-attention__item--expired .pantry-attention__urgency { color: var(--color-tomato); }
 .pantry-attention__item small { color: var(--color-on-surface-variant); font-size: 0.72rem; }
 .pantry-attention__urgency { color: var(--color-primary); font-size: 0.75rem; font-weight: 680; }
 .pantry-page .pantry-grid,
@@ -284,6 +307,7 @@
   .week-day__slots { padding-inline: 0.5rem; }
   .week-slot { min-height: 4.5rem; padding: 0.7rem 0.25rem; }
   .week-slot:not(:has(.week-meal)):not(.week-slot--placement-target) { display: none; }
+  .week-overview--dragging .week-slot:not(:has(.week-meal)) { display: grid; min-height: 5.5rem; background: color-mix(in oklch, var(--color-primary-container) 38%, var(--color-surface-bright)); }
   .week-slot__add { display: none; }
   .week-meal__body { grid-template-columns: 3.25rem minmax(0, 1fr); padding-right: 2.5rem; }
   .week-meal__media { width: 3.25rem; height: 3.25rem; }

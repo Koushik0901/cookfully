@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 NUTRIENT_SCALE = Decimal("0.000001")
 SERVING_SCALE = Decimal("0.001")
@@ -29,6 +30,16 @@ def uuid7() -> UUID:
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def today_in_timezone(timezone: str, *, now: datetime | None = None) -> date:
+    """Return the owner's current calendar date, never the server's date."""
+
+    try:
+        zone = ZoneInfo(timezone)
+    except ZoneInfoNotFoundError as exc:
+        raise ValueError(f"invalid timezone: {timezone}") from exc
+    return (now or utc_now()).astimezone(zone).date()
 
 
 def require_utc(value: datetime) -> datetime:

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.recipe_queries import RecipeQueryService
-from cookfully.domain.common import DomainError, require_version
+from cookfully.domain.common import DomainError, require_version, today_in_timezone
 from cookfully.domain.goals import (
     DailyGoal,
     GoalMode,
@@ -413,6 +413,9 @@ class MealPlanService:
                 raise DomainError(
                     "plan_swap_different_plans", "Meals must belong to the same plan.", 422
                 )
+            owner = self._owner(session, owner_id)
+            self._ensure_date_is_writable(owner, source.local_date)
+            self._ensure_date_is_writable(owner, target.local_date)
 
             source_date, source_slot, source_position = (
                 source.local_date,
@@ -453,6 +456,8 @@ class MealPlanService:
         with self._session_factory.begin() as session:
             entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
             require_version(expected_version, entry.version)
+            owner = self._owner(session, owner_id)
+            self._ensure_date_is_writable(owner, entry.local_date)
             entry.meal_plan.version += 1
             GroceryListService.mark_dirty(session, entry.meal_plan_id)
             session.execute(delete(MealPlanEntry).where(MealPlanEntry.id == entry.id))
@@ -505,6 +510,16 @@ class MealPlanService:
         if not week_start <= local_date <= week_start + timedelta(days=6):
             raise DomainError(
                 "plan_date_outside_week", "Entry date must be inside the plan week.", 422
+            )
+        MealPlanService._ensure_date_is_writable(owner, local_date)
+
+    @staticmethod
+    def _ensure_date_is_writable(owner: OwnerAccount, local_date: date) -> None:
+        if local_date < today_in_timezone(owner.timezone):
+            raise DomainError(
+                "plan_date_past",
+                "Past planning days are read-only. Choose today or a future day.",
+                409,
             )
 
     @staticmethod

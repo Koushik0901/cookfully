@@ -13,6 +13,7 @@ import type { RecipePage } from "./types";
 import { FirstRunJourney } from "../onboarding/FirstRunJourney";
 import { onboardingApi } from "../onboarding/api";
 import { Checkbox } from "@/components/ui/checkbox";
+import { isRecipeReadyToPlan } from "./recipeEligibility";
 
 export function RecipeLibraryPage() {
   const queryClient = useQueryClient();
@@ -29,6 +30,7 @@ export function RecipeLibraryPage() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("");
+  const [extraPages, setExtraPages] = useState<RecipePage[]>([]);
   useEffect(() => {
     if (searchParams.get("import") === "1") setImportOpen(true);
   }, [searchParams]);
@@ -48,12 +50,21 @@ export function RecipeLibraryPage() {
     queryFn: () => recipesApi.list(filters),
     retry: 1,
   });
+  const filterKey = JSON.stringify(filters);
+  useEffect(() => setExtraPages([]), [filterKey]);
+  const loadedItems = useMemo(() => [...(recipes.data?.items ?? []), ...extraPages.flatMap((page) => page.items)], [extraPages, recipes.data?.items]);
+  const nextCursor = extraPages.at(-1)?.nextCursor ?? recipes.data?.nextCursor;
+  const loadMore = useMutation({
+    mutationFn: (cursor: string) => recipesApi.list(filters, cursor),
+    onSuccess: (page) => setExtraPages((current) => [...current, page]),
+  });
   const lifecycle = useMutation({
     mutationFn: async ({ id, version, action }: { id: string; version: number; action: "archive" | "restore" }) => {
       if (action === "archive") await recipesApi.archive(id, version);
       else await recipesApi.restore(id, version);
     },
     onMutate: async ({ id, action }) => {
+      setExtraPages((pages) => pages.map((page) => ({ ...page, items: page.items.map((item) => item.id === id ? { ...item, status: action === "archive" ? "archived" : (item.archivedFromStatus ?? "ready") } : item) })));
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
       snapshots.forEach(([key, value]) => {
@@ -71,6 +82,7 @@ export function RecipeLibraryPage() {
       await recipesApi.permanentDelete(id, archived.version);
     },
     onMutate: async ({ id }) => {
+      setExtraPages((pages) => pages.map((page) => ({ ...page, items: page.items.filter((item) => item.id !== id) })));
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
       snapshots.forEach(([key, value]) => {
@@ -84,9 +96,10 @@ export function RecipeLibraryPage() {
   const bulkArchive = useMutation({
     mutationFn: (items: Array<{ id: string; version: number }>) => recipesApi.bulkArchive(items),
     onMutate: async (items) => {
+      const selected = new Set(items.map((item) => item.id));
+      setExtraPages((pages) => pages.map((page) => ({ ...page, items: page.items.filter((item) => !selected.has(item.id)) })));
       await queryClient.cancelQueries({ queryKey: ["recipes"] });
       const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
-      const selected = new Set(items.map((item) => item.id));
       snapshots.forEach(([key, value]) => {
         if (value) queryClient.setQueryData<RecipePage>(key, { ...value, items: value.items.filter((item) => !selected.has(item.id)) });
       });
@@ -113,9 +126,9 @@ export function RecipeLibraryPage() {
     },
   });
   const displayedRecipes = useMemo(() => {
-    const items = recipes.data?.items.filter((recipe) => {
+    const items = loadedItems.filter((recipe) => {
       if (unfiled && (recipe.collections ?? []).length > 0) return false;
-      const ready = recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState);
+      const ready = isRecipeReadyToPlan(recipe);
       if (libraryView === "ready") return ready;
       if (libraryView === "attention") return recipe.status !== "archived" && !ready;
       if (libraryView === "archived") return recipe.status === "archived";
@@ -128,17 +141,17 @@ export function RecipeLibraryPage() {
       if (sortBy === "calories") return Number(a.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY) - Number(b.nutrition?.caloriesKcal ?? Number.POSITIVE_INFINITY);
       return new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime();
     });
-  }, [libraryView, recipes.data?.items, sortBy, unfiled]);
+  }, [libraryView, loadedItems, sortBy, unfiled]);
   const groupedRecipes = groupBy === "readiness"
     ? [
-        { title: "Ready to plan", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && !["pending", "failed", "stale"].includes(recipe.nutritionState)) },
+        { title: "Ready to plan", items: displayedRecipes.filter(isRecipeReadyToPlan) },
         { title: "Needs a nutrition check", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && ["pending", "failed", "stale"].includes(recipe.nutritionState)) },
         { title: "Archived", items: displayedRecipes.filter((recipe) => recipe.status === "archived") },
       ].filter((group) => group.items.length)
     : [{ title: "", items: displayedRecipes }];
   const hasDiscoveryFilter = Boolean(query || favoriteOnly || collectionId || mealRole || libraryView !== "all");
-  const isGenuinelyEmpty = Boolean(recipes.data && recipes.data.items.length === 0 && !hasDiscoveryFilter && !bulkMessage);
-  const hasArchivedRecipes = Boolean(recipes.data?.items.some((recipe) => recipe.status === "archived"));
+  const isGenuinelyEmpty = Boolean(recipes.data && loadedItems.length === 0 && !hasDiscoveryFilter && !bulkMessage);
+  const hasArchivedRecipes = Boolean(loadedItems.some((recipe) => recipe.status === "archived"));
   const clearDiscovery = () => {
     setQuery("");
     setLibraryView("all");
@@ -238,6 +251,7 @@ export function RecipeLibraryPage() {
        {recipes.data && displayedRecipes.length ? <SectionHeading className="recipe-results-heading" eyebrow="Recipe box" title={hasDiscoveryFilter ? "Matching recipes" : "Saved recipes"} meta={`${displayedRecipes.length} ${displayedRecipes.length === 1 ? "recipe" : "recipes"}`} /> : null}
        <div id="recipe-view-panel" role="tabpanel" aria-labelledby={favoriteOnly ? "recipe-view-tab-favorites" : "recipe-view-tab-all"}>
          {groupedRecipes.map((group) => group.items.length ? <section className="recipe-group" aria-label={group.title || "Recipes"} key={group.title || "all"}>{group.title ? <div className="recipe-group__heading"><h2>{group.title}</h2><span>{group.items.length}</span></div> : null}<div className="recipe-grid">{group.items.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} selectionMode={selectionMode && recipe.status !== "archived"} selected={selectedIds.includes(recipe.id)} onSelectedChange={(selected) => toggleSelected(recipe.id, selected)} actionPending={lifecycle.isPending || remove.isPending || bulkArchive.isPending} onArchive={(id, version) => lifecycle.mutate({ id, version, action: "archive" })} onRestore={(id, version) => lifecycle.mutate({ id, version, action: "restore" })} onDelete={(id, version) => remove.mutate({ id, version })} />)}</div></section> : null)}
+         {nextCursor ? <div className="recipe-library__load-more"><Button variant="secondary" onClick={() => loadMore.mutate(nextCursor)} disabled={loadMore.isPending}>{loadMore.isPending ? "Loading more recipes…" : "Load more recipes"}</Button>{loadMore.error instanceof Error ? <p className="error-text" role="alert">{loadMore.error.message} <button type="button" className="text-link" onClick={() => loadMore.reset()}>Dismiss</button></p> : null}</div> : null}
        </div>
      </main>
   );

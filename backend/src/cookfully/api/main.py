@@ -111,6 +111,7 @@ _OPERATION_IDS = {
     "get_meal_plan": "getMealPlan",
     "add_meal_plan_entry": "addMealPlanEntry",
     "update_meal_plan_entry": "updateMealPlanEntry",
+    "swap_meal_plan_entries": "swapMealPlanEntries",
     "delete_meal_plan_entry": "deleteMealPlanEntry",
     "get_grocery_list": "getGroceryList",
     "regenerate_grocery_list": "regenerateGroceryList",

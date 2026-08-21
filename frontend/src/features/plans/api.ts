@@ -33,8 +33,20 @@ export const planningApi = {
   plan(weekStart: string) {
     return apiRequest<MealPlan>(`/meal-plans/${weekStart}`);
   },
-  recipes() {
-    return apiRequest<RecipePage>("/recipes?limit=100");
+  async recipes() {
+    const items: RecipePage["items"] = [];
+    let cursor: string | undefined;
+    do {
+      // Planned entries keep a recipe snapshot, but the UI also needs the
+      // archived recipe's media and metadata so archiving never turns an
+      // existing meal card into a blank placeholder.
+      const params = new URLSearchParams({ limit: "100", includeArchived: "true" });
+      if (cursor) params.set("cursor", cursor);
+      const page = await apiRequest<RecipePage>(`/recipes?${params.toString()}`);
+      items.push(...page.items);
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    return { items, nextCursor: null } satisfies RecipePage;
   },
   addEntry(weekStart: string, value: MealPlanEntryWrite) {
     return apiRequest<MealPlanEntry>(`/meal-plans/${weekStart}/entries`, {
