@@ -3,13 +3,13 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogCloseButton, Field } from "../../components";
 import { foodsApi } from "./api";
-import type { OwnerFoodWrite } from "./types";
+import type { OwnerFood, OwnerFoodWrite } from "./types";
 
 interface CreateFoodDialogProps {
   trigger: React.ReactNode;
   ingredientName: string;
   prefill?: { servingGrams?: number; servingUnit?: string };
-  onCreated: (foodId: string) => void;
+  onCreated: (food: OwnerFood) => void;
 }
 
 export function CreateFoodDialog({
@@ -36,7 +36,7 @@ export function CreateFoodDialog({
     mutationFn: (write: OwnerFoodWrite) => foodsApi.createUserFood(write),
     onSuccess: (food) => {
       setOpen(false);
-      onCreated(food.id);
+      onCreated(food);
       reset();
     },
     onError: (err: unknown) => {
@@ -91,7 +91,7 @@ export function CreateFoodDialog({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <Dialog.Root open={open} onOpenChange={(v) => { setOpen(v); if (v) setDisplayName(ingredientName); else reset(); }}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />

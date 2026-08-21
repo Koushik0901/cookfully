@@ -181,6 +181,7 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await page.getByRole("button", { name: "Add to list" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toBeVisible();
   await page.getByRole("button", { name: "Remove Reusable bags" }).click();
+  await page.getByRole("button", { name: "Remove item" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);
   await expect(page.getByText("Needs review")).toBeVisible();
   await captureUi(page, testInfo, "grocery-edited", { focus: page.getByText("Needs review") });
@@ -203,6 +204,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
   await page.getByRole("checkbox", { name: "Salt to taste purchased" }).check();
   await page.getByRole("button", { name: "Finish this shopping pass" }).click();
+  await page.getByRole("button", { name: "Finish shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
   await expect(page.locator('.grocery-complete [data-companion-moment="milestone"]')).toBeVisible();
   await captureUi(page, testInfo, "grocery-complete");

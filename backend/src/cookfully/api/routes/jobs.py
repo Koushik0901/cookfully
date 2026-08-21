@@ -4,12 +4,26 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, Query, Request
 
 from cookfully.api.dependencies.auth import require_browser_owner
-from cookfully.api.schemas.jobs import JobResponse
+from cookfully.api.schemas.jobs import JobResponse, RecipeProcessingSummaryResponse
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+
+@router.get(
+    "/recipe-processing",
+    operation_id="getRecipeProcessingSummary",
+    response_model=RecipeProcessingSummaryResponse,
+    response_model_by_alias=True,
+)
+def get_recipe_processing_summary(
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipeProcessingSummaryResponse:
+    jobs: JobService = request.app.state.jobs
+    return RecipeProcessingSummaryResponse.from_summary(jobs.recipe_processing_summary())
 
 
 @router.get("/current", response_model=JobResponse, response_model_by_alias=True)

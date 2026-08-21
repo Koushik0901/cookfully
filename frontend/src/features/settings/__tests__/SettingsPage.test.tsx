@@ -56,7 +56,7 @@ describe("settings page", () => {
     );
   }
 
-  it("renders Account, Security, Connections, Nutrition data, and Intelligence tabs and edits account details", async () => {
+  it("renders Account, Security, Connections, Nutrition data, Intelligence, and Jobs tabs and edits account details", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
@@ -77,6 +77,7 @@ describe("settings page", () => {
     expect(screen.getByRole("tab", { name: "Connections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Nutrition data" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Intelligence" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Jobs" })).toBeVisible();
 
     expect(await screen.findByLabelText("Display name")).toHaveValue("Owner");
     await user.clear(screen.getByLabelText("Display name"));

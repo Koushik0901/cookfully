@@ -5,6 +5,7 @@ import { Button, Field } from "../../components";
 import { Checkbox } from "../../components/ui/checkbox";
 import {
   type EditorBlock,
+  composeIngredientText,
   newEditorBlock,
   newIngredient,
   newMethodStep,
@@ -16,6 +17,12 @@ type SetBlocks = Dispatch<SetStateAction<EditorBlock[]>>;
 
 function blockName(block: EditorBlock, index: number) {
   return block.title.trim() || (index === 0 ? "main recipe" : `component ${index + 1}`);
+}
+
+function fitMethodTextarea(element: HTMLTextAreaElement | null) {
+  if (!element) return;
+  element.style.height = "0px";
+  element.style.height = `${element.scrollHeight}px`;
 }
 
 function ReorderActions({ label, index, length, onMove, onRemove }: { label: string; index: number; length: number; onMove: (to: number) => void; onRemove: () => void }) {
@@ -43,6 +50,17 @@ export function StructuredIngredientEditor({
     setBlocks((current) => current.map((block) => block.key === blockKey ? { ...block, ...patch } : block));
   }
 
+  function updateIngredient(blockKey: string, rowKey: string, patch: Partial<EditorBlock["ingredients"][number]>) {
+    updateBlock(blockKey, {
+      ingredients: blocks.find((block) => block.key === blockKey)?.ingredients.map((item) => {
+        if (item.key !== rowKey) return item;
+        const next = { ...item, ...patch };
+        const originalText = composeIngredientText(next);
+        return { ...next, originalText: originalText || next.originalText };
+      }) ?? [],
+    });
+  }
+
   function pasteLines(event: ClipboardEvent<HTMLInputElement>, block: EditorBlock, rowIndex: number) {
     if (block.ingredients[rowIndex]?.originalText.trim()) return;
     const lines = splitPastedRows(event.clipboardData.getData("text"));
@@ -58,7 +76,7 @@ export function StructuredIngredientEditor({
   return (
     <section className="structured-workbench recipe-editor__ingredients-workbench" aria-labelledby="structured-ingredients-heading">
       <header className="structured-workbench__heading">
-        <div><p className="eyebrow">Ingredients</p><h2 id="structured-ingredients-heading">Build a list you can scan</h2><p>One ingredient per row. Paste a multiline list into an empty row and Cookfully will split it for you.</p></div>
+        <div><p className="eyebrow">Ingredients</p><h2 id="structured-ingredients-heading">Ingredients</h2></div>
         <span>{blocks.reduce((total, block) => total + block.ingredients.filter((item) => item.originalText.trim()).length, 0)} ingredients</span>
       </header>
       {error ? <p className="error-text" role="alert">{error}</p> : null}
@@ -76,35 +94,18 @@ export function StructuredIngredientEditor({
             <div className="ingredient-rows">
               {block.ingredients.map((row, rowIndex) => {
                 const label = `ingredient ${rowIndex + 1} for ${blockName(block, blockIndex)}`;
-                const parsed = Boolean(row.quantityMin || row.quantityMax || row.unit || row.food || row.preparation);
                 return (
                   <article className="ingredient-row" key={row.key}>
                     <span className="structured-row__number" aria-hidden="true">{String(rowIndex + 1).padStart(2, "0")}</span>
                     <div className="ingredient-row__body">
-                      <label className="ingredient-row__primary">
-                        <span className="visually-hidden">{label}</span>
-                        <input
-                          className="input"
-                          value={row.originalText}
-                          onChange={(event) => {
-                            const ingredients = block.ingredients.map((item) => item.key === row.key ? { ...item, originalText: event.target.value } : item);
-                            updateBlock(block.key, { ingredients });
-                          }}
-                          onPaste={(event) => pasteLines(event, block, rowIndex)}
-                          placeholder={rowIndex === 0 ? "2 chicken breasts, thinly sliced" : "Add another ingredient"}
-                        />
-                      </label>
-                      <details className="ingredient-row__details">
-                        <summary><span>{parsed ? "Parsed details" : "Add amount details"}</span>{parsed ? <small>Structured</small> : null}</summary>
-                        <div className="ingredient-row__detail-grid">
-                          <Field label="Amount"><input className="input" inputMode="decimal" value={row.quantityMin} onChange={(event) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, quantityMin: event.target.value } : item) })} /></Field>
-                          <Field label="Maximum"><input className="input" inputMode="decimal" value={row.quantityMax} onChange={(event) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, quantityMax: event.target.value } : item) })} /></Field>
-                          <Field label="Unit"><input className="input" value={row.unit} onChange={(event) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, unit: event.target.value } : item) })} /></Field>
-                          <Field label="Food"><input className="input" value={row.food} onChange={(event) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, food: event.target.value } : item) })} /></Field>
-                          <Field label="Preparation"><input className="input" value={row.preparation} onChange={(event) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, preparation: event.target.value } : item) })} /></Field>
-                          <label className="ingredient-row__optional"><Checkbox checked={row.optional} onCheckedChange={(checked) => updateBlock(block.key, { ingredients: block.ingredients.map((item) => item.key === row.key ? { ...item, optional: checked === true } : item) })} />Optional ingredient</label>
-                        </div>
-                      </details>
+                      <div className="ingredient-row__inline-fields" aria-label={`${label} editable fields`}>
+                        <Field label="Amount"><input className="input" inputMode="decimal" aria-label={`${label} amount`} value={row.quantityMin} onChange={(event) => updateIngredient(block.key, row.key, { quantityMin: event.target.value })} /></Field>
+                        <Field label="Maximum"><input className="input" inputMode="decimal" aria-label={`${label} maximum`} value={row.quantityMax} onChange={(event) => updateIngredient(block.key, row.key, { quantityMax: event.target.value })} /></Field>
+                        <Field label="Unit"><input className="input" aria-label={`${label} unit`} value={row.unit} onChange={(event) => updateIngredient(block.key, row.key, { unit: event.target.value })} /></Field>
+                        <Field label="Food" accessibilityLabel={label}><input className="input" value={row.food} onChange={(event) => updateIngredient(block.key, row.key, { food: event.target.value })} onPaste={(event) => pasteLines(event, block, rowIndex)} placeholder={rowIndex === 0 ? "Super Firm Tofu" : "Add an ingredient"} /></Field>
+                        <Field label="Preparation"><input className="input" aria-label={`${label} preparation`} value={row.preparation} onChange={(event) => updateIngredient(block.key, row.key, { preparation: event.target.value })} /></Field>
+                        <label className="ingredient-row__optional"><Checkbox checked={row.optional} onCheckedChange={(checked) => updateIngredient(block.key, row.key, { optional: checked === true })} />Optional</label>
+                      </div>
                     </div>
                     <ReorderActions
                       label={label}
@@ -121,7 +122,7 @@ export function StructuredIngredientEditor({
           </section>
         ))}
       </div>
-      <Button type="button" variant="secondary" onClick={() => setBlocks((current) => [...current, newEditorBlock("")])}><Plus aria-hidden="true" />Add a component</Button>
+      <Button type="button" variant="ghost" onClick={() => setBlocks((current) => [...current, newEditorBlock("")])}><Plus aria-hidden="true" />Add a component</Button>
     </section>
   );
 }
@@ -153,7 +154,7 @@ export function StructuredMethodEditor({
   return (
     <section className="structured-workbench recipe-editor__method-workbench" aria-labelledby="structured-method-heading">
       <header className="structured-workbench__heading">
-        <div><p className="eyebrow">Method</p><h2 id="structured-method-heading">Give every step room to breathe</h2><p>Keep each action separate so it stays readable on the counter and in Cook Mode.</p></div>
+        <div><p className="eyebrow">Method</p><h2 id="structured-method-heading">Method</h2></div>
         <span>{blocks.reduce((total, block) => total + block.instructions.filter((step) => step.text.trim()).length, 0)} steps</span>
       </header>
       <div className="structured-components">
@@ -166,7 +167,7 @@ export function StructuredMethodEditor({
                 return (
                   <article className="method-step" key={step.key}>
                     <span className="method-step__number" aria-hidden="true">{stepIndex + 1}</span>
-                    <label><span className="visually-hidden">{label}</span><textarea className="input textarea" value={step.text} onChange={(event) => updateSteps(block.key, block.instructions.map((item) => item.key === step.key ? { ...item, text: event.target.value } : item))} onPaste={(event) => pasteLines(event, block, stepIndex)} placeholder={stepIndex === 0 ? "Season generously, then heat a wide pan." : "Add the next step"} /></label>
+                    <label><span className="visually-hidden">{label}</span><textarea className="input textarea" ref={fitMethodTextarea} value={step.text} onInput={(event) => fitMethodTextarea(event.currentTarget)} onChange={(event) => updateSteps(block.key, block.instructions.map((item) => item.key === step.key ? { ...item, text: event.target.value } : item))} onPaste={(event) => pasteLines(event, block, stepIndex)} placeholder={stepIndex === 0 ? "Season generously, then heat a wide pan." : "Add the next step"} /></label>
                     <ReorderActions
                       label={label}
                       index={stepIndex}

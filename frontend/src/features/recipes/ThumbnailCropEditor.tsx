@@ -14,17 +14,23 @@ export function ThumbnailCropEditor({
   onChange: (value: ThumbnailCropWrite) => void;
 }) {
   const [focused, setFocused] = useState(false);
-  const drag = useRef<{ x: number; y: number; focalX: number; focalY: number; width: number; height: number } | null>(null);
+  const drag = useRef<{ mode: "move" | "resize"; x: number; y: number; focalX: number; focalY: number; zoom: number; width: number; height: number } | null>(null);
   const crop = { ...defaultCrop, ...value };
   const update = (key: keyof ThumbnailCropWrite, next: string) => onChange({ ...crop, [key]: next });
   const beginDrag = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    drag.current = { x: event.clientX, y: event.clientY, focalX: Number(crop.focalX), focalY: Number(crop.focalY), width: bounds.width, height: bounds.height };
+    const mode = event.target instanceof Element && event.target.closest("[data-crop-resize]") ? "resize" : "move";
+    drag.current = { mode, x: event.clientX, y: event.clientY, focalX: Number(crop.focalX), focalY: Number(crop.focalY), zoom: Number(crop.zoom), width: bounds.width, height: bounds.height };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveDrag = (event: PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
+    if (drag.current.mode === "resize") {
+      const nextZoom = Math.min(3, Math.max(1, drag.current.zoom + (event.clientX - drag.current.x) / drag.current.width * 2));
+      onChange({ ...crop, zoom: nextZoom.toFixed(2) });
+      return;
+    }
     const nextX = Math.min(1, Math.max(0, drag.current.focalX - (event.clientX - drag.current.x) / drag.current.width));
     const nextY = Math.min(1, Math.max(0, drag.current.focalY - (event.clientY - drag.current.y) / drag.current.height));
     onChange({ ...crop, focalX: nextX.toFixed(6), focalY: nextY.toFixed(6) });
@@ -40,6 +46,12 @@ export function ThumbnailCropEditor({
             transform: `scale(${crop.zoom})`,
           }}
         />
+        <div className="thumbnail-crop-editor__frame" aria-label="Crop frame" style={{ transform: `scale(${(1 / Math.max(1, Number(crop.zoom))).toFixed(3)})` }}>
+          <span className="thumbnail-crop-editor__handle thumbnail-crop-editor__handle--nw" data-crop-resize="nw" />
+          <span className="thumbnail-crop-editor__handle thumbnail-crop-editor__handle--ne" data-crop-resize="ne" />
+          <span className="thumbnail-crop-editor__handle thumbnail-crop-editor__handle--sw" data-crop-resize="sw" />
+          <span className="thumbnail-crop-editor__handle thumbnail-crop-editor__handle--se" data-crop-resize="se" />
+        </div>
       </div>
       <div className="thumbnail-crop-editor__controls">
         <button type="button" className="text-link" onClick={() => setFocused((open) => !open)} aria-expanded={focused}>

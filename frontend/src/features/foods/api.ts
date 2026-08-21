@@ -69,4 +69,22 @@ export const foodsApi = {
       body: JSON.stringify({ resetCorrections: false }),
     });
   },
+
+  async selectOwnerFood(
+    recipeId: string,
+    ingredientId: string,
+    ownerFoodId: string,
+    rememberMatch = true,
+  ) {
+    await apiRequest(`/recipes/${recipeId}/ingredients/${ingredientId}/owner-food/${ownerFoodId}`, {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify({ rememberMatch }),
+    });
+    return apiRequest(`/recipes/${recipeId}/nutrition/recalculate`, {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify({ resetCorrections: false }),
+    });
+  },
 };

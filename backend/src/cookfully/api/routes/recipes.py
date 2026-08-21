@@ -20,6 +20,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 
 from cookfully.api.dependencies.auth import require_browser_owner, require_scopes
+from cookfully.api.schemas.foods import OwnerFoodSelectionRequest
 from cookfully.api.schemas.jobs import JobAcceptedResponse
 from cookfully.api.schemas.recipes import (
     DuplicateSummary,
@@ -795,6 +796,27 @@ def create_nutrition_correction(
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response
+
+
+@router.post(
+    "/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def select_owner_food(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    ingredient_id: Annotated[UUID, Path(alias="ingredientId")],
+    owner_food_id: Annotated[UUID, Path(alias="ownerFoodId")],
+    payload: OwnerFoodSelectionRequest,
+    corrections: Annotated[CorrectionService, Depends(correction_service)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> None:
+    del payload  # The selected owner food is already a durable owner-scoped choice.
+    corrections.activate_owner_food_match(
+        recipe_id=recipe_id,
+        ingredient_id=ingredient_id,
+        owner_food_id=owner_food_id,
+        owner_id=owner.id,
+    )
 
 
 @router.delete(

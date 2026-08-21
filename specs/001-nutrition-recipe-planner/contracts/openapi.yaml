@@ -625,6 +625,46 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /recipes/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}:
+    post:
+      tags: [Recipes]
+      operationId: select_owner_food
+      parameters:
+        - name: recipeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: ownerFoodId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OwnerFoodSelectionRequest" }
+      responses:
+        "204":
+          description: Owner food match selected for the ingredient.
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /jobs/recipe-processing:
+    get:
+      tags: [Jobs]
+      operationId: getRecipeProcessingSummary
+      responses:
+        "200":
+          description: Authoritative counts for the recipe processing queue and recipes missing nutrition.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipeProcessingSummary"
+
   /jobs/current:
     get:
       tags: [Jobs]
@@ -1730,6 +1770,11 @@ components:
         typicalServingG: { $ref: "#/components/schemas/Decimal6" }
         typicalServingUnit: { type: string }
         expectedVersion: { type: integer, minimum: 1 }
+    OwnerFoodSelectionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        rememberMatch: { type: boolean, default: true }
     OwnerPreferences:
       type: object
       additionalProperties: false
@@ -2180,6 +2225,14 @@ components:
             id: { type: string, format: uuid }
             active: { type: boolean }
             createdAt: { type: string, format: date-time }
+    RecipeProcessingSummary:
+      type: object
+      required: [active, waiting, missing, pollAfterSeconds]
+      properties:
+        active: { type: integer, minimum: 0 }
+        waiting: { type: integer, minimum: 0 }
+        missing: { type: integer, minimum: 0 }
+        pollAfterSeconds: { type: [integer, "null"], minimum: 1 }
     JobAccepted:
       type: object
       required: [jobId, status]

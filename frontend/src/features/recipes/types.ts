@@ -8,6 +8,7 @@ export type RecipeWrite = components["schemas"]["RecipeWriteRequest"];
 export type IngredientWrite = components["schemas"]["IngredientWriteRequest"];
 export type Job = components["schemas"]["JobResponse"];
 export type JobAccepted = components["schemas"]["JobAcceptedResponse"];
+export type RecipeProcessingSummary = components["schemas"]["RecipeProcessingSummaryResponse"];
 export type ResolvedNutrition = components["schemas"]["ResolvedNutritionResponse"];
 export type NutritionCorrectionWrite = components["schemas"]["NutritionCorrectionWriteRequest"];
 export type NutritionState = components["schemas"]["NutritionSnapshotResponse"]["status"];

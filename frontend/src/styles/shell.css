@@ -29,7 +29,7 @@
 }
 
 .brand-mark { width: 2rem; height: 2rem; object-fit: contain; }
-.planner-nav__brandmark { display: grid; width: 2.375rem; height: 2.375rem; place-items: center; color: var(--color-accent); font-size: 1.5rem; }
+.planner-nav__brandmark { width: 2.375rem; height: 2.375rem; object-fit: contain; }
 .planner-nav nav { display: grid; gap: 0.375rem; }
 .planner-nav__account {
   margin-top: auto;

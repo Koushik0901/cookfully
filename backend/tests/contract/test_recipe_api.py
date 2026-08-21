@@ -70,6 +70,8 @@ def test_recipe_and_job_openapi_surface(isolated_database_url: str, tmp_path: Pa
         assert "/api/v1/recipes/{recipeId}" in paths
         assert "/api/v1/recipes/bulk/archive" in paths
         assert "/api/v1/recipes/{recipeId}/nutrition/corrections/{correctionId}" in paths
+        assert "/api/v1/recipes/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}" in paths
+        assert "/api/v1/jobs/recipe-processing" in paths
         assert "/api/v1/jobs/{jobId}" in paths
         current = paths["/api/v1/jobs/current"]["get"]
         assert [parameter["name"] for parameter in current["parameters"]] == [
@@ -98,6 +100,13 @@ def test_recipe_crud_correction_job_polling_and_decimal_contract(
         assert body["yieldQuantity"] == "2"
         assert body["status"] == "processing"
         recipe_id = body["id"]
+
+        summary = client.get("/api/v1/jobs/recipe-processing", headers=headers)
+        assert summary.status_code == 200
+        assert summary.json()["active"] == 0
+        assert summary.json()["waiting"] >= 1
+        assert summary.json()["missing"] >= 1
+        assert summary.json()["pollAfterSeconds"] == 2
 
         detail = client.get(f"/api/v1/recipes/{recipe_id}")
         assert detail.status_code == 200
@@ -158,6 +167,41 @@ def test_recipe_crud_correction_job_polling_and_decimal_contract(
         page = client.get("/api/v1/recipes", params={"limit": 1})
         assert page.status_code == 200
         assert len(page.json()["items"]) == 1
+
+
+def test_custom_food_can_be_created_and_applied_to_recipe_ingredient(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        created = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers)
+        assert created.status_code == 201
+        recipe_id = created.json()["id"]
+        ingredient_id = client.get(f"/api/v1/recipes/{recipe_id}").json()["ingredients"][0]["id"]
+
+        food = client.post(
+            "/api/v1/foods/user",
+            json={
+                "displayName": "House tofu",
+                "caloriesKcal": "120",
+                "proteinG": "12",
+                "carbohydrateG": "4",
+                "fatG": "6",
+                "basisGrams": "100",
+                "typicalServingG": "100",
+                "typicalServingUnit": "gram",
+            },
+            headers=headers,
+        )
+        assert food.status_code == 201, food.text
+        owner_food_id = food.json()["id"]
+
+        selected = client.post(
+            f"/api/v1/recipes/{recipe_id}/ingredients/{ingredient_id}/owner-food/{owner_food_id}",
+            json={"rememberMatch": True},
+            headers=headers,
+        )
+        assert selected.status_code == 204, selected.text
 
 
 def test_recipe_thumbnail_crop_and_origin_contract(

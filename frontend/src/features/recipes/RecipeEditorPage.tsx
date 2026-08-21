@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Dispatch, type FormEvent, type SetStateAction, useContext, useEffect, useMemo, useState } from "react";
 import { Link, UNSAFE_DataRouterContext, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Button, ConfirmDialog, DecimalInput, ErrorRecovery, Field, PageHeader, PageState, Skeleton } from "../../components";
-import { Undo2 } from "lucide-react";
+import { Button, ConfirmDialog, DecimalInput, ErrorRecovery, Field, PageState, RecipeMedia, Skeleton } from "../../components";
+import { ArrowLeft, ArrowRight, Check, Eye, PencilLine, Undo2 } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
@@ -42,6 +42,66 @@ type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
 const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
 
+const EDITOR_STEPS = [
+  { id: "basics", label: "Recipe", hint: "Name and timing" },
+  { id: "ingredients", label: "Ingredients", hint: "What you need" },
+  { id: "method", label: "Method", hint: "How it comes together" },
+  { id: "nutrition", label: "Finish", hint: "Details and cover" },
+] as const;
+
+type EditorStepId = typeof EDITOR_STEPS[number]["id"];
+
+function RecipeEditorJourney({
+  active,
+  onSelect,
+  ingredientCount,
+  stepCount,
+}: {
+  active: EditorStepId;
+  onSelect: (step: EditorStepId) => void;
+  ingredientCount: number;
+  stepCount: number;
+}) {
+  return (
+    <nav className="recipe-editor__journey" aria-label="Recipe editor progress">
+      {EDITOR_STEPS.map((step, index) => {
+        const isActive = active === step.id;
+        const complete = step.id === "basics"
+          ? false
+          : step.id === "ingredients"
+            ? ingredientCount > 0
+            : step.id === "method"
+              ? stepCount > 0
+              : false;
+        return (
+          <button
+            type="button"
+            key={step.id}
+            aria-current={isActive ? "step" : undefined}
+            className={complete ? "is-complete" : undefined}
+            onClick={() => onSelect(step.id)}
+          >
+            <span className="recipe-editor__journey-index" aria-hidden="true">{complete ? <Check /> : index + 1}</span>
+            <span><strong>{step.label}</strong><small>{step.hint}</small></span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function EditorStepActions({ active, onSelect }: { active: EditorStepId; onSelect: (step: EditorStepId) => void }) {
+  const index = EDITOR_STEPS.findIndex((step) => step.id === active);
+  const previous = EDITOR_STEPS[index - 1];
+  const next = EDITOR_STEPS[index + 1];
+  return (
+    <div className="recipe-editor__step-actions" aria-label={`${EDITOR_STEPS[index]?.label} section actions`}>
+      {previous ? <Button type="button" variant="ghost" onClick={() => onSelect(previous.id)}><ArrowLeft aria-hidden="true" />{previous.label}</Button> : <span />}
+      {next ? <Button type="button" variant="secondary" aria-label={`Continue to ${next.label.toLocaleLowerCase()}`} onClick={() => onSelect(next.id)}>Next: {next.label}<ArrowRight aria-hidden="true" /></Button> : null}
+    </div>
+  );
+}
+
 function DataRouterNavigationBlocker({ dirty }: { dirty: boolean }) {
   const blocker = useBlocker(dirty);
   useEffect(() => {
@@ -71,10 +131,9 @@ const [title, setTitle] = useState("");
   const [prepMinutes, setPrepMinutes] = useState("");
   const [cookMinutes, setCookMinutes] = useState("");
   const [blocks, setBlocks] = useState<EditorBlock[]>(() => [newEditorBlock()]);
-  const [extrasOpen, setExtrasOpen] = useState(false);
   const [matchesOpen, setMatchesOpen] = useState(location.hash === "#ingredient-matches");
   const [nutritionOpen, setNutritionOpen] = useState(location.hash === "#nutrition");
-  const [mobileStep, setMobileStep] = useState<"basics" | "ingredients" | "method" | "nutrition">(location.hash === "#nutrition" ? "nutrition" : "basics");
+  const [mobileStep, setMobileStep] = useState<EditorStepId>(location.hash === "#nutrition" ? "nutrition" : "basics");
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [photo, setPhoto] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
@@ -85,6 +144,7 @@ const [title, setTitle] = useState("");
   const [initialNutritionValues, setInitialNutritionValues] = useState<NutritionValues>(emptyNutrition);
   const [nutritionReason, setNutritionReason] = useState("");
   const [savedRecipeId, setSavedRecipeId] = useState<string | null>(null);
+  const [savedDestination, setSavedDestination] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
   const [pasteUndo, setPasteUndo] = useState<{ previous: EditorBlock[]; message: string } | null>(null);
@@ -117,7 +177,6 @@ const [title, setTitle] = useState("");
     setPrepMinutes(detail.data.prepMinutes == null ? "" : String(detail.data.prepMinutes));
     setCookMinutes(detail.data.cookMinutes == null ? "" : String(detail.data.cookMinutes));
     setBlocks(editorBlocksFromRecipe(detail.data));
-    setExtrasOpen(Boolean(detail.data.description || detail.data.sourceUrl));
     setRemovePhoto(false);
     setThumbnailCrop(detail.data.thumbnailCrop ?? defaultThumbnailCrop());
     const values = emptyNutrition();
@@ -144,6 +203,11 @@ const [title, setTitle] = useState("");
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
+
+  useEffect(() => {
+    if (!savedDestination || dirty) return;
+    navigate(savedDestination, { state: { recipeSaved: true } });
+  }, [dirty, navigate, savedDestination]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -199,14 +263,16 @@ const [title, setTitle] = useState("");
       } catch (error) {
         setSavedRecipeId(saved.id);
         setDirty(false);
-        setPhotoError(error instanceof Error ? `Recipe saved, but one finishing change failed: ${error.message}` : "Recipe saved, but one finishing change failed.");
+        const message = error instanceof Error ? `Recipe saved, but one finishing change failed: ${error.message}` : "Recipe saved, but one finishing change failed.";
+        setPhotoError(message);
+        setSavedDestination(`/app/recipes/${saved.id}`);
         return;
       }
       if ("ingredients" in finalRecipe) queryClient.setQueryData(["recipe", finalRecipe.id], finalRecipe);
       else queryClient.removeQueries({ queryKey: ["recipe", finalRecipe.id], exact: true });
-void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
       setDirty(false);
-      navigate(`/app/recipes/${finalRecipe.id}`, { state: { recipeSaved: true } });
+      setSavedDestination(`/app/recipes/${finalRecipe.id}`);
     },
   });
 
@@ -214,6 +280,28 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
     setDirty(true);
     setBlocks(value);
   };
+
+  const ingredientCount = blocks.reduce((total, block) => total + block.ingredients.filter((item) => item.originalText.trim()).length, 0);
+  const stepCount = blocks.reduce((total, block) => total + block.instructions.filter((item) => item.text.trim()).length, 0);
+  const chooseEditorStep = (step: EditorStepId) => {
+    setMobileStep(step);
+    if (step === "nutrition") setNutritionOpen(true);
+    const targetId = step === "basics" ? "recipe-basics" : step === "ingredients" ? "recipe-ingredients" : step === "method" ? "recipe-method" : "recipe-finish";
+    window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 0);
+  };
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined" || window.matchMedia("(max-width: 47.99rem)").matches) return;
+    const sections: Array<[EditorStepId, string]> = [["basics", "recipe-basics"], ["ingredients", "recipe-ingredients"], ["method", "recipe-method"], ["nutrition", "recipe-finish"]];
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const step = sections.find(([, id]) => id === visible.target.id)?.[0];
+      if (step) setMobileStep(step);
+    }, { rootMargin: "-18% 0px -58% 0px", threshold: [0.2, 0.45, 0.7] });
+    sections.forEach(([, id]) => { const element = document.getElementById(id); if (element) observer.observe(element); });
+    return () => observer.disconnect();
+  }, []);
 
   function rowsSplit(previous: EditorBlock[], count: number, kind: "ingredients" | "steps") {
     setDirty(true);
@@ -244,7 +332,7 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
     setPhotoError("");
     if (Object.keys(nextErrors).length) {
       const hasNutritionError = Object.keys(nextErrors).some((key) => key.startsWith("nutrition-"));
-      setMobileStep(nextErrors.title || nextErrors.yieldQuantity || nextErrors.prepMinutes || nextErrors.cookMinutes ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
+      chooseEditorStep(nextErrors.title || nextErrors.yieldQuantity || nextErrors.prepMinutes || nextErrors.cookMinutes ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
       return;
     }
     save.mutate(serializeRecipeBlocks(blocks, { title, description, sourceUrl, yieldQuantity, yieldUnit, prepMinutes, cookMinutes, thumbnailCrop }));
@@ -257,11 +345,10 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
     <>
       <OptionalNavigationBlocker dirty={dirty} />
       <main className="page-shell recipe-editor-page">
-      <PageHeader eyebrow={recipeId ? "Edit recipe" : "New recipe"} title={recipeId ? `Make ${detail.data?.title ?? "this recipe"} your own` : "What are we cooking?"} description={recipeId ? "Change the food, servings, or method. Cookfully will refresh the nutrition after you save." : "Start with the recipe as you know it. Cookfully can work out the nutrition after you save."} actions={<Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link>} />
-      <nav className="recipe-editor__view-toggle" aria-label="Recipe editor views">
-        <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}>Edit</button>
-        <button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}>Preview</button>
-      </nav>
+        <div className="recipe-editor__topline">
+          <Link className="recipe-editor__back" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}><ArrowLeft aria-hidden="true" />{recipeId ? "Back to recipe" : "All recipes"}</Link>
+          <div className="recipe-editor__header-actions"><nav className="recipe-editor__view-toggle" aria-label="Recipe editor views"><button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")}><PencilLine aria-hidden="true" />Edit</button><button type="button" aria-pressed={view === "preview"} onClick={() => setView("preview")}><Eye aria-hidden="true" />Preview</button></nav><Link className="text-link" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}>Cancel</Link></div>
+        </div>
       <RecipeDraftPreview
         title={title}
         description={description}
@@ -275,46 +362,60 @@ void queryClient.invalidateQueries({ queryKey: ["recipes"] });
         className={view === "preview" ? undefined : "u-hidden"}
       />
       <form className={`recipe-form recipe-editor recipe-editor--step-${mobileStep}${view === "edit" ? "" : " u-hidden"}`} onSubmit={submit} onChange={() => setDirty(true)} noValidate>
-        <section className="recipe-editor__identity" aria-label="Recipe name and yield">
-          <Field label="Recipe title" error={errors.title}><input className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
-          <div className="recipe-editor__identity-details"><div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.target.value)} /></Field></div><div className="recipe-times"><Field label="Prep minutes" hint="Optional" error={errors.prepMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={prepMinutes} onChange={(event) => setPrepMinutes(event.currentTarget.value)} /></Field><Field label="Cook minutes" hint="Optional" error={errors.cookMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={cookMinutes} onChange={(event) => setCookMinutes(event.currentTarget.value)} /></Field></div></div>
+        <section className="recipe-editor__hero" id="recipe-basics" aria-labelledby="recipe-editor-title">
+          <div className="recipe-editor__hero-media"><RecipeMedia recipe={{ title: title || "Untitled recipe", imageUrl: photoPreview ?? (removePhoto ? null : detail.data?.imageUrl ?? null), thumbnailCrop }} alt={title || "Your recipe"} loading="eager" /></div>
+          <div className="recipe-editor__hero-copy">
+            <p className="eyebrow">{recipeId ? "Recipe workshop" : "New recipe"}</p>
+            <Field label="Recipe title" error={errors.title}><input id="recipe-editor-title" className="input recipe-title-input" value={title} onChange={(event) => setTitle(event.currentTarget.value)} placeholder="Lemon chicken with herbs" autoFocus={!recipeId} /></Field>
+            <div className="recipe-editor__context" aria-label="Recipe context">
+              <Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.currentTarget.value)} placeholder="A quick note about what makes this recipe worth returning to." /></Field>
+              <Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.currentTarget.value)} placeholder="https://…" /></Field>
+            </div>
+            <p className="lede">{recipeId ? "Keep the parts that work, then make this easier to return to at the counter." : "A title, a working ingredient list, and your method are enough to start."}</p>
+            <div className="recipe-editor__hero-details">
+              <div className="recipe-makes"><span>Makes</span><Field label="Yield quantity" error={errors.yieldQuantity}><DecimalInput aria-label="Yield quantity" value={yieldQuantity} onValueChange={setYieldQuantity} onInput={(event) => setYieldQuantity(event.currentTarget.value)} /></Field><Field label="Yield unit"><input className="input" value={yieldUnit} onChange={(event) => setYieldUnit(event.currentTarget.value)} /></Field></div>
+              <div className="recipe-times"><Field label="Prep minutes" hint="Optional" error={errors.prepMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={prepMinutes} onChange={(event) => setPrepMinutes(event.currentTarget.value)} /></Field><Field label="Cook minutes" hint="Optional" error={errors.cookMinutes}><input className="input" inputMode="numeric" pattern="[0-9]*" value={cookMinutes} onChange={(event) => setCookMinutes(event.currentTarget.value)} /></Field></div>
+            </div>
+          </div>
         </section>
-
-        <nav className="recipe-editor__mobile-steps" aria-label="Recipe editing steps">
-          {(["basics", "ingredients", "method", "nutrition"] as const).map((step, index) => <button type="button" key={step} aria-label={step[0].toUpperCase() + step.slice(1)} aria-current={mobileStep === step ? "step" : undefined} onClick={() => { setMobileStep(step); if (step === "nutrition") setNutritionOpen(true); }}><span aria-hidden="true">{index + 1}</span>{step[0].toUpperCase() + step.slice(1)}</button>)}
-        </nav>
+        <RecipeEditorJourney active={mobileStep} onSelect={chooseEditorStep} ingredientCount={ingredientCount} stepCount={stepCount} />
+        <EditorStepActions active={mobileStep} onSelect={chooseEditorStep} />
 
         {pasteUndo ? <div className="recipe-editor__paste-feedback" role="status"><span>{pasteUndo.message}</span><Button type="button" variant="ghost" size="sm" onClick={() => { setBlocks(pasteUndo.previous); setPasteUndo(null); }}><Undo2 aria-hidden="true" />Undo</Button></div> : null}
 
         <div className="recipe-editor__workbench">
-          <StructuredIngredientEditor blocks={blocks} setBlocks={setEditorBlocks} error={errors.ingredients} onRowsSplit={rowsSplit} />
-          <StructuredMethodEditor blocks={blocks} setBlocks={setEditorBlocks} onRowsSplit={rowsSplit} />
+          <section className="recipe-editor__stage recipe-editor__stage--ingredients" id="recipe-ingredients" aria-label="Ingredients step"><StructuredIngredientEditor blocks={blocks} setBlocks={setEditorBlocks} error={errors.ingredients} onRowsSplit={rowsSplit} /><EditorStepActions active="ingredients" onSelect={chooseEditorStep} /></section>
+          <section className="recipe-editor__stage recipe-editor__stage--method" id="recipe-method" aria-label="Method step"><StructuredMethodEditor blocks={blocks} setBlocks={setEditorBlocks} onRowsSplit={rowsSplit} /><EditorStepActions active="method" onSelect={chooseEditorStep} /></section>
         </div>
 
-        {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" id="ingredient-matches" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}
-
-        <details className="recipe-editor__extras" open={extrasOpen} onToggle={(event) => setExtrasOpen(event.currentTarget.open)}><summary><span><strong>Add a description or source</strong><small>Optional context for remembering where this recipe came from</small></span></summary><div className="recipe-editor__extras-content"><Field label="Description"><textarea className="input textarea" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="A quick weeknight dinner with bright lemon and herbs." /></Field><Field label="Source URL" error={errors.sourceUrl}><input className="input" type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} placeholder="https://…" /></Field></div></details>
-        <details className="recipe-editor__nutrition" id="nutrition" open={nutritionOpen} onToggle={(event) => setNutritionOpen(event.currentTarget.open)}>
-          <summary><span><strong>Nutrition values</strong><small>Optional manual values for labels or trusted sources</small></span></summary>
-          <div className="recipe-editor__nutrition-content">
-            <p className="muted">Leave calculated values unchanged to keep using Cookfully’s estimate. Changing a value creates a clearly labeled manual override.</p>
-            <div className="recipe-editor__nutrition-grid recipe-editor__nutrition-grid--macros">
-              {NUTRITION_FIELDS.slice(0, 4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
-            </div>
-            <details className="recipe-editor__micronutrients">
-              <summary>Edit micronutrients</summary>
-              <div className="recipe-editor__nutrition-grid">
-                {NUTRITION_FIELDS.slice(4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
+        <section className="recipe-editor__nutrition-review" id="ingredient-matches" aria-labelledby="nutrition-review-heading">
+          <header><div><p className="eyebrow">Nutrition</p><h2 id="nutrition-review-heading">Nutrition</h2></div></header>
+          {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}
+          <details className="recipe-editor__nutrition" id="nutrition" open={nutritionOpen} onToggle={(event) => setNutritionOpen(event.currentTarget.open)}>
+            <summary><span><strong>Nutrition values</strong><small>Optional values from a label or trusted source</small></span></summary>
+            <div className="recipe-editor__nutrition-content">
+              <p className="muted">Leave calculated values unchanged to keep using Cookfully’s estimate. Changing a value creates a clearly labeled manual override.</p>
+              <div className="recipe-editor__nutrition-grid recipe-editor__nutrition-grid--macros">
+                {NUTRITION_FIELDS.slice(0, 4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
               </div>
-            </details>
-            <Field label="Source or reason" hint="For example: package label, cookbook, or clinician-provided value."><input className="input" value={nutritionReason} onChange={(event) => setNutritionReason(event.target.value)} /></Field>
-          </div>
-        </details>
-        {photoPreview || (detail.data?.imageUrl && !removePhoto) ? <section className="recipe-editor__crop" aria-labelledby="recipe-crop-heading"><p className="eyebrow" id="recipe-crop-heading">Frame your cover</p><ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /></section> : null}
-        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">A little recognition</p><h3 id="recipe-photo-heading">Choose the cover</h3><p>Use your own photo, keep the recipe photo-free, or pick one image from the original source.</p></div><div className="recipe-editor__photo-body">{photoPreview ? <img src={photoPreview} alt="Preview of the selected recipe photo" /> : detail.data?.imageUrl && !removePhoto ? <img src={detail.data.imageUrl} alt={`Current photo for ${detail.data.title}`} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? (detail.data?.imageUrl && !photoPreview ? <ConfirmDialog trigger={<Button type="button" variant="ghost">Remove photo</Button>} title="Remove this recipe photo?" description="The photo will be removed when you save these recipe changes. You can upload a replacement before saving." confirmLabel="Remove photo" onConfirm={() => { setPhoto(null); setRemovePhoto(true); }} /> : <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button>) : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}</div> : null}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div></section>
+              <details className="recipe-editor__micronutrients">
+                <summary>Edit micronutrients</summary>
+                <div className="recipe-editor__nutrition-grid">
+                  {NUTRITION_FIELDS.slice(4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
+                </div>
+              </details>
+              <Field label="Source or reason" hint="For example: package label, cookbook, or clinician-provided value."><input className="input" value={nutritionReason} onChange={(event) => setNutritionReason(event.target.value)} /></Field>
+            </div>
+          </details>
+        </section>
+
+        <section className="recipe-editor__stage recipe-editor__stage--finish" id="recipe-finish" aria-label="Finish recipe">
+        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">Cover</p><h2 id="recipe-photo-heading">Choose the cover</h2></div><div className="recipe-editor__photo-body">{photoPreview || (detail.data?.imageUrl && !removePhoto) ? <ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? (detail.data?.imageUrl && !photoPreview ? <ConfirmDialog trigger={<Button type="button" variant="ghost">Remove photo</Button>} title="Remove this recipe photo?" description="The photo will be removed when you save these recipe changes. You can upload a replacement before saving." confirmLabel="Remove photo" onConfirm={() => { setPhoto(null); setRemovePhoto(true); }} /> : <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button>) : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div> : null}</div></section>
+        <EditorStepActions active="nutrition" onSelect={chooseEditorStep} />
+        </section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
-        <div className="recipe-editor__save"><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
+        <div className="recipe-editor__save"><Link className="recipe-editor__save-back" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}><ArrowLeft aria-hidden="true" />{recipeId ? "Back to recipe" : "All recipes"}</Link><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
       </form>
       </main>
     </>

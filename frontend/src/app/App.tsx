@@ -163,7 +163,7 @@ function PlannerShell() {
       <a href="#planner-content" className="skip-link">Skip to content</a>
       <aside className="planner-nav">
         <NavLink className="planner-nav__brand" to="/app" end>
-          <span className="planner-nav__brandmark" aria-hidden="true">♨</span>
+          <BrandMark className="planner-nav__brandmark" />
           <span className="visually-hidden">Cookfully home</span>
         </NavLink>
         <nav aria-label="Kitchen">

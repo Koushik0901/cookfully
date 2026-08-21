@@ -899,3 +899,75 @@ Adopt Home as the product-wide visual source of truth and codify it in `DESIGN.m
 The Home reference is deliberately adopted rather than copied from any external product. Revisit the
 decision only through a new live review and update all four context documents together.
 
+## Structured recipe capture — 2026-08-20
+
+### Problem being solved
+
+The earlier editor technically replaced freeform ingredient and instruction textareas, but still behaved
+like an implementation workbench: every concern appeared at once, the reading order was unclear, and a
+phone user could switch sections without being guided to the next useful piece of the recipe. A recipe
+editor should help someone preserve the way they cook, not make them complete a data-entry checklist.
+
+### Sources inspected
+
+- [Mealie's current ingredient editor](https://github.com/mealie-recipes/mealie/blob/mealie-next/frontend/app/components/Domain/Recipe/RecipeIngredientEditor.vue), which uses an explicit recipe-section title plus distinct quantity, unit, food, and note controls.
+- [Mealie's current recipe service](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/services/recipe/recipe_service.py), which creates a starter ingredient and an ordered starter instruction for a new manual recipe.
+- [Tandoor's current documentation](https://docs.tandoor.dev/), which describes its editor as fast and intuitive while its broader product also exposes large power-user organization surfaces.
+- [Tandoor's FAQ](https://docs.tandoor.dev/faq/), which documents a temporary markdown-editor preview whose rendering can differ from the finished recipe.
+
+### Benefits and liabilities observed
+
+Mealie confirms that ingredients and instructions deserve independent, ordered controls and that a blank
+starter row makes a manual recipe immediately actionable. Its compact quantity/unit/food layout is useful
+for structured data but would make Cookfully's preserved original ingredient text feel overly technical if
+shown by default. Tandoor validates a fast editor for serious cooks, but its large configurable surface and
+markdown-preview mismatch are the opposite of a calm, trustworthy capture experience.
+
+### Local decision
+
+Adopt the useful structured-entry principles while rejecting their density and preview compromises:
+
+- organize editing as a visible four-part journey: Recipe, Ingredients, Method, and Finish; desktop keeps
+  the journey as orientation, while mobile makes it the active single-section flow with explicit next and
+  previous controls;
+- preserve one complete original ingredient line as the primary row, with parsed amount, unit, food,
+  preparation, and optionality disclosed only when useful; multiline pastes still become individual rows;
+- keep method steps as numbered, independently editable units so they map directly to Cook Mode;
+- keep the Cookfully draft preview as the same recipe presentation used by reading surfaces, never a
+  separate markdown rendering path;
+- make cover, source, description, and manual nutrition a quiet Finish step. They are meaningful, but
+  never requirements for saving a recipe.
+
+This approach fits Cookfully's cooking-first scope: structured enough to plan and calculate honestly, but
+still generous to a person typing a family recipe from memory. Revisit only if direct usability evidence
+shows a materially faster capture model without losing readable, durable recipe structure.
+
+## Settings jobs — 2026-08-21
+
+### Problem being solved
+
+Background work was visible only as incidental progress on individual screens. Owners needed one calm
+place to restart recipe processing, repair missing nutrition data, install reference releases, and prepare
+portable exports without turning Settings into an operations console.
+
+### Sources inspected
+
+- Immich's Job Queues screen supplied by the owner as a visual reference: one queue card per job, active and
+  waiting counts, and explicit all/missing or rescan actions.
+- Cookfully's existing recipe recalculation, reference-data install, job polling, and portable-export
+  contracts, so every action in the new screen maps to a real endpoint.
+
+### Benefits and liabilities observed
+
+Immich's split card/action grammar makes queue state legible and gives recovery actions a predictable home.
+Its dark, infrastructure-first presentation would make Cookfully feel like a server console, and its broad
+asset vocabulary does not map cleanly to recipes or nutrition releases.
+
+### Local decision
+
+Adapt the queue grammar, not the visual skin: use warm Cookfully surfaces, organic corners, shared Button and
+SectionHeading primitives, three honest queue metrics, and a compact action rail. Recipe processing supports
+Run all and Run missing only through existing per-recipe recalculation; reference data exposes refresh and
+missing-release install; portable export is a single media-inclusive action. Keep the page inside Settings,
+poll only while a job is active, and explain that re-runs preserve manual nutrition corrections.
+

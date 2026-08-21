@@ -15,7 +15,9 @@ from cookfully.api.schemas.foods import (
     OwnerFoodWriteRequest,
 )
 from cookfully.application.food_matching import FoodMatcher, normalize_food
+from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
@@ -23,8 +25,38 @@ from cookfully.infrastructure.repositories.owner_foods import (
     OwnerFoodWrite,
     UserFoodRepository,
 )
+from cookfully.infrastructure.semantic_embeddings import (
+    HashingTextEmbedder,
+    TextEmbedder,
+    create_text_embedder,
+)
 
 router = APIRouter(tags=["Foods"])
+
+_search_embedder: TextEmbedder | None = None
+_search_embedder_key: tuple[str, str, str | None] | None = None
+
+
+def _configured_search_matcher(session: Session) -> FoodMatcher:
+    """Build a matcher using the currently persisted embedding configuration."""
+
+    global _search_embedder, _search_embedder_key
+    settings = session.get(NutritionIntelligenceSettings, 1)
+    backend = settings.backend if settings is not None else "hashing"
+    model_name = settings.model_name if settings is not None else ""
+    revision = settings.model_revision if settings is not None else None
+    key = (backend, model_name, revision)
+    if _search_embedder is None or _search_embedder_key != key:
+        if backend == "fastembed":
+            runtime = get_settings()
+            _search_embedder = create_text_embedder(
+                model_name=model_name,
+                cache_dir=runtime.semantic_matching_model_dir,
+            )
+        else:
+            _search_embedder = HashingTextEmbedder()
+        _search_embedder_key = key
+    return FoodMatcher(NutritionRepository(session), embedder=_search_embedder)
 
 
 def _open_session(request: Request) -> Session:
@@ -79,17 +111,16 @@ def search_foods(
 
     session = _open_session(request)
     repo = UserFoodRepository(session)
-    user_foods = repo.search(owner.id, query, limit=10)
+    user_foods = repo.search(owner.id, query, limit=5)
     for uf in user_foods:
         candidates.append(_candidate_from_owner(uf))
 
-    nut_repo = NutritionRepository(session)
-    usda_foods = nut_repo.search_foods(query, limit=10)
-    for ref in usda_foods:
-        candidates.append(_candidate_from_usda(ref))
+    matcher = _configured_search_matcher(session)
+    for match in matcher.candidates(q, limit=5):
+        candidates.append(_candidate_from_usda(match.food, match))
     session.close()
 
-    return FoodSearchResponse(query=q, candidates=candidates)
+    return FoodSearchResponse(query=q, candidates=candidates[:5])
 
 
 @router.get(
@@ -215,13 +246,12 @@ def list_ingredient_candidates(
     candidates: list[FoodCandidateResponse] = []
 
     repo = UserFoodRepository(session)
-    for uf in repo.search(owner.id, query, limit=10):
+    for uf in repo.search(owner.id, query, limit=5):
         candidates.append(_candidate_from_owner(uf))
 
-    nut_repo = NutritionRepository(session)
-    matcher = FoodMatcher(nut_repo)
-    for fc in matcher.candidates(food_name):
+    matcher = _configured_search_matcher(session)
+    for fc in matcher.candidates(food_name, limit=5):
         candidates.append(_candidate_from_usda(fc.food, fc))
 
     session.close()
-    return FoodSearchResponse(query=food_name, candidates=candidates)
+    return FoodSearchResponse(query=food_name, candidates=candidates[:5])

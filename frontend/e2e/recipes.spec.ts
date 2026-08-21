@@ -326,30 +326,32 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await page.goto("/app/recipes/new");
   if (testInfo.project.name === "narrow-mobile") {
     await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeHidden();
-    await page.getByRole("button", { name: "Ingredients" }).click();
+    await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
     await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Basics" }).click();
+    await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Recipe", exact: true }).click();
   }
   await page.getByLabel("Recipe title").fill("Protein oats");
   await page.getByLabel("Yield quantity").fill("2.000");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup rolled oats");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
   await captureUi(page, testInfo, "recipe-editor");
+  if (testInfo.project.name !== "narrow-mobile") await captureUi(page, testInfo, "recipe-editor-ingredients", { focus: page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }) });
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
   await captureUi(page, testInfo, "recipe-detail");
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
+  await captureUi(page, testInfo, "recipe-editor-edit");
   await page.getByLabel("Yield quantity").fill("3.000");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
   else await page.getByText("Nutrition values").click();
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label");
@@ -540,9 +542,10 @@ test("archives selected recipes from the library with one reversible action", as
   await page.locator("summary").filter({ hasText: "Refine recipes" }).click();
   await page.getByRole("button", { name: "Select recipes" }).click();
   await page.getByRole("checkbox", { name: "Select Protein oats" }).click();
+  await page.getByRole("button", { name: "Archive 1 selected recipe" }).click();
   const [request] = await Promise.all([
     page.waitForRequest((value) => value.url().includes("/recipes/bulk/archive") && value.method() === "POST"),
-    page.getByRole("button", { name: "Archive 1 selected recipe" }).click(),
+    page.getByRole("button", { name: "Archive 1 recipe" }).click(),
   ]);
   expect(request.postDataJSON()).toEqual({ recipes: [{ id: recipeId, version: 1 }] });
   await expect(page.getByText("1 recipe archived.")).toBeVisible();
@@ -553,16 +556,17 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.goto("/app/recipes/new");
   await page.getByLabel("Recipe title").fill("Lemon lentils");
   await page.getByLabel("Yield quantity").fill("2.000");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup lentils");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Basics" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
   await expect(page.getByAltText("Preview of the selected recipe photo")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Basics" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
   await expect(page.getByAltText("Current photo for Lemon lentils")).toBeVisible();
+  await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
@@ -647,9 +651,9 @@ test("editor preview toggle mirrors the live draft", async ({ page }, testInfo) 
   await page.goto("/app/recipes/new");
   await page.getByLabel("Recipe title").fill("Sheet pan chicken");
   await page.getByLabel("Yield quantity").fill("4.000");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await pasteRows(page, "ingredient 1 for main recipe", "1 chicken breast\n2 cups rice");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
   await pasteRows(page, "step 1 for main recipe", "Roast the chicken.\nRest before serving.");
 
   await page.getByRole("button", { name: "Preview" }).click();
@@ -662,7 +666,7 @@ test("editor preview toggle mirrors the live draft", async ({ page }, testInfo) 
 
   await page.getByRole("button", { name: "Edit" }).click();
   await expect(page.getByLabel("Recipe title")).toHaveValue("Sheet pan chicken");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toHaveValue("1 chicken breast");
   await expect(page.getByRole("textbox", { name: "ingredient 2 for main recipe", exact: true })).toHaveValue("2 cups rice");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

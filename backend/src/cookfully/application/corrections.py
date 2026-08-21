@@ -18,6 +18,7 @@ from cookfully.domain.common import (
 from cookfully.domain.units import IngredientMeasure, to_grams
 from cookfully.domain.volume_assumptions import density_for
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionCorrection
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
@@ -172,6 +173,79 @@ class CorrectionService:
                     )
             recipe.version += 1
             return correction
+
+    def activate_owner_food_match(
+        self,
+        *,
+        recipe_id: UUID,
+        ingredient_id: UUID,
+        owner_food_id: UUID,
+        owner_id: UUID,
+    ) -> None:
+        """Apply a user-owned food directly to an ingredient.
+
+        Owner foods are not reference-dataset rows, so they cannot be stored in
+        the reference-only nutrition correction value. They still use the same
+        active IngredientMatch record as pipeline pre-matching, which keeps the
+        manual choice visible to the nutrition calculator immediately.
+        """
+        with self._session_factory.begin() as session:
+            recipe = session.get(Recipe, recipe_id, with_for_update=True)
+            if recipe is None:
+                raise DomainError("recipe_not_found", "Recipe was not found.", 404)
+            if recipe.status == "archived":
+                raise DomainError(
+                    "recipe_archived", "Restore the recipe before correcting it.", 409
+                )
+            ingredient = session.get(Ingredient, ingredient_id)
+            if ingredient is None or ingredient.recipe_id != recipe_id:
+                raise DomainError("ingredient_not_found", "Recipe ingredient was not found.", 404)
+            food = session.get(OwnerFood, owner_food_id)
+            if food is None or food.owner_id != owner_id or not food.is_active:
+                raise DomainError("owner_food_not_found", "Your custom food was not found.", 404)
+
+            grams_min: Decimal | None = None
+            grams_max: Decimal | None = None
+            conversion_method: str | None = None
+            assumption: str | None = None
+            parsed_unit = (ingredient.unit_code or "").casefold()
+            serving_unit = (food.typical_serving_unit or "").casefold()
+            if food.typical_serving_g is not None and serving_unit and parsed_unit == serving_unit:
+                grams_min = quantize_decimal(
+                    ingredient.quantity_min * food.typical_serving_g
+                    if ingredient.quantity_min is not None
+                    else food.typical_serving_g,
+                    NUTRIENT_SCALE,
+                )
+                grams_max = quantize_decimal(
+                    ingredient.quantity_max * food.typical_serving_g
+                    if ingredient.quantity_max is not None
+                    else food.typical_serving_g,
+                    NUTRIENT_SCALE,
+                )
+                conversion_method = "owner_serving"
+                assumption = (
+                    f"1 {food.typical_serving_unit} = {food.typical_serving_g}g "
+                    f"({food.display_name})"
+                )
+
+            NutritionRepository(session).activate_match(
+                IngredientMatch(
+                    ingredient_id=ingredient.id,
+                    food_reference_id=None,
+                    owner_food_id=food.id,
+                    status="manual",
+                    match_method="manual",
+                    match_score=None,
+                    grams_min=grams_min,
+                    grams_max=grams_max,
+                    conversion_method=conversion_method,
+                    assumption_text=assumption,
+                    input_hash=recipe.input_hash,
+                    active=True,
+                )
+            )
+            recipe.version += 1
 
     def reset(
         self,

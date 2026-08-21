@@ -444,7 +444,10 @@ class RecipePipeline:
             return next_job
 
     def _embedder_for_session(self, session: Session) -> TextEmbedder:
-        if self._embedder is not None:
+        # A non-null embedder with no key is an explicit test/integration
+        # injection. Production pipelines keep the key so persisted settings
+        # changes can replace the cached model on the next job.
+        if self._embedder is not None and self._embedder_key is None:
             return self._embedder
         settings = session.get(NutritionIntelligenceSettings, 1)
         backend = settings.backend if settings is not None else "hashing"
@@ -993,12 +996,7 @@ def get_recipe_pipeline() -> RecipePipeline:
         diagnostics_enabled=settings.failed_import_diagnostics_enabled,
     )
     images = RecipeImageService(SafeFetcher(max_bytes=10 * 1024 * 1024), media_store)
-    embedder = (
-        create_text_embedder(
-            model_name=settings.semantic_matching_model,
-            cache_dir=settings.semantic_matching_model_dir,
-        )
-        if settings.semantic_matching_backend == "fastembed"
-        else HashingTextEmbedder()
-    )
-    return RecipePipeline(sessions, importer, images, embedder)
+    # Resolve the embedder from the persisted nutrition-intelligence settings
+    # when each match job starts. This lets a model change take effect on the
+    # next re-run instead of keeping the process-start configuration forever.
+    return RecipePipeline(sessions, importer, images)

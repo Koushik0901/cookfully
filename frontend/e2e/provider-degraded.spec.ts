@@ -127,7 +127,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByRole("link", { name: "Edit recipe" })).toBeVisible();
 
   await page.getByRole("link", { name: "Edit nutrition" }).click();
-  if (testInfo.project.name === "narrow-mobile") await expect(page.getByRole("button", { name: "Nutrition" })).toHaveAttribute("aria-current", "step");
+  if (testInfo.project.name === "narrow-mobile") await expect(page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true })).toHaveAttribute("aria-current", "step");
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label after provider failure");
   await page.getByRole("button", { name: "Save recipe" }).click();
@@ -135,9 +135,9 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Ingredients" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("250 g tofu");
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Method" }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();

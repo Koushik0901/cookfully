@@ -25,15 +25,18 @@ export function BrandMark({ className = "" }: { className?: string }) {
   return <img className={`brand-mark ${className}`} src="/brand/cookfully-mark-512.png" alt="" aria-hidden="true" />;
 }
 
-export function Field({ label, error, hint, endAdornment, children }: { label: string; error?: string; hint?: string; endAdornment?: ReactNode; children: ReactElement<{ "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
+export function Field({ label, error, hint, endAdornment, accessibilityLabel, children }: { label: string; error?: string; hint?: string; endAdornment?: ReactNode; accessibilityLabel?: string; children: ReactElement<{ "aria-label"?: string; "aria-labelledby"?: string; "aria-describedby"?: string }> }) {
   const fieldId = useId();
   const labelId = `${fieldId}-label`;
   const message = error ?? hint;
   const descriptionId = message ? `${fieldId}-description` : undefined;
+  const controlLabels = accessibilityLabel
+    ? { "aria-label": accessibilityLabel, "aria-labelledby": undefined, "aria-describedby": descriptionId }
+    : { "aria-labelledby": labelId, "aria-describedby": descriptionId };
   return (
     <div className="field">
       <span id={labelId} className="field__label">{label}</span>
-      {endAdornment ? <span className="field__control">{cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}{endAdornment}</span> : cloneElement(children, { "aria-labelledby": labelId, "aria-describedby": descriptionId })}
+      {endAdornment ? <span className="field__control">{cloneElement(children, controlLabels)}{endAdornment}</span> : cloneElement(children, controlLabels)}
       <span id={descriptionId} className={`field__message${error ? " field__error" : " field__hint"}`} aria-hidden={message ? undefined : true}>{message || "\u00a0"}</span>
     </div>
   );

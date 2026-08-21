@@ -4,7 +4,25 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from cookfully.application.jobs import JobProgress
+from cookfully.application.jobs import JobProgress, RecipeProcessingSummary
+
+
+class RecipeProcessingSummaryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    active: int = Field(ge=0)
+    waiting: int = Field(ge=0)
+    missing: int = Field(ge=0)
+    poll_after_seconds: int | None = Field(alias="pollAfterSeconds", default=None, ge=1)
+
+    @classmethod
+    def from_summary(cls, summary: RecipeProcessingSummary) -> "RecipeProcessingSummaryResponse":
+        return cls(
+            active=summary.active,
+            waiting=summary.waiting,
+            missing=summary.missing,
+            poll_after_seconds=summary.poll_after_seconds,
+        )
 
 
 class JobAcceptedResponse(BaseModel):

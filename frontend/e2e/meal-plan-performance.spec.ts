@@ -17,7 +17,7 @@ function nutrition(servings: string) {
 }
 
 async function mockFiftyEntryPlan(page: Page) {
-  await page.clock.install({ time: new Date("2026-03-11T18:00:00Z") });
+  await page.clock.install({ time: new Date("2026-03-09T18:00:00Z") });
   const entries = Array.from({ length: 50 }, (_, index) => ({
     id: `00000000-0000-4000-8000-${String(index + 100).padStart(12, "0")}`,
     localDate: monday,

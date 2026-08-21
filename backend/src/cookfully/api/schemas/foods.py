@@ -81,6 +81,12 @@ class FoodSearchResponse(BaseModel):
     candidates: list[FoodCandidateResponse]
 
 
+class OwnerFoodSelectionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    remember_match: bool = Field(alias="rememberMatch", default=True)
+
+
 class IngredientMatchRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 

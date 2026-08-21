@@ -30,16 +30,28 @@ function key(prefix: string) {
 }
 
 export function newIngredient(value: Partial<Omit<EditorIngredientRow, "key">> = {}): EditorIngredientRow {
+  const hasStructuredFields = [value.quantityMin, value.quantityMax, value.unit, value.food, value.preparation]
+    .some((field) => Boolean(field?.trim()));
   return {
     key: key("ingredient"),
     originalText: value.originalText ?? "",
     quantityMin: value.quantityMin ?? "",
     quantityMax: value.quantityMax ?? "",
     unit: value.unit ?? "",
-    food: value.food ?? "",
+    food: value.food ?? (!hasStructuredFields ? value.originalText ?? "" : ""),
     preparation: value.preparation ?? "",
     optional: value.optional ?? false,
   };
+}
+
+/** The canonical text shown on the recipe detail page for a structured row. */
+export function composeIngredientText(value: Pick<EditorIngredientRow, "quantityMin" | "quantityMax" | "unit" | "food" | "preparation">): string {
+  const quantityMin = value.quantityMin.trim();
+  const quantityMax = value.quantityMax.trim();
+  const quantity = quantityMin && quantityMax && quantityMax !== quantityMin
+    ? `${quantityMin}–${quantityMax}`
+    : quantityMin || quantityMax;
+  return [quantity, value.unit.trim(), value.food.trim(), value.preparation.trim()].filter(Boolean).join(" ").trim();
 }
 
 export function newMethodStep(text = ""): EditorMethodStep {
@@ -60,7 +72,7 @@ export function editorBlocksFromRecipe(recipe: RecipeDetail): EditorBlock[] {
         quantityMin: item.quantityMin ?? "",
         quantityMax: item.quantityMax ?? "",
         unit: item.unit ?? "",
-        food: item.food ?? "",
+        food: item.food ?? undefined,
         preparation: item.preparation ?? "",
         optional: item.optional,
       }));

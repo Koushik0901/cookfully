@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.domain.common import DomainError, utc_now
@@ -14,6 +14,7 @@ from cookfully.infrastructure.models.jobs import (
     OutboxEvent,
     ProcessingJob,
 )
+from cookfully.infrastructure.models.recipes import Recipe
 
 RETRY_DELAYS = (
     timedelta(seconds=5),
@@ -46,9 +47,72 @@ class JobProgress:
     failure_message: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class RecipeProcessingSummary:
+    active: int
+    waiting: int
+    missing: int
+    poll_after_seconds: int | None
+
+
+RECIPE_PIPELINE_JOB_KINDS = ("ingredient_parse", "nutrition_match", "nutrition_rollup")
+MISSING_NUTRITION_STATES = ("pending", "stale", "partial", "failed")
+
+
 class JobService:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
+
+    def recipe_processing_summary(self) -> RecipeProcessingSummary:
+        """Return authoritative counts for the recipe processing queue.
+
+        Active/waiting counts come from durable pipeline jobs rather than recipe
+        status projections. Missing counts come from non-archived recipes that
+        do not currently have complete nutrition state.
+        """
+
+        with self._session_factory() as session:
+            pipeline_scope = (
+                ProcessingJob.aggregate_type == "recipe",
+                ProcessingJob.kind.in_(RECIPE_PIPELINE_JOB_KINDS),
+                ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
+            )
+            active = int(
+                session.scalar(
+                    select(func.count(ProcessingJob.id)).where(
+                        *pipeline_scope, ProcessingJob.status == "running"
+                    )
+                )
+                or 0
+            )
+            waiting = int(
+                session.scalar(
+                    select(func.count(ProcessingJob.id)).where(
+                        *pipeline_scope,
+                        ProcessingJob.status.in_(("queued", "retry_wait")),
+                    )
+                )
+                or 0
+            )
+            missing = int(
+                session.scalar(
+                    select(func.count(Recipe.id)).where(
+                        Recipe.status != "archived",
+                        Recipe.nutrition_state.in_(MISSING_NUTRITION_STATES),
+                        ~and_(
+                            Recipe.title == "Importing recipe",
+                            Recipe.status.in_(("failed", "import_failed")),
+                        ),
+                    )
+                )
+                or 0
+            )
+        return RecipeProcessingSummary(
+            active=active,
+            waiting=waiting,
+            missing=missing,
+            poll_after_seconds=2 if active or waiting else None,
+        )
 
     def accept(
         self,

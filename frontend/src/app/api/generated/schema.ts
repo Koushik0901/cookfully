@@ -392,6 +392,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs/recipe-processing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecipeProcessingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{jobId}": {
         parameters: {
             query?: never;
@@ -1834,6 +1850,12 @@ export interface components {
         IngredientWriteRequest: components["schemas"]["IngredientWrite"];
         JobResponse: components["schemas"]["Job"];
         JobAcceptedResponse: components["schemas"]["JobAccepted"];
+        RecipeProcessingSummaryResponse: {
+            active: number;
+            waiting: number;
+            missing: number;
+            pollAfterSeconds: number | null;
+        };
         ResolvedNutritionResponse: components["schemas"]["ResolvedNutrition"];
         NutritionCorrectionWriteRequest: Omit<components["schemas"]["NutritionCorrectionWrite"], "rememberMatch"> & {
             rememberMatch?: boolean;
@@ -2811,6 +2833,25 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+        };
+    };
+    getRecipeProcessingSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeProcessingSummaryResponse"];
+                };
+            };
         };
     };
     getCurrentJob: {
