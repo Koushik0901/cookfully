@@ -2486,9 +2486,9 @@ components:
                   properties:
                     originalText: { type: string }
                     needsQuantity: { type: boolean }
-                instructions:
-                  type: array
-                  items: { type: string }
+              instructions:
+                type: array
+                items: { type: string }
         originKind: { $ref: "#/components/schemas/RecipeOrigin" }
     ImportConfirm:
       type: object

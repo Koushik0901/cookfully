@@ -1646,6 +1646,7 @@ export interface components {
                     originalText: string;
                     needsQuantity: boolean;
                 }[];
+                instructions: string[];
             }[];
             originKind?: components["schemas"]["RecipeOrigin"];
         };
