@@ -1,8 +1,12 @@
 import { fireEvent, render, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { ThumbnailCropEditor } from "../ThumbnailCropEditor";
 import { defaultFit, parseRect, serializeRect } from "../thumbnailCrop";
+
+const featuresCss = readFileSync(resolve(process.cwd(), "src/styles/features.css"), "utf8");
 
 function setup(value?: Parameters<typeof ThumbnailCropEditor>[0]["value"]) {
   const onChange = vi.fn();
@@ -23,6 +27,13 @@ function setup(value?: Parameters<typeof ThumbnailCropEditor>[0]["value"]) {
 }
 
 describe("ThumbnailCropEditor", () => {
+  it("renders the stage as an overlay covering the preview so pointer drags reach it", () => {
+    const { q } = setup();
+    const preview = q.stage().parentElement!;
+    expect(preview.className).toContain("thumbnail-crop-editor__preview");
+    expect(featuresCss).toContain(".thumbnail-crop-editor__stage { position: absolute; inset: 0;");
+  });
+
   it("shows the largest centered 4:3 fit for a wide image when the stored rect is the default", () => {
     const { q } = setup({ x: "0", y: "0", width: "1", height: "1" });
     const fit = defaultFit(16 / 9);
