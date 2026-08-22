@@ -1243,19 +1243,10 @@
 .deduction-row > div { display: grid; gap: 0.15rem; }
 .deduction-row small { font-size: 0.72rem; }
 
-/* Pantry — shelf-like inventory, not a database grid. */
+/* Pantry — shelf sections and the edit form inside staple cards. The card,
+   pulse, and discovery compositions live in redesign.css. */
 .pantry-section { display: grid; gap: 1.25rem; }
 .pantry-section > .section-heading { border-bottom: 1px solid var(--color-outline); padding-bottom: 0.75rem; }
-.pantry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2.5rem; }
-.pantry-card { display: grid; align-content: start; gap: 0.75rem; border-bottom: 1px solid var(--color-outline-variant); padding-block: 1.1rem; }
-.pantry-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.pantry-card__heading > div { display: grid; gap: 0.2rem; }
-.pantry-card__heading h3 { font-size: 1.15rem; }
-.pantry-card__heading p { color: var(--color-on-surface-variant); font-size: 0.82rem; }
-.pantry-card > .disclosure { border: 0; }
-.pantry-card > .disclosure > summary { width: fit-content; min-height: 2rem; padding: 0; color: var(--color-primary); font-size: 0.78rem; }
-.pantry-edit { display: grid; gap: 0.75rem; padding-top: 0.75rem; }
-.pantry-card > .actions { justify-content: space-between; margin: 0; }
 .match-badge--matched,
 .match-badge--manual { color: var(--status-success); background: var(--status-success-container); }
 .match-badge--proposed { color: var(--status-warning); background: var(--status-warning-container); }
@@ -1269,15 +1260,7 @@
 .pantry-empty__starters { display: grid; align-content: center; gap: 0.65rem; }
 .pantry-empty__starters > div { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
-.pantry-section--matches { border-top: 1px solid var(--color-outline); padding-top: 2.5rem; }
-.pantry-discovery__intro { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 1rem; }
-.pantry-discovery__mark { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-primary-container); }
-.pantry-discovery__mark svg { width: 1.25rem; }
-.pantry-discovery__intro > div { display: grid; gap: 0.35rem; }
 .pantry-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.75rem; max-width: 44rem; }
-.pantry-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.pantry-result { display: grid; gap: 0.75rem; border: 1px solid var(--color-card-raised-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-card-raised); box-shadow: var(--shadow-card-raised); }
-.pantry-result ul { padding-left: 1.2rem; }
 
 .pantry-dialog__header,
 .food-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
@@ -1352,8 +1335,6 @@
   .pantry-grid { grid-template-columns: 1fr; }
   .pantry-empty { grid-template-columns: 1fr; }
   .pantry-empty__intro { grid-template-columns: 1fr; }
-  .pantry-search { grid-template-columns: 1fr; }
-  .pantry-results { grid-template-columns: 1fr; }
   .pantry-dialog__quantity,
   .food-dialog__serving-grid { grid-template-columns: 1fr; }
 
