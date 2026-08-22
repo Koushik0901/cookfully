@@ -62,6 +62,13 @@ describe("resizeToPoint", () => {
     expect(next.x + next.width).toBeLessThanOrEqual(1);
     expect(next.y + next.height).toBeLessThanOrEqual(1);
   });
+  it("shrinks below the minimum rather than overflowing when the anchor is near the edge", () => {
+    const edge = { x: 0.9, y: 0, width: 0.1, height: 0.075 };
+    const next = resizeToPoint(edge, "se", 5, 5);
+    expect(next.x + next.width).toBeLessThanOrEqual(1);
+    expect(next.y + next.height).toBeLessThanOrEqual(1);
+    expect(next.width / CROP_ASPECT).toBeCloseTo(next.height, 6);
+  });
 });
 
 describe("setWidth", () => {
@@ -71,6 +78,10 @@ describe("setWidth", () => {
   });
   it("clamps below the minimum size", () => {
     expect(setWidth({ x: 0, y: 0, width: 0.5, height: 1 }, 0.01).width).toBe(MIN_CROP_SIZE);
+  });
+  it("shrinks below the minimum rather than overflowing near the right edge", () => {
+    const next = setWidth({ x: 0.9, y: 0, width: 0.1, height: 0.075 }, 1);
+    expect(next.x + next.width).toBeLessThanOrEqual(1);
   });
 });
 

@@ -82,7 +82,8 @@ export function resizeToPoint(rect: CropRect, corner: Corner, pointerX: number, 
   const availableWidth = anchorLeft ? 1 - anchorX : anchorX;
   const availableHeight = anchorTop ? 1 - anchorY : anchorY;
   const maxWidth = Math.min(availableWidth, availableHeight * CROP_ASPECT);
-  width = clamp(width, MIN_CROP_SIZE, Math.max(MIN_CROP_SIZE, maxWidth));
+  const lower = Math.min(MIN_CROP_SIZE, maxWidth);
+  width = clamp(width, lower, Math.max(lower, maxWidth));
   const height = width / CROP_ASPECT;
   return {
     x: anchorLeft ? anchorX : anchorX - width,
@@ -94,6 +95,7 @@ export function resizeToPoint(rect: CropRect, corner: Corner, pointerX: number, 
 
 export function setWidth(rect: CropRect, width: number): CropRect {
   const maxWidth = Math.min(1 - rect.x, (1 - rect.y) * CROP_ASPECT);
-  const clamped = clamp(width, MIN_CROP_SIZE, Math.max(MIN_CROP_SIZE, maxWidth));
+  const lower = Math.min(MIN_CROP_SIZE, maxWidth);
+  const clamped = clamp(width, lower, Math.max(lower, maxWidth));
   return { x: rect.x, y: rect.y, width: clamped, height: clamped / CROP_ASPECT };
 }
