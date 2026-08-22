@@ -6,13 +6,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
 import type { FoodCandidate, OwnerFood } from "./types";
+import type { JobAccepted } from "../recipes/types";
 
 interface FoodPickerProps {
   trigger: React.ReactNode;
   recipeId: string;
   ingredientId: string;
   ingredientName: string;
-  onSelected: () => void;
+  onSelected: (accepted: JobAccepted) => void;
 }
 
 export function FoodPicker({
@@ -26,6 +27,7 @@ export function FoodPicker({
   const [rememberMatch, setRememberMatch] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFoodDescription, setSelectedFoodDescription] = useState<string | null>(null);
 
   useEffect(() => {
     const handle = window.setTimeout(() => setSearchQuery(searchValue.trim()), 220);
@@ -36,16 +38,15 @@ export function FoodPicker({
     if (!open) {
       setSearchValue("");
       setSearchQuery("");
+      setSelectedFoodDescription(null);
     }
   }, [open]);
 
   const candidates = useQuery({
     queryKey: searchQuery
-      ? ["food-search", searchQuery]
+      ? ["ingredient-candidates", recipeId, ingredientId, searchQuery]
       : ["ingredient-candidates", recipeId, ingredientId],
-    queryFn: () => searchQuery
-      ? foodsApi.search(searchQuery)
-      : foodsApi.ingredientCandidates(recipeId, ingredientId),
+    queryFn: () => foodsApi.ingredientCandidates(recipeId, ingredientId, searchQuery),
     enabled: open,
     staleTime: 60_000,
   });
@@ -53,9 +54,15 @@ export function FoodPicker({
     mutationFn: (candidate: FoodCandidate) => candidate.source === "owner"
       ? foodsApi.selectOwnerFood(recipeId, ingredientId, candidate.id, rememberMatch)
       : foodsApi.selectIngredientFood(recipeId, ingredientId, candidate.id, rememberMatch),
-    onSuccess: () => {
-      onSelected();
+    onMutate: (candidate) => {
+      setSelectedFoodDescription(candidate.description);
+    },
+    onSuccess: (accepted) => {
       setOpen(false);
+      onSelected(accepted);
+    },
+    onError: () => {
+      setSelectedFoodDescription(null);
     },
   });
 
@@ -64,7 +71,7 @@ export function FoodPicker({
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog food-picker-dialog" aria-describedby="food-picker-desc">
+        <Dialog.Content className="dialog food-picker-dialog" aria-describedby="food-picker-desc" aria-busy={selectFood.isPending}>
           <header className="food-picker__header">
             <div>
               <p className="eyebrow">Nutrition reference</p>
@@ -95,6 +102,12 @@ export function FoodPicker({
           )}
 
           {candidates.isLoading ? <p className="muted food-picker__loading">Searching foods…</p> : null}
+
+          {selectFood.isPending ? (
+            <p className="food-picker__applying" role="status">
+              Applying “{selectedFoodDescription ?? "this match"}”…
+            </p>
+          ) : null}
 
           {candidates.data && candidates.data.candidates.length > 0 && (
             <ul className="food-candidate-list">
@@ -156,7 +169,7 @@ export function FoodPicker({
               <Checkbox checked={rememberMatch} onCheckedChange={(checked) => setRememberMatch(checked === true)} />
               Remember this choice for similar ingredients
             </label>
-            <Dialog.Close asChild><Button variant="ghost">Cancel</Button></Dialog.Close>
+            <Dialog.Close asChild><Button variant="ghost" disabled={selectFood.isPending}>Cancel</Button></Dialog.Close>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -166,7 +179,11 @@ export function FoodPicker({
 
 function FoodRow({ candidate }: { candidate: FoodCandidate }) {
   const brand = candidate.brandOwner;
-  const source = candidate.source === "owner" ? "Yours" : "USDA";
+  const source = candidate.source === "owner"
+    ? "Yours"
+    : candidate.remembered
+      ? "Previously chosen · USDA"
+      : "USDA";
   const serving = candidate.servingSizeG
     ? `${candidate.servingSizeG}g${candidate.servingUnit ? ` (${candidate.servingUnit})` : ""}`
     : null;

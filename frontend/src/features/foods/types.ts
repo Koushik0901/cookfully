@@ -40,6 +40,7 @@ export interface FoodCandidate {
   semanticSimilarity?: string | null;
   compatibility?: "compatible" | "review" | "contradictory" | null;
   reasons?: string[];
+  remembered?: boolean;
 }
 
 export interface FoodSearchResponse {

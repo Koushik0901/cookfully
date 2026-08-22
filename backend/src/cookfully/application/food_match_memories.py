@@ -67,6 +67,7 @@ def remembered_food_reference(
     *,
     owner_id: UUID,
     ingredient: Ingredient,
+    touch: bool = True,
 ) -> FoodReference | None:
     concept = profile_from_text(ingredient.food_name or ingredient.original_text)
     memory = session.scalar(
@@ -81,8 +82,9 @@ def remembered_food_reference(
     food = session.get(FoodReference, memory.food_reference_id)
     if food is None or food.dataset.status != "active":
         return None
-    memory.use_count += 1
-    memory.last_used_at = datetime.now(UTC)
+    if touch:
+        memory.use_count += 1
+        memory.last_used_at = datetime.now(UTC)
     return food
 
 

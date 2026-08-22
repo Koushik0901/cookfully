@@ -5,6 +5,7 @@ import type {
   OwnerFoodUpdate,
   OwnerFoodWrite,
 } from "./types";
+import type { JobAccepted } from "../recipes/types";
 
 export const foodsApi = {
   search(query: string) {
@@ -40,9 +41,12 @@ export const foodsApi = {
     });
   },
 
-  ingredientCandidates(recipeId: string, ingredientId: string) {
+  ingredientCandidates(recipeId: string, ingredientId: string, query = "") {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    const suffix = params.size ? `?${params.toString()}` : "";
     return apiRequest<FoodSearchResponse>(
-      `/recipes/${recipeId}/ingredients/${ingredientId}/candidates`
+      `/recipes/${recipeId}/ingredients/${ingredientId}/candidates${suffix}`
     );
   },
 
@@ -51,7 +55,7 @@ export const foodsApi = {
     ingredientId: string,
     foodReferenceId: string,
     rememberMatch = true,
-  ) {
+  ): Promise<JobAccepted> {
     await apiRequest(`/recipes/${recipeId}/nutrition/corrections`, {
       method: "POST",
       idempotent: true,
@@ -75,7 +79,7 @@ export const foodsApi = {
     ingredientId: string,
     ownerFoodId: string,
     rememberMatch = true,
-  ) {
+  ): Promise<JobAccepted> {
     await apiRequest(`/recipes/${recipeId}/ingredients/${ingredientId}/owner-food/${ownerFoodId}`, {
       method: "POST",
       idempotent: true,

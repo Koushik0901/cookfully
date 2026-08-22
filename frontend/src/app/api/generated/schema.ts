@@ -922,7 +922,9 @@ export interface paths {
     };
     "/recipes/{recipeId}/ingredients/{ingredientId}/candidates": {
         parameters: {
-            query?: never;
+            query?: {
+                q?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1052,6 +1054,7 @@ export interface components {
             /** @enum {string|null} */
             compatibility?: "compatible" | "review" | "contradictory" | null;
             reasons?: string[];
+            remembered?: boolean;
         };
         OwnerFoodResponse: {
             /** Format: uuid */
@@ -3977,7 +3980,9 @@ export interface operations {
     };
     list_ingredient_candidates: {
         parameters: {
-            query?: never;
+            query?: {
+                q?: string;
+            };
             header?: never;
             path: {
                 recipeId: string;

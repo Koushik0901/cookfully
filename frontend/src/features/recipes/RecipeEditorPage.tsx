@@ -3,13 +3,13 @@ import { type Dispatch, type FormEvent, type SetStateAction, useContext, useEffe
 import { Link, UNSAFE_DataRouterContext, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { Button, ConfirmDialog, DecimalInput, ErrorRecovery, Field, PageState, RecipeMedia, Skeleton } from "../../components";
-import { ArrowLeft, ArrowRight, Check, Eye, PencilLine, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye, LoaderCircle, PencilLine, Undo2 } from "lucide-react";
 import { recipesApi } from "./api";
 import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
 import { RecipeDraftPreview } from "./RecipeDraftPreview";
 import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
-import type { RecipeWrite, ThumbnailCropWrite } from "./types";
+import type { JobAccepted, RecipeDetail, RecipeWrite, ThumbnailCropWrite } from "./types";
 import {
   type EditorBlock,
   editorBlocksFromRecipe,
@@ -123,6 +123,20 @@ export function RecipeEditorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const detail = useQuery({ queryKey: ["recipe", recipeId], queryFn: () => recipesApi.get(recipeId!), enabled: Boolean(recipeId), retry: 1 });
+  const [nutritionJobId, setNutritionJobId] = useState<string | null>(null);
+  const activeNutritionJobId = nutritionJobId ?? detail.data?.activeJob?.id ?? null;
+  const nutritionJob = useQuery({
+    queryKey: ["recipe-editor-nutrition-job", activeNutritionJobId],
+    queryFn: () => recipesApi.job(activeNutritionJobId!),
+    enabled: Boolean(activeNutritionJobId),
+    initialData: detail.data?.activeJob?.id === activeNutritionJobId ? detail.data.activeJob : undefined,
+    refetchIntervalInBackground: true,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (!status || ["succeeded", "failed", "cancelled", "superseded"].includes(status)) return false;
+      return document.visibilityState === "visible" ? 2_000 : 15_000;
+    },
+  });
 const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -193,6 +207,11 @@ const [title, setTitle] = useState("");
     setInitialNutritionValues(values);
     setDirty(false);
   }, [detail.data]);
+
+  useEffect(() => {
+    if (!nutritionJob.data || !["succeeded", "failed", "cancelled", "superseded"].includes(nutritionJob.data.status)) return;
+    void detail.refetch();
+  }, [nutritionJob.data?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function beforeUnload(event: BeforeUnloadEvent) {
@@ -283,6 +302,16 @@ const [title, setTitle] = useState("");
 
   const ingredientCount = blocks.reduce((total, block) => total + block.ingredients.filter((item) => item.originalText.trim()).length, 0);
   const stepCount = blocks.reduce((total, block) => total + block.instructions.filter((item) => item.text.trim()).length, 0);
+  const nutritionProcessing = activeNutritionJobId
+    ? !nutritionJob.data || ["queued", "running", "retry_wait"].includes(nutritionJob.data.status)
+    : ["pending", "processing", "retry_wait"].includes(detail.data?.nutritionState ?? "");
+  const handleFoodSelected = (accepted: JobAccepted) => {
+    setNutritionJobId(accepted.jobId);
+    queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], (current) => current
+      ? { ...current, status: "processing", nutritionState: "pending" }
+      : current);
+    void detail.refetch();
+  };
   const chooseEditorStep = (step: EditorStepId) => {
     setMobileStep(step);
     if (step === "nutrition") setNutritionOpen(true);
@@ -388,13 +417,14 @@ const [title, setTitle] = useState("");
           <section className="recipe-editor__stage recipe-editor__stage--method" id="recipe-method" aria-label="Method step"><StructuredMethodEditor blocks={blocks} setBlocks={setEditorBlocks} onRowsSplit={rowsSplit} /><EditorStepActions active="method" onSelect={chooseEditorStep} /></section>
         </div>
 
-        <section className="recipe-editor__nutrition-review" id="ingredient-matches" aria-labelledby="nutrition-review-heading">
+        <section className="recipe-editor__nutrition-review" id="ingredient-matches" aria-labelledby="nutrition-review-heading" aria-busy={nutritionProcessing}>
           <header><div><p className="eyebrow">Nutrition</p><h2 id="nutrition-review-heading">Nutrition</h2></div></header>
-          {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={() => void detail.refetch()} /></li>)}</ul></details> : null}
-          <details className="recipe-editor__nutrition" id="nutrition" open={nutritionOpen} onToggle={(event) => setNutritionOpen(event.currentTarget.open)}>
+          {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={handleFoodSelected} /></li>)}</ul></details> : null}
+          <details className={`recipe-editor__nutrition${nutritionProcessing ? " is-processing" : ""}`} id="nutrition" open={nutritionOpen || nutritionProcessing} onToggle={(event) => setNutritionOpen(event.currentTarget.open)} aria-busy={nutritionProcessing}>
             <summary><span><strong>Nutrition values</strong><small>Optional values from a label or trusted source</small></span></summary>
             <div className="recipe-editor__nutrition-content">
-              <p className="muted">Leave calculated values unchanged to keep using Cookfully’s estimate. Changing a value creates a clearly labeled manual override.</p>
+              <fieldset disabled={nutritionProcessing} className="recipe-editor__nutrition-fields">
+                <p className="muted">Leave calculated values unchanged to keep using Cookfully’s estimate. Changing a value creates a clearly labeled manual override.</p>
               <div className="recipe-editor__nutrition-grid recipe-editor__nutrition-grid--macros">
                 {NUTRITION_FIELDS.slice(0, 4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
               </div>
@@ -404,7 +434,9 @@ const [title, setTitle] = useState("");
                   {NUTRITION_FIELDS.slice(4).map(([field, label, unit]) => <Field key={field} label={`${label} (${unit})`} error={errors[`nutrition-${field}`]}><DecimalInput value={nutritionValues[field]} onValueChange={(value) => setNutritionValues((current) => ({ ...current, [field]: value }))} onInput={(event) => { const value = event.currentTarget.value; setNutritionValues((current) => ({ ...current, [field]: value })); }} /></Field>)}
                 </div>
               </details>
-              <Field label="Source or reason" hint="For example: package label, cookbook, or clinician-provided value."><input className="input" value={nutritionReason} onChange={(event) => setNutritionReason(event.target.value)} /></Field>
+                <Field label="Source or reason" hint="For example: package label, cookbook, or clinician-provided value."><input className="input" value={nutritionReason} onChange={(event) => setNutritionReason(event.target.value)} /></Field>
+              </fieldset>
+              {nutritionProcessing ? <div className="recipe-editor__nutrition-processing-overlay" role="status"><LoaderCircle className="recipe-editor__nutrition-processing-spinner" aria-hidden="true" /><strong>Refreshing the values…</strong></div> : null}
             </div>
           </details>
         </section>

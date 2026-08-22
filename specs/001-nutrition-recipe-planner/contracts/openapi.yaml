@@ -1534,6 +1534,10 @@ paths:
           in: path
           required: true
           schema: { type: string, format: uuid }
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 256 }
       responses:
         "200":
           description: Matching reference and owner food candidates for the ingredient.
@@ -1924,6 +1928,7 @@ components:
         semanticSimilarity: { type: [string, "null"] }
         compatibility: { type: [string, "null"], enum: [compatible, review, contradictory, null] }
         reasons: { type: array, items: { type: string } }
+        remembered: { type: boolean }
     OwnerFoodResponse:
       type: object
       required:

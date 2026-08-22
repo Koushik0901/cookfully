@@ -18,9 +18,11 @@ from cookfully.api.schemas.foods import (
     OwnerFoodWriteRequest,
 )
 from cookfully.application.food_embedding_index import embedding_storage_key
+from cookfully.application.food_match_memories import remembered_food_reference
 from cookfully.application.food_matching import FoodMatcher, normalize_food
 from cookfully.domain.common import DomainError
 from cookfully.domain.food_semantics import (
+    Compatibility,
     CompatibilityResult,
     compare_compatibility,
     profile_from_text,
@@ -29,6 +31,7 @@ from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
+from cookfully.infrastructure.models.recipes import Ingredient
 from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
 from cookfully.infrastructure.models.semantic_matching import FoodSemanticIndex
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
@@ -234,7 +237,7 @@ def _candidate_from_owner(uf: OwnerFood) -> FoodCandidateResponse:
 
 
 def _candidate_from_usda(
-    ref: FoodReference, candidate: object | None = None
+    ref: FoodReference, candidate: object | None = None, *, remembered: bool = False
 ) -> FoodCandidateResponse:
     return FoodCandidateResponse(
         source="usda",
@@ -251,7 +254,54 @@ def _candidate_from_usda(
             else None
         ),
         reasons=getattr(candidate, "reasons", ()),
+        remembered=remembered,
     )
+
+
+def _remembered_candidate(
+    session: Session,
+    *,
+    owner_id: UUID,
+    ingredient: Ingredient,
+    query: str,
+) -> FoodCandidateResponse | None:
+    remembered = remembered_food_reference(
+        session,
+        owner_id=owner_id,
+        ingredient=ingredient,
+        touch=False,
+    )
+    if remembered is None:
+        return None
+    compatibility = compare_compatibility(
+        profile_from_text(query), profile_from_text(remembered.description)
+    )
+    if compatibility.compatibility is Compatibility.CONTRADICTORY:
+        return None
+    return _candidate_from_usda(remembered, remembered=True)
+
+
+def _prioritize_remembered(
+    candidates: list[FoodCandidateResponse],
+    remembered: FoodCandidateResponse | None,
+    *,
+    limit: int = 5,
+) -> list[FoodCandidateResponse]:
+    if remembered is None:
+        return candidates[:limit]
+    existing = next(
+        (
+            candidate
+            for candidate in candidates
+            if candidate.source == "usda" and candidate.id == remembered.id
+        ),
+        None,
+    )
+    if existing is not None:
+        return [remembered if candidate is existing else candidate for candidate in candidates][
+            :limit
+        ]
+    return [remembered, *candidates][:limit]
 
 
 @router.get(
@@ -395,30 +445,42 @@ def list_ingredient_candidates(
     ingredient_id: Annotated[UUID, Path(alias="ingredientId")],
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    q: Annotated[str | None, Query(alias="q", min_length=1, max_length=256)] = None,
 ) -> FoodSearchResponse:
-    from cookfully.infrastructure.models.recipes import Ingredient
-
     session = _open_session(request)
     ingredient = session.get(Ingredient, ingredient_id)
     if ingredient is None or ingredient.recipe_id != recipe_id:
         session.close()
         raise HTTPException(status_code=404, detail="Ingredient not found on this recipe.")
     food_name = ingredient.food_name or ingredient.original_text or ""
-    query = normalize_food(food_name)
+    search_name = q.strip() if q and q.strip() else food_name
+    query = normalize_food(search_name)
     candidates: list[FoodCandidateResponse] = []
+    remembered = _remembered_candidate(
+        session,
+        owner_id=owner.id,
+        ingredient=ingredient,
+        query=search_name,
+    )
 
-    indexed = _indexed_candidates(session, owner.id, food_name)
+    indexed = _indexed_candidates(session, owner.id, search_name)
     if indexed:
         session.close()
-        return FoodSearchResponse(query=food_name, candidates=indexed)
+        return FoodSearchResponse(
+            query=search_name,
+            candidates=_prioritize_remembered(indexed, remembered),
+        )
 
     repo = UserFoodRepository(session)
     for uf in repo.search(owner.id, query, limit=5):
         candidates.append(_candidate_from_owner(uf))
 
     matcher = _configured_search_matcher(session)
-    for fc in matcher.candidates(food_name, limit=5):
+    for fc in matcher.candidates(search_name, limit=5):
         candidates.append(_candidate_from_usda(fc.food, fc))
 
     session.close()
-    return FoodSearchResponse(query=food_name, candidates=candidates[:5])
+    return FoodSearchResponse(
+        query=search_name,
+        candidates=_prioritize_remembered(candidates, remembered),
+    )

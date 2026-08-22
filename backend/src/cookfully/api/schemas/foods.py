@@ -72,6 +72,7 @@ class FoodCandidateResponse(BaseModel):
     semantic_similarity: Annotated[Decimal | None, Field(alias="semanticSimilarity")] = None
     compatibility: str | None = None
     reasons: tuple[str, ...] = ()
+    remembered: bool = False
 
 
 class FoodSearchResponse(BaseModel):
