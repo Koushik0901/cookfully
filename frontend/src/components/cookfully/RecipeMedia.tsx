@@ -7,9 +7,10 @@ export interface RecipeMediaSource {
   title: string;
   imageUrl?: string | null;
   thumbnailCrop?: {
-    focalX: string | number;
-    focalY: string | number;
-    zoom: string | number;
+    x: string | number;
+    y: string | number;
+    width: string | number;
+    height: string | number;
   } | null;
 }
 
@@ -29,7 +30,7 @@ export function RecipeMedia({
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [recipe.imageUrl]);
   if (!recipe.imageUrl || failed) return <RecipeFallbackArt title={recipe.title} className={className} />;
-  const crop = recipe.thumbnailCrop ?? { focalX: "0.5", focalY: "0.5", zoom: "1" };
+  const crop = recipe.thumbnailCrop ?? { x: "0", y: "0", width: "1", height: "1" };
   return (
     <img
       className={className}
@@ -40,9 +41,10 @@ export function RecipeMedia({
       draggable={false}
       onError={() => setFailed(true)}
       style={{
-        "--thumbnail-focal-x": crop.focalX,
-        "--thumbnail-focal-y": crop.focalY,
-        "--thumbnail-zoom": crop.zoom,
+        "--crop-x": String(crop.x),
+        "--crop-y": String(crop.y),
+        "--crop-width": String(crop.width),
+        "--crop-height": String(crop.height),
       } as CSSProperties}
     />
   );
