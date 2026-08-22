@@ -376,16 +376,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/jobs/current": {
+    "/recipes/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCurrentJob"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["select_owner_food"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/food-embeddings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFoodEmbeddingSummary"];
+        put?: never;
+        post: operations["runFoodEmbeddingIndex"];
         delete?: never;
         options?: never;
         head?: never;
@@ -400,6 +416,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getRecipeProcessingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCurrentJob"];
         put?: never;
         post?: never;
         delete?: never;
@@ -922,9 +954,7 @@ export interface paths {
     };
     "/recipes/{recipeId}/ingredients/{ingredientId}/candidates": {
         parameters: {
-            query?: {
-                q?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -1002,10 +1032,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/intelligence/infer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["inferIntelligence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/intelligence/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createIntelligenceDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/intelligence/drafts/{draftId}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["executeIntelligenceDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/intelligence/drafts/{draftId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getIntelligenceDraft"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/intelligence/extraction-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createIntelligenceExtractionJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        IntelligenceInferenceRequest: {
+            /** @enum {string} */
+            operation: "command" | "recipe_extract" | "pantry_extract" | "cook";
+            prompt: string;
+            context?: {
+                [key: string]: string;
+            };
+        };
+        IntelligenceInferenceResponse: {
+            /** @enum {string} */
+            status: "ok" | "unsupported" | "unavailable";
+            model?: string | null;
+            confidence?: number | null;
+            reasoning?: string | null;
+            functionCalls: {
+                name: string;
+                arguments: Record<string, never>;
+            }[];
+            errorCode?: string | null;
+        };
+        IntelligenceDraftResponse: components["schemas"]["IntelligenceInferenceResponse"] & {
+            /** Format: uuid */
+            draftId?: string | null;
+            /** Format: date-time */
+            expiresAt?: string | null;
+        };
+        IntelligenceExecuteRequest: {
+            confirm: boolean;
+        };
+        IntelligenceExecutionResponse: {
+            /** Format: uuid */
+            draftId: string;
+            /** @enum {string} */
+            status: "executed";
+            results: Record<string, never>[];
+        };
+        IntelligenceDraftDetailResponse: {
+            /** Format: uuid */
+            draftId: string;
+            /** @enum {string} */
+            operation: "command" | "recipe_extract" | "pantry_extract" | "cook";
+            /** @enum {string} */
+            status: "queued" | "processing" | "review" | "executed" | "expired" | "failed" | "unsupported";
+            model?: string | null;
+            confidence?: number | null;
+            reasoning?: string | null;
+            functionCalls: {
+                name: string;
+                arguments: Record<string, never>;
+            }[];
+            /** Format: date-time */
+            expiresAt: string;
+            failureCode?: string | null;
+            failureMessage?: string | null;
+        };
         Health: {
             /** @enum {string} */
             status: "ok" | "degraded";
@@ -1094,6 +1259,10 @@ export interface components {
             typicalServingUnit?: string;
             expectedVersion: number;
         };
+        OwnerFoodSelectionRequest: {
+            /** @default true */
+            rememberMatch: boolean;
+        };
         OwnerPreferences: {
             displayName: string;
             timezone: string;
@@ -1109,6 +1278,7 @@ export interface components {
             version: number;
             /** @enum {string} */
             runtimeStatus: "ready" | "configured" | "downloading" | "failed";
+            /** Format: uuid */
             downloadJobId?: string | null;
             downloadJobStatus?: string | null;
             downloadProgressCurrent?: number | null;
@@ -1166,7 +1336,7 @@ export interface components {
              * @description JPEG, PNG, or WebP image no larger than 20 MB before normalization.
              */
             photo: string;
-            /** @description Optional JSON object containing focalX, focalY, and zoom crop values. */
+            /** @description Optional JSON object containing x, y, width, and height crop rect values. */
             thumbnailCrop?: string;
         };
         RecipeSourceImage: {
@@ -1334,9 +1504,10 @@ export interface components {
             originKind?: components["schemas"]["RecipeOrigin"];
         };
         ThumbnailCrop: {
-            focalX: string;
-            focalY: string;
-            zoom: string;
+            x: string;
+            y: string;
+            width: string;
+            height: string;
         };
         /** @enum {string} */
         RecipeOrigin: "manual" | "web_import" | "cookbook_import";
@@ -1432,7 +1603,7 @@ export interface components {
             referenceIdValue?: string | null;
             reason?: string | null;
             /** @default true */
-            rememberMatch?: boolean;
+            rememberMatch: boolean;
         };
         NutritionCorrection: components["schemas"]["NutritionCorrectionWrite"] & {
             /** Format: uuid */
@@ -1440,6 +1611,12 @@ export interface components {
             active: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        RecipeProcessingSummary: {
+            active: number;
+            waiting: number;
+            missing: number;
+            pollAfterSeconds: number | null;
         };
         JobAccepted: {
             /** Format: uuid */
@@ -1826,104 +2003,6 @@ export interface components {
         AccessTokenCreated: components["schemas"]["AccessToken"] & {
             /** @description Returned exactly once and never stored in recoverable form. */
             secret: string;
-        };
-        // Compatibility aliases retained for the feature-layer type modules. The contract uses
-        // concise resource names; these aliases keep the existing API surface readable while the
-        // generated client transitions to the canonical names.
-        UserGoalResponse: components["schemas"]["UserGoal"];
-        UserGoalWriteRequest: components["schemas"]["UserGoalWrite"];
-        MealTargetRequest: components["schemas"]["MealTarget"];
-        MealPlanResponse: components["schemas"]["MealPlan"];
-        MealPlanEntryResponse: components["schemas"]["MealPlanEntry"];
-        MealPlanEntryWriteRequest: components["schemas"]["MealPlanEntryWrite"];
-        PeriodTotalResponse: components["schemas"]["PeriodTotal"];
-        RecipeResponse: Omit<components["schemas"]["Recipe"], "collections" | "mealRoles" | "updatedAt" | "status" | "archivedFromStatus"> & {
-            collections: NonNullable<components["schemas"]["Recipe"]["collections"]>;
-            mealRoles: NonNullable<components["schemas"]["Recipe"]["mealRoles"]>;
-            updatedAt: string;
-            status: string;
-            archivedFromStatus?: string | null;
-        };
-        RecipeDetailResponse: Omit<components["schemas"]["RecipeDetail"], "collections" | "mealRoles" | "updatedAt" | "status" | "archivedFromStatus"> & {
-            collections: NonNullable<components["schemas"]["Recipe"]["collections"]>;
-            mealRoles: NonNullable<components["schemas"]["Recipe"]["mealRoles"]>;
-            updatedAt: string;
-            status: string;
-            archivedFromStatus?: string | null;
-        };
-        RecipePageResponse: Omit<components["schemas"]["RecipePage"], "items"> & {
-            items: components["schemas"]["RecipeResponse"][];
-        };
-        RecipeWriteRequest: components["schemas"]["RecipeWrite"];
-        IngredientWriteRequest: components["schemas"]["IngredientWrite"];
-        JobResponse: components["schemas"]["Job"];
-        JobAcceptedResponse: components["schemas"]["JobAccepted"];
-        RecipeProcessingSummaryResponse: {
-            active: number;
-            waiting: number;
-            missing: number;
-            pollAfterSeconds: number | null;
-        };
-        ResolvedNutritionResponse: components["schemas"]["ResolvedNutrition"];
-        NutritionCorrectionWriteRequest: Omit<components["schemas"]["NutritionCorrectionWrite"], "rememberMatch"> & {
-            rememberMatch?: boolean;
-        };
-        NutritionSnapshotResponse: Omit<components["schemas"]["NutritionSnapshot"], "micronutrients"> & {
-            micronutrients?: components["schemas"]["Micronutrients"];
-        };
-        RecipeCollectionResponse: components["schemas"]["RecipeCollection"];
-        RecipeOrganizationWriteRequest: components["schemas"]["RecipeOrganizationWrite"];
-        ImportPreviewResponse: Omit<components["schemas"]["ImportPreview"], "sections"> & {
-            sections: {
-                title?: string | null;
-                ingredients: { originalText: string; needsQuantity: boolean }[];
-                instructions: string[];
-            }[];
-        };
-        ImportConfirmRequest: components["schemas"]["ImportConfirm"];
-        ImportMergeRequest: components["schemas"]["ImportMerge"];
-        ImportConfirmComponent: NonNullable<components["schemas"]["ImportConfirm"]["components"]>[number];
-        ImportConfirmIngredient: NonNullable<components["schemas"]["ImportConfirmComponent"]["ingredients"]>[number];
-        ImportPreviewSection: components["schemas"]["ImportPreview"]["sections"][number];
-        ImportPreviewIngredient: components["schemas"]["ImportPreviewSection"]["ingredients"][number];
-        DuplicateSummary: components["schemas"]["ImportPreview"]["duplicates"][number];
-        RecipePhotoAttachRequest: components["schemas"]["RecipePhotoAttach"];
-        "ThumbnailCropRequest-Output": components["schemas"]["ThumbnailCrop"];
-        "ThumbnailCropRequest-Input": components["schemas"]["ThumbnailCrop"];
-        GroceryListResponse: components["schemas"]["GroceryList"];
-        GroceryItemResponse: components["schemas"]["GroceryItem"];
-        GroceryItemWriteRequest: components["schemas"]["GroceryItemWrite"];
-        GroceryShoppingStopResponse: components["schemas"]["GroceryShoppingStop"];
-        GroceryShoppingStopWriteRequest: components["schemas"]["GroceryShoppingStopWrite"];
-        PantryItemResponse: components["schemas"]["PantryItem"];
-        PantryItemWriteRequest: components["schemas"]["PantryItemWrite"];
-        PantryRecipeMatchResponse: components["schemas"]["PantryRecipeMatch"];
-        PantryDeductionResponse: components["schemas"]["PantryDeduction"];
-        PantryDeductionApplyRequest: components["schemas"]["PantryDeductionApply"];
-        AccessTokenResponse: components["schemas"]["AccessToken"];
-        AccessTokenCreatedResponse: components["schemas"]["AccessTokenCreated"];
-        AccessTokenWriteRequest: components["schemas"]["AccessTokenWrite"];
-        SuggestionItemResponse: Omit<components["schemas"]["SuggestionItem"], "projectedNutrition"> & {
-            projectedNutrition: components["schemas"]["NutritionSnapshotResponse"];
-        };
-        SuggestionResultResponse: Omit<components["schemas"]["SuggestionResult"], "items"> & {
-            items: components["schemas"]["SuggestionItemResponse"][];
-        };
-        SuggestionAcceptanceRequest: components["schemas"]["SuggestionAcceptance"];
-        MicronutrientsResponse: components["schemas"]["Micronutrients"];
-        ReferenceDataStatusResponse: {
-            available: boolean;
-            missing: string[];
-            releases: {
-                datasetType: string;
-                releaseId: string;
-                releasedOn: string;
-                sourceUrl: string;
-                license: string;
-                reviewOverdue: boolean;
-            }[];
-            requestedDatasets?: string[] | null;
-            job?: components["schemas"]["Job"] | null;
         };
     };
     responses: {
@@ -2843,6 +2922,79 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    select_owner_food: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+                ingredientId: string;
+                ownerFoodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerFoodSelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Owner food match selected for the ingredient. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getFoodEmbeddingSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current durable food embedding index coverage and queue state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    runFoodEmbeddingIndex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default missing
+                     * @enum {string}
+                     */
+                    scope?: "all" | "missing";
+                };
+            };
+        };
+        responses: {
+            /** @description Food embedding index job accepted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getRecipeProcessingSummary: {
         parameters: {
             query?: never;
@@ -2852,12 +3004,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Authoritative counts for the recipe processing queue and recipes missing nutrition. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecipeProcessingSummaryResponse"];
+                    "application/json": components["schemas"]["RecipeProcessingSummary"];
                 };
             };
         };
@@ -4115,6 +4268,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NutritionIntelligenceEstimate"];
+                };
+            };
+        };
+    };
+    inferIntelligence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntelligenceInferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description A schema-constrained proposal from the local model service. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelligenceInferenceResponse"];
+                };
+            };
+        };
+    };
+    createIntelligenceDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntelligenceInferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description A short-lived reviewed proposal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelligenceDraftResponse"];
+                };
+            };
+        };
+    };
+    executeIntelligenceDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntelligenceExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description The reviewed actions were executed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelligenceExecutionResponse"];
+                };
+            };
+        };
+    };
+    getIntelligenceDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner-scoped extraction or command proposal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntelligenceDraftDetailResponse"];
+                };
+            };
+        };
+    };
+    createIntelligenceExtractionJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntelligenceInferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description A durable backend-coordinated extraction job was accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
                 };
             };
             422: components["responses"]["ValidationError"];

@@ -2068,7 +2068,7 @@ components:
           description: JPEG, PNG, or WebP image no larger than 20 MB before normalization.
         thumbnailCrop:
           type: string
-          description: Optional JSON object containing focalX, focalY, and zoom crop values.
+          description: Optional JSON object containing x, y, width, and height crop rect values.
     RecipeSourceImage:
       type: object
       additionalProperties: false
@@ -2298,11 +2298,12 @@ components:
     ThumbnailCrop:
       type: object
       additionalProperties: false
-      required: [focalX, focalY, zoom]
+      required: [x, y, width, height]
       properties:
-        focalX: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
-        focalY: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
-        zoom: { type: string, pattern: "^(1|[12]\\.[0-9]{1,6}|3)$" }
+        x: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
+        y: { type: string, pattern: "^(0|1|0\\.[0-9]{1,6})$" }
+        width: { type: string, pattern: "^(0\\.[0-9]{1,6}|1)$" }
+        height: { type: string, pattern: "^(0\\.[0-9]{1,6}|1)$" }
     RecipeOrigin:
       type: string
       enum: [manual, web_import, cookbook_import]
