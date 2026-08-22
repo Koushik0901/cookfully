@@ -4,11 +4,13 @@ from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
 
-WEEK_START = "2026-03-09"
+WEEK_START = week_date(0)
+NEXT_DAY = week_date(1)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -201,7 +203,7 @@ def test_streamable_http_tools_resources_scope_reload_and_exact_parity(
                 "arguments": {
                     "recipe_id": recipe["id"],
                     "week_start": WEEK_START,
-                    "local_date": "2026-03-10",
+                    "local_date": NEXT_DAY,
                     "meal_slot": "lunch",
                     "servings": "1",
                     "idempotency_key": "mcp-e2e-scope-denied",

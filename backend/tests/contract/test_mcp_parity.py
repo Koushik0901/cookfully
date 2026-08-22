@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
@@ -13,7 +14,9 @@ from cookfully.mcp.read_tools import ReadTools
 from cookfully.mcp.resources import McpResources
 from cookfully.mcp.write_tools import WriteTools
 
-WEEK_START = "2026-03-09"
+WEEK_START = week_date(0)
+NEXT_DAY = week_date(1)
+DAY_AFTER = week_date(2)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -175,7 +178,7 @@ def test_all_write_tools_match_http_reloads_and_are_idempotent(
             owner,
             recipe_id=recipe_id,
             week_start=WEEK_START,
-            local_date="2026-03-10",
+            local_date=NEXT_DAY,
             meal_slot="lunch",
             servings="1.250",
             idempotency_key="mcp-add-entry-0001",
@@ -184,7 +187,7 @@ def test_all_write_tools_match_http_reloads_and_are_idempotent(
             owner,
             recipe_id=recipe_id,
             week_start=WEEK_START,
-            local_date="2026-03-10",
+            local_date=NEXT_DAY,
             meal_slot="lunch",
             servings="1.250",
             idempotency_key="mcp-add-entry-0001",
@@ -194,13 +197,13 @@ def test_all_write_tools_match_http_reloads_and_are_idempotent(
         assert added["entry"] == next(
             item for item in plan["entries"] if item["id"] == added["entry"]["id"]
         )
-        assert added["dayTotal"] == plan["dayTotals"]["2026-03-10"]
+        assert added["dayTotal"] == plan["dayTotals"][NEXT_DAY]
         assert added["weekTotal"] == plan["weekTotal"]
 
         updated = tools.update_meal_plan_entry(
             owner,
             entry_id=added["entry"]["id"],
-            local_date="2026-03-11",
+            local_date=DAY_AFTER,
             meal_slot="dinner",
             servings="2.000",
             expected_version=added["entry"]["version"],

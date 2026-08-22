@@ -5,10 +5,13 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.recipes import Ingredient
+
+WEEK_START = week_date(0)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -87,9 +90,9 @@ def seed_plan(
         )
         assert response.status_code == 201
     added = client.post(
-        "/api/v1/meal-plans/2026-03-09/entries",
+        f"/api/v1/meal-plans/{WEEK_START}/entries",
         json={
-            "localDate": "2026-03-09",
+            "localDate": WEEK_START,
             "mealSlot": "dinner",
             "recipeId": recipe["id"],
             "servings": "1.500",
@@ -117,7 +120,7 @@ def test_generation_manual_crud_regeneration_decimals_and_concurrency(
         headers = authenticate(client)
         seeded = seed_plan(client, isolated_database_url, headers)
         generated = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list",
             headers={**headers, "Idempotency-Key": "grocery-generate-1"},
         )
         assert generated.status_code == 200
@@ -132,10 +135,10 @@ def test_generation_manual_crud_regeneration_decimals_and_concurrency(
                 "quantityContribution": "150",
             }
         ]
-        assert client.get("/api/v1/meal-plans/2026-03-09/grocery-list").json() == body
+        assert client.get(f"/api/v1/meal-plans/{WEEK_START}/grocery-list").json() == body
 
         empty = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list/items",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/items",
             json={"displayName": ""},
             headers={**headers, "Idempotency-Key": "manual-empty-0001"},
         )
@@ -143,7 +146,7 @@ def test_generation_manual_crud_regeneration_decimals_and_concurrency(
         assert empty.headers["content-type"].startswith("application/problem+json")
 
         manual = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list/items",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/items",
             json={"displayName": "Reusable bags", "quantity": "2.000000", "unit": "bags"},
             headers={**headers, "Idempotency-Key": "manual-create-001"},
         )
@@ -191,9 +194,9 @@ def test_generation_manual_crud_regeneration_decimals_and_concurrency(
             },
         )
         assert moved.status_code == 200
-        assert client.get("/api/v1/meal-plans/2026-03-09").json()["groceryStatus"] == "dirty"
+        assert client.get(f"/api/v1/meal-plans/{WEEK_START}").json()["groceryStatus"] == "dirty"
         regenerated = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list",
             headers={**headers, "Idempotency-Key": "grocery-generate-2"},
         )
         generated_item = next(
@@ -221,7 +224,7 @@ def test_grocery_rejects_numeric_json_and_bad_versions(
         headers = authenticate(client)
         seed_plan(client, isolated_database_url, headers)
         invalid = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list/items",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/items",
             json={"displayName": "Fruit", "quantity": 2.5},
             headers={**headers, "Idempotency-Key": "manual-number-001"},
         )
@@ -241,7 +244,7 @@ def test_shopping_stops_placements_and_completed_pass_contract(
         headers = authenticate(client)
         seed_plan(client, isolated_database_url, headers)
         grocery = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list",
             headers={**headers, "Idempotency-Key": "grocery-stops-generate"},
         ).json()
         first = client.post(
@@ -269,9 +272,9 @@ def test_shopping_stops_placements_and_completed_pass_contract(
         assert assigned.status_code == 200
         assert assigned.json()["shoppingStop"]["name"] == "Market"
 
-        current = client.get("/api/v1/meal-plans/2026-03-09/grocery-list").json()
+        current = client.get(f"/api/v1/meal-plans/{WEEK_START}/grocery-list").json()
         completed = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list/complete",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/complete",
             headers={**headers, "If-Match": f'"{current["version"]}"'},
         )
         assert completed.status_code == 200
@@ -290,7 +293,7 @@ def test_shopping_stops_placements_and_completed_pass_contract(
         )
         assert blocked_edit.status_code == 409
         reopened = client.post(
-            "/api/v1/meal-plans/2026-03-09/grocery-list/reopen",
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/reopen",
             headers={**headers, "If-Match": f'"{completed.json()["version"]}"'},
         )
         assert reopened.status_code == 200

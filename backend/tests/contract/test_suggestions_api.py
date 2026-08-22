@@ -7,11 +7,15 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.domain.common import DomainError, utc_now
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.suggestions import SuggestionRun
+
+WEEK_START = week_date(0)
+NEXT_DAY = week_date(1)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -50,7 +54,7 @@ def seed_goal(client: TestClient, headers: dict[str, str]) -> None:
             "proteinG": "40.000000",
             "carbohydrateG": "50.000000",
             "fatG": "15.000000",
-            "effectiveFrom": "2026-03-09",
+            "effectiveFrom": WEEK_START,
             "effectiveTo": None,
             "mealTargets": [],
         },
@@ -90,8 +94,8 @@ def seed_recipe(client: TestClient, headers: dict[str, str], title: str, key: st
 def suggestion_payload(required: list[str]) -> dict[str, object]:
     return {
         "scope": "day",
-        "weekStart": "2026-03-09",
-        "localDate": "2026-03-09",
+        "weekStart": WEEK_START,
+        "localDate": WEEK_START,
         "mealSlot": None,
         "tolerances": {
             "caloriesKcal": "0.000000",
@@ -217,10 +221,10 @@ def test_exact_preview_partial_acceptance_parity_stale_plan_and_expiry(
         stale_suggestion_id = UUID(stale_request["resourceId"])
         stale_job_id = UUID(stale_request["jobId"])
         entry = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
             headers={**headers, "Idempotency-Key": "manual-plan-change"},
             json={
-                "localDate": "2026-03-10",
+                "localDate": NEXT_DAY,
                 "mealSlot": "lunch",
                 "recipeId": first,
                 "servings": "0.500",
