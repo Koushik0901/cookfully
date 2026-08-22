@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 
 import { RecipeMedia, SectionHeading } from "../../components";
+import type { RecipeMediaSource } from "../../components/cookfully/RecipeMedia";
 import { formatCookingText, servingLabel, sourceHost } from "./formatCooking";
 
 interface DraftBlock {
@@ -32,7 +33,7 @@ export function RecipeDraftPreview({
   yieldQuantity: string;
   yieldUnit: string;
   photoUrl: string | null;
-  thumbnailCrop?: { focalX: string | number; focalY: string | number; zoom: string | number };
+  thumbnailCrop?: RecipeMediaSource["thumbnailCrop"];
   blocks: DraftBlock[];
   macros?: DraftMacro[];
   className?: string;

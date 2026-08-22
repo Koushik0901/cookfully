@@ -53,7 +53,7 @@ function recommendationReason(recipe: Recipe, match: PantryRecipeMatch | undefin
   }
   if (match && Number(match.coverageRatio) >= 0.5) return "Uses most of what you already have";
   if (recipe.favorite && !plannedRecipeIds.has(recipe.id)) return "A favourite that is not on this week’s plan";
-  if (recipe.mealRoles.includes("dinner")) return "Saved for an open dinner this week";
+  if ((recipe.mealRoles ?? []).includes("dinner")) return "Saved for an open dinner this week";
   return "A good next choice from your recipe box";
 }
 
@@ -62,7 +62,7 @@ function recommendationRank(recipe: Recipe, match: PantryRecipeMatch | undefined
   score += Math.round(Number(match?.coverageRatio ?? 0) * 10);
   if (recipe.favorite) score += 5;
   if (!plannedRecipeIds.has(recipe.id)) score += 4;
-  if (recipe.mealRoles.includes("dinner")) score += 2;
+  if ((recipe.mealRoles ?? []).includes("dinner")) score += 2;
   return score;
 }
 
@@ -100,7 +100,7 @@ export function HomePage() {
   const activeRecipes = useMemo(() => recipes.data?.items.filter((recipe) => recipe.status !== "archived") ?? [], [recipes.data?.items]);
   const readyRecipes = useMemo(() => activeRecipes.filter(isRecipeReadyToPlan), [activeRecipes]);
   const recipesById = useMemo(() => new Map(activeRecipes.map((recipe) => [recipe.id, recipe])), [activeRecipes]);
-  const recentRecipes = useMemo(() => [...activeRecipes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 4), [activeRecipes]);
+  const recentRecipes = useMemo(() => [...activeRecipes].sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()).slice(0, 4), [activeRecipes]);
 
   if (preferences.isPending) return <main className="page-shell home-page"><Skeleton label="Preparing your kitchen" lines={7} /></main>;
   if (preferences.isError) return <main className="page-shell home-page"><ErrorRecovery title="Your kitchen could not be prepared" onRetry={() => void preferences.refetch()} /></main>;
@@ -125,7 +125,7 @@ export function HomePage() {
   const dinnerMatch = dinner?.recipeId ? matchesByRecipeId.get(dinner.recipeId) : undefined;
   const recommendations = [...readyRecipes]
     .filter((recipe) => recipe.id !== dinner?.recipeId)
-    .sort((a, b) => recommendationRank(b, matchesByRecipeId.get(b.id), plannedRecipeIds) - recommendationRank(a, matchesByRecipeId.get(a.id), plannedRecipeIds) || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .sort((a, b) => recommendationRank(b, matchesByRecipeId.get(b.id), plannedRecipeIds) - recommendationRank(a, matchesByRecipeId.get(a.id), plannedRecipeIds) || new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())
     .slice(0, 3);
   const useSoon = (pantry.data ?? [])
     .filter((item) => item.expiresOn && Date.parse(`${item.expiresOn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`) <= 7 * DAY_MS)
@@ -197,7 +197,7 @@ export function HomePage() {
       <div className="home-lower-grid">
         <section className="home-recent" aria-labelledby="home-recent-heading">
           <div className="home-section-heading"><div><p className="eyebrow">Recipe box</p><h2 id="home-recent-heading">Recently saved</h2></div><Link to="/app/recipes">See all <ArrowRight aria-hidden="true" /></Link></div>
-          {recipes.isPending ? <Skeleton label="Loading recent recipes" lines={2} /> : recipes.isError ? <ErrorRecovery title="Recent recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition><span className="home-recent-recipe__media"><RecipeMedia recipe={recipe} /></span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
+          {recipes.isPending ? <Skeleton label="Loading recent recipes" lines={2} /> : recipes.isError ? <ErrorRecovery title="Recent recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition><span className="home-recent-recipe__media"><RecipeMedia recipe={recipe} /></span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles?.[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
         </section>
 
         <section className="home-grocery" aria-labelledby="home-grocery-heading">

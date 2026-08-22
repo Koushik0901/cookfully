@@ -90,7 +90,7 @@ describe("App", () => {
         favorite: false,
         collections: [],
         mealRoles: ["dinner"],
-        thumbnailCrop: { focalX: "0.5", focalY: "0.5", zoom: "1" },
+        thumbnailCrop: { x: "0", y: "0", width: "1", height: "1" },
         originKind: "manual",
       }], nextCursor: null });
       return json({ title: "Not found" }, 404);

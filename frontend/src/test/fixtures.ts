@@ -1,6 +1,6 @@
 import type { components } from "../app/api/generated/schema";
 
-type Micronutrients = components["schemas"]["MicronutrientsResponse"];
+type Micronutrients = components["schemas"]["Micronutrients"];
 
 function unavailable(unit: "g" | "mg" | "ug", usdaNutrientId: number) {
   return {

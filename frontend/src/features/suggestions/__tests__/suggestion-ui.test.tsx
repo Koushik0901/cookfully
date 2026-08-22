@@ -36,7 +36,7 @@ const result: SuggestionResult = {
       localDate: "2026-03-11",
       mealSlot: "breakfast",
       servings: "1.000",
-      projectedNutrition: { basisServings: "1.000", caloriesKcal: "500", proteinG: "45.0", carbohydrateG: "60.0", fatG: "12.0", status: "estimated", coverageRatio: "0.95" },
+      projectedNutrition: { basisServings: "1.000", caloriesKcal: "500", proteinG: "45.0", carbohydrateG: "60.0", fatG: "12.0", status: "estimated", coverageRatio: "0.95", micronutrients: unavailableMicronutrients },
       accepted: false,
     },
     {
@@ -46,7 +46,7 @@ const result: SuggestionResult = {
       localDate: "2026-03-11",
       mealSlot: "dinner",
       servings: "1.000",
-      projectedNutrition: { basisServings: "1.000", caloriesKcal: "700", proteinG: "55.0", carbohydrateG: "60.0", fatG: "23.0", status: "estimated", coverageRatio: "0.98" },
+      projectedNutrition: { basisServings: "1.000", caloriesKcal: "700", proteinG: "55.0", carbohydrateG: "60.0", fatG: "23.0", status: "estimated", coverageRatio: "0.98", micronutrients: unavailableMicronutrients },
       accepted: false,
     },
   ],
