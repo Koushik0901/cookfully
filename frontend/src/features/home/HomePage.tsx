@@ -84,7 +84,7 @@ function WeekDay({ date, entries, recipesById, today }: { date: string; entries:
 export function HomePage() {
   const commandShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K";
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
-  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes, retry: 1 });
+  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: ({ signal }) => planningApi.recipes("", signal), retry: 1 });
   const pantry = useQuery({ queryKey: ["pantry-items"], queryFn: pantryApi.list, retry: false });
   const today = preferences.data ? todayInTimezone(preferences.data.timezone) : "";
   const weekStart = preferences.data ? weekStartFor(today, preferences.data.weekStartsOn) : "";

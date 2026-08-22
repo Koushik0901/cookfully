@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BookOpenText,
   CalendarDays,
@@ -20,6 +20,7 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState }
 import { useNavigate } from "react-router-dom";
 
 import { RecipeFallbackArt } from "../components/cookfully/RecipeFallbackArt";
+import { intelligenceApi } from "../features/intelligence/api";
 import { planningApi } from "../features/plans/api";
 import { RecipeMetadata } from "../features/recipes/RecipeMetadata";
 
@@ -42,14 +43,22 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const interpretation = useMutation({
+    mutationFn: (prompt: string) => intelligenceApi.createDraft("command", prompt),
+  });
+  const execution = useMutation({
+    mutationFn: (draftId: string) => intelligenceApi.executeDraft(draftId),
+    onSuccess: () => { void interpretation.reset(); },
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const normalized = query.trim().toLocaleLowerCase();
   const recipes = useQuery({
-    queryKey: ["planning-recipes"],
-    queryFn: planningApi.recipes,
-    enabled: open,
+    queryKey: ["planning-recipes", "command", normalized],
+    queryFn: ({ signal }) => planningApi.recipes(normalized, signal),
+    enabled: open && normalized.length >= 2,
     retry: 1,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -68,7 +77,6 @@ export function CommandPalette() {
     };
   }, []);
 
-  const normalized = query.trim().toLocaleLowerCase();
   const visibleCommands = useMemo(
     () => COMMANDS.filter((item) => !normalized || `${item.label} ${item.hint}`.toLocaleLowerCase().includes(normalized)),
     [normalized],
@@ -154,7 +162,37 @@ export function CommandPalette() {
               </section>
             ) : null}
             {!visibleCommands.length && !visibleRecipes.length && !recipes.isPending ? (
-              <div className="command-empty"><Sparkles aria-hidden="true" /><strong>No match yet</strong><p>Try a dish name, destination, or action such as “plan tonight.”</p></div>
+              <div className="command-empty">
+                <Sparkles aria-hidden="true" />
+                <strong>No direct match yet</strong>
+                <p>Ask Cookfully to interpret a grocery, pantry, recipe, or cooking action.</p>
+                <button
+                  data-command-item
+                  type="button"
+                  role="menuitem"
+                  onClick={() => interpretation.mutate(query.trim())}
+                  disabled={interpretation.isPending}
+                >
+                  <Sparkles aria-hidden="true" />
+                  <span><strong>{interpretation.isPending ? "Understanding…" : "Interpret with Cookfully"}</strong><small>Review the proposed action before anything changes</small></span>
+                  <kbd>↵</kbd>
+                </button>
+                {interpretation.data?.status === "ok" ? (
+                  <div className="command-note" role="status">
+                    <strong>Cookfully understood</strong>
+                    {interpretation.data.functionCalls.map((call, index) => <p key={`${call.name}-${index}`}>{call.name}</p>)}
+                    {interpretation.data.draftId ? (
+                      <button type="button" onClick={() => { const draftId = interpretation.data?.draftId; if (draftId) execution.mutate(draftId); }} disabled={execution.isPending}>
+                        {execution.isPending ? "Applying…" : "Confirm and apply"}
+                      </button>
+                    ) : <small>This is a proposal only. Nothing has changed.</small>}
+                  </div>
+                ) : null}
+                {execution.isSuccess ? <p className="command-note" role="status">Applied. Cookfully’s data is up to date.</p> : null}
+                {execution.isError ? <p className="command-note" role="alert">Nothing was applied. Review the request and try again.</p> : null}
+                {interpretation.data?.status === "unsupported" ? <p className="command-note" role="status">That request does not map to a Cookfully action yet.</p> : null}
+                {interpretation.data?.status === "unavailable" ? <p className="command-note" role="status">Local intelligence is unavailable. Search and navigation still work.</p> : null}
+              </div>
             ) : null}
             {recipes.isError ? <p className="command-note" role="status">Recipe search is unavailable. Navigation and actions still work.</p> : null}
           </div>

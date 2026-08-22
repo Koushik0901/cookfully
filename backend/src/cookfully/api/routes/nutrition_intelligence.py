@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
+from cookfully.application.jobs import JobProgress
+from cookfully.application.model_download import latest_model_download
 from cookfully.application.nutrition_intelligence import (
     Backend,
     HostCapacity,
@@ -25,7 +27,14 @@ class NutritionIntelligenceSettingsResponse(BaseModel):
     model_revision: str | None = Field(alias="modelRevision")
     concurrency: int = Field(ge=1, le=4)
     version: int = Field(ge=1)
-    runtime_status: Literal["ready", "configured", "fallback"] = Field(alias="runtimeStatus")
+    runtime_status: Literal["ready", "configured", "downloading", "failed"] = Field(
+        alias="runtimeStatus"
+    )
+    download_job_id: str | None = Field(alias="downloadJobId", default=None)
+    download_job_status: str | None = Field(alias="downloadJobStatus", default=None)
+    download_progress_current: int | None = Field(alias="downloadProgressCurrent", default=None)
+    download_progress_total: int | None = Field(alias="downloadProgressTotal", default=None)
+    download_failure_message: str | None = Field(alias="downloadFailureMessage", default=None)
 
 
 class NutritionIntelligenceEstimateRequest(BaseModel):
@@ -64,14 +73,41 @@ class NutritionIntelligenceSettingsWrite(NutritionIntelligenceEstimateRequest):
     estimate_hash: str = Field(alias="estimateHash", min_length=64, max_length=64)
 
 
-def _response(value: NutritionIntelligenceSettings) -> NutritionIntelligenceSettingsResponse:
+def _response(
+    value: NutritionIntelligenceSettings,
+    download_job: JobProgress | None = None,
+) -> NutritionIntelligenceSettingsResponse:
+    progress = download_job
+    status = "ready" if value.backend == "hashing" or value.last_ready_at else "configured"
+    job_id: str | None = None
+    job_status: str | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None
+    failure_message: str | None = None
+    if progress is not None:
+        job_id = str(progress.id)
+        job_status = progress.status
+        progress_current = progress.progress_current
+        progress_total = progress.progress_total
+        failure_message = progress.failure_message
+        if progress.status in {"queued", "running", "retry_wait"}:
+            status = "downloading"
+        elif progress.status == "failed":
+            status = "failed"
+        elif progress.status == "succeeded" and value.last_ready_at:
+            status = "ready"
     return NutritionIntelligenceSettingsResponse(
         backend=value.backend,
         model_name=value.model_name,
         model_revision=value.model_revision,
         concurrency=value.concurrency,
         version=value.version,
-        runtime_status="ready" if value.backend == "hashing" else "configured",
+        runtime_status=status,
+        download_job_id=job_id,
+        download_job_status=job_status,
+        download_progress_current=progress_current,
+        download_progress_total=progress_total,
+        download_failure_message=failure_message,
     )
 
 
@@ -82,7 +118,7 @@ def get_settings(
 ) -> NutritionIntelligenceSettingsResponse:
     del owner
     service: NutritionIntelligenceService = request.app.state.nutrition_intelligence
-    return _response(service.get())
+    return _response(service.get(), latest_model_download(request.app.state.sessions))
 
 
 @router.post(
@@ -127,5 +163,6 @@ def update_settings(
         concurrency=payload.concurrency,
         expected_version=payload.version,
         estimate_hash=payload.estimate_hash,
+        trace_id=request.headers.get("x-request-id", "nutrition-intelligence-settings"),
     )
-    return _response(value)
+    return _response(value, latest_model_download(request.app.state.sessions))

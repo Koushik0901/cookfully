@@ -5,6 +5,7 @@ from sqlalchemy import CursorResult, delete, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.idempotency import IdempotencyService
+from cookfully.application.intelligence_drafts import IntelligenceDraftService
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import utc_now
 from cookfully.infrastructure.media_store import MediaStore
@@ -55,10 +56,12 @@ def sweep_retention(
     deleted = jobs.delete_safe_metadata(now=checked_at)
     expired_idempotency = IdempotencyService(session_factory).delete_expired(now=checked_at)
     expired_sessions = sweep_sessions(session_factory, now=checked_at)
+    expired_intelligence_drafts = IntelligenceDraftService(session_factory).expire(now=checked_at)
     return {
         "expired_media": expired_media,
         "reduced_jobs": len(reduced),
         "deleted_jobs": len(deleted),
         "expired_idempotency": expired_idempotency,
         "expired_sessions": expired_sessions,
+        "expired_intelligence_drafts": expired_intelligence_drafts,
     }

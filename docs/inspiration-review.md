@@ -971,3 +971,28 @@ Run all and Run missing only through existing per-recipe recalculation; referenc
 missing-release install; portable export is a single media-inclusive action. Keep the page inside Settings,
 poll only while a job is active, and explain that re-runs preserve manual nutrition corrections.
 
+## Model-only intelligence service — 2026-08-21
+
+### Problem being solved
+
+Needle 2 needs a local runtime boundary without moving Cookfully's application coordination, durable jobs,
+or authoritative data out of the backend.
+
+### Source inspected
+
+- [Immich's production Compose service](https://github.com/immich-app/immich/blob/main/docker/docker-compose.prod.yml),
+  which separates the machine-learning service and model cache from the server and database.
+
+### Local decision
+
+Adopt the isolation boundary, not Immich's application responsibilities: Cookfully adds one private
+model-only `intelligence` container. The API and existing worker call it over an authenticated internal
+HTTP protocol; they retain all owner resolution, job scheduling, retries, persistence, and mutation
+coordination. The model container receives schemas and text only, has no Postgres or Redis credentials,
+and may later run on a trusted LAN host through a configured HTTPS URL. No cloud inference fallback is
+allowed.
+
+Compose also places the model service on a private network shared only with the API and worker;
+Postgres and Redis are not attached to that network. This makes the model-only boundary a deployment
+property as well as an application contract.
+

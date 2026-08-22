@@ -4,7 +4,38 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cookfully.application.food_embedding_index import FoodEmbeddingSummary
 from cookfully.application.jobs import JobProgress, RecipeProcessingSummary
+
+
+class FoodEmbeddingRunRequest(BaseModel):
+    scope: Literal["all", "missing"] = "missing"
+
+
+class FoodEmbeddingSummaryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    active: int = Field(ge=0)
+    waiting: int = Field(ge=0)
+    missing: int = Field(ge=0)
+    indexed: int = Field(ge=0)
+    total: int = Field(ge=0)
+    model_name: str = Field(alias="modelName")
+    model_version: str = Field(alias="modelVersion")
+    poll_after_seconds: int | None = Field(alias="pollAfterSeconds", default=None, ge=1)
+
+    @classmethod
+    def from_summary(cls, summary: FoodEmbeddingSummary) -> "FoodEmbeddingSummaryResponse":
+        return cls(
+            active=summary.active,
+            waiting=summary.waiting,
+            missing=summary.missing,
+            indexed=summary.indexed,
+            total=summary.total,
+            model_name=summary.model_name,
+            model_version=summary.model_version,
+            poll_after_seconds=summary.poll_after_seconds,
+        )
 
 
 class RecipeProcessingSummaryResponse(BaseModel):

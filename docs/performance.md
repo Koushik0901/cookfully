@@ -73,3 +73,17 @@ database/search choices are worse—from these numbers. Conversely, copying thei
 worker topology without measuring this nutrition-first workload would also be unjustified. The local
 decision is to retain reproducible budgets and raw results, and revisit the implementation when the
 measured workload changes.
+
+## Hardware acceleration
+
+Semantic food matching selects the best ONNX Runtime execution provider available inside the
+running process. CUDA is preferred, followed by ROCm, DirectML, CoreML, and CPU. If an accelerator
+provider is installed but cannot initialize (for example because its driver is incompatible), the
+embedder retries with CPU inference and keeps matching available. This detection is per process, so
+the same image behaves correctly on a GPU host and a CPU-only host without a configuration switch.
+
+The default deployment intentionally remains CPU-safe. A GPU deployment must use the compatible
+`fastembed-gpu` package and expose the host GPU to the container; Docker cannot grant GPU access to a
+container that was not started with a suitable runtime/device configuration. Needle remains isolated
+in its model container, while the API and worker continue to own orchestration, persistence, and
+fallback behavior.

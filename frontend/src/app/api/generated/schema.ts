@@ -1105,7 +1105,12 @@ export interface components {
             concurrency: number;
             version: number;
             /** @enum {string} */
-            runtimeStatus: "ready" | "configured" | "fallback";
+            runtimeStatus: "ready" | "configured" | "downloading" | "failed";
+            downloadJobId?: string | null;
+            downloadJobStatus?: string | null;
+            downloadProgressCurrent?: number | null;
+            downloadProgressTotal?: number | null;
+            downloadFailureMessage?: string | null;
         };
         NutritionIntelligenceSettingsWrite: {
             /** @enum {string} */

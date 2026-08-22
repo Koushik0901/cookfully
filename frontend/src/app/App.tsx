@@ -20,19 +20,49 @@ import { useSignOut } from "../features/settings/useSignOut";
 import { CommandPalette } from "./CommandPalette";
 import { AppProviders, RequireAuthentication } from "./providers";
 
-const HomePage = lazy(() => import("../features/home/HomePage").then((module) => ({ default: module.HomePage })));
-const CookModePage = lazy(() => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage })));
-const AgentAccessPage = lazy(() => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage })));
-const GoalSettingsPage = lazy(() => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage })));
-const GroceryListPage = lazy(() => import("../features/grocery/GroceryListPage").then((module) => ({ default: module.GroceryListPage })));
-const OwnerFoodsPage = lazy(() => import("../features/foods/OwnerFoodsPage").then((module) => ({ default: module.OwnerFoodsPage })));
-const PantryPage = lazy(() => import("../features/pantry/PantryPage").then((module) => ({ default: module.PantryPage })));
-const RecipeDetailPage = lazy(() => import("../features/recipes/RecipeDetailPage").then((module) => ({ default: module.RecipeDetailPage })));
-const RecipeEditorPage = lazy(() => import("../features/recipes/RecipeEditorPage").then((module) => ({ default: module.RecipeEditorPage })));
-const RecipeLibraryPage = lazy(() => import("../features/recipes/RecipeLibraryPage").then((module) => ({ default: module.RecipeLibraryPage })));
-const SettingsPage = lazy(() => import("../features/settings/SettingsPage").then((module) => ({ default: module.SettingsPage })));
-const SuggestionPage = lazy(() => import("../features/suggestions/SuggestionPage").then((module) => ({ default: module.SuggestionPage })));
-const WeeklyPlannerPage = lazy(() => import("../features/plans/WeeklyPlannerPage").then((module) => ({ default: module.WeeklyPlannerPage })));
+const loadHomePage = () => import("../features/home/HomePage").then((module) => ({ default: module.HomePage }));
+const loadCookModePage = () => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage }));
+const loadAgentAccessPage = () => import("../features/settings/AgentAccessPage").then((module) => ({ default: module.AgentAccessPage }));
+const loadGoalSettingsPage = () => import("../features/goals/GoalSettingsPage").then((module) => ({ default: module.GoalSettingsPage }));
+const loadGroceryListPage = () => import("../features/grocery/GroceryListPage").then((module) => ({ default: module.GroceryListPage }));
+const loadOwnerFoodsPage = () => import("../features/foods/OwnerFoodsPage").then((module) => ({ default: module.OwnerFoodsPage }));
+const loadPantryPage = () => import("../features/pantry/PantryPage").then((module) => ({ default: module.PantryPage }));
+const loadRecipeDetailPage = () => import("../features/recipes/RecipeDetailPage").then((module) => ({ default: module.RecipeDetailPage }));
+const loadRecipeEditorPage = () => import("../features/recipes/RecipeEditorPage").then((module) => ({ default: module.RecipeEditorPage }));
+const loadRecipeLibraryPage = () => import("../features/recipes/RecipeLibraryPage").then((module) => ({ default: module.RecipeLibraryPage }));
+const loadSettingsPage = () => import("../features/settings/SettingsPage").then((module) => ({ default: module.SettingsPage }));
+const loadSuggestionPage = () => import("../features/suggestions/SuggestionPage").then((module) => ({ default: module.SuggestionPage }));
+const loadWeeklyPlannerPage = () => import("../features/plans/WeeklyPlannerPage").then((module) => ({ default: module.WeeklyPlannerPage }));
+
+const HomePage = lazy(loadHomePage);
+const CookModePage = lazy(loadCookModePage);
+const AgentAccessPage = lazy(loadAgentAccessPage);
+const GoalSettingsPage = lazy(loadGoalSettingsPage);
+const GroceryListPage = lazy(loadGroceryListPage);
+const OwnerFoodsPage = lazy(loadOwnerFoodsPage);
+const PantryPage = lazy(loadPantryPage);
+const RecipeDetailPage = lazy(loadRecipeDetailPage);
+const RecipeEditorPage = lazy(loadRecipeEditorPage);
+const RecipeLibraryPage = lazy(loadRecipeLibraryPage);
+const SettingsPage = lazy(loadSettingsPage);
+const SuggestionPage = lazy(loadSuggestionPage);
+const WeeklyPlannerPage = lazy(loadWeeklyPlannerPage);
+
+const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
+  "/app": loadHomePage,
+  "/app/recipes": loadRecipeLibraryPage,
+  "/app/plan": loadWeeklyPlannerPage,
+  "/app/grocery": loadGroceryListPage,
+  "/app/pantry": loadPantryPage,
+  "/app/foods": loadOwnerFoodsPage,
+  "/app/goals": loadGoalSettingsPage,
+  "/app/settings": loadSettingsPage,
+};
+
+function preloadRoute(path: string) {
+  const loader = ROUTE_PRELOADERS[path];
+  if (loader) void loader();
+}
 
 const WORKFLOW = [
   {
@@ -168,7 +198,7 @@ function PlannerShell() {
         </NavLink>
         <nav aria-label="Kitchen">
           {PRIMARY_NAVIGATION.map(({ to, label, Icon, ...item }) => (
-            <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+            <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
@@ -177,6 +207,8 @@ function PlannerShell() {
           <NavLink
             to="/app/settings"
             title="Settings"
+            onMouseEnter={() => preloadRoute("/app/settings")}
+            onFocus={() => preloadRoute("/app/settings")}
             className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}
           >
             <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
@@ -189,7 +221,7 @@ function PlannerShell() {
       </div>
       <nav className="mobile-nav" aria-label="Primary navigation">
         {MOBILE_NAVIGATION.map(({ to, label, Icon, ...item }) => (
-          <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
+          <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </NavLink>
         ))}
@@ -206,16 +238,16 @@ function PlannerShell() {
           </button>
           {moreOpen ? (
             <div ref={moreMenuRef} className="mobile-nav__menu" role="menu" aria-label="More navigation">
-              <NavLink to="/app/pantry" role="menuitem" onClick={closeMore}>
+              <NavLink to="/app/pantry" role="menuitem" onMouseEnter={() => preloadRoute("/app/pantry")} onFocus={() => preloadRoute("/app/pantry")} onClick={closeMore}>
                 <PackageOpen aria-hidden="true" /><span>Pantry</span>
               </NavLink>
               {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
-                <NavLink key={to} to={to} role="menuitem" onClick={closeMore}>
+                <NavLink key={to} to={to} role="menuitem" onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} onClick={closeMore}>
                   <Icon aria-hidden="true" /><span>{label}</span>
                 </NavLink>
               ))}
               <div className="mobile-nav__menu-divider" role="separator" />
-              <NavLink to="/app/settings" role="menuitem" onClick={closeMore}>
+              <NavLink to="/app/settings" role="menuitem" onMouseEnter={() => preloadRoute("/app/settings")} onFocus={() => preloadRoute("/app/settings")} onClick={closeMore}>
                 <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
               </NavLink>
               <button type="button" role="menuitem" onClick={() => signOut.mutate()} disabled={signOut.isPending}>

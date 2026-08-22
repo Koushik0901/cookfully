@@ -2,7 +2,7 @@ name: cookfully-restore-check
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: ghcr.io/tensorchord/vchord-postgres:pg18-v1.1.1
     environment:
       POSTGRES_DB: cookfully_restore
       POSTGRES_USER: cookfully

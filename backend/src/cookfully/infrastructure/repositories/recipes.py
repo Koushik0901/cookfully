@@ -55,15 +55,17 @@ class RecipeRepository:
         include_archived: bool = False,
         limit: int = 50,
         after: tuple[str, UUID] | None = None,
+        include_content: bool = False,
     ) -> list[Recipe]:
-        statement: Select[tuple[Recipe]] = select(Recipe).options(
-            selectinload(Recipe.ingredients),
-            selectinload(Recipe.instructions),
+        options = [
             selectinload(Recipe.collection_memberships).selectinload(
                 RecipeCollectionMembership.collection
             ),
             selectinload(Recipe.meal_roles),
-        )
+        ]
+        if include_content:
+            options.extend((selectinload(Recipe.ingredients), selectinload(Recipe.instructions)))
+        statement: Select[tuple[Recipe]] = select(Recipe).options(*options)
         # Import placeholders are workflow state, not recipes. Keep both new
         # import_failed rows and legacy failed placeholders out of every library view.
         statement = statement.where(

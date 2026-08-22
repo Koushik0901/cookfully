@@ -13,7 +13,7 @@ import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { groceryApi } from "./api";
 import { ShoppingStopManager } from "./ShoppingStopManager";
-import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryShoppingStop } from "./types";
+import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList, GroceryShoppingStop } from "./types";
 
 type SourceMeal = { recipeId: string | null; recipeTitle: string };
 
@@ -28,16 +28,24 @@ function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry }: { 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
   const update = useMutation({
     mutationFn: (value: GroceryItemWrite) => groceryApi.update(item.id, item.version, value),
-    onSuccess: (_saved, value) => {
+    onSuccess: (saved, value) => {
       if (value.displayName != null) setName(value.displayName);
       if ("quantity" in value) setQuantity(formatCookingInput(value.quantity));
       if ("unit" in value) setUnit(value.unit ?? "");
+      queryClient.setQueryData<GroceryList>(["grocery-list", weekStart], (current) => current
+        ? { ...current, items: current.items.map((candidate) => candidate.id === item.id ? saved : candidate) }
+        : current);
       void refresh();
     },
   });
   const remove = useMutation({
     mutationFn: () => groceryApi.remove(item.id, item.version),
-    onSuccess: () => void refresh(),
+    onSuccess: () => {
+      queryClient.setQueryData<GroceryList>(["grocery-list", weekStart], (current) => current
+        ? { ...current, items: current.items.filter((candidate) => candidate.id !== item.id) }
+        : current);
+      void refresh();
+    },
   });
   const error = update.error ?? remove.error;
   const conflict = error instanceof ApiProblem && error.status === 409;
@@ -85,7 +93,9 @@ export function GroceryListPage() {
     window.requestAnimationFrame(() => manualItemRef.current?.focus());
   }, [searchParams]);
   const list = useQuery({ queryKey: ["grocery-list", weekStart], queryFn: () => groceryApi.get(weekStart), enabled: Boolean(weekStart), retry: false });
-  const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart && list.data), retry: false });
+  // The plan is only contextual metadata for source links; load it alongside
+  // the grocery list instead of making it wait for the list response.
+  const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
   const stops = useQuery({ queryKey: ["grocery-shopping-stops"], queryFn: groceryApi.stops });
   const regenerate = useMutation({
     mutationFn: () => groceryApi.regenerate(weekStart),
@@ -93,8 +103,11 @@ export function GroceryListPage() {
   });
   const create = useMutation({
     mutationFn: () => groceryApi.create(weekStart, newItem),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       setNewItem({ displayName: "", quantity: null, unit: null });
+      queryClient.setQueryData<GroceryList>(["grocery-list", weekStart], (current) => current
+        ? { ...current, items: [...current.items, saved] }
+        : current);
       void queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
     },
   });

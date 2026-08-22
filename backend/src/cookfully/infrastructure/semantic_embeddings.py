@@ -9,6 +9,39 @@ from typing import Protocol
 
 Embedding = tuple[float, ...]
 
+_PROVIDER_PRIORITY = (
+    "CUDAExecutionProvider",
+    "ROCMExecutionProvider",
+    "DmlExecutionProvider",
+    "CoreMLExecutionProvider",
+    "CPUExecutionProvider",
+)
+
+
+def available_accelerator_providers() -> tuple[str, ...]:
+    """Return ONNX Runtime providers available in this process.
+
+    ONNX Runtime is optional, so model matching remains usable with the hashing
+    fallback when the semantic extra is not installed.
+    """
+    try:
+        import onnxruntime  # type: ignore[import-not-found]
+
+        return tuple(str(provider) for provider in onnxruntime.get_available_providers())
+    except Exception:
+        return ()
+
+
+def select_accelerator_provider(
+    available: Sequence[str] | None = None,
+) -> str:
+    """Choose the fastest supported provider, falling back to CPU."""
+    providers = tuple(available) if available is not None else available_accelerator_providers()
+    return next(
+        (provider for provider in _PROVIDER_PRIORITY if provider in providers),
+        "CPUExecutionProvider",
+    )
+
 
 class TextEmbedder(Protocol):
     dimensions: int
@@ -52,13 +85,29 @@ class FastEmbedTextEmbedder:
         *,
         model_name: str = "BAAI/bge-small-en-v1.5",
         cache_dir: Path | None = None,
+        local_files_only: bool = False,
     ) -> None:
         from fastembed import TextEmbedding  # type: ignore[import-not-found]
 
+        selected_provider = select_accelerator_provider()
         kwargs: dict[str, object] = {"model_name": model_name}
         if cache_dir is not None:
             kwargs["cache_dir"] = str(cache_dir)
-        self._model = TextEmbedding(**kwargs)
+        if local_files_only:
+            kwargs["local_files_only"] = True
+        if selected_provider != "CPUExecutionProvider":
+            kwargs["providers"] = [selected_provider]
+        try:
+            self._model = TextEmbedding(**kwargs)
+        except Exception:
+            # GPU packages/providers are optional. A driver mismatch should
+            # degrade to CPU inference, not disable semantic matching.
+            if selected_provider == "CPUExecutionProvider":
+                raise
+            kwargs["providers"] = ["CPUExecutionProvider"]
+            self._model = TextEmbedding(**kwargs)
+            selected_provider = "CPUExecutionProvider"
+        self.provider = selected_provider
         self.dimensions = 384
 
     def embed(self, texts: Sequence[str]) -> tuple[Embedding, ...]:
@@ -69,11 +118,19 @@ def create_text_embedder(
     *,
     model_name: str = "BAAI/bge-small-en-v1.5",
     cache_dir: Path | None = None,
+    local_files_only: bool = False,
+    allow_fallback: bool = True,
 ) -> TextEmbedder:
     try:
-        return FastEmbedTextEmbedder(model_name=model_name, cache_dir=cache_dir)
+        return FastEmbedTextEmbedder(
+            model_name=model_name,
+            cache_dir=cache_dir,
+            local_files_only=local_files_only,
+        )
     except Exception:
-        return HashingTextEmbedder()
+        if not allow_fallback:
+            raise
+        return HashingTextEmbedder(dimensions=384)
 
 
 def cosine_similarity(first: Iterable[float], second: Iterable[float]) -> float:

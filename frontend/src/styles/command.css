@@ -43,6 +43,8 @@
 .command-empty svg { width: 1.5rem; color: var(--color-primary); }
 .command-empty p { max-width: 34ch; color: var(--color-on-surface-variant); }
 .command-note { padding: 0.75rem; color: var(--status-warning); background: var(--status-warning-container); font-size: 0.8rem; }
+.command-note button { margin-top: 0.55rem; padding: 0.45rem 0.7rem; border: 1px solid currentColor; border-radius: var(--radius-sm); color: inherit; background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.command-note button:disabled { opacity: 0.6; cursor: wait; }
 .command-footer { display: flex; min-height: 2.8rem; align-items: center; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--color-outline-variant); padding-inline: 1rem; color: var(--color-on-surface-variant); font-size: var(--text-caption); }
 .command-footer span { display: flex; align-items: center; gap: 0.25rem; }
 

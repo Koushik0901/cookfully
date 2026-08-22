@@ -24,7 +24,12 @@ export type NutritionIntelligenceSettings = {
   modelRevision: string | null;
   concurrency: number;
   version: number;
-  runtimeStatus: "ready" | "configured" | "fallback";
+  runtimeStatus: "ready" | "configured" | "downloading" | "failed";
+  downloadJobId: string | null;
+  downloadJobStatus: string | null;
+  downloadProgressCurrent: number | null;
+  downloadProgressTotal: number | null;
+  downloadFailureMessage: string | null;
 };
 export type NutritionIntelligenceEstimateRequest = {
   backend: NutritionBackend;

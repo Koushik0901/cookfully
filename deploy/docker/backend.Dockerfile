@@ -17,7 +17,7 @@ COPY deploy/docker/backend-entrypoint.sh /usr/local/bin/backend-entrypoint
 RUN uv sync --directory /app/backend --locked --no-dev --all-extras \
     && sed -i 's/\r$//' /usr/local/bin/backend-entrypoint \
     && chmod +x /usr/local/bin/backend-entrypoint \
-    && mkdir -p /data/media /data/erasure-ledger \
+    && mkdir -p /data/media /data/semantic-models /data/exports /data/erasure-ledger \
     && chown -R cookfully:cookfully /app /data
 
 USER cookfully

@@ -3,7 +3,22 @@ from __future__ import annotations
 from cookfully.infrastructure.semantic_embeddings import (
     HashingTextEmbedder,
     cosine_similarity,
+    select_accelerator_provider,
 )
+
+
+def test_accelerator_selection_prefers_cuda_then_supported_fallbacks() -> None:
+    assert select_accelerator_provider(("CPUExecutionProvider",)) == "CPUExecutionProvider"
+    assert select_accelerator_provider(("CPUExecutionProvider", "DmlExecutionProvider")) == (
+        "DmlExecutionProvider"
+    )
+    assert select_accelerator_provider(("ROCMExecutionProvider", "CUDAExecutionProvider")) == (
+        "CUDAExecutionProvider"
+    )
+
+
+def test_accelerator_selection_defaults_to_cpu_when_runtime_is_missing() -> None:
+    assert select_accelerator_provider(()) == "CPUExecutionProvider"
 
 
 def test_hashing_embedder_is_deterministic_and_normalized() -> None:

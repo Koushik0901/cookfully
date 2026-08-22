@@ -14,7 +14,12 @@ import httpx
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.domain.common import DomainError
+from cookfully.application.jobs import JobService
+from cookfully.application.model_download import (
+    accept_model_download_job_in_session,
+    supersede_model_download_jobs_in_session,
+)
+from cookfully.domain.common import DomainError, utc_now
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
 
@@ -233,7 +238,9 @@ class NutritionIntelligenceService:
         concurrency: int,
         expected_version: int,
         estimate_hash: str,
+        trace_id: str = "nutrition-intelligence-settings",
     ) -> NutritionIntelligenceSettings:
+        jobs = JobService(self._session_factory)
         with self._session_factory.begin() as session:
             value = session.scalar(
                 select(NutritionIntelligenceSettings).where(NutritionIntelligenceSettings.id == 1)
@@ -270,7 +277,19 @@ class NutritionIntelligenceService:
             value.model_name = model_name if backend == "fastembed" else DEFAULT_MODEL
             value.model_revision = estimate.model_revision
             value.concurrency = concurrency
+            value.last_ready_at = None
             value.version += 1
+            if backend == "fastembed":
+                accept_model_download_job_in_session(
+                    session,
+                    jobs,
+                    model_name=value.model_name,
+                    model_revision=value.model_revision,
+                    trace_id=trace_id,
+                )
+            else:
+                supersede_model_download_jobs_in_session(session, jobs)
+                value.last_ready_at = utc_now()
             session.flush()
             session.expunge(value)
             return value

@@ -18,6 +18,8 @@ from cookfully.jobs.reconciler import reconcile_jobs
 logger = logging.getLogger(__name__)
 running = True
 INSTALL_GRACE = timedelta(minutes=5)
+FOOD_EMBEDDING_SOFT_LIMIT_SECONDS = 30 * 60
+FOOD_EMBEDDING_HARD_LIMIT_SECONDS = FOOD_EMBEDDING_SOFT_LIMIT_SECONDS + 60
 
 
 def _stop(_: int, __: FrameType | None) -> None:
@@ -33,6 +35,15 @@ def publish(payload: dict[str, object]) -> None:
             soft_time_limit=int(INSTALL_JOB_DEADLINE.total_seconds()),
             time_limit=int(INSTALL_JOB_DEADLINE.total_seconds())
             + int(INSTALL_GRACE.total_seconds()),
+        )
+    elif payload.get("kind") in {"food_embedding_index", "semantic_model_download"}:
+        # A full catalog rebuild embeds tens of thousands of foods and must
+        # outlive the short interactive-job default (55s/60s).
+        celery_app.send_task(
+            "cookfully.process_job",
+            kwargs={"envelope": payload},
+            soft_time_limit=FOOD_EMBEDDING_SOFT_LIMIT_SECONDS,
+            time_limit=FOOD_EMBEDDING_HARD_LIMIT_SECONDS,
         )
     else:
         celery_app.send_task("cookfully.process_job", kwargs={"envelope": payload})

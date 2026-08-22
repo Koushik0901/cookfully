@@ -7,6 +7,7 @@ import { ApiProblem } from "../recipes/api";
 import type { Job } from "../recipes/types";
 import { JobQueueCard } from "./JobQueueCard";
 import { jobsApi, type InstallUnit, type JobRunScope } from "./jobsApi";
+import { nutritionIntelligenceApi } from "./api";
 
 const ACTIVE_JOB_STATUSES = new Set<Job["status"]>(["queued", "running", "retry_wait"]);
 
@@ -25,6 +26,7 @@ export function JobsTab() {
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [referenceAction, setReferenceAction] = useState<"all" | "missing" | null>(null);
   const [recipeRunActive, setRecipeRunActive] = useState(false);
+  const [embeddingAction, setEmbeddingAction] = useState<JobRunScope | null>(null);
 
   const recipes = useQuery({
     queryKey: ["jobs-recipe-processing"],
@@ -39,6 +41,19 @@ export function JobsTab() {
     queryKey: ["reference-data-status"],
     queryFn: jobsApi.referenceData,
     refetchInterval: (query) => (isActive(query.state.data?.job) ? 2_000 : false),
+  });
+
+  const embeddings = useQuery({
+    queryKey: ["jobs-food-embeddings"],
+    queryFn: jobsApi.foodEmbeddingSummary,
+    refetchInterval: (query) =>
+      query.state.data?.pollAfterSeconds ? query.state.data.pollAfterSeconds * 1_000 : false,
+  });
+
+  const nutritionIntelligence = useQuery({
+    queryKey: ["nutrition-intelligence-settings"],
+    queryFn: nutritionIntelligenceApi.get,
+    refetchInterval: (query) => query.state.data?.runtimeStatus === "downloading" ? 2_000 : false,
   });
 
   const exportJob = useQuery({
@@ -72,6 +87,15 @@ export function JobsTab() {
     onSettled: () => setReferenceAction(null),
   });
 
+  const runEmbeddings = useMutation({
+    mutationFn: (scope: JobRunScope) => jobsApi.runFoodEmbeddings(scope),
+    onSuccess: (_, scope) => {
+      setMessage(scope === "all" ? "All food embeddings queued for rebuilding." : "Missing food embeddings queued for repair.");
+      void queryClient.invalidateQueries({ queryKey: ["jobs-food-embeddings"] });
+    },
+    onSettled: () => setEmbeddingAction(null),
+  });
+
   const runExport = useMutation({
     mutationFn: () => jobsApi.exportPortable(true),
     onSuccess: (result) => {
@@ -97,6 +121,11 @@ export function JobsTab() {
   const exportStatus = exportJob.data;
   const exportWorking = isActive(exportStatus);
   const recipeData = recipes.data;
+  const embeddingData = embeddings.data;
+  const modelData = nutritionIntelligence.data;
+  const modelDownloading = modelData?.runtimeStatus === "downloading";
+  const modelActive = modelData?.downloadJobStatus === "running" ? 1 : 0;
+  const modelWaiting = modelData && ["queued", "retry_wait"].includes(modelData.downloadJobStatus ?? "") ? 1 : 0;
 
   return (
     <section className="settings-section jobs-section" aria-labelledby="jobs-title">
@@ -117,6 +146,49 @@ export function JobsTab() {
       </div>
 
       <div className="job-queue-list">
+        <article className="job-queue-card">
+          <div className="job-queue-card__main">
+            <div className="job-queue-card__heading">
+              <span className="job-queue-card__icon"><Database aria-hidden="true" /></span>
+              <div>
+                <h3>Embedding model</h3>
+                <p>Download and verify the selected semantic model before food matching is rebuilt.</p>
+              </div>
+              {modelDownloading ? <span className="settings-status settings-status--working">Working</span> : null}
+            </div>
+            <div className="job-queue-card__counts" aria-label="Embedding model queue counts">
+              <div><strong>{modelActive}</strong><span>Active</span></div>
+              <div><strong>{modelWaiting}</strong><span>Waiting</span></div>
+            </div>
+            <p className="job-queue-card__hint">
+              {modelData ? `${modelData.modelName} · ${modelData.runtimeStatus === "ready" ? "ready for indexing" : modelData.runtimeStatus}.` : "Checking model status…"}
+            </p>
+            {modelData?.runtimeStatus === "failed" ? <p className="error-text" role="alert">{modelData.downloadFailureMessage ?? "Model download failed."} Save the model settings again to retry.</p> : null}
+          </div>
+          <div className="job-queue-card__actions">
+            <span className="muted">Managed from Nutrition intelligence settings</span>
+          </div>
+        </article>
+
+        <JobQueueCard
+          icon={Database}
+          title="Food embedding index"
+          description="Precompute semantic vectors for every USDA and custom food so matching stays fast."
+          active={embeddingData?.active ?? 0}
+          waiting={embeddingData?.waiting ?? 0}
+          missing={embeddingData?.missing ?? 0}
+          supportsMissing
+          allLabel="Rebuild all"
+          onRunAll={() => { setMessage(""); setEmbeddingAction("all"); runEmbeddings.mutate("all"); }}
+          onRunMissing={() => { setMessage(""); setEmbeddingAction("missing"); runEmbeddings.mutate("missing"); }}
+          running={Boolean(embeddingData?.active || embeddingData?.waiting)}
+          allPending={runEmbeddings.isPending && embeddingAction === "all"}
+          missingPending={runEmbeddings.isPending && embeddingAction === "missing"}
+          error={errorMessage(runEmbeddings.error) ?? errorMessage(embeddings.error)}
+        >
+          <p className="job-queue-card__hint">{embeddingData ? `${embeddingData.indexed.toLocaleString()} of ${embeddingData.total.toLocaleString()} foods indexed with ${embeddingData.modelName}.` : "Checking the semantic index…"}</p>
+        </JobQueueCard>
+
         <JobQueueCard
           icon={RefreshCw}
           title="Recipe processing"

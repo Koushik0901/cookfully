@@ -173,10 +173,49 @@ class RecipeQueryService:
                 include_archived=include_archived,
                 limit=limit + 1,
                 after=after,
+                include_content=False,
             )
             has_more = len(recipes) > limit
             recipes = recipes[:limit]
-            items = tuple(self._read(session, recipe, detail=False) for recipe in recipes)
+            recipe_ids = tuple(recipe.id for recipe in recipes)
+            corrections_by_recipe: dict[UUID, list[NutritionCorrection]] = {}
+            if recipe_ids:
+                for correction in session.scalars(
+                    select(NutritionCorrection).where(
+                        NutritionCorrection.recipe_id.in_(recipe_ids),
+                        NutritionCorrection.active.is_(True),
+                    )
+                ):
+                    corrections_by_recipe.setdefault(correction.recipe_id, []).append(correction)
+            estimate_ids = tuple(
+                recipe.active_estimate_id
+                for recipe in recipes
+                if recipe.active_estimate_id is not None
+            )
+            estimates = (
+                {
+                    estimate.id: estimate
+                    for estimate in session.scalars(
+                        select(NutritionEstimate).where(NutritionEstimate.id.in_(estimate_ids))
+                    )
+                }
+                if estimate_ids
+                else {}
+            )
+            items = tuple(
+                self._read(
+                    session,
+                    recipe,
+                    detail=False,
+                    prefetched_corrections=corrections_by_recipe.get(recipe.id, ()),
+                    prefetched_estimate=(
+                        estimates.get(recipe.active_estimate_id)
+                        if recipe.active_estimate_id is not None
+                        else None
+                    ),
+                )
+                for recipe in recipes
+            )
             next_cursor = (
                 self._encode_cursor(recipes[-1].title.casefold(), recipes[-1].id)
                 if has_more and recipes
@@ -194,18 +233,41 @@ class RecipeQueryService:
         assert nutrition is not None
         return nutrition
 
-    def _read(self, session: Session, recipe: Recipe, *, detail: bool) -> RecipeRead:
-        corrections = NutritionRepository(session).active_corrections(recipe.id)
-        nutrition = self._nutrition(session, recipe, corrections)
-        matches = {
-            match.ingredient_id: match
-            for match in session.scalars(
-                select(IngredientMatch).where(
-                    IngredientMatch.ingredient_id.in_(item.id for item in recipe.ingredients),
-                    IngredientMatch.active.is_(True),
+    def _read(
+        self,
+        session: Session,
+        recipe: Recipe,
+        *,
+        detail: bool,
+        prefetched_corrections: Sequence[NutritionCorrection] | None = None,
+        prefetched_estimate: NutritionEstimate | None = None,
+    ) -> RecipeRead:
+        corrections = (
+            list(prefetched_corrections)
+            if prefetched_corrections is not None
+            else NutritionRepository(session).active_corrections(recipe.id)
+        )
+        estimate = (
+            prefetched_estimate
+            if prefetched_corrections is not None
+            else session.get(NutritionEstimate, recipe.active_estimate_id)
+            if recipe.active_estimate_id
+            else None
+        )
+        nutrition = self._nutrition(recipe, corrections, estimate)
+        matches = (
+            {
+                match.ingredient_id: match
+                for match in session.scalars(
+                    select(IngredientMatch).where(
+                        IngredientMatch.ingredient_id.in_(item.id for item in recipe.ingredients),
+                        IngredientMatch.active.is_(True),
+                    )
                 )
-            )
-        }
+            }
+            if detail
+            else {}
+        )
         ingredients = (
             tuple(self._ingredient(item, matches.get(item.id)) for item in recipe.ingredients)
             if detail
@@ -277,15 +339,10 @@ class RecipeQueryService:
 
     @staticmethod
     def _nutrition(
-        session: Session,
         recipe: Recipe,
         corrections: Sequence[NutritionCorrection],
+        estimate: NutritionEstimate | None,
     ) -> NutritionRead:
-        estimate = (
-            session.get(NutritionEstimate, recipe.active_estimate_id)
-            if recipe.active_estimate_id
-            else None
-        )
         nutrient_corrections: dict[NutrientField, NutritionCorrectionValue] = {}
         for item in corrections:
             if (

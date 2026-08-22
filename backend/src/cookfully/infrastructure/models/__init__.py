@@ -14,6 +14,7 @@ from cookfully.infrastructure.models.identity import (
     SessionRecord,
 )
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
+from cookfully.infrastructure.models.intelligence import IntelligenceDraftRecord
 from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import (
@@ -63,6 +64,7 @@ __all__ = [
     "ImportPreviewRecord",
     "Ingredient",
     "IngredientMatch",
+    "IntelligenceDraftRecord",
     "MealNutritionSnapshot",
     "MealPlan",
     "MealPlanEntry",

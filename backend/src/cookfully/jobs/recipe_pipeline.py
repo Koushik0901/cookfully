@@ -456,10 +456,18 @@ class RecipePipeline:
         key = (backend, model_name, revision)
         if self._embedder_key != key:
             if backend == "fastembed":
+                if settings is not None and settings.last_ready_at is None:
+                    raise DomainError(
+                        "embedding_model_not_ready",
+                        "The selected embedding model is still downloading.",
+                        409,
+                    )
                 runtime = get_settings()
                 self._embedder = create_text_embedder(
                     model_name=model_name,
                     cache_dir=runtime.semantic_matching_model_dir,
+                    local_files_only=True,
+                    allow_fallback=False,
                 )
             else:
                 self._embedder = HashingTextEmbedder()

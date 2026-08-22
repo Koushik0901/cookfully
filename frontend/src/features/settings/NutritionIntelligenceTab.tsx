@@ -65,12 +65,32 @@ export function NutritionIntelligenceTab() {
 
   const estimateValue = estimate.data;
   const saveBlocked = !estimateValue || estimateValue.status === "blocked" || save.isPending;
+  const runtimeStatus = settings.data.runtimeStatus;
+  const statusLabel = runtimeStatus === "ready"
+    ? "Ready"
+    : runtimeStatus === "downloading"
+      ? "Downloading"
+      : runtimeStatus === "failed"
+        ? "Download failed"
+        : "Configured";
 
   return (
     <section className="settings-section nutrition-intelligence-section" aria-labelledby="nutrition-intelligence-title">
-      <SectionHeading id="nutrition-intelligence-title" title="Nutrition intelligence" description="Tune semantic ingredient matching for this Cookfully installation. Deterministic safety gates stay active in every mode." action={<span className={`settings-status settings-status--${settings.data.runtimeStatus}`}>
-          {settings.data.runtimeStatus === "ready" ? "Ready" : "Configured"}
+      <SectionHeading id="nutrition-intelligence-title" title="Nutrition intelligence" description="Tune semantic ingredient matching for this Cookfully installation. Deterministic safety gates stay active in every mode." action={<span className={`settings-status settings-status--${runtimeStatus}`}>
+          {statusLabel}
         </span>} />
+
+      {runtimeStatus === "downloading" ? (
+        <p className="muted" role="status">
+          Downloading and verifying {settings.data.modelName}. You can leave this page; the food index will wait until it is ready.
+          {settings.data.downloadProgressTotal ? ` ${settings.data.downloadProgressCurrent ?? 0}/${settings.data.downloadProgressTotal}.` : ""}
+        </p>
+      ) : null}
+      {runtimeStatus === "failed" ? (
+        <p className="error-text" role="alert">
+          {settings.data.downloadFailureMessage ?? "The embedding model could not be downloaded or loaded."} Save the settings again to retry.
+        </p>
+      ) : null}
 
       <div className="settings-system-intro">
         <strong>Plan the load before you save.</strong>
@@ -88,7 +108,7 @@ export function NutritionIntelligenceTab() {
         </Field>
         <Field
           label="Hugging Face model name"
-          hint="Use an organization/model identifier. The model is downloaded only after you save and a nutrition job needs it."
+          hint="Use an organization/model identifier. Saving downloads and verifies the model before the setting is applied."
         >
           <input
             className="input"
@@ -146,7 +166,7 @@ export function NutritionIntelligenceTab() {
           <RotateCcw aria-hidden="true" /> Reset draft
         </Button>
         <Button type="button" onClick={() => save.mutate()} disabled={saveBlocked}>
-          <Save aria-hidden="true" /> {save.isPending ? "Saving…" : "Save settings"}
+          <Save aria-hidden="true" /> {save.isPending ? (backend === "fastembed" ? "Downloading model…" : "Saving…") : "Save settings"}
         </Button>
       </div>
     </section>

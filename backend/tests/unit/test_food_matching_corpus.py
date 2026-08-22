@@ -32,6 +32,24 @@ def best_food_id(decision: Any) -> str | None:
     return decision.candidate.food.external_id if decision.candidate is not None else None
 
 
+def test_bounded_matcher_shortlists_before_embedding() -> None:
+    class RecordingRepository(FoodRepositoryStub):
+        def __init__(self, foods: list[FoodReference]) -> None:
+            super().__init__(foods)
+            self.last_limit: int | None = None
+
+        def search_foods(self, normalized_query: str, *, limit: int = 20) -> list[FoodReference]:
+            self.last_limit = limit
+            return super().search_foods(normalized_query, limit=limit)
+
+    repository = RecordingRepository([food("cheese", "Cheese, cheddar")])
+    matcher = FoodMatcher(repository, candidate_pool_limit=256)  # type: ignore[arg-type]
+
+    matcher.candidates("cheese", limit=5)
+
+    assert repository.last_limit == 256
+
+
 def test_common_proteins_resolve_against_wordy_usda_descriptions() -> None:
     matcher = FoodMatcher(  # type: ignore[arg-type]
         FoodRepositoryStub(

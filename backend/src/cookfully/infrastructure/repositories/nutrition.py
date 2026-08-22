@@ -76,6 +76,45 @@ class NutritionRepository:
             )
         )
 
+    def search_foods_for_matching(
+        self, normalized_query: str, *, limit: int = 256
+    ) -> list[FoodReference]:
+        """Return a lightweight lexical shortlist for semantic ranking.
+
+        Interactive matching only needs the food identity and serving metadata;
+        loading every nutrient relationship for the shortlist adds avoidable
+        database work before the embedder can rank the candidates.
+        """
+        tokens = [token for token in normalized_query.split() if token]
+        if not tokens:
+            return []
+        name_filter = or_(*(FoodReference.normalized_name.ilike(f"%{token}%") for token in tokens))
+        token_array = func.string_to_array(FoodReference.normalized_name, " ")
+        contains_all = and_(
+            *(
+                token_array.op("&&")(cast(array(_token_variants(token)), ARRAY(Text())))
+                for token in tokens
+            )
+        )
+        token_count = func.array_length(token_array, 1)
+        return list(
+            self.session.scalars(
+                select(FoodReference)
+                .join(FoodReference.dataset)
+                .where(
+                    ReferenceDataset.status == "active",
+                    name_filter,
+                )
+                .order_by(
+                    contains_all.desc(),
+                    token_count.asc(),
+                    func.char_length(FoodReference.normalized_name).asc(),
+                    FoodReference.external_id.asc(),
+                )
+                .limit(limit)
+            )
+        )
+
     def list_active_foods(self) -> list[FoodReference]:
         return list(
             self.session.scalars(

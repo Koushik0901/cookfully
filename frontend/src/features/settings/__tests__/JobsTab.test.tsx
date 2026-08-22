@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -56,12 +56,14 @@ describe("settings jobs", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Recipe processing" })).toBeVisible();
-    expect((await screen.findAllByText("Missing", { selector: "span" })).length).toBe(2);
+    const recipeCard = screen.getByRole("heading", { name: "Recipe processing" }).closest("article");
+    expect(recipeCard).not.toBeNull();
+    expect(within(recipeCard as HTMLElement).getByText("Missing", { selector: "span" })).toBeVisible();
 
     const user = userEvent.setup();
-    const missingButtons = screen.getAllByRole("button", { name: "Run missing only" });
-    await waitFor(() => expect(missingButtons[0]).not.toBeDisabled());
-    await user.click(missingButtons[0]);
+    const missingButton = within(recipeCard as HTMLElement).getByRole("button", { name: "Run missing only" });
+    await waitFor(() => expect(missingButton).not.toBeDisabled());
+    await user.click(missingButton);
 
     expect(await screen.findByText("Queued 1 recipe for processing.")).toBeVisible();
     expect(vi.mocked(fetch).mock.calls.some(([input, init]) => String(input).includes("/nutrition/recalculate") && init?.method === "POST")).toBe(true);

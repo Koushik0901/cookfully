@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from difflib import SequenceMatcher
+from typing import cast
 from uuid import UUID
 
 from cookfully.domain.common import NUTRIENT_SCALE, quantize_decimal
@@ -128,9 +130,11 @@ class FoodMatcher:
         repository: NutritionRepository,
         *,
         embedder: TextEmbedder | None = None,
+        candidate_pool_limit: int | None = None,
     ) -> None:
         self.repository = repository
         self._embedder = embedder or HashingTextEmbedder()
+        self._candidate_pool_limit = candidate_pool_limit
         self._food_pool: tuple[FoodReference, ...] | None = None
         self._food_embeddings: dict[UUID, Embedding] = {}
         self._food_profiles: dict[UUID, FoodSemanticProfile] = {}
@@ -314,6 +318,17 @@ class FoodMatcher:
         return cosine_similarity(query_embedding, vector)
 
     def _food_candidates(self, query: str, *, limit: int) -> list[FoodReference]:
+        if self._candidate_pool_limit is not None:
+            shortlist = getattr(self.repository, "search_foods_for_matching", None)
+            if callable(shortlist):
+                return cast(Callable[..., list[FoodReference]], shortlist)(
+                    query,
+                    limit=max(limit, self._candidate_pool_limit),
+                )
+            return self.repository.search_foods(
+                query,
+                limit=max(limit, self._candidate_pool_limit),
+            )
         list_active = getattr(self.repository, "list_active_foods", None)
         if not callable(list_active):
             return self.repository.search_foods(query, limit=max(limit * 3, 20))

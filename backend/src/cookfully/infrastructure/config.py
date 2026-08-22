@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     owner_email: EmailStr = "owner@example.com"
     owner_bootstrap_password: SecretStr = SecretStr("development-only")
     database_url: str = "postgresql+psycopg://cookfully:cookfully@localhost:5432/cookfully"
+    database_pool_size: Annotated[int, Field(ge=1, le=100)] = 10
+    database_max_overflow: Annotated[int, Field(ge=0, le=200)] = 20
+    database_pool_timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 30.0
+    database_pool_recycle_seconds: Annotated[int, Field(ge=60, le=86_400)] = 1_800
     postgres_user: str = Field(
         "cookfully",
         validation_alias=AliasChoices("POSTGRES_USER", "COOKFULLY_POSTGRES_USER"),
@@ -70,6 +74,10 @@ class Settings(BaseSettings):
     semantic_matching_backend: Literal["hashing", "fastembed"] = "hashing"
     semantic_matching_model: str = "BAAI/bge-small-en-v1.5"
     semantic_matching_model_dir: Path = Path("semantic-models")
+    intelligence_enabled: bool = True
+    intelligence_url: str = "http://intelligence:8091"
+    intelligence_service_key: SecretStr = SecretStr("")
+    intelligence_timeout_seconds: Annotated[float, Field(gt=0, le=30)] = 2.0
 
     @model_validator(mode="after")
     def build_database_url_from_postgres_credentials(self) -> "Settings":

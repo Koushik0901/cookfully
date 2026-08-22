@@ -15,6 +15,7 @@ security:
 tags:
   - name: Recipes
   - name: Nutrition
+  - name: Intelligence
   - name: Jobs
   - name: Goals
   - name: Meal Plans
@@ -652,6 +653,31 @@ paths:
           description: Owner food match selected for the ingredient.
         "422":
           $ref: "#/components/responses/ValidationError"
+
+  /jobs/food-embeddings:
+    get:
+      tags: [Jobs]
+      operationId: getFoodEmbeddingSummary
+      responses:
+        "200":
+          description: Current durable food embedding index coverage and queue state.
+    post:
+      tags: [Jobs]
+      operationId: runFoodEmbeddingIndex
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scope:
+                  type: string
+                  enum: [all, missing]
+                  default: missing
+      responses:
+        "200":
+          description: Food embedding index job accepted.
 
   /jobs/recipe-processing:
     get:
@@ -1579,6 +1605,91 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/NutritionIntelligenceEstimate" }
+
+  /intelligence/infer:
+    post:
+      operationId: inferIntelligence
+      tags: [Intelligence]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntelligenceInferenceRequest" }
+      responses:
+        "200":
+          description: A schema-constrained proposal from the local model service.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IntelligenceInferenceResponse" }
+
+  /intelligence/drafts:
+    post:
+      operationId: createIntelligenceDraft
+      tags: [Intelligence]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntelligenceInferenceRequest" }
+      responses:
+        "200":
+          description: A short-lived reviewed proposal.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IntelligenceDraftResponse" }
+
+  /intelligence/drafts/{draftId}/execute:
+    post:
+      operationId: executeIntelligenceDraft
+      tags: [Intelligence]
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntelligenceExecuteRequest" }
+      responses:
+        "200":
+          description: The reviewed actions were executed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IntelligenceExecutionResponse" }
+
+  /intelligence/drafts/{draftId}:
+    get:
+      operationId: getIntelligenceDraft
+      tags: [Intelligence]
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The owner-scoped extraction or command proposal.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IntelligenceDraftDetailResponse" }
+
+  /intelligence/extraction-jobs:
+    post:
+      operationId: createIntelligenceExtractionJob
+      tags: [Intelligence]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IntelligenceInferenceRequest" }
+      responses:
+        "202":
+          description: A durable backend-coordinated extraction job was accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobAccepted" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
 components:
@@ -1664,6 +1775,95 @@ components:
           schema: { $ref: "#/components/schemas/Problem" }
 
   schemas:
+    IntelligenceInferenceRequest:
+      type: object
+      required: [operation, prompt]
+      additionalProperties: false
+      properties:
+        operation:
+          type: string
+          enum: [command, recipe_extract, pantry_extract, cook]
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 50000
+        context:
+          type: object
+          additionalProperties: { type: string }
+    IntelligenceInferenceResponse:
+      type: object
+      required: [status, functionCalls]
+      properties:
+        status:
+          type: string
+          enum: [ok, unsupported, unavailable]
+        model:
+          type: [string, "null"]
+        confidence:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 1
+        reasoning:
+          type: [string, "null"]
+        functionCalls:
+          type: array
+          items:
+            type: object
+            required: [name, arguments]
+            properties:
+              name: { type: string }
+              arguments: { type: object }
+        errorCode:
+          type: [string, "null"]
+
+    IntelligenceDraftResponse:
+      allOf:
+        - $ref: "#/components/schemas/IntelligenceInferenceResponse"
+        - type: object
+          properties:
+            draftId:
+              type: [string, "null"]
+              format: uuid
+            expiresAt:
+              type: [string, "null"]
+              format: date-time
+    IntelligenceExecuteRequest:
+      type: object
+      required: [confirm]
+      additionalProperties: false
+      properties:
+        confirm: { type: boolean }
+    IntelligenceExecutionResponse:
+      type: object
+      required: [draftId, status, results]
+      properties:
+        draftId: { type: string, format: uuid }
+        status: { type: string, enum: [executed] }
+        results:
+          type: array
+          items: { type: object }
+    IntelligenceDraftDetailResponse:
+      type: object
+      required: [draftId, operation, status, functionCalls, expiresAt]
+      properties:
+        draftId: { type: string, format: uuid }
+        operation: { type: string, enum: [command, recipe_extract, pantry_extract, cook] }
+        status: { type: string, enum: [queued, processing, review, executed, expired, failed, unsupported] }
+        model: { type: [string, "null"] }
+        confidence: { type: [number, "null"], minimum: 0, maximum: 1 }
+        reasoning: { type: [string, "null"] }
+        functionCalls:
+          type: array
+          items:
+            type: object
+            required: [name, arguments]
+            properties:
+              name: { type: string }
+              arguments: { type: object }
+        expiresAt: { type: string, format: date-time }
+        failureCode: { type: [string, "null"] }
+        failureMessage: { type: [string, "null"] }
+
     Health:
       type: object
       required: [status, database, broker]
@@ -1794,7 +1994,12 @@ components:
         modelRevision: { type: [string, "null"] }
         concurrency: { type: integer, minimum: 1, maximum: 4 }
         version: { type: integer, minimum: 1 }
-        runtimeStatus: { type: string, enum: [ready, configured, fallback] }
+        runtimeStatus: { type: string, enum: [ready, configured, downloading, failed] }
+        downloadJobId: { type: [string, "null"], format: uuid }
+        downloadJobStatus: { type: [string, "null"] }
+        downloadProgressCurrent: { type: [integer, "null"], minimum: 0 }
+        downloadProgressTotal: { type: [integer, "null"], minimum: 0 }
+        downloadFailureMessage: { type: [string, "null"] }
     NutritionIntelligenceSettingsWrite:
       type: object
       additionalProperties: false

@@ -53,7 +53,7 @@ export function WeeklyPlannerPage() {
   }, [preferences.data, searchParams, selectedDate, shortcutHandled, weekStart]);
 
   const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
-  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes });
+  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: ({ signal }) => planningApi.recipes("", signal) });
   const dates = useMemo(() => weekStart ? weekDates(weekStart) : [], [weekStart]);
   const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
   const goalMissing = goal.error instanceof ApiProblem && goal.error.status === 404;

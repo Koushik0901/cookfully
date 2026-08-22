@@ -24,6 +24,9 @@ RETRY_DELAYS = (
 )
 ATTEMPT_TIMEOUT = timedelta(seconds=60)
 TERMINAL_DEADLINE = timedelta(minutes=15)
+LONG_RUNNING_JOB_KINDS = frozenset({"food_embedding_index", "semantic_model_download"})
+LONG_RUNNING_ATTEMPT_TIMEOUT = timedelta(minutes=30)
+LONG_RUNNING_TERMINAL_DEADLINE = timedelta(hours=2)
 DIAGNOSTIC_RETENTION = timedelta(days=30)
 SAFE_METADATA_RETENTION = timedelta(days=365)
 
@@ -169,7 +172,12 @@ class JobService:
             max_attempts=5,
             accepted_at=accepted_at,
             available_at=accepted_at,
-            terminal_deadline_at=accepted_at + TERMINAL_DEADLINE,
+            terminal_deadline_at=accepted_at
+            + (
+                LONG_RUNNING_TERMINAL_DEADLINE
+                if kind in LONG_RUNNING_JOB_KINDS
+                else TERMINAL_DEADLINE
+            ),
         )
         session.add(job)
         session.flush()
@@ -376,15 +384,24 @@ class JobService:
 
     def requeue_stalled(self, *, now: datetime | None = None) -> list[UUID]:
         checked_at = now or utc_now()
-        stale_before = checked_at - ATTEMPT_TIMEOUT
         with self._session_factory.begin() as session:
             jobs = session.scalars(
                 select(ProcessingJob)
-                .where(
-                    ProcessingJob.status == "running", ProcessingJob.heartbeat_at <= stale_before
-                )
+                .where(ProcessingJob.status == "running")
                 .with_for_update(skip_locked=True)
             ).all()
+            jobs = [
+                job
+                for job in jobs
+                if job.heartbeat_at
+                and job.heartbeat_at
+                <= checked_at
+                - (
+                    LONG_RUNNING_ATTEMPT_TIMEOUT
+                    if job.kind in LONG_RUNNING_JOB_KINDS
+                    else ATTEMPT_TIMEOUT
+                )
+            ]
             for job in jobs:
                 job.status = "queued"
                 job.available_at = checked_at

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, text
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -11,6 +12,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from cookfully.domain.common import uuid7
 from cookfully.infrastructure.models.base import Base, TimestampMixin
+
+
+class PublicVector(Vector):
+    """Keep the extension type resolvable from isolated test schemas."""
+
+    def get_col_spec(self, **kw: Any) -> str:
+        if self.dim is None:
+            return "public.VECTOR"
+        return f"public.VECTOR({self.dim})"
 
 
 class FoodSemanticIndex(TimestampMixin, Base):
@@ -34,6 +44,7 @@ class FoodSemanticIndex(TimestampMixin, Base):
     model_version: Mapped[str] = mapped_column(String(80), nullable=False)
     dimensions: Mapped[int] = mapped_column(nullable=False)
     embedding: Mapped[bytes] = mapped_column(BYTEA, nullable=False)
+    embedding_vector: Mapped[list[float] | None] = mapped_column(PublicVector(384))
     profile: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     input_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     source_release_id: Mapped[str | None] = mapped_column(String(120))

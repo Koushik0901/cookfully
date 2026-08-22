@@ -14,11 +14,13 @@ celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
-    task_track_started=False,
     task_acks_late=True,
     task_reject_on_worker_lost=True,
     task_soft_time_limit=55,
     task_time_limit=60,
+    worker_prefetch_multiplier=1,
+    worker_max_tasks_per_child=200,
+    task_track_started=True,
     worker_send_task_events=True,
     task_send_sent_event=True,
     broker_connection_retry_on_startup=True,
@@ -30,6 +32,12 @@ celery_app.autodiscover_tasks(["cookfully.jobs"])
 
 _runtime_engine: Engine | None = None
 _runtime_lease: AbstractContextManager[None] | None = None
+
+
+def runtime_engine() -> Engine | None:
+    """Return the worker-lifetime engine after the runtime lease is acquired."""
+
+    return _runtime_engine
 
 
 @signals.worker_ready.connect  # type: ignore[untyped-decorator]

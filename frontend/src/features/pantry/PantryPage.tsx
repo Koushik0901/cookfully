@@ -61,10 +61,33 @@ function PantryItemCard({ item }: { item: PantryItem }) {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
   const update = useMutation({
     mutationFn: (value: PantryItemWrite) => pantryApi.update(item.id, item.version, value),
-    onSuccess: () => void refresh(),
+    onMutate: async (value) => {
+      await queryClient.cancelQueries({ queryKey: ["pantry-items"] });
+      const previous = queryClient.getQueryData<PantryItem[]>(["pantry-items"]);
+      queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.map((candidate) => candidate.id === item.id
+        ? { ...candidate, ...value, displayName: value.displayName ?? candidate.displayName, quantity: value.quantity ?? candidate.quantity, unit: value.unit ?? candidate.unit, expiresOn: value.expiresOn ?? candidate.expiresOn, foodReferenceId: value.foodReferenceId ?? candidate.foodReferenceId }
+        : candidate));
+      return { previous };
+    },
+    onError: (_error, _value, context) => {
+      if (context?.previous) queryClient.setQueryData(["pantry-items"], context.previous);
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.map((candidate) => candidate.id === saved.id ? saved : candidate));
+      void refresh();
+    },
   });
   const remove = useMutation({
     mutationFn: () => pantryApi.remove(item.id, item.version),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["pantry-items"] });
+      const previous = queryClient.getQueryData<PantryItem[]>(["pantry-items"]);
+      queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.filter((candidate) => candidate.id !== item.id));
+      return { previous };
+    },
+    onError: (_error, _value, context) => {
+      if (context?.previous) queryClient.setQueryData(["pantry-items"], context.previous);
+    },
     onSuccess: () => void refresh(),
   });
   const error = update.error ?? remove.error;
@@ -205,7 +228,7 @@ export function PantryPage() {
     queryFn: () => pantryApi.search(recipeQuery),
     enabled: searchEnabled,
   });
-  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: planningApi.recipes, enabled: searchEnabled });
+  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: ({ signal }) => planningApi.recipes("", signal), enabled: searchEnabled });
   if (items.isPending || preferences.isPending) return <PageState><Skeleton label="Loading pantry" lines={8} /></PageState>;
   if (preferences.isError) return <PageState><ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
   if (items.isError) return <PageState><ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} /></PageState>;

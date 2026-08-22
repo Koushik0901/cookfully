@@ -20,6 +20,7 @@ def isolated_database_url() -> Iterator[str]:
     with admin_engine.begin() as connection:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS "citext"'))
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS "btree_gist"'))
+        connection.execute(text('CREATE EXTENSION IF NOT EXISTS "vector"'))
         connection.execute(text(f'CREATE SCHEMA "{schema}"'))
         connection.execute(text(f'CREATE DOMAIN "{schema}".citext AS public.citext'))
     url = make_url(base_url).update_query_dict({"options": f"-csearch_path={schema}"})

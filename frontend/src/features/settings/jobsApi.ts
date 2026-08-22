@@ -12,6 +12,17 @@ export interface JobRunResult {
   failed: number;
 }
 
+export interface FoodEmbeddingSummary {
+  active: number;
+  waiting: number;
+  missing: number;
+  indexed: number;
+  total: number;
+  modelName: string;
+  modelVersion: string;
+  pollAfterSeconds: number | null;
+}
+
 const MISSING_NUTRITION_STATES = new Set(["pending", "stale", "partial", "failed"]);
 
 async function listAllRecipes(): Promise<Recipe[]> {
@@ -28,6 +39,18 @@ async function listAllRecipes(): Promise<Recipe[]> {
 export const jobsApi = {
   recipeProcessingSummary() {
     return apiRequest<RecipeProcessingSummary>("/jobs/recipe-processing");
+  },
+
+  foodEmbeddingSummary() {
+    return apiRequest<FoodEmbeddingSummary>("/jobs/food-embeddings");
+  },
+
+  runFoodEmbeddings(scope: JobRunScope) {
+    return apiRequest<JobAccepted>("/jobs/food-embeddings", {
+      method: "POST",
+      idempotent: true,
+      body: JSON.stringify({ scope }),
+    });
   },
 
   async runRecipeProcessing(scope: JobRunScope): Promise<JobRunResult> {

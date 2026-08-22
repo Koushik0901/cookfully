@@ -8,6 +8,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from mcp.server.transport_security import TransportSecuritySettings
 from redis import Redis
+from starlette.middleware.gzip import GZipMiddleware
 
 from cookfully.api.problems import install_problem_handlers
 from cookfully.api.routes import (
@@ -18,6 +19,7 @@ from cookfully.api.routes import (
     goals,
     grocery,
     health,
+    intelligence,
     jobs,
     meal_plans,
     media,
@@ -36,6 +38,7 @@ from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.grocery_shopping_stops import GroceryShoppingStopService
 from cookfully.application.idempotency import IdempotencyService
 from cookfully.application.import_preview import ImportPreviewCoordinator
+from cookfully.application.intelligence_drafts import IntelligenceDraftService
 from cookfully.application.jobs import JobService
 from cookfully.application.meal_plans import GoalService, MealPlanService
 from cookfully.application.nutrition_intelligence import NutritionIntelligenceService
@@ -59,6 +62,7 @@ from cookfully.infrastructure.observability import correlation_middleware
 from cookfully.infrastructure.recipe_images import RecipeImageService
 from cookfully.infrastructure.recipe_importer import RecipeImporter
 from cookfully.infrastructure.safe_fetch import SafeFetcher
+from cookfully.intelligence.client import IntelligenceClient
 from cookfully.mcp.read_tools import ReadTools
 from cookfully.mcp.resources import McpResources
 from cookfully.mcp.security import (
@@ -81,6 +85,8 @@ _OPERATION_IDS = {
     "resolve_onboarding": "putOwnerOnboarding",
     "get_current_job": "getCurrentJob",
     "get_job": "getJob",
+    "get_food_embedding_summary": "getFoodEmbeddingSummary",
+    "run_food_embeddings": "runFoodEmbeddingIndex",
     "list_recipes": "listRecipes",
     "list_recipe_collections": "listRecipeCollections",
     "create_recipe_collection": "createRecipeCollection",
@@ -140,6 +146,11 @@ _OPERATION_IDS = {
     "get_settings": "getNutritionIntelligenceSettings",
     "estimate": "estimateNutritionIntelligence",
     "update_settings": "updateNutritionIntelligenceSettings",
+    "infer_intelligence": "inferIntelligence",
+    "create_draft": "createIntelligenceDraft",
+    "get_draft": "getIntelligenceDraft",
+    "execute_draft": "executeIntelligenceDraft",
+    "create_extraction_job": "createIntelligenceExtractionJob",
 }
 
 
@@ -152,6 +163,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     engine = create_database_engine(resolved)
     sessions = create_session_factory(engine)
     redis_client = Redis.from_url(resolved.redis_url, decode_responses=True)
+    intelligence_client = IntelligenceClient(
+        str(resolved.intelligence_url),
+        resolved.intelligence_service_key.get_secret_value(),
+        enabled=resolved.intelligence_enabled,
+        timeout_seconds=resolved.intelligence_timeout_seconds,
+    )
     access_token_service = AccessTokenService(sessions)
     goal_service = GoalService(sessions)
     meal_plan_service = MealPlanService(sessions)
@@ -245,14 +262,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.pantry_deductions = PantryDeductionService(sessions)
             app.state.suggestions = SuggestionService(sessions)
             app.state.sessions = sessions
+            # Warm the configured local embedding model during startup so the
+            # first user search does not pay model-initialization latency.
+            foods.warm_search_embedder(sessions)
             app.state.exports = ExportJobService(sessions, media_store, resolved.export_root)
             app.state.reference_data = ReferenceDataInstallService(sessions)
             app.state.nutrition_intelligence = NutritionIntelligenceService(sessions)
+            app.state.intelligence = intelligence_client
+            app.state.intelligence_enabled = resolved.intelligence_enabled
+            app.state.intelligence_drafts = IntelligenceDraftService(sessions)
             try:
                 async with mcp_http.router.lifespan_context(mcp_http):
                     yield
             finally:
                 redis_client.close()
+                intelligence_client.close()
                 engine.dispose()
 
     app = FastAPI(
@@ -270,6 +294,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.engine = engine
     app.state.redis = redis_client
+    # Recipe, pantry, and plan payloads are often large enough that response
+    # compression improves real-world latency without affecting small health
+    # or mutation responses.
+    app.add_middleware(GZipMiddleware, minimum_size=1_000, compresslevel=5)
     app.middleware("http")(correlation_middleware)
     install_problem_handlers(app)
     versioned = APIRouter(
@@ -292,6 +320,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(foods.router)
     versioned.include_router(reference_data.router)
     versioned.include_router(nutrition_intelligence.router)
+    versioned.include_router(intelligence.router)
     app.include_router(versioned)
     app.mount("/mcp", McpAuthenticationMiddleware(mcp_http, mcp_security), name="mcp")
     return app

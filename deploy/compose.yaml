@@ -2,7 +2,7 @@ name: cookfully
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: ghcr.io/tensorchord/vchord-postgres:pg18-v1.1.1
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cookfully}
       POSTGRES_USER: ${POSTGRES_USER:-cookfully}
@@ -33,6 +33,28 @@ services:
       retries: 12
     restart: unless-stopped
 
+  intelligence:
+    build:
+      context: ..
+      dockerfile: deploy/docker/intelligence.Dockerfile
+    environment:
+      COOKFULLY_INTELLIGENCE_SERVICE_KEY: ${COOKFULLY_INTELLIGENCE_SERVICE_KEY:-cookfully-intelligence-development}
+      COOKFULLY_INTELLIGENCE_MODEL: ${COOKFULLY_INTELLIGENCE_MODEL:-needle2}
+      COOKFULLY_INTELLIGENCE_MODEL_PATH: /models/needle2.cact
+    volumes:
+      - intelligence-model-data:/models
+    networks:
+      - intelligence-net
+    expose:
+      - "8091"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; req=urllib.request.Request('http://localhost:8091/health', headers={'x-cookfully-intelligence-key': os.environ['COOKFULLY_INTELLIGENCE_SERVICE_KEY']}); urllib.request.urlopen(req, timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
   api:
     build:
       context: ..
@@ -44,7 +66,15 @@ services:
       COOKFULLY_OWNER_EMAIL: ${COOKFULLY_OWNER_EMAIL:-owner@example.com}
       COOKFULLY_OWNER_BOOTSTRAP_PASSWORD: ${COOKFULLY_OWNER_BOOTSTRAP_PASSWORD:?Set COOKFULLY_OWNER_BOOTSTRAP_PASSWORD in .env}
       COOKFULLY_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cookfully}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cookfully}
+      COOKFULLY_DATABASE_POOL_SIZE: ${COOKFULLY_DATABASE_POOL_SIZE:-10}
+      COOKFULLY_DATABASE_MAX_OVERFLOW: ${COOKFULLY_DATABASE_MAX_OVERFLOW:-20}
+      COOKFULLY_DATABASE_POOL_TIMEOUT_SECONDS: ${COOKFULLY_DATABASE_POOL_TIMEOUT_SECONDS:-30}
+      COOKFULLY_DATABASE_POOL_RECYCLE_SECONDS: ${COOKFULLY_DATABASE_POOL_RECYCLE_SECONDS:-1800}
       COOKFULLY_REDIS_URL: redis://redis:6379/0
+      COOKFULLY_INTELLIGENCE_ENABLED: ${COOKFULLY_INTELLIGENCE_ENABLED:-true}
+      COOKFULLY_INTELLIGENCE_URL: ${COOKFULLY_INTELLIGENCE_URL:-http://intelligence:8091}
+      COOKFULLY_INTELLIGENCE_SERVICE_KEY: ${COOKFULLY_INTELLIGENCE_SERVICE_KEY:-cookfully-intelligence-development}
+      COOKFULLY_INTELLIGENCE_TIMEOUT_SECONDS: ${COOKFULLY_INTELLIGENCE_TIMEOUT_SECONDS:-2}
       COOKFULLY_PUBLIC_BASE_URL: ${COOKFULLY_PUBLIC_BASE_URL:-http://localhost:8080}
       COOKFULLY_API_BASE_URL: ${COOKFULLY_API_BASE_URL:-http://localhost:8080}
       COOKFULLY_TRUSTED_PROXY_CIDRS: ${COOKFULLY_TRUSTED_PROXY_CIDRS:-}
@@ -63,6 +93,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      intelligence:
+        condition: service_started
+    networks:
+      - default
+      - intelligence-net
     volumes:
       - media-data:/data/media
       - semantic-model-data:/data/semantic-models
@@ -87,6 +122,9 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      - default
+      - intelligence-net
     volumes:
       - media-data:/data/media
       - semantic-model-data:/data/semantic-models
@@ -150,7 +188,12 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  intelligence-model-data:
   media-data:
   semantic-model-data:
   export-data:
   erasure-ledger-data:
+
+networks:
+  intelligence-net:
+    internal: true

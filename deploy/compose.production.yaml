@@ -9,6 +9,10 @@ services:
     networks: [backend]
     security_opt: ["no-new-privileges:true"]
 
+  intelligence:
+    security_opt: ["no-new-privileges:true"]
+    networks: [intelligence-net]
+
   api:
     environment:
       COOKFULLY_ENVIRONMENT: production
@@ -23,11 +27,11 @@ services:
       - --forwarded-allow-ips
       - ${COOKFULLY_TRUSTED_PROXY_CIDRS:?Set COOKFULLY_TRUSTED_PROXY_CIDRS to the web proxy CIDR}
     security_opt: ["no-new-privileges:true"]
-    networks: [backend, proxy]
+    networks: [backend, intelligence-net, proxy]
 
   worker:
     security_opt: ["no-new-privileges:true"]
-    networks: [backend]
+    networks: [backend, intelligence-net]
 
   outbox:
     security_opt: ["no-new-privileges:true"]
@@ -47,6 +51,8 @@ services:
 
 networks:
   backend: {}
+  intelligence-net:
+    internal: true
   proxy:
     internal: true
     ipam:
