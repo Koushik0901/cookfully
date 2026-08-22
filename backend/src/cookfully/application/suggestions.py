@@ -487,8 +487,9 @@ class SuggestionService:
             recipe.id: recipe
             for recipe in page.items
             if recipe.status != "archived"
-            and recipe.nutrition_state not in {"stale", "pending", "failed"}
             and recipe.nutrition is not None
+            and recipe.nutrition_state not in {"stale", "failed"}
+            and (recipe.nutrition_state != "pending" or recipe.nutrition.status == "manual")
             and all(
                 getattr(recipe.nutrition.macros, field) is not None
                 for field in ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
