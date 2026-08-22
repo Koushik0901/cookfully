@@ -176,7 +176,7 @@ async def test_confirm_attaches_pdf_thumbnail_best_effort(
             "title": "Spiced Oats",
             "imageSource": thumbnail,
             "imageSourceKind": "pdf_thumbnail",
-            "thumbnailCrop": {"focalX": "0.25", "focalY": "0.75", "zoom": "1.5"},
+            "thumbnailCrop": {"x": "0.125", "y": "0.25", "width": "0.5", "height": "0.375"},
         },
         owner_id=owner_id,
         trace_id="t",

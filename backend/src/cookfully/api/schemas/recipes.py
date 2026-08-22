@@ -15,6 +15,7 @@ from pydantic import (
     Field,
     PlainSerializer,
     WithJsonSchema,
+    model_validator,
 )
 
 from cookfully.api.schemas.jobs import JobResponse
@@ -134,15 +135,15 @@ class InstructionWriteRequest(ApiModel):
 
 def _crop_fraction(value: object) -> Decimal:
     parsed = _fixed_decimal(value, places=6)
-    if parsed > 1:
+    if parsed < 0 or parsed > 1:
         raise ValueError("crop position must be between 0 and 1")
     return parsed
 
 
-def _crop_zoom(value: object) -> Decimal:
+def _crop_size(value: object) -> Decimal:
     parsed = _fixed_decimal(value, places=6)
-    if parsed < 1 or parsed > 3:
-        raise ValueError("crop zoom must be between 1 and 3")
+    if parsed <= 0 or parsed > 1:
+        raise ValueError("crop size must be greater than 0 and at most 1")
     return parsed
 
 
@@ -151,20 +152,29 @@ CropFraction = Annotated[
     BeforeValidator(_crop_fraction),
     PlainSerializer(lambda value: canonical_decimal(value), return_type=str),
 ]
-CropZoom = Annotated[
+CropSize = Annotated[
     Decimal,
-    BeforeValidator(_crop_zoom),
+    BeforeValidator(_crop_size),
     PlainSerializer(lambda value: canonical_decimal(value), return_type=str),
 ]
 
 
 class ThumbnailCropRequest(ApiModel):
-    focal_x: CropFraction = Field(alias="focalX", default=Decimal("0.500000"))
-    focal_y: CropFraction = Field(alias="focalY", default=Decimal("0.500000"))
-    zoom: CropZoom = Field(default=Decimal("1.000000"))
+    x: CropFraction = Field(default=Decimal("0.000000"))
+    y: CropFraction = Field(default=Decimal("0.000000"))
+    width: CropSize = Field(default=Decimal("1.000000"))
+    height: CropSize = Field(default=Decimal("1.000000"))
+
+    @model_validator(mode="after")
+    def _within_bounds(self) -> ThumbnailCropRequest:
+        if self.x + self.width > Decimal("1"):
+            raise ValueError("thumbnail crop extends past the right edge")
+        if self.y + self.height > Decimal("1"):
+            raise ValueError("thumbnail crop extends past the bottom edge")
+        return self
 
     def to_domain(self) -> ThumbnailCrop:
-        return ThumbnailCrop(self.focal_x, self.focal_y, self.zoom)
+        return ThumbnailCrop(self.x, self.y, self.width, self.height)
 
 
 class RecipeWriteRequest(ApiModel):
@@ -665,9 +675,10 @@ class RecipeResponse(ApiModel):
                 for item in value.meal_roles
             ),
             thumbnail_crop=ThumbnailCropRequest(
-                focal_x=value.thumbnail_crop.focal_x,
-                focal_y=value.thumbnail_crop.focal_y,
-                zoom=value.thumbnail_crop.zoom,
+                x=value.thumbnail_crop.x,
+                y=value.thumbnail_crop.y,
+                width=value.thumbnail_crop.width,
+                height=value.thumbnail_crop.height,
             ),
             origin_kind=cast(RecipeOrigin, value.origin_kind),
         )

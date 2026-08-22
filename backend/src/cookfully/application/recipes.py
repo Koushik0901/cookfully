@@ -258,9 +258,10 @@ class RecipeService:
                 nutrition_state="pending",
                 input_hash=input_hash,
                 version=1,
-                thumbnail_focal_x=(write.thumbnail_crop or ThumbnailCrop()).focal_x,
-                thumbnail_focal_y=(write.thumbnail_crop or ThumbnailCrop()).focal_y,
-                thumbnail_zoom=(write.thumbnail_crop or ThumbnailCrop()).zoom,
+                thumbnail_x=(write.thumbnail_crop or ThumbnailCrop()).x,
+                thumbnail_y=(write.thumbnail_crop or ThumbnailCrop()).y,
+                thumbnail_width=(write.thumbnail_crop or ThumbnailCrop()).width,
+                thumbnail_height=(write.thumbnail_crop or ThumbnailCrop()).height,
                 origin_kind=write.origin_kind or "manual",
                 sections=sections,
                 ingredients=self._ingredients(recipe_id, write.ingredients, sections),
@@ -336,9 +337,10 @@ class RecipeService:
             recipe.prep_minutes = write.prep_minutes
             recipe.cook_minutes = write.cook_minutes
             if write.thumbnail_crop is not None:
-                recipe.thumbnail_focal_x = write.thumbnail_crop.focal_x
-                recipe.thumbnail_focal_y = write.thumbnail_crop.focal_y
-                recipe.thumbnail_zoom = write.thumbnail_crop.zoom
+                recipe.thumbnail_x = write.thumbnail_crop.x
+                recipe.thumbnail_y = write.thumbnail_crop.y
+                recipe.thumbnail_width = write.thumbnail_crop.width
+                recipe.thumbnail_height = write.thumbnail_crop.height
             if write.origin_kind is not None:
                 recipe.origin_kind = write.origin_kind
             recipe.input_hash = recipe_input_hash(recipe_id, write)

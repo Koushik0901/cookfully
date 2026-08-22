@@ -126,9 +126,10 @@ class RecipePhotoService:
                 old_asset_id = recipe.image_asset_id
                 recipe.image_asset_id = self._persist_image(session, recipe.id, stored)
                 if crop is not None:
-                    recipe.thumbnail_focal_x = crop.focal_x
-                    recipe.thumbnail_focal_y = crop.focal_y
-                    recipe.thumbnail_zoom = crop.zoom
+                    recipe.thumbnail_x = crop.x
+                    recipe.thumbnail_y = crop.y
+                    recipe.thumbnail_width = crop.width
+                    recipe.thumbnail_height = crop.height
                 recipe.version += 1
                 stale_storage_key = self._detach_asset_if_unused(
                     session,

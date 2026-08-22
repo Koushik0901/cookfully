@@ -198,9 +198,10 @@ class ImportPreviewCoordinator:
             description=existing_description,
             source_url=existing_source_url,
             thumbnail_crop=ThumbnailCrop(
-                existing.thumbnail_focal_x,
-                existing.thumbnail_focal_y,
-                existing.thumbnail_zoom,
+                existing.thumbnail_x,
+                existing.thumbnail_y,
+                existing.thumbnail_width,
+                existing.thumbnail_height,
             ),
             origin_kind=cast(RecipeOrigin, existing.origin_kind),
         )
@@ -373,9 +374,10 @@ def _thumbnail_crop(value: object) -> ThumbnailCrop | None:
     if not isinstance(value, dict):
         return None
     return ThumbnailCrop(
-        Decimal(str(value.get("focalX", value.get("focal_x", "0.500000")))),
-        Decimal(str(value.get("focalY", value.get("focal_y", "0.500000")))),
-        Decimal(str(value.get("zoom", "1.000000"))),
+        Decimal(str(value.get("x", "0"))),
+        Decimal(str(value.get("y", "0"))),
+        Decimal(str(value.get("width", "1"))),
+        Decimal(str(value.get("height", "1"))),
     )
 
 
