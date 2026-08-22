@@ -47,3 +47,9 @@ Thumbs.db
 .vscode/
 .idea/
 .playwright-cli/
+.worktrees
+.pytest-*
+.pnpm-debug.log
+.pnpm-store
+.agents
+.uv-*
