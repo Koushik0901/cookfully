@@ -996,3 +996,35 @@ Compose also places the model service on a private network shared only with the 
 Postgres and Redis are not attached to that network. This makes the model-only boundary a deployment
 property as well as an application contract.
 
+
+## Thumbnail crop editor — 2026-08-22
+
+### Problem being solved
+
+Thumbnail framing was stored as focal-point/zoom metadata interpreted independently by each surface
+(card, hero, home tiles), so the editor preview drifted from what actually rendered and framing was not
+WYSIWYG.
+
+### Source inspected
+
+- [Immich asset crop/focus editing](https://docs.immich.app/features/automatic-backup) and its web client
+  crop editor: a contained image preview with the exterior dimmed, aspect-locked corner-handle resizing,
+  and a reset-to-fit action.
+
+### Benefits and liabilities observed
+
+Immich's contained editor captures exact user intent and renders predictably everywhere the same rect is
+used; the dimmed exterior makes the kept region unambiguous. Liabilities: the server trusts client
+geometry without validating composition quality, and because no pixel derivatives are generated, large
+originals are downloaded in full and cropped client-side on every render.
+
+### Local decision
+
+Adopt the interaction pattern, adapted to Cookfully's contract: a normalized `{x,y,width,height}` rect
+persisted as exact decimals beside the original media (migration 0026 replaced focal/zoom columns), never
+rewriting the original image. Reject backend derivative generation for now — it would add storage,
+cache invalidation, and media-pipeline complexity that this project's single-owner scale does not justify;
+client-side cropping from exact-decimal rects is deterministic across surfaces. Evidence:
+`backend/src/cookfully/api/schemas/recipes.py` (`ThumbnailCropRequest` bounds validation),
+`backend/migrations/versions/0026_recipe_thumbnail_crop_rect.py`, and the frontend `RecipeMedia` crop-var
+tests.
