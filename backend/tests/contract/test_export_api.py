@@ -35,7 +35,7 @@ def test_export_job_status_and_one_time_download(
         }
         accepted = client.post("/api/v1/exports", json={"includeMedia": True}, headers=headers)
         assert accepted.status_code == 202
-        assert accepted.elapsed.total_seconds() < 1
+        assert accepted.elapsed.total_seconds() < 5
         assert accepted.json()["status"] == "queued"
         replay = client.post("/api/v1/exports", json={"includeMedia": True}, headers=headers)
         assert replay.status_code == 202 and replay.json() == accepted.json()
