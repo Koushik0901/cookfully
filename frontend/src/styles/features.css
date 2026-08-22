@@ -449,9 +449,11 @@
 .recipe-organization {
   border-block: 1px solid var(--color-outline-variant);
 }
-.recipe-organization__quick-favorite { display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.45rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.45rem 0.85rem; color: var(--color-on-surface-variant); background: var(--color-surface-low); font-weight: 620; cursor: pointer; }
-.recipe-organization__quick-favorite:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.recipe-organization__quick-favorite.is-favorite { color: var(--color-tomato); background: var(--status-warning-container); }
+.recipe-organization__quick-favorite { justify-self: start; display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.45rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.45rem 1rem; color: var(--color-on-surface-variant); background: var(--color-surface-bright); box-shadow: var(--shadow-media-rest); font-weight: 620; cursor: pointer; transition: color var(--motion-state) ease, border-color var(--motion-state) ease, background-color var(--motion-state) ease, transform var(--motion-press) var(--ease-out-quart); }
+.recipe-organization__quick-favorite:hover { border-color: color-mix(in oklch, var(--color-primary) 45%, transparent); color: var(--color-primary); transform: translateY(-1px); }
+.recipe-organization__quick-favorite.is-favorite { border-color: color-mix(in oklch, var(--color-tomato) 34%, transparent); color: var(--color-tomato); background: color-mix(in oklch, var(--status-error-container) 82%, var(--color-surface-bright)); }
+.recipe-organization__quick-favorite:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 24%, transparent); outline-offset: 3px; }
+.recipe-organization__quick-favorite:disabled { cursor: default; opacity: 0.6; transform: none; }
 .recipe-organization__quick-favorite svg { width: 1rem; fill: currentColor; }
 
 .recipe-organization > summary {
@@ -1661,4 +1663,10 @@
 .import-wizard__method { min-height: 4.5rem; resize: vertical; }
 @media (max-width: 640px) {
   .import-wizard__component-head { flex-direction: column; align-items: stretch; }
+}
+
+@media (pointer: coarse) {
+  .suggestion-item__select { width: 2.75rem; height: 2.75rem; }
+  .planner-views button,
+  .settings-tabs button { min-height: 2.75rem; }
 }
