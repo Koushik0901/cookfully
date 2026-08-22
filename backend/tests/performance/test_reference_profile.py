@@ -4,7 +4,7 @@ import json
 import os
 import platform
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from math import ceil
 from pathlib import Path
@@ -40,7 +40,7 @@ PLAN_ENTRY_COUNT = 50
 # Keep the synthetic plan writable as the calendar advances. The application
 # intentionally rejects mutations for past planning days, so a fixed historical
 # date would make this reference benchmark fail before measuring latency.
-_TODAY = date.today()
+_TODAY = datetime.now(UTC).date()
 WEEK_START = _TODAY + timedelta(days=7 - _TODAY.weekday())
 BUDGETS_MS = {
     "recipeLibraryRead": 500.0,
