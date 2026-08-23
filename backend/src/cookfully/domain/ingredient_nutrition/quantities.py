@@ -175,8 +175,9 @@ def owner_serving_grams(
     if serving_g <= 0:
         return None
     min_qty = measure.minimum if measure.minimum is not None else Decimal("1")
-    max_qty = measure.maximum if measure.maximum is not None else min_qty
-    assumption = f"1 {unit_str} = {serving_g}g ({display_name})"
+    max_qty = measure.maximum if measure.maximum is not None else Decimal("1")
+    serving_g_str = format(serving_g.normalize(), "f")
+    assumption = f"1 {unit_str} = {serving_g_str}g ({display_name})"
     return GramRange(
         quantize_decimal(min_qty * serving_g, NUTRIENT_SCALE),
         quantize_decimal(max_qty * serving_g, NUTRIENT_SCALE),

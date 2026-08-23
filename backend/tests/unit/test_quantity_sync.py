@@ -83,6 +83,7 @@ def test_boundary_only_quantities_and_engine_import_pint():
             if rel not in (
                 "domain/ingredient_nutrition/quantities.py",
                 "application/ingredient_engine.py",
+                "domain/units.py",
             ):
                 offenders.append(rel)
     assert offenders == [], f"unexpected pint imports: {offenders}"

@@ -20,6 +20,7 @@ from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.nutrition_intelligence import (
     NutritionIntelligenceSettings,
 )
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.semantic_embeddings import (
@@ -118,7 +119,7 @@ class IngredientEngine:
         self,
         measure: IngredientMeasure,
         *,
-        owner_food: object | None = None,
+        owner_food: OwnerFood | None = None,
         density_g_per_ml: Decimal | None = None,
         count_weight_g: Decimal | None = None,
     ) -> GramRange:

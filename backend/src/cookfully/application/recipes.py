@@ -674,12 +674,15 @@ class RecipeService:
                 grams_max: Decimal | None = None
                 conversion_method: str | None = None
                 assumption: str | None = None
+                parsed_unit = ingredient.unit_code or _extract_unit_from_text(
+                    ingredient.original_text
+                )
                 try:
                     converted = engine.to_grams(
                         IngredientMeasure(
                             ingredient.quantity_min,
                             ingredient.quantity_max,
-                            ingredient.unit_code,
+                            parsed_unit,
                             ingredient.optional,
                         ),
                         owner_food=best_food,

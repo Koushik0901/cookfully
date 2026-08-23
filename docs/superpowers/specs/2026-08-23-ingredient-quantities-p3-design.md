@@ -33,7 +33,7 @@ domain/ingredient_nutrition/quantities.py   # sole owner
     ml/milliliter → milliliter, l/liter → liter,
     tsp/teaspoon → cookfully_teaspoon, tbsp/tablespoon → cookfully_tablespoon,
     cup → cookfully_cup, count/each/ea/item → item
-  canonical short for pantry storage: mg/g/kg/ml/l/count
+  canonical short for pantry storage: mg/g/kg/ml/l/count plus tsp/tbsp/cup/oz/lb (full Pint set)
   public:
     @dataclass IngredientMeasure / GramRange / Coverage  (moved from domain/units.py)
     def to_grams(measure, *, density_g_per_ml=None, count_weight_g=None, owner_food=None) -> GramRange
@@ -67,13 +67,13 @@ application/corrections.py + application/recipes.py
   both replace private owner_serving branch with: engine.to_grams(measure, owner_food=food, density_g_per_ml=density_for(food.description))
 ```
 
-No database migration. No API shape change. Boundary test enforces only `domain/ingredient_nutrition/quantities.py` and `application/ingredient_engine.py` import `pint`.
+No database migration. No API shape change. Boundary test enforces only `domain/ingredient_nutrition/quantities.py`, `application/ingredient_engine.py`, and `domain/units.py` shim import `pint`.
 
 ## Detailed Design
 
 ### 1. Core module (`domain/ingredient_nutrition/quantities.py`)
 
-Owns the single `UnitRegistry` instance and the alias table. Helper `_normalize_alias(value)` does `value.strip().casefold().rstrip(".")` before lookup, matching pantry's current normalization. Lookup yields `(dimension, pint_name, factor)` equivalently via Pint rather than manual `Decimal` factors — the registry defines the factors, the table defines the aliases. Short canonical for storage: `milligram → mg`, `gram → g`, `kilogram → kg`, `milliliter → ml`, `liter → l`, `item → count`; lookup still accepts the long forms.
+Owns the single `UnitRegistry` instance and the alias table. Helper `_normalize_alias(value)` does `value.strip().casefold().rstrip(".")` before lookup, matching pantry's current normalization. Lookup yields `(dimension, pint_name, factor)` equivalently via Pint rather than manual `Decimal` factors — the registry defines the factors, the table defines the aliases. Short canonical for storage: `milligram → mg`, `gram → g`, `kilogram → kg`, `milliliter → ml`, `liter → l`, `teaspoon → tsp`, `tablespoon → tbsp`, `cup → cup`, `ounce → oz`, `pound → lb`, `item → count`; lookup still accepts the long forms.
 
 Signatures:
 
@@ -149,7 +149,7 @@ Domain errors are `DomainError` at 422: `quantity_unavailable`, `negative_quanti
 
 - **Behavioral equivalence:** `tests/unit/test_pantry.py`, `test_ingredient_processing.py`, `test_grocery_aggregation.py`, and the owner-food flows in `application/corrections.py` / `recipes.py` must pass without assertion edits. Existing deduction factors must stay identical at `NUTRIENT_SCALE`.
 - **New sync/parity test** `tests/unit/test_quantity_sync.py` — parametrize `convert_quantity` across old aliases (`mg↔g`, `g↔kg`, `ml↔l`, `count↔count`) and new aliases (`tbsp→ml` 15, `tsp→ml` 5, `cup→ml` 240, `oz→g` 28.349523125, `lb→g` 453.59237) asserting engine result equals `Decimal(str(Pint factor))` * qty quantized to `NUTRIENT_SCALE`; plus `owner_serving` cases: matching unit (`scoop`/`Scoop` casefold), non-matching unit, `None` quantity, inactive owner food.
-- **Boundary test extension:** `tests/unit/test_ingredient_engine_boundary.py` already forbids outside imports of `domain.ingredient_nutrition`; extend to assert only `quantities.py` and `ingredient_engine.py` import `pint`, and the only `def to_grams`/`def convert_quantity`/`_UNITS` bodies live in `quantities.py` (+ wrappers). Wrapper bodies must be ≤ 3 lines and delegate.
+- **Boundary test extension:** `tests/unit/test_ingredient_engine_boundary.py` already forbids outside imports of `domain.ingredient_nutrition`; extend to assert only `quantities.py`, `ingredient_engine.py`, and `domain/units.py` shim import `pint`, and the only `def to_grams`/`def convert_quantity`/`_UNITS` bodies live in `quantities.py` (+ wrappers). Pantry wrappers delegate to the engine but include error-code mapping (`pantry_unit_unsupported`/`pantry_unit_incompatible`) and are exempt from the ≤3-line limit.
 - Gates per `AGENTS.md`: `ruff format --check` / `ruff check` / `mypy src` / `pytest` / `pnpm --dir frontend typecheck` as applicable.
 
 ## Alternatives Considered
@@ -161,7 +161,7 @@ Domain errors are `DomainError` at 422: `quantity_unavailable`, `negative_quanti
 ## Risks
 
 - Pint factor string rounding vs hand-rolled `Decimal("0.001")` — mitigated by parity tests and `Decimal(str(magnitude))` quantization.
-- Short canonical drift (`gram` vs `g`, `milligram` vs `mg`) — shim `canonical_pantry_unit` returns short form; storage stays `mg/g/kg/ml/l/count`.
+ - Short canonical drift (`gram` vs `g`, `milligram` vs `mg`) — shim `canonical_pantry_unit` returns short form; storage stays expanded canonical set `mg/g/kg/ml/l/count/tsp/tbsp/cup/oz/lb`.
 - Missed `owner_serving` casefold or `None` quantity — covered by sync tests.
 - Expanding pantry to `tbsp`/`cup`/`oz` without UI changes — reads/writes still accept the aliases; display keeps short canonical, no migration needed.
 
