@@ -132,12 +132,14 @@ def process_job(self: Any, envelope: dict[str, Any]) -> dict[str, str | None] | 
             draft_service.mark_processing(draft.id)
             value = draft.payload
             tools = tuple(ToolDefinition.model_validate(item) for item in value.get("tools", ()))
+            system_val = value.get("system")
             inference = _intelligence_client(settings).infer(
                 InferenceRequest(
                     requestId=f"job-{job_id}",
                     operation=draft.operation,
                     prompt=str(value["prompt"]),
                     context={str(k): str(v) for k, v in value.get("context", {}).items()},
+                    system=str(system_val) if isinstance(system_val, str) else None,
                     tools=tools,
                 )
             )

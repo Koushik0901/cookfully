@@ -177,11 +177,6 @@ _TOOLS: dict[str, tuple[ToolDefinition, ...]] = {
 }
 
 
-@router.post(
-    "/infer",
-    response_model=IntelligenceInferenceResponse,
-    response_model_by_alias=True,
-)
 def _system_facts(explicit: str | None, operation: str) -> str | None:
     if explicit is not None:
         cleaned = explicit.strip()
@@ -193,6 +188,11 @@ def _system_facts(explicit: str | None, operation: str) -> str | None:
     return f"date:{today}; locale:en-US; device:{device}"
 
 
+@router.post(
+    "/infer",
+    response_model=IntelligenceInferenceResponse,
+    response_model_by_alias=True,
+)
 def infer_intelligence(
     payload: IntelligenceInferenceRequest,
     request: Request,
@@ -328,6 +328,7 @@ def create_extraction_job(
             "Only recipe and pantry extraction use the background job path.",
             422,
         )
+    system = _system_facts(payload.system, payload.operation)
     drafts = request.app.state.intelligence_drafts
     record = drafts.create_pending(
         owner.id,
@@ -335,6 +336,7 @@ def create_extraction_job(
         payload={
             "prompt": payload.prompt,
             "context": payload.context,
+            "system": system,
             "tools": [tool.model_dump(mode="json") for tool in _TOOLS[payload.operation]],
         },
     )
