@@ -32,17 +32,26 @@ export type IntelligenceDraft = IntelligenceInference & {
   failureMessage?: string | null;
 };
 
+function systemFacts(operation: IntelligenceOperation): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const device = operation === "cook" ? "phone" : "server";
+  const locale = typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+  return `date:${today}; locale:${locale}; device:${device}`;
+}
+
 export const intelligenceApi = {
-  infer(operation: IntelligenceOperation, prompt: string, context: Record<string, string> = {}) {
+  infer(operation: IntelligenceOperation, prompt: string, context: Record<string, string> = {}, system?: string) {
+    const effectiveSystem = system ?? systemFacts(operation);
     return apiRequest<IntelligenceInference>("/intelligence/infer", {
       method: "POST",
-      body: JSON.stringify({ operation, prompt, context }),
+      body: JSON.stringify({ operation, prompt, context, system: effectiveSystem }),
     });
   },
-  createDraft(operation: IntelligenceOperation, prompt: string, context: Record<string, string> = {}) {
+  createDraft(operation: IntelligenceOperation, prompt: string, context: Record<string, string> = {}, system?: string) {
+    const effectiveSystem = system ?? systemFacts(operation);
     return apiRequest<IntelligenceInference>("/intelligence/drafts", {
       method: "POST",
-      body: JSON.stringify({ operation, prompt, context }),
+      body: JSON.stringify({ operation, prompt, context, system: effectiveSystem }),
     });
   },
   executeDraft(draftId: string) {
@@ -54,10 +63,16 @@ export const intelligenceApi = {
   getDraft(draftId: string) {
     return apiRequest<IntelligenceDraft>(`/intelligence/drafts/${draftId}`);
   },
-  createExtractionJob(operation: "recipe_extract" | "pantry_extract", prompt: string, context: Record<string, string> = {}) {
+  createExtractionJob(
+    operation: "recipe_extract" | "pantry_extract",
+    prompt: string,
+    context: Record<string, string> = {},
+    system?: string,
+  ) {
+    const effectiveSystem = system ?? systemFacts(operation);
     return apiRequest<IntelligenceJobAccepted>("/intelligence/extraction-jobs", {
       method: "POST",
-      body: JSON.stringify({ operation, prompt, context }),
+      body: JSON.stringify({ operation, prompt, context, system: effectiveSystem }),
     });
   },
 };

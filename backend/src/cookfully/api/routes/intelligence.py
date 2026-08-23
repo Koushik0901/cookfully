@@ -28,6 +28,7 @@ class IntelligenceInferenceRequest(BaseModel):
     operation: Literal["command", "recipe_extract", "pantry_extract", "cook"]
     prompt: str = Field(min_length=1, max_length=50_000)
     context: dict[str, str] = Field(default_factory=dict)
+    system: str | None = Field(default=None, max_length=500)
 
 
 class IntelligenceInferenceResponse(BaseModel):
@@ -159,13 +160,15 @@ _TOOLS: dict[str, tuple[ToolDefinition, ...]] = {
         ToolDefinition(
             name="cooking_action",
             description=(
-                "Interpret a cooking-mode command such as next, previous, repeat, or timer."
+                "Interpret next/previous/repeat/timer or ingredient "
+                "quantity question from current step"
             ),
             parameters={
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string"},
-                    "minutes": {"type": "number"},
+                    "action": {"type": "string", "enum": ["next", "previous", "repeat", "timer"]},
+                    "minutes": {"type": "integer", "minimum": 1, "maximum": 120},
+                    "query": {"type": "string", "minLength": 3, "maxLength": 80},
                 },
                 "required": ["action"],
             },
@@ -179,6 +182,17 @@ _TOOLS: dict[str, tuple[ToolDefinition, ...]] = {
     response_model=IntelligenceInferenceResponse,
     response_model_by_alias=True,
 )
+def _system_facts(explicit: str | None, operation: str) -> str | None:
+    if explicit is not None:
+        cleaned = explicit.strip()
+        if cleaned:
+            return cleaned[:500]
+    # Default system facts: date; locale; device — travels to model for grounding
+    today = datetime.now(UTC).date().isoformat()
+    device = "phone" if operation == "cook" else "server"
+    return f"date:{today}; locale:en-US; device:{device}"
+
+
 def infer_intelligence(
     payload: IntelligenceInferenceRequest,
     request: Request,
@@ -186,6 +200,7 @@ def infer_intelligence(
 ) -> IntelligenceInferenceResponse:
     del owner
     client: IntelligenceClient = request.app.state.intelligence
+    system = _system_facts(payload.system, payload.operation)
     try:
         result: InferenceResponse = client.infer(
             InferenceRequest(
@@ -193,6 +208,7 @@ def infer_intelligence(
                 operation=payload.operation,
                 prompt=payload.prompt,
                 context=payload.context,
+                system=system,
                 tools=_TOOLS[payload.operation],
             )
         )
@@ -255,6 +271,7 @@ def create_draft(
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> IntelligenceDraftResponse:
     client: IntelligenceClient = request.app.state.intelligence
+    system = _system_facts(payload.system, payload.operation)
     try:
         result = client.infer(
             InferenceRequest(
@@ -262,6 +279,7 @@ def create_draft(
                 operation=payload.operation,
                 prompt=payload.prompt,
                 context=payload.context,
+                system=system,
                 tools=_TOOLS[payload.operation],
             )
         )

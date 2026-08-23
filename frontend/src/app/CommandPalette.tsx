@@ -20,7 +20,9 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState }
 import { useNavigate } from "react-router-dom";
 
 import { RecipeFallbackArt } from "../components/cookfully/RecipeFallbackArt";
+import { groceryApi } from "../features/grocery/api";
 import { intelligenceApi } from "../features/intelligence/api";
+import { pantryApi } from "../features/pantry/api";
 import { planningApi } from "../features/plans/api";
 import { RecipeMetadata } from "../features/recipes/RecipeMetadata";
 
@@ -39,16 +41,94 @@ const COMMANDS = [
   { id: "add-grocery", label: "Add a grocery item", hint: "Open the manual item row", to: "/app/grocery?add=1", Icon: ShoppingBasket, group: "Quick actions" },
 ] as const;
 
+function getWeekStartISO(): string {
+  const now = new Date();
+  const weekday = now.getUTCDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + diff));
+  return monday.toISOString().slice(0, 10);
+}
+
+function humanPreview(call: { name: string; arguments: Record<string, unknown> }): string {
+  const args = call.arguments as Record<string, unknown>;
+  const name = typeof args.name === "string" ? args.name : (typeof args.query === "string" ? args.query : "");
+  const qty = args.quantity != null ? String(args.quantity) : "";
+  const unit = typeof args.unit === "string" ? args.unit : "";
+  const qtyUnit = [qty, unit].filter(Boolean).join(" ");
+  if (call.name === "add_pantry_item" && typeof args.name === "string") {
+    return `add ${qtyUnit ? qtyUnit + " " : ""}${args.name} to pantry`.trim();
+  }
+  if (call.name === "add_grocery_item" && typeof args.name === "string") {
+    return `add ${qtyUnit ? qtyUnit + " " : ""}${args.name} to grocery`.trim();
+  }
+  if (call.name === "add_recipe_to_plan" && typeof args.query === "string") {
+    const when = typeof args.localDate === "string" ? ` on ${args.localDate}` : "";
+    const slot = typeof args.mealSlot === "string" ? ` (${args.mealSlot})` : "";
+    return `add ${args.query} to plan${when}${slot}`.trim();
+  }
+  if (call.name === "search_recipes" && typeof args.query === "string") {
+    return `search recipes for ${args.query}`;
+  }
+  if (name) return `${call.name}: ${qtyUnit ? qtyUnit + " " : ""}${name}`.trim();
+  try {
+    return `${call.name} ${JSON.stringify(args)}`;
+  } catch {
+    return call.name;
+  }
+}
+
 export function CommandPalette() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const interpretation = useMutation({
-    mutationFn: (prompt: string) => intelligenceApi.createDraft("command", prompt),
+  const inferred = useMutation({ mutationFn: (q: string) => intelligenceApi.infer("command", q) });
+  const pantryCreate = useMutation({
+    mutationFn: (args: Record<string, unknown>) =>
+      pantryApi.create({
+        displayName: String(args.name),
+        quantity: args.quantity != null ? String(args.quantity) : "1",
+        unit: args.unit != null ? String(args.unit) : "count",
+      }),
   });
-  const execution = useMutation({
-    mutationFn: (draftId: string) => intelligenceApi.executeDraft(draftId),
-    onSuccess: () => { void interpretation.reset(); },
+  const groceryCreate = useMutation({
+    mutationFn: (payload: { weekStart: string; args: Record<string, unknown> }) =>
+      groceryApi.create(payload.weekStart, {
+        displayName: String(payload.args.name),
+        quantity: payload.args.quantity != null ? String(payload.args.quantity) : null,
+        unit: payload.args.unit != null ? String(payload.args.unit) : null,
+      } as never),
+  });
+  const mealPlanCreate = useMutation({
+    mutationFn: async (args: Record<string, unknown>) => {
+      const weekStart = typeof args.localDate === "string" ? getWeekStartFromLocalDate(String(args.localDate)) : getWeekStartISO();
+      const queryText = String(args.query ?? "");
+      // Resolve recipe via search - list compat, surface ambiguous
+      const page = await planningApi.recipes(queryText);
+      if (!page.items.length) throw new Error("No recipe match");
+      const lower = queryText.toLocaleLowerCase();
+      const exact = page.items.find((r) => r.title.toLocaleLowerCase() === lower);
+      if (page.items.length > 1 && !exact) {
+        // ambiguous: multiple matches without exact title — surface as error, do not auto-pick
+        const includes = page.items.filter((r) => r.title.toLocaleLowerCase().includes(lower));
+        if (includes.length !== 1) throw new Error("Ambiguous recipe match — pick one manually");
+        // if exactly one includes-match among many, use it
+        const match = includes[0];
+        return planningApi.addEntry(weekStart, {
+          localDate: String(args.localDate),
+          mealSlot: String(args.mealSlot),
+          recipeId: match.id,
+          servings: args.servings != null ? String(args.servings) : "1",
+        } as never);
+      }
+      const match = exact ?? page.items.find((r) => r.title.toLocaleLowerCase().includes(lower)) ?? page.items[0];
+      if (!match) throw new Error("No recipe match");
+      return planningApi.addEntry(weekStart, {
+        localDate: String(args.localDate),
+        mealSlot: String(args.mealSlot),
+        recipeId: match.id,
+        servings: args.servings != null ? String(args.servings) : "1",
+      } as never);
+    },
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -61,8 +141,19 @@ export function CommandPalette() {
     staleTime: 60_000,
   });
 
+  // C4: stale preview reset on query change and on close
   useEffect(() => {
-    function openPalette() { setOpen(true); }
+    inferred.reset();
+    pantryCreate.reset();
+    groceryCreate.reset();
+    mealPlanCreate.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalized]);
+
+  useEffect(() => {
+    function openPalette() {
+      setOpen(true);
+    }
     function shortcut(event: globalThis.KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
         event.preventDefault();
@@ -88,11 +179,14 @@ export function CommandPalette() {
     [normalized, recipes.data?.items],
   );
 
-  const closeAndNavigate = useCallback((to: string) => {
-    setOpen(false);
-    setQuery("");
-    navigate(to);
-  }, [navigate]);
+  const closeAndNavigate = useCallback(
+    (to: string) => {
+      setOpen(false);
+      setQuery("");
+      navigate(to);
+    },
+    [navigate],
+  );
 
   function focusMenu(direction: 1 | -1, event: KeyboardEvent<HTMLElement>) {
     const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>("button[data-command-item]") ?? []);
@@ -103,8 +197,40 @@ export function CommandPalette() {
     items[next]?.focus();
   }
 
+  function handleAdd() {
+    const call = inferred.data?.functionCalls[0];
+    if (!call) return;
+    const args = call.arguments as Record<string, unknown>;
+    if (call.name === "add_pantry_item" && typeof args.name === "string") {
+      pantryCreate.mutate(args);
+    } else if (call.name === "add_grocery_item" && typeof args.name === "string") {
+      groceryCreate.mutate({ weekStart: getWeekStartISO(), args });
+    } else if (call.name === "add_recipe_to_plan" && typeof args.query === "string" && typeof args.localDate === "string" && typeof args.mealSlot === "string") {
+      mealPlanCreate.mutate(args);
+    } else if (typeof args.name === "string") {
+      // fallback: treat as pantry
+      pantryCreate.mutate(args);
+    }
+  }
+
+  const isAddPending = pantryCreate.isPending || groceryCreate.isPending || mealPlanCreate.isPending;
+  const isAddSuccess = pantryCreate.isSuccess || groceryCreate.isSuccess || mealPlanCreate.isSuccess;
+  const isAddError = pantryCreate.isError || groceryCreate.isError || mealPlanCreate.isError;
+
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(""); }}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setQuery("");
+          inferred.reset();
+          pantryCreate.reset();
+          groceryCreate.reset();
+          mealPlanCreate.reset();
+        }
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay className="command-overlay" />
         <Dialog.Content className="command-palette" onOpenAutoFocus={(event) => { event.preventDefault(); inputRef.current?.focus(); }}>
@@ -123,7 +249,9 @@ export function CommandPalette() {
               placeholder="Search recipes or jump somewhere…"
               aria-label="Search Cookfully"
             />
-            <Dialog.Close className="command-close" aria-label="Close quick search"><X aria-hidden="true" /></Dialog.Close>
+            <Dialog.Close className="command-close" aria-label="Close quick search">
+              <X aria-hidden="true" />
+            </Dialog.Close>
           </div>
           <div
             ref={menuRef}
@@ -143,7 +271,12 @@ export function CommandPalette() {
                   <h2>{group}</h2>
                   {items.map(({ id, label, hint, to, Icon }) => (
                     <button data-command-item type="button" role="menuitem" key={id} onClick={() => closeAndNavigate(to)}>
-                      <Icon aria-hidden="true" /><span><strong>{label}</strong><small>{hint}</small></span><kbd>↵</kbd>
+                      <Icon aria-hidden="true" />
+                      <span>
+                        <strong>{label}</strong>
+                        <small>{hint}</small>
+                      </span>
+                      <kbd>↵</kbd>
                     </button>
                   ))}
                 </section>
@@ -155,7 +288,11 @@ export function CommandPalette() {
                 {visibleRecipes.map((recipe) => (
                   <button data-command-item type="button" role="menuitem" key={recipe.id} onClick={() => closeAndNavigate(`/app/recipes/${recipe.id}`)}>
                     <span className="command-recipe-media">{recipe.imageUrl ? <img src={recipe.imageUrl} alt="" /> : <RecipeFallbackArt title={recipe.title} />}</span>
-                    <span><strong>{recipe.title}</strong><small>{recipe.favorite ? "Favorite recipe" : "Open recipe"}</small><RecipeMetadata recipe={recipe} compact /></span>
+                    <span>
+                      <strong>{recipe.title}</strong>
+                      <small>{recipe.favorite ? "Favorite recipe" : "Open recipe"}</small>
+                      <RecipeMetadata recipe={recipe} compact />
+                    </span>
                     <kbd>↵</kbd>
                   </button>
                 ))}
@@ -166,39 +303,67 @@ export function CommandPalette() {
                 <Sparkles aria-hidden="true" />
                 <strong>No direct match yet</strong>
                 <p>Ask Cookfully to interpret a grocery, pantry, recipe, or cooking action.</p>
-                <button
-                  data-command-item
-                  type="button"
-                  role="menuitem"
-                  onClick={() => interpretation.mutate(query.trim())}
-                  disabled={interpretation.isPending}
-                >
-                  <Sparkles aria-hidden="true" />
-                  <span><strong>{interpretation.isPending ? "Understanding…" : "Interpret with Cookfully"}</strong><small>Review the proposed action before anything changes</small></span>
-                  <kbd>↵</kbd>
-                </button>
-                {interpretation.data?.status === "ok" ? (
-                  <div className="command-note" role="status">
-                    <strong>Cookfully understood</strong>
-                    {interpretation.data.functionCalls.map((call, index) => <p key={`${call.name}-${index}`}>{call.name}</p>)}
-                    {interpretation.data.draftId ? (
-                      <button type="button" onClick={() => { const draftId = interpretation.data?.draftId; if (draftId) execution.mutate(draftId); }} disabled={execution.isPending}>
-                        {execution.isPending ? "Applying…" : "Confirm and apply"}
-                      </button>
-                    ) : <small>This is a proposal only. Nothing has changed.</small>}
+                {!inferred.data ? (
+                  <button
+                    data-command-item
+                    type="button"
+                    role="menuitem"
+                    aria-label="Interpret with Cookfully"
+                    onClick={() => inferred.mutate(query.trim())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        inferred.mutate(query.trim());
+                      }
+                    }}
+                    disabled={inferred.isPending}
+                  >
+                    <Sparkles aria-hidden="true" />
+                    <span>
+                      <strong>{inferred.isPending ? "Understanding…" : "Interpret with Cookfully"}</strong>
+                      <small>Review the proposed action before anything changes</small>
+                    </span>
+                    <kbd>↵</kbd>
+                  </button>
+                ) : inferred.data.status === "ok" && (inferred.data.confidence ?? 0) >= 0.80 && inferred.data.functionCalls[0] ? (
+                  <div className="command-note" role="status" aria-live="polite">
+                    <span>We think you mean: {humanPreview(inferred.data.functionCalls[0] as never)} — </span>
+                    <button type="button" aria-label="Add" onClick={handleAdd} disabled={isAddPending}>
+                      {isAddPending ? "Adding…" : "Add"}
+                    </button>
+                    {isAddSuccess ? <span> Added.</span> : null}
+                    {isAddError ? <span role="alert"> Couldn’t add. Try manually.</span> : null}
                   </div>
-                ) : null}
-                {execution.isSuccess ? <p className="command-note" role="status">Applied. Cookfully’s data is up to date.</p> : null}
-                {execution.isError ? <p className="command-note" role="alert">Nothing was applied. Review the request and try again.</p> : null}
-                {interpretation.data?.status === "unsupported" ? <p className="command-note" role="status">That request does not map to a Cookfully action yet.</p> : null}
-                {interpretation.data?.status === "unavailable" ? <p className="command-note" role="status">Local intelligence is unavailable. Search and navigation still work.</p> : null}
+                ) : (
+                  <div className="command-note" role="status" aria-live="polite">
+                    <span>Not sure — Add manually? </span>
+                    <a href="/app/pantry?add=1">Open pantry</a>
+                  </div>
+                )}
               </div>
             ) : null}
-            {recipes.isError ? <p className="command-note" role="status">Recipe search is unavailable. Navigation and actions still work.</p> : null}
+            {recipes.isError ? <p className="command-note" role="status" aria-live="polite">Recipe search is unavailable. Navigation and actions still work.</p> : null}
           </div>
-          <footer className="command-footer"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Esc</kbd> close</span></footer>
+          <footer className="command-footer">
+            <span>
+              <kbd>↑</kbd>
+              <kbd>↓</kbd> move
+            </span>
+            <span>
+              <kbd>Esc</kbd> close
+            </span>
+          </footer>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function getWeekStartFromLocalDate(localDate: string): string {
+  const d = new Date(localDate + "T00:00:00.000Z");
+  if (Number.isNaN(d.getTime())) return getWeekStartISO();
+  const weekday = d.getUTCDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  return monday.toISOString().slice(0, 10);
 }
