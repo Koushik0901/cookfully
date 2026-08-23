@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.food_match_memories import remember_food_reference
+from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     SERVING_SCALE,
@@ -15,7 +16,7 @@ from cookfully.domain.common import (
     quantize_decimal,
     utc_now,
 )
-from cookfully.domain.units import IngredientMeasure, to_grams
+from cookfully.domain.ingredient_nutrition.quantities import IngredientMeasure
 from cookfully.domain.volume_assumptions import density_for
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionCorrection
 from cookfully.infrastructure.models.owner_foods import OwnerFood
@@ -133,13 +134,14 @@ class CorrectionService:
                 conversion_method: str | None = None
                 assumption: str | None = None
                 try:
-                    converted = to_grams(
+                    converted = engine.to_grams(
                         IngredientMeasure(
                             ingredient.quantity_min,
                             ingredient.quantity_max,
                             ingredient.unit_code,
                             ingredient.optional,
                         ),
+                        owner_food=None,
                         density_g_per_ml=density_for(food.description),
                     )
                     grams_min = converted.minimum
@@ -208,26 +210,22 @@ class CorrectionService:
             grams_max: Decimal | None = None
             conversion_method: str | None = None
             assumption: str | None = None
-            parsed_unit = (ingredient.unit_code or "").casefold()
-            serving_unit = (food.typical_serving_unit or "").casefold()
-            if food.typical_serving_g is not None and serving_unit and parsed_unit == serving_unit:
-                grams_min = quantize_decimal(
-                    ingredient.quantity_min * food.typical_serving_g
-                    if ingredient.quantity_min is not None
-                    else food.typical_serving_g,
-                    NUTRIENT_SCALE,
+            try:
+                converted = engine.to_grams(
+                    IngredientMeasure(
+                        ingredient.quantity_min,
+                        ingredient.quantity_max,
+                        ingredient.unit_code,
+                        ingredient.optional,
+                    ),
+                    owner_food=food,
                 )
-                grams_max = quantize_decimal(
-                    ingredient.quantity_max * food.typical_serving_g
-                    if ingredient.quantity_max is not None
-                    else food.typical_serving_g,
-                    NUTRIENT_SCALE,
-                )
-                conversion_method = "owner_serving"
-                assumption = (
-                    f"1 {food.typical_serving_unit} = {food.typical_serving_g}g "
-                    f"({food.display_name})"
-                )
+                grams_min = converted.minimum
+                grams_max = converted.maximum
+                conversion_method = converted.method
+                assumption = converted.assumption
+            except DomainError:
+                grams_min = grams_max = conversion_method = assumption = None
 
             NutritionRepository(session).activate_match(
                 IngredientMatch(
