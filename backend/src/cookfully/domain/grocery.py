@@ -7,7 +7,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal
-from cookfully.domain.ingredient_nutrition.normalization import normalize
+from cookfully.domain.ingredient_nutrition.normalization import tokenize
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +69,7 @@ UNITS = {
 
 def normalize_food_name(value: str) -> str:
     stripped = re.sub(r"^\s*\d+[x×]?\s*", "", value)  # noqa: RUF001
-    return normalize(stripped)
+    return " ".join(tokenize(stripped))
 
 
 def _unit(code: str | None, text: str | None) -> _Unit | None:
