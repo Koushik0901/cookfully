@@ -47,3 +47,7 @@ class InferenceResponse(BaseModel):
     reasoning: str | None = None
     function_calls: tuple[ToolCall, ...] = Field(alias="functionCalls", default=())
     error_code: str | None = Field(alias="errorCode", default=None)
+    prefill_tps: float | None = Field(default=None)
+    decode_tps: float | None = Field(default=None)
+    peak_ram_mb: float | None = Field(default=None)
+    latency_ms: int | None = Field(default=None)

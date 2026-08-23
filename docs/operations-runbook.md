@@ -72,6 +72,28 @@ access, and the retention heartbeat.
 Rollback application images only when the schema remains compatible; otherwise restore into a clean
 target and prove ledger replay.
 
+## Needle2 inline repair canary rollout (hidden, gap-only, 600ms)
+
+Inline repair is disabled by default (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false`). No UI change; threshold `T`
+(`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`) and timeout `600ms` (`COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS`)
+are hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API.
+
+**Observability (no PII):**
+- `logger="cookfully.intelligence"` emits `needle_infer` with `extra={request_id, confidence, reasoning, prefill, decode, peak_ram, latency_ms}`.
+- `logger="cookfully.inline_repair"` emits `needle_inline` with `extra={request_id, confidence, reasoning, applied, latency_ms, prefill, decode, peak_ram}`.
+- Never log prompt, ingredients, steps, or user text. Search by `request_id`/`X-Request-ID`.
+- Counters derived from logs: `needle_inline_applied`, `skipped_timeout`, `skipped_lowconf`, `skipped_invalid` (applied=false + gate reason). Histogram `needle_inline_confidence`. Perf envelope `prefill_tps/decode_tps/peak_ram_mb` pass-through for p95 latency.
+
+**Rollout steps:**
+
+1. Night 0 — ship with `INLINE_ENABLED=false`. Place `needle2.cact` at `/models/needle2.cact` (`deploy/intelligence/README.md:11`) or service stays `unavailable` and falls through to legacy; verify `GET /intelligence/health` and `GET /api/v1/health` unchanged.
+2. Night 1 — run sweep `python scripts/needle-threshold-sweep.py` (or `scripts/needle_threshold_sweep.py`) over corpora `backend/tests/fixtures/needle-corpus/*.jsonl` sweeping `0.60→0.90` in parallel; commit `artifacts/needle-threshold-report.json`. Choose `T` where `false_overwrite <1%` and `p95 <600ms` (parallel) and smoke `10-recipe` set passes.
+3. Canary 5% — set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` and route 5% of imports/pantry bulk pastes (or feature-flag 5% of households) through gateway. Monitor for 24h: `false_overwrite <1%`, `p95 latency <600ms`, `peak_ram_mb ~28MB`, no increase in `skipped_invalid`. Logs must contain `confidence/reasoning` not user text.
+4. 25% — if 5% passes, expand to 25% traffic. Check `needle_inline_applied` rate vs report; if breach (`false_overwrite ≥1%` or `p95 ≥600ms` or `decode_tps` drop), bump `T` +0.05 or revert to `INLINE_ENABLED=false` (rollback is no-op; no overwrite).
+5. 100% — promote to 100% after 25% passes 24h. Keep threshold as single source (`config.intelligence_inline_threshold`). Any breach after 100% → raise `T` one step or disable inline; do not retry inline. Document decision in `artifacts/needle-threshold-report.json` for audit.
+
+**Rollback:** set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false` and restart API. No data migration; legacy path always authoritative.
+
 ## Offline owner erasure
 
 Follow `docs/owner-erasure.md`. Stop web, API, worker, outbox, and retention while leaving PostgreSQL reachable.

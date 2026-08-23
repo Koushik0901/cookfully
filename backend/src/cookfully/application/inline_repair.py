@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
+
+logger = logging.getLogger("cookfully.inline_repair")
 
 ALLOWED_UNITS = Literal["g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"]
 
@@ -53,13 +57,31 @@ class InlineRepairGateway:
             return False
         return resp.confidence >= self._threshold
 
-    def merge_recipe(self, legacy: dict, resp) -> dict:
+    def _emit_log(self, resp, *, applied: bool, latency_ms: int | None = None) -> None:
+        # structured log — must not contain user text (prompt/ingredients), only metadata
+        logger.info(
+            "needle_inline",
+            extra={
+                "request_id": getattr(resp, "request_id", ""),
+                "confidence": getattr(resp, "confidence", None),
+                "reasoning": getattr(resp, "reasoning", None),
+                "applied": applied,
+                "latency_ms": latency_ms if latency_ms is not None else 0,
+                "prefill": getattr(resp, "prefill_tps", None),
+                "decode": getattr(resp, "decode_tps", None),
+                "peak_ram": getattr(resp, "peak_ram_mb", None),
+            },
+        )
+
+    def merge_recipe(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
         if not self._gate(resp):
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         args = resp.function_calls[0].arguments
         try:
             parsed = RecipeExtractSchema.model_validate(args)
         except Exception:
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         out = dict(legacy)
         if not legacy.get("ingredients"):
@@ -70,15 +92,19 @@ class InlineRepairGateway:
             ]
         if not legacy.get("steps"):
             out["steps"] = list(parsed.steps)
+        applied = out != legacy
+        self._emit_log(resp, applied=applied, latency_ms=latency_ms)
         return out
 
-    def merge_ingredient_row(self, legacy: dict, resp) -> dict:
+    def merge_ingredient_row(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
         if not self._gate(resp):
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         args = resp.function_calls[0].arguments
         try:
             parsed = IngredientRowSchema.model_validate(args)
         except Exception:
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         out = dict(legacy)
         # gap-only + allowlist: merge ONLY unit, never quantity
@@ -92,22 +118,28 @@ class InlineRepairGateway:
         # quantity is never overwritten — preserve legacy exactly
         if "quantity" in legacy:
             out["quantity"] = legacy["quantity"]
+        applied = out != legacy
+        self._emit_log(resp, applied=applied, latency_ms=latency_ms)
         return out
 
-    def merge_pantry(self, legacy: dict, resp) -> dict:
+    def merge_pantry(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
         if not self._gate(resp):
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         args = resp.function_calls[0].arguments
         try:
             parsed = PantryExtractSchema.model_validate(args)
         except Exception:
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         # legacy may be dict with "items" or a single pantry dict or a list
         # Handle dict with items key (gap-only merge)
         if isinstance(legacy, dict) and "items" in legacy:
             legacy_items = legacy.get("items") or []
             if not legacy_items:
-                return {"items": [item.model_dump() for item in parsed.items]}
+                result = {"items": [item.model_dump() for item in parsed.items]}
+                self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
+                return result
             if len(parsed.items) > len(legacy_items):
                 # gap-only: append only missing tail by name
                 existing_names = {
@@ -118,12 +150,17 @@ class InlineRepairGateway:
                     item.model_dump() for item in parsed.items if item.name not in existing_names
                 ]
                 if extra:
-                    return {"items": list(legacy_items) + extra}
+                    result = {"items": list(legacy_items) + extra}
+                    self._emit_log(resp, applied=True, latency_ms=latency_ms)
+                    return result
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         # legacy is list
         if isinstance(legacy, list):
             if not legacy:
-                return [item.model_dump() for item in parsed.items]
+                result = [item.model_dump() for item in parsed.items]
+                self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
+                return result
             if len(parsed.items) > len(legacy):
                 existing_names = {
                     (item.get("name") if isinstance(item, dict) else getattr(item, "name", None))
@@ -133,13 +170,18 @@ class InlineRepairGateway:
                     item.model_dump() for item in parsed.items if item.name not in existing_names
                 ]
                 if extra:
-                    return list(legacy) + extra
+                    result = list(legacy) + extra
+                    self._emit_log(resp, applied=True, latency_ms=latency_ms)
+                    return result
+            self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         # legacy is single-item dict (e.g., {"display_name": "..."} ) -> bulk paste case
         # if parsed has multiple items, return expanded list; otherwise gap-only single
         if isinstance(legacy, dict):
             if not legacy:
-                return {"items": [item.model_dump() for item in parsed.items]}
+                result = {"items": [item.model_dump() for item in parsed.items]}
+                self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
+                return result
             # single legacy item vs multiple parsed: expand to parsed items
             if len(parsed.items) >= 1:
                 # if legacy is a single pantry row, and parsed has >1, signal expansion
@@ -147,7 +189,9 @@ class InlineRepairGateway:
                 if len(parsed.items) > 1:
                     # only expand when legacy looks like single free-text
                     # bulk (heuristic: no items key)
-                    return {"items": [item.model_dump() for item in parsed.items]}
+                    result = {"items": [item.model_dump() for item in parsed.items]}
+                    self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
+                    return result
                 # single parsed item gap-only fill
                 single = parsed.items[0]
                 out = dict(legacy)
@@ -157,7 +201,9 @@ class InlineRepairGateway:
                     out["quantity"] = single.quantity
                 if not legacy.get("unit"):
                     out["unit"] = single.unit
+                self._emit_log(resp, applied=out != legacy, latency_ms=latency_ms)
                 return out
+        self._emit_log(resp, applied=False, latency_ms=latency_ms)
         return legacy
 
     async def repair_recipe(self, legacy: dict, prompt: str, system: str) -> dict:
@@ -176,6 +222,7 @@ class InlineRepairGateway:
             context={},
             system=system,
         )
+        t0 = time.perf_counter()
         try:
             resp = await asyncio.wait_for(
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
@@ -185,7 +232,8 @@ class InlineRepairGateway:
             return legacy
         except Exception:
             return legacy
-        return self.merge_recipe(legacy, resp)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return self.merge_recipe(legacy, resp, latency_ms=latency_ms)
 
     async def repair_recipe_async(self, legacy: dict, prompt: str, system: str) -> dict:
         return await self.repair_recipe(legacy, prompt, system)
@@ -206,6 +254,7 @@ class InlineRepairGateway:
             context={},
             system=system,
         )
+        t0 = time.perf_counter()
         try:
             resp = await asyncio.wait_for(
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
@@ -215,7 +264,8 @@ class InlineRepairGateway:
             return legacy
         except Exception:
             return legacy
-        return self.merge_ingredient_row(legacy, resp)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return self.merge_ingredient_row(legacy, resp, latency_ms=latency_ms)
 
     async def repair_ingredient_row_async(self, legacy: dict, prompt: str, system: str) -> dict:
         return await self.repair_ingredient_row(legacy, prompt, system)
@@ -236,6 +286,7 @@ class InlineRepairGateway:
             context={},
             system=system,
         )
+        t0 = time.perf_counter()
         try:
             resp = await asyncio.wait_for(
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
@@ -245,7 +296,8 @@ class InlineRepairGateway:
             return legacy
         except Exception:
             return legacy
-        return self.merge_pantry(legacy, resp)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+        return self.merge_pantry(legacy, resp, latency_ms=latency_ms)
 
     async def repair_pantry_async(self, legacy: dict, prompt: str, system: str) -> dict:
         return await self.repair_pantry(legacy, prompt, system)
