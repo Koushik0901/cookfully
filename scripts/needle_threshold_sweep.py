@@ -272,9 +272,52 @@ def build_report(corpora: dict[str, list[dict]] | None = None) -> dict:
     return report
 
 
+def _try_real_needle_sample(prompt: str, operation: str, threshold: float) -> dict | None:
+    """Attempt one real Needle call if model artifact exists; return synthetic dict or None if unavailable.
+
+    Graceful fallback: if needle runtime or /models/needle2.cact missing, return None so caller keeps FakeClient synthetic.
+    """
+    import os
+
+    model_path = os.getenv("COOKFULLY_INTELLIGENCE_MODEL_PATH", "/models/needle2.cact")
+    if not Path(model_path).exists():
+        return None
+    try:
+        import needle  # type: ignore[import-not-found]
+
+        # minimal tool per operation
+        from cookfully.application.inline_repair import PantryExtractSchema, RecipeExtractSchema
+
+        schema_map = {"recipe_extract": RecipeExtractSchema, "pantry_extract": PantryExtractSchema}
+        schema = schema_map.get(operation)
+        if schema is None:
+            return None
+        from cookfully.intelligence.contracts import ToolDefinition
+
+        tool = ToolDefinition(name="probe", description="probe", parameters=schema.model_json_schema())
+        agent = needle.Needle(weights=model_path, tools=[tool.model_json_schema()])  # type: ignore[attr-defined]
+        t0 = time.perf_counter()
+        res = agent.complete(prompt)
+        latency = int((time.perf_counter() - t0) * 1000)
+        conf = res.get("confidence")
+        # real mode emits envelope prefill/decode/peak_ram if present
+        return {
+            "conf": conf,
+            "correct": True,  # real correctness requires label; caller will fallback to synthetic correctness
+            "latency_ms": latency,
+            "prefill_tps": res.get("prefill_tps"),
+            "decode_tps": res.get("decode_tps"),
+            "peak_ram_mb": res.get("peak_ram_mb"),
+            "mode": "real",
+        }
+    except Exception:
+        return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Parallel needle threshold sweep 0.60->0.90")
     parser.add_argument("--dry-run", action="store_true", help="use synthetic data, don't require fixtures")
+    parser.add_argument("--real", action="store_true", help="if /models/needle2.cact present, run real needle for latency envelope (else synthetic)")
     parser.add_argument("--output", type=str, default="artifacts/needle-threshold-report.json", help="output JSON path")
     parser.add_argument("--corpora-dir", type=str, default=None, help="override corpora dir")
     args = parser.parse_args()
@@ -284,6 +327,16 @@ def main() -> None:
         corpora = None
         # force synthetic if fixtures missing is already handled, but dry-run explicitly uses tiny synthetic for speed
         # keep corpora None to reuse load_corpora fallback; still deterministic
+        # if --real and model exists, enrich first sample per operation with real latency envelope
+        if args.real:
+            corpora = load_corpora()
+            for op, samps in list(corpora.items()):
+                if samps:
+                    probe = _try_real_needle_sample(samps[0].get("prompt") or str(samps[0].get("id")), op, 0.80)
+                    if probe and probe.get("latency_ms"):
+                        # annotate report note but keep synthetic correctness for threshold math
+                        samps[0]["latency_ms"] = probe["latency_ms"]
+                        samps[0]["mode"] = "real_probed"
         report = build_report(corpora)
     else:
         corpora = load_corpora()
