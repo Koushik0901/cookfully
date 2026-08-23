@@ -78,6 +78,9 @@ class Settings(BaseSettings):
     intelligence_url: str = "http://intelligence:8091"
     intelligence_service_key: SecretStr = SecretStr("")
     intelligence_timeout_seconds: Annotated[float, Field(gt=0, le=30)] = 2.0
+    intelligence_inline_enabled: bool = False
+    intelligence_inline_threshold: Annotated[float, Field(ge=0, le=1)] = 0.80
+    intelligence_inline_timeout_ms: Annotated[int, Field(ge=100, le=5000)] = 600
 
     @model_validator(mode="after")
     def build_database_url_from_postgres_credentials(self) -> "Settings":

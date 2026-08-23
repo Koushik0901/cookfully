@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
-import unicodedata
 import zipfile
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
@@ -17,6 +15,7 @@ import typer
 from sqlalchemy import select, update
 
 from cookfully.domain.common import DomainError, quantize_decimal, uuid7
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food_name
 from cookfully.domain.nutrition import usda_micronutrient_mapping
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
@@ -42,12 +41,6 @@ GYM_BRANDED_CATEGORIES = frozenset(
         "Amino Acid Supplements",
     }
 )
-
-
-def normalize_food_name(value: str) -> str:
-    normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", " ", normalized.casefold()).strip()
-
 
 _JSON_MEMBER_TOKENS: dict[str, tuple[str, ...]] = {
     "foundation": ("foundation",),

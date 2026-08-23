@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -9,6 +11,8 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from cookfully.intelligence.contracts import InferenceRequest, InferenceResponse, ToolCall
+
+logger = logging.getLogger("cookfully.intelligence")
 
 MODEL_PATH = os.getenv("COOKFULLY_INTELLIGENCE_MODEL_PATH", "/models/needle2.cact")
 MODEL_NAME = os.getenv("COOKFULLY_INTELLIGENCE_MODEL", "needle2")
@@ -61,16 +65,43 @@ class ModelEngine:
             for tool in request.tools
         ]
         try:
-            tool_key = json.dumps(tools, sort_keys=True, separators=(",", ":"))
+            tool_key = json.dumps(
+                {"tools": tools, "system": request.system or ""},
+                sort_keys=True,
+                separators=(",", ":"),
+            )
             agent = self._agents.get(tool_key)
             if agent is None:
-                agent = self._needle.Needle(weights=MODEL_PATH, tools=tools)
+                agent = self._needle.Needle(
+                    weights=MODEL_PATH,
+                    tools=tools,
+                    system=request.system or "",
+                    tool_index_path="/tmp/tools.idx" if len(tools) > 5 else None,
+                )
                 self._agents[tool_key] = agent
+            t0 = time.perf_counter()
             result = agent.complete(request.prompt)
+            latency_ms = int((time.perf_counter() - t0) * 1000)
             calls = tuple(
                 ToolCall(name=str(call.get("name", "")), arguments=call.get("arguments", {}))
                 for call in result.get("function_calls", [])
                 if isinstance(call, dict)
+            )
+            # perf envelope pass-through — emitted to log, not user-facing, no PII
+            prefill = result.get("prefill_tps")
+            decode = result.get("decode_tps")
+            peak_ram = result.get("peak_ram_mb")
+            logger.info(
+                "needle_infer",
+                extra={
+                    "request_id": request.request_id,
+                    "confidence": result.get("confidence"),
+                    "reasoning": result.get("reasoning"),
+                    "prefill": prefill,
+                    "decode": decode,
+                    "peak_ram": peak_ram,
+                    "latency_ms": latency_ms,
+                },
             )
             return InferenceResponse(
                 requestId=request.request_id,
@@ -79,6 +110,10 @@ class ModelEngine:
                 confidence=result.get("confidence"),
                 reasoning=result.get("reasoning"),
                 functionCalls=calls,
+                prefill_tps=prefill,
+                decode_tps=decode,
+                peak_ram_mb=peak_ram,
+                latency_ms=latency_ms,
             )
         except Exception as exc:  # model failures are returned as safe service state
             return InferenceResponse(

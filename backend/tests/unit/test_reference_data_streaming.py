@@ -106,10 +106,7 @@ def test_import_dedupes_repeated_nutrient_codes_per_food() -> None:
 
     deduped = _dedupe_nutrients(items)
 
-    codes = [
-        str(item["nutrient"].get("number") or item["nutrient"].get("id"))
-        for item in deduped
-    ]
+    codes = [str(item["nutrient"].get("number") or item["nutrient"].get("id")) for item in deduped]
     assert codes == ["203", "208", "1003"]
     assert deduped[0]["amount"] == 10.0
 

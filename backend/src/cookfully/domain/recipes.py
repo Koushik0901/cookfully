@@ -16,17 +16,24 @@ RecipeOrigin = Literal["manual", "web_import", "cookbook_import"]
 
 @dataclass(frozen=True, slots=True)
 class ThumbnailCrop:
-    focal_x: Decimal = Decimal("0.500000")
-    focal_y: Decimal = Decimal("0.500000")
-    zoom: Decimal = Decimal("1.000000")
+    x: Decimal = Decimal("0.000000")
+    y: Decimal = Decimal("0.000000")
+    width: Decimal = Decimal("1.000000")
+    height: Decimal = Decimal("1.000000")
 
     def __post_init__(self) -> None:
-        if not Decimal("0") <= self.focal_x <= Decimal("1"):
-            raise ValueError("thumbnail focal_x must be between 0 and 1")
-        if not Decimal("0") <= self.focal_y <= Decimal("1"):
-            raise ValueError("thumbnail focal_y must be between 0 and 1")
-        if not Decimal("1") <= self.zoom <= Decimal("3"):
-            raise ValueError("thumbnail zoom must be between 1 and 3")
+        for name in ("x", "y"):
+            value = getattr(self, name)
+            if not Decimal("0") <= value <= Decimal("1"):
+                raise ValueError(f"thumbnail crop {name} must be between 0 and 1")
+        for name in ("width", "height"):
+            value = getattr(self, name)
+            if not Decimal("0") < value <= Decimal("1"):
+                raise ValueError(f"thumbnail crop {name} must be between 0 and 1")
+        if self.x + self.width > Decimal("1"):
+            raise ValueError("thumbnail crop extends past the right edge")
+        if self.y + self.height > Decimal("1"):
+            raise ValueError("thumbnail crop extends past the bottom edge")
 
 
 @dataclass(frozen=True, slots=True)

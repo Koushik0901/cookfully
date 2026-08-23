@@ -1,15 +1,15 @@
 import type { components } from "../../app/api/generated/schema";
 
-export type SuggestionResult = components["schemas"]["SuggestionResultResponse"] & {
+export type SuggestionResult = components["schemas"]["SuggestionResult"] & {
   projectedDayTotals: Record<string, PeriodTotal>;
   projectedWeekTotal: PeriodTotal | null;
 };
-export type SuggestionItem = components["schemas"]["SuggestionItemResponse"];
-export type SuggestionAcceptance = components["schemas"]["SuggestionAcceptanceRequest"];
-export type JobAccepted = components["schemas"]["JobAcceptedResponse"];
-export type MealPlan = components["schemas"]["MealPlanResponse"];
-export type RecipePage = components["schemas"]["RecipePageResponse"];
-export type PeriodTotal = components["schemas"]["PeriodTotalResponse"];
+export type SuggestionItem = components["schemas"]["SuggestionItem"];
+export type SuggestionAcceptance = components["schemas"]["SuggestionAcceptance"];
+export type JobAccepted = components["schemas"]["JobAccepted"];
+export type MealPlan = components["schemas"]["MealPlan"];
+export type RecipePage = components["schemas"]["RecipePage"];
+export type PeriodTotal = components["schemas"]["PeriodTotal"];
 export type OwnerPreferences = components["schemas"]["OwnerPreferences"];
 
 export type SuggestionMacroValues = {

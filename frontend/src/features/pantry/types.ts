@@ -1,7 +1,7 @@
 import type { components } from "../../app/api/generated/schema";
 
-export type PantryItem = components["schemas"]["PantryItemResponse"];
-export type PantryItemWrite = components["schemas"]["PantryItemWriteRequest"];
-export type PantryRecipeMatch = components["schemas"]["PantryRecipeMatchResponse"];
-export type PantryDeduction = components["schemas"]["PantryDeductionResponse"];
-export type PantryDeductionApply = components["schemas"]["PantryDeductionApplyRequest"];
+export type PantryItem = components["schemas"]["PantryItem"];
+export type PantryItemWrite = components["schemas"]["PantryItemWrite"];
+export type PantryRecipeMatch = components["schemas"]["PantryRecipeMatch"];
+export type PantryDeduction = components["schemas"]["PantryDeduction"];
+export type PantryDeductionApply = components["schemas"]["PantryDeductionApply"];

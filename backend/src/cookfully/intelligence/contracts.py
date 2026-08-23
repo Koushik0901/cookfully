@@ -34,6 +34,9 @@ class InferenceRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=50_000)
     tools: tuple[ToolDefinition, ...] = Field(default=())
     context: dict[str, str] = Field(default_factory=dict)
+    system: str | None = Field(
+        default=None, max_length=500, description="Needle system facts: date, locale, device"
+    )
 
 
 class InferenceResponse(BaseModel):
@@ -46,3 +49,7 @@ class InferenceResponse(BaseModel):
     reasoning: str | None = None
     function_calls: tuple[ToolCall, ...] = Field(alias="functionCalls", default=())
     error_code: str | None = Field(alias="errorCode", default=None)
+    prefill_tps: float | None = Field(default=None)
+    decode_tps: float | None = Field(default=None)
+    peak_ram_mb: float | None = Field(default=None)
+    latency_ms: int | None = Field(default=None)

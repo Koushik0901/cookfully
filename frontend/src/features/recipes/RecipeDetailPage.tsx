@@ -96,7 +96,7 @@ export function RecipeDetailPage() {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ["recipe", recipeId] });
       const previous = queryClient.getQueryData<RecipeDetail>(["recipe", recipeId]);
-      if (previous) queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], { ...previous, status: "archived", archivedFromStatus: previous.status });
+      if (previous) queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], { ...previous, status: "archived", archivedFromStatus: previous.status === "ready" || previous.status === "partial" || previous.status === "draft" || previous.status === "failed" ? previous.status : null });
       return { previous };
     },
     onError: (_error, _variables, context) => { if (context?.previous) queryClient.setQueryData(["recipe", recipeId], context.previous); },

@@ -15,6 +15,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -60,14 +61,17 @@ class Recipe(TimestampMixin, Base):
     image_asset_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("media_assets.id", ondelete="SET NULL")
     )
-    thumbnail_focal_x: Mapped[Decimal] = mapped_column(
-        Numeric(9, 6), nullable=False, default=Decimal("0.500000")
+    thumbnail_x: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("0.000000"), server_default=text("0")
     )
-    thumbnail_focal_y: Mapped[Decimal] = mapped_column(
-        Numeric(9, 6), nullable=False, default=Decimal("0.500000")
+    thumbnail_y: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("0.000000"), server_default=text("0")
     )
-    thumbnail_zoom: Mapped[Decimal] = mapped_column(
-        Numeric(9, 6), nullable=False, default=Decimal("1.000000")
+    thumbnail_width: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("1.000000"), server_default=text("1")
+    )
+    thumbnail_height: Mapped[Decimal] = mapped_column(
+        Numeric(9, 6), nullable=False, default=Decimal("1.000000"), server_default=text("1")
     )
     origin_kind: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
     input_hash: Mapped[str] = mapped_column(String(128), nullable=False)

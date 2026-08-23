@@ -50,12 +50,13 @@ const recipe: RecipeDetail = {
         active: true,
         createdAt: "2026-08-10T10:00:00Z",
         reason: "Package label",
+        rememberMatch: false,
       },
     ],
   },
   version: 3,
   updatedAt: "2026-08-10T10:00:00Z",
-  thumbnailCrop: { focalX: "0.5", focalY: "0.5", zoom: "1" },
+  thumbnailCrop: { x: "0", y: "0", width: "1", height: "1" },
   originKind: "manual",
   ingredients: [
     {

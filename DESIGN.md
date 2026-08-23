@@ -221,7 +221,14 @@ into a competing colorful card.
 
 Every recipe surface has food media or a deliberate ingredient/plate fallback. The fallback keeps the same
 frame, curve, crop behavior, and visual weight as a real image; no emoji-only or generic gray placeholder.
-Use focal-point/zoom metadata when available. Alt text is empty when adjacent text names the recipe.
+Render from the exact normalized crop rect (`thumbnailCrop`) when present, so card, hero, and home tiles all
+show the same chosen region WYSIWYG. Recipes without an edited rect cover-fit the whole image. Alt text is
+empty when adjacent text names the recipe.
+
+The thumbnail framing editor is a contained 4:3 selection tool: drag inside the frame to move it; corner
+handles resize while staying locked to 4:3; `Reset` restores the largest fit within the image. Keyboard
+arrows move the frame and `Shift`+arrows resize it; sliders under "Adjust framing" remain as a fallback for
+pointer- and precision-limited input.
 
 ### `RecipeCard` / `RecipeShelf`
 

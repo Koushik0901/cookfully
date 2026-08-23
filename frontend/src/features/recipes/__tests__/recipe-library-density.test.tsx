@@ -28,7 +28,7 @@ const page: RecipePage = {
       favorite: false,
       collections: [],
       mealRoles: ["dinner"],
-      thumbnailCrop: { focalX: "0.5", focalY: "0.5", zoom: "1" },
+      thumbnailCrop: { x: "0", y: "0", width: "1", height: "1" },
       originKind: "manual",
     },
     {
@@ -47,7 +47,7 @@ const page: RecipePage = {
       favorite: false,
       collections: [],
       mealRoles: ["lunch"],
-      thumbnailCrop: { focalX: "0.5", focalY: "0.5", zoom: "1" },
+      thumbnailCrop: { x: "0", y: "0", width: "1", height: "1" },
       originKind: "manual",
     },
   ],

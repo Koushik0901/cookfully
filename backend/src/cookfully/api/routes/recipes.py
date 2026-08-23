@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import re
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import (
@@ -207,6 +208,71 @@ def idempotency_service(request: Request) -> IdempotencyService:
     return service
 
 
+_ALLOWED_UNITS = {"g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"}
+
+
+async def _maybe_repair_recipe_ingredients(payload: RecipeWriteRequest) -> RecipeWriteRequest:
+    """Gap-only unit repair for editor rows where unit is None or not in allowlist."""
+    try:
+        from cookfully.infrastructure.config import get_settings
+
+        settings = get_settings()
+        if not settings.intelligence_inline_enabled:
+            return payload
+        needs: list[int] = []
+        for idx, ing in enumerate(payload.ingredients):
+            if ing.unit is None or ing.unit not in _ALLOWED_UNITS:
+                needs.append(idx)
+        if not needs:
+            return payload
+        from cookfully.application.inline_repair import InlineRepairGateway
+        from cookfully.domain.common import utc_now
+        from cookfully.intelligence.client import IntelligenceClient
+
+        system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
+        client = IntelligenceClient(
+            settings.intelligence_url,
+            settings.intelligence_service_key.get_secret_value(),
+            enabled=settings.intelligence_enabled,
+            timeout_seconds=settings.intelligence_timeout_seconds,
+        )
+        gw = InlineRepairGateway(
+            client,
+            threshold=settings.intelligence_inline_threshold,
+            timeout_ms=settings.intelligence_inline_timeout_ms,
+        )
+
+        async def _repair_one(ing: Any) -> str | None:
+            legacy: dict[str, Any] = {
+                "quantity": float(ing.quantity_min) if ing.quantity_min is not None else None,
+                "unit": ing.unit,
+            }
+            try:
+                result = await gw.repair_ingredient_row(legacy, ing.original_text[:256], system)
+            except Exception:
+                return None
+            new_unit = result.get("unit")
+            if isinstance(new_unit, str) and new_unit != ing.unit and new_unit in _ALLOWED_UNITS:
+                return new_unit
+            return None
+
+        # Parallel gather similar to Task4 (bounded 600ms per row via gateway)
+        tasks = [_repair_one(payload.ingredients[i]) for i in needs]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        new_ingredients = list(payload.ingredients)
+        for idx, res in zip(needs, results, strict=False):
+            if isinstance(res, Exception) or res is None:
+                continue
+            orig = new_ingredients[idx]
+            try:
+                new_ingredients[idx] = orig.model_copy(update={"unit": res})
+            except Exception:
+                continue
+        return payload.model_copy(update={"ingredients": tuple(new_ingredients)})
+    except Exception:
+        return payload
+
+
 @router.get("", response_model=RecipePageResponse, response_model_by_alias=True)
 def list_recipes(
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
@@ -240,13 +306,14 @@ def list_recipes(
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
 )
-def create_recipe(
+async def create_recipe(
     payload: RecipeWriteRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeResponse:
-    mutation = recipes.create(payload.to_write(), trace_id=correlation_id.get(), owner_id=owner.id)
+    repaired = await _maybe_repair_recipe_ingredients(payload)
+    mutation = recipes.create(repaired.to_write(), trace_id=correlation_id.get(), owner_id=owner.id)
     return RecipeResponse.from_read(queries.get(mutation.recipe.id))
 
 
@@ -477,7 +544,7 @@ def get_recipe(
 
 
 @router.patch("/{recipeId}", response_model=RecipeDetailResponse, response_model_by_alias=True)
-def update_recipe(
+async def update_recipe(
     recipe_id: Annotated[UUID, Path(alias="recipeId")],
     payload: RecipeWriteRequest,
     version: Annotated[int, Depends(expected_version)],
@@ -485,9 +552,10 @@ def update_recipe(
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeDetailResponse:
+    repaired = await _maybe_repair_recipe_ingredients(payload)
     recipes.update(
         recipe_id,
-        payload.to_write(),
+        repaired.to_write(),
         expected_version=version,
         trace_id=correlation_id.get(),
         owner_id=owner.id,

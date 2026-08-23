@@ -40,7 +40,7 @@ const NUTRITION_FIELDS = [
 type NutritionField = typeof NUTRITION_FIELDS[number][0];
 type NutritionValues = Record<NutritionField, string>;
 const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) => [field, ""])) as NutritionValues;
-const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
+const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ x: "0", y: "0", width: "1", height: "1" });
 
 const EDITOR_STEPS = [
   { id: "basics", label: "Recipe", hint: "Name and timing" },

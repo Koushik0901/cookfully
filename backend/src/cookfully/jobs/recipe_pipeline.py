@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.food_match_memories import remembered_food_reference
-from cookfully.application.food_matching import FoodMatcher
+from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
 from cookfully.application.recipes import (
     IngredientWrite,
@@ -27,6 +27,7 @@ from cookfully.application.recipes import (
     recipe_input_hash,
 )
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now, uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
@@ -49,7 +50,6 @@ from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.jobs import TERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.media import MediaAsset
 from cookfully.infrastructure.models.nutrition import IngredientMatch, NutritionEstimate
-from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import (
     Ingredient,
@@ -69,11 +69,7 @@ from cookfully.infrastructure.recipe_importer import (
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
-from cookfully.infrastructure.semantic_embeddings import (
-    HashingTextEmbedder,
-    TextEmbedder,
-    create_text_embedder,
-)
+from cookfully.infrastructure.semantic_embeddings import TextEmbedder
 
 
 def _section_at(
@@ -391,7 +387,7 @@ class RecipePipeline:
                     "Required nutrition reference data is not active.",
                     503,
                 )
-            matcher = FoodMatcher(repository, embedder=self._embedder_for_session(session))
+            matcher = FoodMatcher(repository, embedder=self._session_embedder(session))
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
@@ -443,37 +439,12 @@ class RecipePipeline:
             )
             return next_job
 
-    def _embedder_for_session(self, session: Session) -> TextEmbedder:
+    def _session_embedder(self, session: Session) -> TextEmbedder:
         # A non-null embedder with no key is an explicit test/integration
-        # injection. Production pipelines keep the key so persisted settings
-        # changes can replace the cached model on the next job.
+        # injection. Production pipelines delegate to the shared engine.
         if self._embedder is not None and self._embedder_key is None:
             return self._embedder
-        settings = session.get(NutritionIntelligenceSettings, 1)
-        backend = settings.backend if settings is not None else "hashing"
-        model_name = settings.model_name if settings is not None else ""
-        revision = settings.model_revision if settings is not None else None
-        key = (backend, model_name, revision)
-        if self._embedder_key != key:
-            if backend == "fastembed":
-                if settings is not None and settings.last_ready_at is None:
-                    raise DomainError(
-                        "embedding_model_not_ready",
-                        "The selected embedding model is still downloading.",
-                        409,
-                    )
-                runtime = get_settings()
-                self._embedder = create_text_embedder(
-                    model_name=model_name,
-                    cache_dir=runtime.semantic_matching_model_dir,
-                    local_files_only=True,
-                    allow_fallback=False,
-                )
-            else:
-                self._embedder = HashingTextEmbedder()
-            self._embedder_key = key
-        assert self._embedder is not None
-        return self._embedder
+        return engine.resolve_embedder(session, fallback=True)
 
     def _rollup(self, job_id: UUID) -> ProcessingJob | None:
         with self._session_factory.begin() as session:

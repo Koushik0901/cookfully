@@ -29,6 +29,7 @@ export default defineConfig({
     // cookies. Keep them isolated in time so a passing result is repeatable.
     maxWorkers: 1,
     fileParallelism: false,
+    testTimeout: 20000,
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

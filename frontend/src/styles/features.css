@@ -142,7 +142,7 @@
   object-fit: cover;
   transition: transform 420ms var(--ease-out-expo), filter 240ms ease;
 }
-.recipe-card__media img { object-position: calc(var(--thumbnail-focal-x, 0.5) * 100%) calc(var(--thumbnail-focal-y, 0.5) * 100%); transform: scale(var(--thumbnail-zoom, 1)); }
+.recipe-card__media img { position: absolute; width: calc(100% / var(--crop-width, 1)); height: calc(100% / var(--crop-height, 1)); left: calc(var(--crop-x, 0) / var(--crop-width, 1) * -100%); top: calc(var(--crop-y, 0) / var(--crop-height, 1) * -100%); object-fit: cover; }
 
 .recipe-card:hover .recipe-card__media img,
 .recipe-card:hover .recipe-card__media .recipe-fallback-art { transform: scale(1.035); }
@@ -293,7 +293,7 @@
 .recipe-hero__media::after { position: absolute; inset: 0; border: 1px solid var(--color-on-dark-line-strong); border-radius: inherit; content: ""; pointer-events: none; }
 .recipe-hero__media img,
 .recipe-hero__media .recipe-fallback-art { width: 100%; height: 100%; object-fit: cover; }
-.recipe-hero__media img { object-position: calc(var(--thumbnail-focal-x, 0.5) * 100%) calc(var(--thumbnail-focal-y, 0.5) * 100%); transform: scale(var(--thumbnail-zoom, 1)); }
+.recipe-hero__media img { position: absolute; width: calc(100% / var(--crop-width, 1)); height: calc(100% / var(--crop-height, 1)); left: calc(var(--crop-x, 0) / var(--crop-width, 1) * -100%); top: calc(var(--crop-y, 0) / var(--crop-height, 1) * -100%); object-fit: cover; }
 .recipe-provenance { margin: 0.75rem 0 0; color: var(--color-on-surface-variant); font-size: 0.82rem; }
 .recipe-provenance a { color: inherit; }
 .recipe-detail__collections { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.65rem; }
@@ -715,9 +715,12 @@
 .recipe-editor__photo-empty { display: grid; place-items: center; color: var(--color-on-surface-variant); background: var(--color-surface-low); }
 .thumbnail-crop-editor { display: grid; grid-template-columns: minmax(10rem, 14rem) 1fr; gap: 1rem; align-items: center; margin-block: 1rem; }
 .recipe-editor__crop { margin-block: 1rem; }
-.thumbnail-crop-editor__preview { aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface-high); cursor: grab; touch-action: none; }
+.thumbnail-crop-editor__preview { position: relative; overflow: hidden; border-radius: var(--radius-md); background: var(--color-surface-high); cursor: move; touch-action: none; }
 .thumbnail-crop-editor__preview:active { cursor: grabbing; }
-.thumbnail-crop-editor__preview img { width: 100%; height: 100%; object-fit: cover; transition: transform 180ms ease, object-position 180ms ease; }
+.thumbnail-crop-editor__preview img { display: block; width: 100%; height: 100%; }
+.thumbnail-crop-editor__stage { position: absolute; inset: 0; touch-action: none; }
+.thumbnail-crop-editor__frame { outline: 2px solid rgba(255, 255, 255, 0.95); box-shadow: 0 0 0 999px rgb(16 33 22 / 28%); }
+.thumbnail-crop-editor__frame:focus-visible { outline: 3px solid var(--color-primary); }
 .thumbnail-crop-editor__controls { display: grid; gap: 0.65rem; }
 .thumbnail-crop-editor__sliders { display: grid; gap: 0.55rem; }
 .thumbnail-crop-editor__sliders label { display: grid; gap: 0.25rem; color: var(--color-on-surface-variant); font-size: 0.82rem; font-weight: 650; }
@@ -1240,19 +1243,10 @@
 .deduction-row > div { display: grid; gap: 0.15rem; }
 .deduction-row small { font-size: 0.72rem; }
 
-/* Pantry — shelf-like inventory, not a database grid. */
+/* Pantry — shelf sections and the edit form inside staple cards. The card,
+   pulse, and discovery compositions live in redesign.css. */
 .pantry-section { display: grid; gap: 1.25rem; }
 .pantry-section > .section-heading { border-bottom: 1px solid var(--color-outline); padding-bottom: 0.75rem; }
-.pantry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2.5rem; }
-.pantry-card { display: grid; align-content: start; gap: 0.75rem; border-bottom: 1px solid var(--color-outline-variant); padding-block: 1.1rem; }
-.pantry-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.pantry-card__heading > div { display: grid; gap: 0.2rem; }
-.pantry-card__heading h3 { font-size: 1.15rem; }
-.pantry-card__heading p { color: var(--color-on-surface-variant); font-size: 0.82rem; }
-.pantry-card > .disclosure { border: 0; }
-.pantry-card > .disclosure > summary { width: fit-content; min-height: 2rem; padding: 0; color: var(--color-primary); font-size: 0.78rem; }
-.pantry-edit { display: grid; gap: 0.75rem; padding-top: 0.75rem; }
-.pantry-card > .actions { justify-content: space-between; margin: 0; }
 .match-badge--matched,
 .match-badge--manual { color: var(--status-success); background: var(--status-success-container); }
 .match-badge--proposed { color: var(--status-warning); background: var(--status-warning-container); }
@@ -1266,15 +1260,7 @@
 .pantry-empty__starters { display: grid; align-content: center; gap: 0.65rem; }
 .pantry-empty__starters > div { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
-.pantry-section--matches { border-top: 1px solid var(--color-outline); padding-top: 2.5rem; }
-.pantry-discovery__intro { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 1rem; }
-.pantry-discovery__mark { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-primary-container); }
-.pantry-discovery__mark svg { width: 1.25rem; }
-.pantry-discovery__intro > div { display: grid; gap: 0.35rem; }
 .pantry-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 0.75rem; max-width: 44rem; }
-.pantry-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.pantry-result { display: grid; gap: 0.75rem; border: 1px solid var(--color-card-raised-border); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-card-raised); box-shadow: var(--shadow-card-raised); }
-.pantry-result ul { padding-left: 1.2rem; }
 
 .pantry-dialog__header,
 .food-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
@@ -1349,8 +1335,6 @@
   .pantry-grid { grid-template-columns: 1fr; }
   .pantry-empty { grid-template-columns: 1fr; }
   .pantry-empty__intro { grid-template-columns: 1fr; }
-  .pantry-search { grid-template-columns: 1fr; }
-  .pantry-results { grid-template-columns: 1fr; }
   .pantry-dialog__quantity,
   .food-dialog__serving-grid { grid-template-columns: 1fr; }
 

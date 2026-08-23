@@ -34,7 +34,7 @@ def migrated_database_url(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
         connection.execute(text('CREATE EXTENSION IF NOT EXISTS "btree_gist"'))
         connection.execute(text(f'CREATE SCHEMA "{schema}"'))
         connection.execute(text(f'CREATE DOMAIN "{schema}".citext AS public.citext'))
-    url = make_url(base_url).update_query_dict({"options": f"-csearch_path={schema}"})
+    url = make_url(base_url).update_query_dict({"options": f"-csearch_path={schema},public"})
     isolated_url = url.render_as_string(hide_password=False)
     monkeypatch.setattr(
         "cookfully.infrastructure.config.get_settings",

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
@@ -59,13 +61,111 @@ def list_pantry_items(
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
 )
-def create_pantry_item(
+async def create_pantry_item(
     payload: PantryItemWriteRequest,
     service: Annotated[PantryService, Depends(pantry_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
 ) -> PantryItemResponse:
+    # Inline bulk paste: detect delimiters and race pantry_extract (600ms gate)
+    display_name = payload.display_name
+    has_bulk = "," in display_name or ";" in display_name or "\n" in display_name
+    if has_bulk:
+        try:
+            from cookfully.infrastructure.config import get_settings
+
+            settings = get_settings()
+            if settings.intelligence_inline_enabled:
+                from cookfully.application.inline_repair import (
+                    InlineRepairGateway,
+                    PantryExtractSchema,
+                )
+                from cookfully.domain.common import utc_now
+                from cookfully.intelligence.client import IntelligenceClient
+                from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
+
+                system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
+
+                def _build_prompt(raw: str) -> str:
+                    truncated = raw[:800]
+                    window = truncated[:400] if len(truncated) > 400 else truncated
+                    return window[:256]
+
+                prompt = _build_prompt(display_name)
+                client = IntelligenceClient(
+                    settings.intelligence_url,
+                    settings.intelligence_service_key.get_secret_value(),
+                    enabled=settings.intelligence_enabled,
+                    timeout_seconds=settings.intelligence_timeout_seconds,
+                )
+                gw = InlineRepairGateway(
+                    client,
+                    threshold=settings.intelligence_inline_threshold,
+                    timeout_ms=settings.intelligence_inline_timeout_ms,
+                )
+                tools = (
+                    ToolDefinition(
+                        name="pantry_items",
+                        description="Extract pantry items",
+                        parameters=PantryExtractSchema.model_json_schema(),
+                    ),
+                )
+                req = InferenceRequest(
+                    requestId="inline-pantry",
+                    operation="pantry_extract",
+                    prompt=prompt,
+                    tools=tools,
+                    context={},
+                    system=system,
+                )
+                resp = None
+                try:
+                    resp = await asyncio.wait_for(
+                        asyncio.to_thread(client.infer, req, timeout_seconds=gw._timeout),
+                        timeout=gw._timeout,
+                    )
+                except TimeoutError:
+                    resp = None
+                except Exception:
+                    resp = None
+                if resp is not None and gw._gate(resp):
+                    try:
+                        parsed = PantryExtractSchema.model_validate(
+                            resp.function_calls[0].arguments
+                        )
+                    except Exception:
+                        parsed = None
+                    if parsed is not None and len(parsed.items) > 1:
+                        # gap-only split: N rows via loop, return first
+                        created = []
+                        for item in parsed.items:
+                            # use single-create helper to avoid re-triggering bulk check
+                            read = service._create_single(
+                                owner.id,
+                                display_name=item.name,
+                                quantity=Decimal(str(item.quantity)),
+                                unit=item.unit,
+                                expires_on=payload.expires_on,
+                                food_reference_id=None,
+                            )
+                            created.append(read)
+                        # complete idempotency for bulk as first item
+                        response = PantryItemResponse.from_read(created[0])
+                        # store bulk result as first for replay (best-effort)
+                        try:
+                            idempotency.complete(
+                                owner_id=owner.id,
+                                key=key,
+                                response_status=201,
+                                resource_id=response.id,
+                                response_body=response.model_dump(mode="json", by_alias=True),
+                            )
+                        except Exception:
+                            pass
+                        return response
+        except Exception:
+            pass
     request_body = payload.model_dump(mode="json", by_alias=True)
     decision = idempotency.begin(
         owner_id=owner.id, key=key, operation="pantry.item.create", payload=request_body
@@ -77,16 +177,15 @@ def create_pantry_item(
             )
         return PantryItemResponse.model_validate(decision.response_body)
     try:
-        response = PantryItemResponse.from_read(
-            service.create(
-                owner.id,
-                display_name=payload.display_name,
-                quantity=payload.quantity,
-                unit=payload.unit,
-                expires_on=payload.expires_on,
-                food_reference_id=payload.food_reference_id,
-            )
+        result = service.create(
+            owner.id,
+            display_name=payload.display_name,
+            quantity=payload.quantity,
+            unit=payload.unit,
+            expires_on=payload.expires_on,
+            food_reference_id=payload.food_reference_id,
         )
+        response = PantryItemResponse.from_read(result)
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise

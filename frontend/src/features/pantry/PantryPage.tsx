@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CalendarClock, PackagePlus, Search } from "lucide-react";
+import { ArrowRight, CalendarClock, PackagePlus, Search, Sparkles } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -20,31 +20,55 @@ import {
   Select,
   Skeleton,
 } from "../../components";
+import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { RecipeMedia, type RecipeMediaSource } from "../../components/cookfully/RecipeMedia";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { planningApi } from "../plans/api";
 import { todayInTimezone } from "../plans/dates";
 import { pantryApi } from "./api";
-import type { PantryItem, PantryItemWrite } from "./types";
+import type { PantryItem, PantryItemWrite, PantryRecipeMatch } from "./types";
 
 const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
+const DAY_MS = 86_400_000;
+
+function weekdayLabel(value: string) {
+  return new Intl.DateTimeFormat("en-CA", { weekday: "long", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
 
 function formatUseBy(value: string) {
   return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
-function formatUseByUrgency(value: string, todayValue: string) {
-  const today = new Date(`${todayValue}T00:00:00Z`);
-  const expires = new Date(`${value}T00:00:00Z`);
-  const days = Math.round((expires.getTime() - today.getTime()) / 86_400_000);
-  if (days < 0) return "Past use-by";
-  if (days === 0) return "Use today";
-  if (days === 1) return "1 day left";
-  return `${days} days left`;
+function daysUntil(value: string, todayValue: string) {
+  return Math.round((Date.parse(`${value}T00:00:00Z`) - Date.parse(`${todayValue}T00:00:00Z`)) / DAY_MS);
 }
 
-function PantryItemCard({ item }: { item: PantryItem }) {
+function urgencyLabel(value: string, todayValue: string) {
+  const days = daysUntil(value, todayValue);
+  if (days < 0) return "Past use-by";
+  if (days === 0) return "Use today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}
+
+function urgencyTone(value: string, todayValue: string) {
+  const days = daysUntil(value, todayValue);
+  if (days <= 1) return "critical";
+  if (days <= 3) return "soon";
+  return "later";
+}
+
+const MATCH_ORDER = new Map([["proposed", 0], ["unmatched", 1], ["matched", 2], ["manual", 2]]);
+
+function matchLabel(item: PantryItem) {
+  if (item.matchStatus === "matched" || item.matchStatus === "manual") return "Ready to use";
+  if (item.matchStatus === "proposed") return `Review match${item.matchConfidence ? ` · ${Math.round(Number(item.matchConfidence) * 100)}%` : ""}`;
+  return "Needs a match";
+}
+
+function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState(item.displayName);
   const [quantity, setQuantity] = useState(formatCookingInput(item.quantity));
@@ -92,9 +116,6 @@ function PantryItemCard({ item }: { item: PantryItem }) {
   });
   const error = update.error ?? remove.error;
   const conflict = error instanceof ApiProblem && error.status === 409;
-  const matchLabel = item.matchStatus === "matched" || item.matchStatus === "manual"
-    ? "Ready to use"
-    : item.matchStatus === "proposed" ? "Review match" : "Needs a match";
 
   function save(event: FormEvent) {
     event.preventDefault();
@@ -108,52 +129,110 @@ function PantryItemCard({ item }: { item: PantryItem }) {
   }
 
   return (
-    <article className="pantry-card" aria-label={item.displayName}>
-      <div className="pantry-card__heading">
-        <div>
+    <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
+      <span className="pantry-staple__stamp" aria-hidden="true">{item.displayName.trim().charAt(0).toUpperCase() || "?"}</span>
+      <div className="pantry-staple__body">
+        <header className="pantry-staple__heading">
           <h3>{item.displayName}</h3>
-          <p className="data-value">{formatCookingNumber(item.quantity)} {item.unit}{item.expiresOn ? ` · Use by ${formatUseBy(item.expiresOn)}` : ""}</p>
+          <span className={`match-badge match-badge--${item.matchStatus}`}>{matchLabel(item)}</span>
+        </header>
+        <p className="pantry-staple__facts">
+          <span className="pantry-staple__quantity">{formatCookingNumber(item.quantity)} {item.unit}</span>
+          {item.expiresOn ? (
+            <span className={`pantry-staple__useby pantry-staple__useby--${urgencyTone(item.expiresOn, today)}`}>
+              <CalendarClock aria-hidden="true" />
+              Use by {formatUseBy(item.expiresOn)} · {urgencyLabel(item.expiresOn, today)}
+            </span>
+          ) : (
+            <span className="pantry-staple__useby pantry-staple__useby--none">No date</span>
+          )}
+        </p>
+        {item.matchStatus === "proposed" ? (
+          <p className="pantry-staple__note">Confirm this food match before Cookfully uses it for recipe ideas or pantry deductions.</p>
+        ) : item.matchStatus === "unmatched" ? (
+          <p className="pantry-staple__note pantry-staple__note--quiet">This stays on your inventory, but Cookfully will not subtract or match it automatically yet.</p>
+        ) : null}
+        {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
+        <details className="disclosure pantry-staple__edit"><summary>Edit {item.displayName}</summary><form className="pantry-edit" onSubmit={save}>
+          <Field label={`${item.displayName} food name`}>
+            <input className="input" value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
+          </Field>
+          <div className="pantry-edit__row">
+            <Field label={`${item.displayName} quantity`}>
+              <DecimalInput value={quantity} onValueChange={setQuantity} />
+            </Field>
+            <Field label={`${item.displayName} unit`}>
+              <Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
+                {UNITS.map((value) => <option key={value}>{value}</option>)}
+              </Select>
+            </Field>
+          </div>
+          <div className="pantry-edit__row">
+            <Field label={`${item.displayName} use-by date`} hint="Optional. Only fresh food benefits from a reminder.">
+              <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
+            </Field>
+            <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
+              <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
+            </Field>
+          </div>
+          <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>Save {item.displayName}</Button>
+        </form></details>
+        <div className="actions pantry-staple__actions">
+          {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
+          <ConfirmDialog
+            trigger={<Button variant="ghost" disabled={update.isPending || remove.isPending}>Remove {item.displayName}</Button>}
+            title={`Remove ${item.displayName}?`}
+            description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
+            confirmLabel="Remove pantry item"
+            onConfirm={() => remove.mutate()}
+          />
         </div>
-        <span className={`match-badge match-badge--${item.matchStatus}`}>
-          {matchLabel}
-          {item.matchConfidence ? ` · ${Math.round(Number(item.matchConfidence) * 100)}%` : ""}
-        </span>
       </div>
-      {item.matchStatus === "proposed" ? (
-        <p className="notice">Confirm this food match before Cookfully uses it for recipe ideas or pantry deductions.</p>
-      ) : item.matchStatus === "unmatched" ? (
-        <p className="muted">This stays on your inventory, but Cookfully will not subtract or match it automatically yet.</p>
-      ) : null}
-      <details className="disclosure"><summary>Edit {item.displayName}</summary><form className="pantry-edit" onSubmit={save}>
-        <Field label={`${item.displayName} food name`}>
-          <input className="input" value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
-        </Field>
-        <Field label={`${item.displayName} quantity`}>
-          <DecimalInput value={quantity} onValueChange={setQuantity} />
-        </Field>
-        <Field label={`${item.displayName} unit`}>
-          <Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
-            {UNITS.map((value) => <option key={value}>{value}</option>)}
-          </Select>
-        </Field>
-        <Field label={`${item.displayName} use-by date`} hint="Optional. Used only to surface food that deserves attention soon.">
-          <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
-        </Field>
-        <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
-          <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
-        </Field>
-        <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>Save {item.displayName}</Button>
-      </form></details>
-      {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
-      <div className="actions">
-        {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
-        <ConfirmDialog
-          trigger={<Button variant="ghost" disabled={update.isPending || remove.isPending}>Remove {item.displayName}</Button>}
-          title={`Remove ${item.displayName}?`}
-          description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
-          confirmLabel="Remove pantry item"
-          onConfirm={() => remove.mutate()}
-        />
+    </article>
+  );
+}
+
+function AttentionRow({ item, tone, urgency }: { item: PantryItem; tone: string; urgency: string }) {
+  return (
+    <article className={`pantry-attention__item${tone === "critical" ? " pantry-attention__item--critical" : ""}`}>
+      <span className="pantry-attention__icon" aria-hidden="true">{item.displayName.trim().charAt(0).toUpperCase() || "?"}</span>
+      <div>
+        <strong>{item.displayName}</strong>
+        <small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small>
+      </div>
+      <span className={`pantry-attention__urgency pantry-attention__urgency--${tone}`}>{urgency}</span>
+    </article>
+  );
+}
+
+function MatchResultCard({ match, recipe }: { match: PantryRecipeMatch; recipe?: RecipeMediaSource }) {
+  const coverage = Math.round(Number(match.coverageRatio) * 100);
+  const availabilityLabel = match.availability === "full" ? "Fully makeable" : match.availability === "partial" ? "Partially makeable" : "Not makeable";
+  return (
+    <article className="pantry-match" aria-label={match.recipeTitle}>
+      <Link className="pantry-match__media" to={`/app/recipes/${match.recipeId}`} tabIndex={-1} aria-hidden="true">
+        {recipe ? <RecipeMedia recipe={recipe} loading="eager" /> : <RecipeFallbackArt title={match.recipeTitle} />}
+      </Link>
+      <div className="pantry-match__body">
+        <header className="pantry-match__heading">
+          <h3><Link to={`/app/recipes/${match.recipeId}`}>{match.recipeTitle}</Link></h3>
+          <span className={`match-badge match-badge--${match.availability}`}>{availabilityLabel}</span>
+        </header>
+        {recipe ? <RecipeMetadata recipe={recipe} compact /> : null}
+        <p className="pantry-match__coverage">
+          <strong>{coverage}%</strong> of required ingredients are already on your shelf.
+        </p>
+        {match.missingIngredients.length ? (
+          <div className="pantry-match__gaps">
+            <span className="eyebrow">Still needed</span>
+            <ul>
+              {match.missingIngredients.slice(0, 4).map((value) => <li key={value}>{value}</li>)}
+              {match.missingIngredients.length > 4 ? <li className="pantry-match__more">+{match.missingIngredients.length - 4} more</li> : null}
+            </ul>
+          </div>
+        ) : (
+          <p className="success-text pantry-match__done">Nothing missing — this one is ready when you are.</p>
+        )}
       </div>
     </article>
   );
@@ -232,54 +311,120 @@ export function PantryPage() {
   if (items.isPending || preferences.isPending) return <PageState><Skeleton label="Loading pantry" lines={8} /></PageState>;
   if (preferences.isError) return <PageState><ErrorRecovery title="Calendar preferences could not be loaded" onRetry={() => void preferences.refetch()} /></PageState>;
   if (items.isError) return <PageState><ErrorRecovery title="Pantry could not be loaded" onRetry={() => void items.refetch()} /></PageState>;
+
   const today = todayInTimezone(preferences.data.timezone);
-  const datedItems = items.data
-    .filter((item) => item.expiresOn)
-    .sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
-  const expiredItems = datedItems.filter((item) => item.expiresOn! < today);
-  const useSoonItems = datedItems.filter((item) => item.expiresOn! >= today);
+  const datedItems = items.data.filter((item) => item.expiresOn);
+  const expiredItems = datedItems.filter((item) => item.expiresOn! < today).sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
+  const useSoonItems = datedItems.filter((item) => item.expiresOn! >= today).sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
+  const readyCount = items.data.filter((item) => item.matchStatus === "matched" || item.matchStatus === "manual").length;
+  const reviewCount = items.data.length - readyCount;
+  const shelf = [...items.data].sort((a, b) =>
+    (MATCH_ORDER.get(a.matchStatus) ?? 3) - (MATCH_ORDER.get(b.matchStatus) ?? 3)
+    || (a.expiresOn ?? "9999-12-31").localeCompare(b.expiresOn ?? "9999-12-31"));
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
+
+  const pulse = [
+    { label: "On hand", value: items.data.length },
+    { label: "Ready to cook with", value: readyCount },
+    { label: reviewCount ? "Need your review" : "Nothing to review", value: reviewCount, href: reviewCount ? "#pantry-shelf" : undefined, attention: reviewCount > 0 },
+    { label: "Use soon", value: useSoonItems.length, href: useSoonItems.length ? "#pantry-use-soon" : undefined },
+  ];
 
   return (
     <main className="page-shell pantry-page">
-      <PageHeader eyebrow="Your kitchen" title="What’s already at home?" description="Keep a lightweight inventory of staples and ingredients so weekly prep starts with what you already have." actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild variant="secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>} />
+      <PageHeader
+        eyebrow={`Your kitchen · ${weekdayLabel(today)}`}
+        title="What’s already at home?"
+        description="Keep a lightweight inventory of staples and ingredients so weekly prep starts with what you already have."
+        actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild variant="secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>}
+      />
 
-      <section className="pantry-attention" aria-labelledby="pantry-use-soon-title">
+      <nav className="pantry-pulse" aria-label="Shelf at a glance">
+        {pulse.map((stat) => {
+          const content = <>
+            <strong>{stat.value}</strong>
+            <span>{stat.label}</span>
+          </>;
+          return stat.href ? (
+            <a key={stat.label} className={`pantry-pulse__stat${stat.attention ? " pantry-pulse__stat--attention" : ""}`} href={stat.href}>
+              {content}
+              <ArrowRight aria-hidden="true" />
+            </a>
+          ) : (
+            <div key={stat.label} className="pantry-pulse__stat">{content}</div>
+          );
+        })}
+      </nav>
+
+      <section className={`pantry-attention${useSoonItems.length || expiredItems.length ? "" : " pantry-attention--calm"}`} id="pantry-use-soon" aria-labelledby="pantry-use-soon-title">
         <SectionHeading
           eyebrow="Use soon"
-          title={useSoonItems.length ? "Cook these before they’re forgotten" : "Nothing needs attention yet"}
-          description={useSoonItems.length ? "The nearest use-by dates lead the shelf, so dinner can solve waste before it starts." : "Add dates only to fresh food that benefits from a reminder. Shelf-stable staples can stay undated."}
+          title={expiredItems.length ? `${expiredItems.length} item${expiredItems.length === 1 ? "" : "s"} past their best` : useSoonItems.length ? "Cook these before they’re forgotten" : "Nothing needs attention yet"}
+          description={
+            expiredItems.length ? "These passed their use-by date. Check them before cooking or planning with them."
+            : useSoonItems.length ? "The nearest dates lead the list, so dinner can solve waste before it starts."
+            : "Add dates only to fresh food that benefits from a reminder. Shelf-stable staples can stay undated."
+          }
           id="pantry-use-soon-title"
-          action={<Button asChild variant="ghost"><a href="#pantry-shelf">Review the shelf</a></Button>}
+          action={useSoonItems.length || expiredItems.length ? <Button asChild variant="ghost"><a href="#pantry-shelf">Review the shelf</a></Button> : undefined}
         />
-        {useSoonItems.length ? <div className="pantry-attention__items">{useSoonItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">{formatUseByUrgency(item.expiresOn!, today)}</span></article>)}</div> : null}
+        {expiredItems.length || useSoonItems.length ? (
+          <div className="pantry-attention__items">
+            {expiredItems.slice(0, 4).map((item) => <AttentionRow key={item.id} item={item} tone="critical" urgency="Past use-by" />)}
+            {useSoonItems.slice(0, expiredItems.length ? 2 : 4).map((item) => <AttentionRow key={item.id} item={item} tone={urgencyTone(item.expiresOn!, today)} urgency={urgencyLabel(item.expiresOn!, today)} />)}
+          </div>
+        ) : (
+          <span className="pantry-attention__companion" aria-hidden="true"><KitchenCompanion moment="empty" size="sm" /></span>
+        )}
       </section>
-
-      {expiredItems.length ? <section className="pantry-attention pantry-attention--expired" aria-labelledby="pantry-expired-title">
-        <SectionHeading
-          eyebrow="Expired"
-          title={`${expiredItems.length} item${expiredItems.length === 1 ? "" : "s"} past use-by`}
-          description="These items are no longer in the use-soon window. Check them before planning with them."
-          id="pantry-expired-title"
-        />
-        <div className="pantry-attention__items">{expiredItems.slice(0, 4).map((item) => <article key={item.id} className="pantry-attention__item pantry-attention__item--expired"><span className="pantry-attention__icon" aria-hidden="true"><CalendarClock /></span><div><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small></div><span className="pantry-attention__urgency">Past use-by</span></article>)}</div>
-      </section> : null}
 
       <section className="pantry-section pantry-section--inventory" id="pantry-shelf">
         <SectionHeading eyebrow="Your shelf" title="On hand" meta={`${items.data.length} item${items.data.length === 1 ? "" : "s"}`} />
-        {items.data.length ? <div className="pantry-grid">{items.data.map((item) => <PantryItemCard item={item} key={item.id} />)}</div> : <div className="pantry-empty">
-          <div className="pantry-empty__intro"><KitchenCompanion moment="empty" size="md" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
-          <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
-        </div>}
+        {shelf.length ? (
+          <div className="pantry-grid">
+            {shelf.map((item) => <PantryItemCard item={item} today={today} key={item.id} />)}
+          </div>
+        ) : (
+          <div className="pantry-empty">
+            <div className="pantry-empty__intro"><KitchenCompanion moment="empty" size="md" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
+            <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
+          </div>
+        )}
       </section>
 
-      {items.data.length ? <section className="pantry-section pantry-section--matches">
-        <div className="pantry-discovery__intro"><span className="pantry-discovery__mark" aria-hidden="true"><Search /></span><div><p className="eyebrow">Use what you have</p><h2>Find a meal from your shelf</h2><p className="muted">Compare your recipes with what is on hand. Ingredients awaiting a match stay out until you review them.</p></div></div>
-        <div className="pantry-search"><SearchField label="Recipe name (optional)" value={recipeQuery} onChange={(event) => { setRecipeQuery(event.currentTarget.value); setSearchEnabled(false); }} onClear={() => { setRecipeQuery(""); setSearchEnabled(false); }} placeholder="Leave empty to check every recipe" /><Button onClick={() => setSearchEnabled(true)}>Find recipes</Button></div>
-        {matches.isFetching ? <p role="status">Comparing recipes with your pantry…</p> : null}
-        {matches.isError ? <ErrorRecovery title="Recipe availability could not be checked" onRetry={() => void matches.refetch()} /> : null}
-        {matches.data?.length ? <div className="pantry-results">{matches.data.map((match) => { const recipe = recipesById.get(match.recipeId); return <article className="pantry-result" aria-label={match.recipeTitle} key={match.recipeId}><div className="pantry-card__heading"><h3><Link to={`/app/recipes/${match.recipeId}`}>{match.recipeTitle}</Link></h3><span className={`match-badge match-badge--${match.availability}`}>{match.availability === "full" ? "Fully makeable" : match.availability === "partial" ? "Partially makeable" : "Not makeable"}</span></div>{recipe ? <RecipeMetadata recipe={recipe} compact /> : null}<p className="data-value">{Math.round(Number(match.coverageRatio) * 100)}% of required ingredients covered</p>{match.missingIngredients.length ? <div><strong>Still needed</strong><ul>{match.missingIngredients.map((value) => <li key={value}>{value}</li>)}</ul></div> : <p className="success-text">No required ingredients missing.</p>}</article>; })}</div> : searchEnabled && matches.data ? <EmptyState title="No recipes found" description="Try a different title filter or add recipes first." /> : null}
-      </section> : null}
+      {items.data.length ? (
+        <section className="pantry-section pantry-cook" id="pantry-cook">
+          <SectionHeading
+            eyebrow="Use what you have"
+            title="Cook from your shelf"
+            description="Compare your recipes with what is on hand. Ingredients awaiting a match stay out until you review them."
+            action={<span className="pantry-cook__hint" aria-hidden="true"><Sparkles /> Shelf-aware ideas</span>}
+          />
+          <div className="pantry-search">
+            <SearchField
+              label="Recipe name (optional)"
+              value={recipeQuery}
+              onChange={(event) => { setRecipeQuery(event.currentTarget.value); setSearchEnabled(false); }}
+              onClear={() => { setRecipeQuery(""); setSearchEnabled(false); }}
+              placeholder="Leave empty to check every recipe"
+            />
+            <Button onClick={() => setSearchEnabled(true)}><Search aria-hidden="true" />Find recipes</Button>
+          </div>
+          {matches.isFetching ? <p className="muted" role="status">Comparing recipes with your pantry…</p> : null}
+          {matches.isError ? <ErrorRecovery title="Recipe availability could not be checked" onRetry={() => void matches.refetch()} /> : null}
+          {matches.data?.length ? (
+            <div className="pantry-results">
+              {matches.data.map((match) => <MatchResultCard key={match.recipeId} match={match} recipe={recipesById.get(match.recipeId)} />)}
+            </div>
+          ) : searchEnabled && matches.data ? (
+            <EmptyState title="No recipes found" description="Try a different title filter or add recipes first." />
+          ) : null}
+          <p className="pantry-cook__more muted">
+            <ArrowRight aria-hidden="true" />
+            Matches improve as you confirm foods in <Link to="/app/foods">your food library</Link>.
+          </p>
+        </section>
+      ) : null}
     </main>
   );
 }

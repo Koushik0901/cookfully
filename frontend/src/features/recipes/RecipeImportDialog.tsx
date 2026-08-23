@@ -19,7 +19,7 @@ interface EditableComponent {
   ingredients: EditableIngredient[];
   instructions: string[];
 }
-const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ focalX: "0.5", focalY: "0.5", zoom: "1" });
+const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ x: "0", y: "0", width: "1", height: "1" });
 
 function componentsPayload(components: EditableComponent[]): ImportConfirmComponent[] {
   return components.map((component) => ({

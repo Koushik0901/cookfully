@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.application.ai_provider import (
@@ -22,7 +23,7 @@ from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.jobs.recipe_pipeline import RecipePipeline
 
-WEEK_START = "2026-03-09"
+WEEK_START = week_date(0)
 
 
 class ProviderSubstitute:

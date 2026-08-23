@@ -293,7 +293,10 @@ class RecipeQueryService:
             source_url=recipe.source_url,
             image_url=(f"/api/v1/media/{recipe.image_asset_id}" if recipe.image_asset_id else None),
             thumbnail_crop=ThumbnailCrop(
-                recipe.thumbnail_focal_x, recipe.thumbnail_focal_y, recipe.thumbnail_zoom
+                recipe.thumbnail_x,
+                recipe.thumbnail_y,
+                recipe.thumbnail_width,
+                recipe.thumbnail_height,
             ),
             origin_kind=recipe.origin_kind,
             yield_quantity=recipe.yield_quantity,

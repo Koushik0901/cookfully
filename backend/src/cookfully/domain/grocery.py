@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 from uuid import UUID
 
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal
+from cookfully.domain.ingredient_nutrition.normalization import tokenize
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,16 +68,8 @@ UNITS = {
 
 
 def normalize_food_name(value: str) -> str:
-    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().lower()
-    words = re.sub(r"[^a-z0-9]+", " ", folded).strip().split()
-    normalized: list[str] = []
-    for word in words:
-        if len(word) > 4 and word.endswith("ies"):
-            word = f"{word[:-3]}y"
-        elif len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
-            word = word[:-1]
-        normalized.append(word)
-    return " ".join(normalized)
+    stripped = re.sub(r"^\s*\d+[x×]?\s*", "", value)  # noqa: RUF001
+    return " ".join(tokenize(stripped))
 
 
 def _unit(code: str | None, text: str | None) -> _Unit | None:

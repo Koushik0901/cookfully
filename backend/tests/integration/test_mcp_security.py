@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.domain.common import DomainError
@@ -15,6 +16,9 @@ from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.identity import AccessToken, OwnerAccount
 from cookfully.mcp.security import RATE_LIMITS
 from cookfully.mcp.write_tools import WriteTools
+
+WEEK_START = week_date(0)
+NEXT_DAY = week_date(1)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -117,12 +121,12 @@ def test_token_scope_expiry_revocation_and_browser_only_management(
         bearer = {"Authorization": f"Bearer {created['secret']}"}
 
         # A read-only token reaches a scoped read (the plan itself is not seeded) but cannot mutate.
-        assert client.get("/api/v1/meal-plans/2026-03-09", headers=bearer).status_code == 404
+        assert client.get(f"/api/v1/meal-plans/{WEEK_START}", headers=bearer).status_code == 404
         denied = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
             headers={**bearer, "Idempotency-Key": "scope-denied-write"},
             json={
-                "localDate": "2026-03-09",
+                "localDate": WEEK_START,
                 "mealSlot": "lunch",
                 "recipeId": "00000000-0000-4000-8000-000000000001",
                 "servings": "1.000",
@@ -141,7 +145,7 @@ def test_token_scope_expiry_revocation_and_browser_only_management(
             ).status_code
             == 204
         )
-        invalid = client.get("/api/v1/meal-plans/2026-03-09", headers=bearer)
+        invalid = client.get(f"/api/v1/meal-plans/{WEEK_START}", headers=bearer)
         assert invalid.status_code == 401
         assert invalid.json()["code"] == "token_invalid"
 
@@ -239,10 +243,10 @@ def test_mcp_stale_version_aborts_idempotency_and_rate_limit_revocation_fail_clo
                 == 201
             )
         entry = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
             headers={**headers, "Idempotency-Key": "mcp-security-plan-entry"},
             json={
-                "localDate": "2026-03-09",
+                "localDate": WEEK_START,
                 "mealSlot": "lunch",
                 "recipeId": recipe["id"],
                 "servings": "1",
@@ -262,7 +266,7 @@ def test_mcp_stale_version_aborts_idempotency_and_rate_limit_revocation_fail_clo
             tools.update_meal_plan_entry(
                 owner,
                 entry_id=entry["id"],
-                local_date="2026-03-10",
+                local_date=NEXT_DAY,
                 meal_slot="dinner",
                 servings="1",
                 expected_version=999,
@@ -272,13 +276,13 @@ def test_mcp_stale_version_aborts_idempotency_and_rate_limit_revocation_fail_clo
         recovered = tools.update_meal_plan_entry(
             owner,
             entry_id=entry["id"],
-            local_date="2026-03-10",
+            local_date=NEXT_DAY,
             meal_slot="dinner",
             servings="1",
             expected_version=entry["version"],
             idempotency_key="mcp-security-stale-01",
         )
-        assert recovered["entry"]["localDate"] == "2026-03-10"
+        assert recovered["entry"]["localDate"] == NEXT_DAY
 
         token = client.post(
             "/api/v1/access-tokens",
@@ -290,7 +294,7 @@ def test_mcp_stale_version_aborts_idempotency_and_rate_limit_revocation_fail_clo
             client,
             token["secret"],
             "get_meal_plan",
-            {"week_start": "2026-03-09"},
+            {"week_start": WEEK_START},
         )
         assert limited["isError"] is True
         assert limited["structuredContent"]["error"]["code"] == "rate_limit_exceeded"

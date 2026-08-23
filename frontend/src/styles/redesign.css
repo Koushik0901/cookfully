@@ -157,7 +157,8 @@
 .week-meal__body { display: grid; min-width: 0; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 0.75rem; border-radius: var(--radius); padding: 0.2rem 2.8rem 0.2rem 0.2rem; color: inherit; text-decoration: none; cursor: grab; }
 .week-meal__body:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .week-meal__body:active { cursor: grabbing; }
-.week-meal__media { width: 3.5rem; height: 3.5rem; border-radius: var(--radius); }
+.week-meal__media { position: relative; overflow: hidden; width: 3.5rem; height: 3.5rem; border-radius: var(--radius); }
+.week-meal__media img { position: absolute; width: calc(100% / var(--crop-width, 1)); height: calc(100% / var(--crop-height, 1)); left: calc(var(--crop-x, 0) / var(--crop-width, 1) * -100%); top: calc(var(--crop-y, 0) / var(--crop-height, 1) * -100%); object-fit: cover; }
 .week-meal__copy { display: grid; min-width: 0; gap: 0.1rem; }
 .week-meal__copy strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 1rem; line-height: 1.2; overflow-wrap: anywhere; }
 .week-meal__copy > span { color: var(--color-on-surface-variant); font-size: var(--text-caption); }
@@ -191,24 +192,102 @@
 .day-meal-overlay svg { width: 1rem; color: var(--color-primary); }
 .recipe-card__feedback { grid-column: 1 / -1; margin: 0; font-size: var(--text-caption); }
 
-/* Pantry leads with the decision that can expire. Inventory and discovery
-   remain below it as progressively deeper layers. */
+/* Pantry — the shelf as a working kitchen ledger: a quiet pulse first,
+   urgency second, inventory third, shelf-aware discovery last. */
+.pantry-page { gap: 2.25rem; }
+
+/* Pulse: four facts that orient the page before any scrolling. */
+.pantry-pulse { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.pantry-pulse__stat { position: relative; display: grid; align-content: center; gap: 0.18rem; min-height: 5.5rem; border-radius: var(--radius-xl) 2.75rem var(--radius-xl) var(--radius-xl); padding: 0.85rem 1.15rem; color: inherit; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
+a.pantry-pulse__stat { padding-right: 3.1rem; text-decoration: none; transition: transform var(--motion-fast) var(--ease-out-quart), box-shadow var(--motion-fast) ease; }
+a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width: 0.95rem; translate: 0 -50%; color: var(--color-primary); opacity: 0.5; transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
+@media (hover: hover) {
+  a.pantry-pulse__stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+  a.pantry-pulse__stat:hover > svg { opacity: 1; transform: translateX(0.18rem); }
+}
+.pantry-pulse__stat strong { color: var(--color-on-surface); font-family: var(--font-display); font-size: clamp(1.65rem, 2.4vw, 2rem); font-weight: 560; font-variant-numeric: tabular-nums; line-height: 1; }
+.pantry-pulse__stat > span { overflow: hidden; color: var(--color-on-surface-variant); font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
+.pantry-pulse__stat--attention strong { color: var(--status-warning); }
+.pantry-pulse__stat--attention > span { color: var(--color-on-surface); font-weight: 620; }
+
+/* Use-soon surface keeps the mint attention field; calm days collapse it to
+   a single teaching row instead of an empty stage. */
 .pantry-attention { display: grid; gap: 1.25rem; border-radius: var(--radius-xl) 4.5rem var(--radius-xl) var(--radius-xl); padding: clamp(1.25rem, 2.5vw, 2rem); background: var(--color-primary-container); }
-.pantry-attention--expired { background: color-mix(in oklch, var(--status-error-container) 52%, var(--color-surface)); }
 .pantry-attention .section-heading__description { color: var(--color-on-primary-container); }
+.pantry-attention--calm { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 2rem; }
+.pantry-attention--calm .section-heading { max-width: none; }
+.pantry-attention__companion { display: grid; width: 7.25rem; aspect-ratio: 1; place-items: center; border-radius: 46% 54% 52% 48%; background: color-mix(in oklch, var(--color-surface-bright) 76%, transparent); }
+.pantry-attention__companion svg { width: 4.75rem; }
 .pantry-attention__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .pantry-attention__item { display: grid; min-width: 0; grid-template-columns: 2.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.75rem; background: color-mix(in oklch, var(--color-surface-bright) 88%, transparent); box-shadow: var(--shadow-card-rest); }
-.pantry-attention__icon { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-surface-bright); }
-.pantry-attention__icon svg { width: 1.05rem; }
+.pantry-attention__icon { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
 .pantry-attention__item > div { display: grid; min-width: 0; gap: 0.15rem; }
 .pantry-attention__item strong,
 .pantry-attention__item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pantry-attention__item--expired { border-color: color-mix(in oklch, var(--color-tomato) 35%, var(--color-outline-variant)); background: color-mix(in oklch, var(--status-error-container) 28%, var(--color-surface-bright)); }
-.pantry-attention__item--expired .pantry-attention__urgency { color: var(--color-tomato); }
 .pantry-attention__item small { color: var(--color-on-surface-variant); font-size: 0.72rem; }
-.pantry-attention__urgency { color: var(--color-primary); font-size: 0.75rem; font-weight: 680; }
-.pantry-page .pantry-grid,
-.pantry-page .pantry-results { grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); }
+.pantry-attention__urgency { border-radius: var(--radius-full); padding: 0.3rem 0.65rem; color: var(--color-primary-hover); background: color-mix(in oklch, var(--color-primary) 11%, transparent); font-size: 0.72rem; font-weight: 680; white-space: nowrap; }
+.pantry-attention__urgency--critical,
+.pantry-attention__item--critical .pantry-attention__icon { color: var(--color-tomato); }
+.pantry-attention__urgency--critical { color: var(--color-tomato); background: color-mix(in oklch, var(--status-error-container) 88%, transparent); }
+
+/* Staple cards replace hairline rows: produce stamp, facts as chips, and the
+   review state tinted so blocked items surface first without shouting. */
+.pantry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 0.9rem; }
+.pantry-staple { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; border-radius: var(--radius-lg); padding: 1rem 1.15rem 1rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
+.pantry-staple--review { background: color-mix(in oklch, var(--status-warning-container) 46%, var(--color-surface-bright)); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-warning) 34%, transparent), var(--shadow-card-rest); }
+.pantry-staple__stamp { display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
+.pantry-staple--review .pantry-staple__stamp { background: var(--status-warning); }
+.pantry-staple__body { display: grid; min-width: 0; align-content: start; gap: 0.55rem; }
+.pantry-staple__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.pantry-staple__heading h3 { overflow-wrap: anywhere; font-size: 1.2rem; }
+.pantry-staple__facts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.9rem; margin: 0; }
+.pantry-staple__quantity { font-weight: 620; font-variant-numeric: tabular-nums; }
+.pantry-staple__useby { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-full); padding: 0.24rem 0.65rem; font-size: 0.74rem; font-weight: 620; white-space: nowrap; }
+.pantry-staple__useby svg { width: 0.8rem; }
+.pantry-staple__useby--none { color: var(--color-on-surface-variant); background: var(--color-surface-low); font-weight: 500; }
+.pantry-staple__useby--later { color: var(--color-primary-hover); background: color-mix(in oklch, var(--color-primary-container) 66%, transparent); }
+.pantry-staple__useby--soon { color: var(--status-warning); background: var(--status-warning-container); }
+.pantry-staple__useby--critical { color: var(--color-tomato); background: var(--status-error-container); }
+.pantry-staple__note { max-width: 56ch; color: var(--color-on-surface-variant); font-size: 0.82rem; line-height: 1.45; }
+.pantry-staple--review .pantry-staple__note { color: color-mix(in oklch, var(--status-warning) 72%, var(--color-on-surface)); }
+.pantry-staple__edit { border: 0; }
+.pantry-staple__edit > summary { width: fit-content; min-height: 2rem; justify-self: start; padding: 0; color: var(--color-primary); font-size: 0.8rem; }
+.pantry-edit { display: grid; gap: 0.75rem; padding-top: 0.75rem; }
+.pantry-edit__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.pantry-staple__actions { margin: 0; justify-content: flex-start; gap: 0.25rem; }
+
+/* Shelf-aware discovery sits on its own quiet field with media-led results. */
+.pantry-cook { gap: 1.4rem; border-radius: var(--radius-xl) 4.5rem var(--radius-xl) var(--radius-xl); padding: clamp(1.25rem, 2.5vw, 2rem); background: var(--color-surface-low); }
+.pantry-cook > .section-heading { border-bottom: 0; align-items: start; padding-bottom: 0; }
+.pantry-cook__hint { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: var(--radius-full); padding: 0.38rem 0.8rem; color: var(--color-on-primary-container); background: var(--color-accent-soft); font-size: var(--text-caption); font-weight: 620; white-space: nowrap; }
+.pantry-cook__hint svg { width: 0.9rem; }
+.pantry-search { max-width: 44rem; }
+.pantry-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 33rem), 1fr)); gap: 1rem; }
+.pantry-match { display: grid; grid-template-columns: minmax(7.5rem, 10.5rem) minmax(0, 1fr); overflow: hidden; border-radius: var(--radius-lg); background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); transition: transform var(--motion-fast) var(--ease-out-quart), box-shadow var(--motion-fast) ease; }
+@media (hover: hover) {
+  .pantry-match:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+  .pantry-match:hover img { transform: scale(1.035); }
+}
+.pantry-match__media { position: relative; display: block; overflow: hidden; background: var(--color-surface-high); }
+.pantry-match__media img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--motion-state) var(--ease-out-quart); }
+.pantry-match__body { display: grid; min-width: 0; align-content: start; gap: 0.55rem; padding: 1rem 1.15rem 1.1rem; }
+.pantry-match__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.pantry-match__heading h3 { overflow-wrap: anywhere; font-size: 1.25rem; }
+.pantry-match__heading h3 a { color: inherit; text-decoration: none; }
+.pantry-match__heading h3 a:hover { color: var(--color-primary-hover); text-decoration: underline; text-underline-offset: 0.2em; }
+.match-badge--full { color: var(--status-success); background: var(--status-success-container); }
+.match-badge--partial { color: var(--status-warning); background: var(--status-warning-container); }
+.match-badge--not_available,
+.match-badge--none { color: var(--color-tomato); background: var(--status-error-container); }
+.pantry-match__coverage { color: var(--color-on-surface-variant); font-size: 0.88rem; }
+.pantry-match__coverage strong { color: var(--color-on-surface); font-family: var(--font-display); font-size: 1.05rem; font-weight: 620; font-variant-numeric: tabular-nums; }
+.pantry-match__gaps { display: grid; gap: 0.4rem; }
+.pantry-match__gaps ul { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0; list-style: none; }
+.pantry-match__gaps li { border-radius: var(--radius-full); padding: 0.26rem 0.7rem; color: var(--color-tomato); background: var(--status-error-container); font-size: 0.76rem; font-weight: 620; }
+.pantry-match__gaps li.pantry-match__more { color: var(--color-on-surface-variant); background: var(--color-surface-high); }
+.pantry-match__done { width: fit-content; margin: 0; padding-block: 0.3rem; font-size: 0.84rem; }
+.pantry-cook__more { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.84rem; }
+.pantry-cook__more svg { width: 0.85rem; color: var(--color-primary); }
 
 /* A list that does not exist yet still has a purpose: it teaches the small
    kitchen loop and offers a direct first action. */
@@ -312,12 +391,29 @@
   .week-meal__body { grid-template-columns: 3.25rem minmax(0, 1fr); padding-right: 2.5rem; }
   .week-meal__media { width: 3.25rem; height: 3.25rem; }
   .week-meal__actions { top: 0.35rem; right: 0.35rem; background: transparent; box-shadow: none; opacity: 1; }
-  .pantry-attention { border-radius: var(--radius-xl) 3.5rem var(--radius-xl) var(--radius-xl); padding: 1.1rem; }
+  .pantry-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pantry-pulse__stat { min-height: 4.75rem; padding: 0.8rem 0.95rem; border-radius: var(--radius-lg); }
+  a.pantry-pulse__stat { padding-right: 2.6rem; min-height: 3.25rem; align-content: center; }
+  .pantry-attention { gap: 1rem; border-radius: var(--radius-xl) 3.5rem var(--radius-xl) var(--radius-xl); padding: 1.1rem; }
   .pantry-attention .section-heading { display: grid; }
+  .pantry-attention--calm { grid-template-columns: 1fr; row-gap: 1.1rem; }
+  .pantry-attention__companion { justify-self: start; width: 6.25rem; }
+  .pantry-attention__companion svg { width: 4.1rem; }
   .pantry-attention__items { grid-template-columns: 1fr; }
   .pantry-attention__item { grid-template-columns: 2.5rem minmax(0, 1fr); }
-  .pantry-attention__icon { width: 2.5rem; height: 2.5rem; }
-  .pantry-attention__urgency { grid-column: 2; }
+  .pantry-attention__icon { width: 2.5rem; height: 2.5rem; font-size: 1rem; }
+  .pantry-attention__urgency { grid-column: 2; justify-self: start; }
+
+  .pantry-grid { grid-template-columns: 1fr; }
+  .pantry-staple { padding: 0.9rem; }
+  .pantry-edit__row { grid-template-columns: 1fr; }
+  .pantry-cook { gap: 1.15rem; border-radius: var(--radius-xl) 3rem var(--radius-xl) var(--radius-xl); padding: 1.1rem; }
+  .pantry-cook > .section-heading { display: grid; }
+  .pantry-search { max-width: none; grid-template-columns: 1fr; }
+  .pantry-results { grid-template-columns: 1fr; }
+  .pantry-match { grid-template-columns: 1fr; }
+  .pantry-match__media { aspect-ratio: 5 / 3; }
+  .pantry-match__media img { height: auto; aspect-ratio: inherit; }
 
   .grocery-onramp { border-radius: var(--radius-xl) 3.5rem var(--radius-xl) var(--radius-xl); }
   .grocery-onramp__lead { min-height: 0; padding: 1.5rem 1.1rem; }
@@ -455,8 +551,9 @@
 .recipe-editor__view-toggle svg { width: 0.95rem; }
 .recipe-editor { width: min(100%, 76rem); gap: clamp(2rem, 4vw, 3.5rem); }
 .recipe-editor__hero { display: grid; grid-template-columns: minmax(22rem, 0.92fr) minmax(25rem, 1.08fr); align-items: center; gap: clamp(2rem, 5vw, 5rem); }
-.recipe-editor__hero-media { aspect-ratio: 3 / 2; overflow: hidden; border-radius: 1.75rem 5rem 1.75rem 1.75rem; background: var(--color-surface-low); box-shadow: var(--shadow-card-rest); }
+.recipe-editor__hero-media { position: relative; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 1.75rem 5rem 1.75rem 1.75rem; background: var(--color-surface-low); box-shadow: var(--shadow-card-rest); }
 .recipe-editor__hero-media > * { width: 100%; height: 100%; object-fit: cover; }
+.recipe-editor__hero-media > img { position: absolute; width: calc(100% / var(--crop-width, 1)); height: calc(100% / var(--crop-height, 1)); left: calc(var(--crop-x, 0) / var(--crop-width, 1) * -100%); top: calc(var(--crop-y, 0) / var(--crop-height, 1) * -100%); object-fit: cover; }
 .recipe-editor__hero-copy { display: grid; align-content: center; gap: 0.8rem; min-width: 0; }
 .recipe-editor__hero-copy > .field { gap: 0.25rem; }
 .recipe-editor__hero-copy > .field > .field__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

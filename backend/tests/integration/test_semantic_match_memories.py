@@ -11,8 +11,8 @@ from cookfully.application.food_match_memories import (
     remember_food_reference,
     remembered_food_reference,
 )
-from cookfully.application.food_matching import FoodMatcher, normalize_food
 from cookfully.domain.common import uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, normalize_food
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 from cookfully.infrastructure.models.reference_foods import (

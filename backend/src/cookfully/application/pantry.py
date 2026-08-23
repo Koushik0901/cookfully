@@ -1,49 +1,31 @@
 from __future__ import annotations
 
-import re
-import unicodedata
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from difflib import SequenceMatcher
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, require_version
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_pantry_name
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
-from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
+from cookfully.infrastructure.models.reference_foods import FoodReference
 
-
-@dataclass(frozen=True, slots=True)
-class _Unit:
-    dimension: str
-    canonical: str
-    factor: Decimal
-
-
-_UNITS = {
-    "mg": _Unit("mass", "mg", Decimal("0.001")),
-    "g": _Unit("mass", "g", Decimal("1")),
-    "gram": _Unit("mass", "g", Decimal("1")),
-    "grams": _Unit("mass", "g", Decimal("1")),
-    "kg": _Unit("mass", "kg", Decimal("1000")),
-    "ml": _Unit("volume", "ml", Decimal("1")),
-    "l": _Unit("volume", "l", Decimal("1000")),
-    "count": _Unit("count", "count", Decimal("1")),
-    "each": _Unit("count", "count", Decimal("1")),
-    "ea": _Unit("count", "count", Decimal("1")),
-}
-
-
-@dataclass(frozen=True, slots=True)
-class FoodNameMatch:
-    reference_id: str | None
-    status: str
-    confidence: Decimal
+__all__ = [
+    "PantryItemRead",
+    "PantryQuantity",
+    "PantryService",
+    "QuantityDeduction",
+    "apply_quantity_deduction",
+    "canonical_pantry_unit",
+    "convert_quantity",
+    "normalize_pantry_name",
+    "reverse_quantity_deduction",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,106 +60,63 @@ class PantryItemRead:
     version: int
 
 
-def normalize_pantry_name(value: str) -> str:
-    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().casefold()
-    return re.sub(r"[^a-z0-9]+", " ", folded).strip()
-
-
 def canonical_pantry_unit(value: str) -> str:
-    normalized = value.strip().casefold().rstrip(".")
-    unit = _UNITS.get(normalized)
-    if unit is None:
-        raise DomainError(
-            "pantry_unit_unsupported",
-            "Pantry quantities require a supported mass, volume, or count unit.",
-            422,
-        )
-    return unit.canonical
+    try:
+        return engine.canonical_pantry_unit(value)
+    except DomainError as e:
+        if e.code in ("unsafe_conversion", "quantity_unavailable"):
+            raise DomainError(
+                "pantry_unit_unsupported",
+                "Pantry quantities require a supported mass, volume, or count unit.",
+                422,
+            ) from e
+        raise
 
 
 def convert_quantity(quantity: Decimal, from_unit: str, to_unit: str) -> Decimal:
-    source = _UNITS.get(from_unit.strip().casefold().rstrip("."))
-    target = _UNITS.get(to_unit.strip().casefold().rstrip("."))
-    if source is None or target is None:
-        raise DomainError(
-            "pantry_unit_unsupported",
-            "Pantry quantities require a supported mass, volume, or count unit.",
-            422,
-        )
-    if source.dimension != target.dimension:
-        raise DomainError(
-            "pantry_unit_incompatible",
-            "Pantry and grocery quantities must use compatible units.",
-            422,
-        )
-    if quantity < 0:
-        raise DomainError("pantry_quantity_negative", "Pantry quantity cannot be negative.", 422)
-    return quantize_decimal(quantity * source.factor / target.factor, NUTRIENT_SCALE)
-
-
-def match_food_name(
-    display_name: str,
-    candidates: Sequence[tuple[str, str]],
-) -> FoodNameMatch:
-    query = normalize_pantry_name(display_name)
-    if not query or not candidates:
-        return FoodNameMatch(None, "unmatched", Decimal("0.000000"))
-    scored = sorted(
-        (
-            (
-                quantize_decimal(
-                    Decimal(str(SequenceMatcher(None, query, normalize_pantry_name(name)).ratio())),
-                    NUTRIENT_SCALE,
-                ),
-                reference_id,
-                normalize_pantry_name(name),
-            )
-            for reference_id, name in candidates
-        ),
-        key=lambda item: (-item[0], item[2], item[1]),
-    )
-    best_score, best_id, best_name = scored[0]
-    if best_name == query:
-        return FoodNameMatch(best_id, "matched", Decimal("1.000000"))
-    tied = len(scored) > 1 and best_score - scored[1][0] <= Decimal("0.050000")
-    if best_score >= Decimal("0.600000"):
-        return FoodNameMatch(None if tied else best_id, "proposed", best_score)
-    return FoodNameMatch(None, "unmatched", best_score)
+    try:
+        return engine.convert_quantity(quantity, from_unit, to_unit)
+    except DomainError as e:
+        if e.code == "unsafe_conversion":
+            raise DomainError(
+                "pantry_unit_incompatible",
+                "Pantry and grocery quantities must use compatible units.",
+                422,
+            ) from e
+        if e.code in ("quantity_unavailable",):
+            raise DomainError(
+                "pantry_unit_unsupported",
+                "Pantry quantities require a supported mass, volume, or count unit.",
+                422,
+            ) from e
+        raise
 
 
 def apply_quantity_deduction(
     pantry: PantryQuantity,
     grocery: PantryQuantity,
 ) -> QuantityDeduction:
-    available_in_grocery_units = convert_quantity(pantry.quantity, pantry.unit, grocery.unit)
-    grocery_amount = min(available_in_grocery_units, grocery.quantity)
-    pantry_amount = convert_quantity(grocery_amount, grocery.unit, pantry.unit)
-    pantry_after = PantryQuantity(
-        quantize_decimal(pantry.quantity - pantry_amount, NUTRIENT_SCALE),
-        canonical_pantry_unit(pantry.unit),
-        pantry.version + 1,
-    )
-    grocery_after = PantryQuantity(
-        quantize_decimal(grocery.quantity - grocery_amount, NUTRIENT_SCALE),
-        canonical_pantry_unit(grocery.unit),
-        grocery.version + 1,
-    )
+    from cookfully.domain.ingredient_nutrition.quantities import PantryQuantity as QPantry
+
+    q_pantry = QPantry(pantry.quantity, pantry.unit, pantry.version)
+    q_grocery = QPantry(grocery.quantity, grocery.unit, grocery.version)
+    raw = engine.apply_deduction(q_pantry, q_grocery)
     return QuantityDeduction(
         pantry_before=PantryQuantity(
-            quantize_decimal(pantry.quantity, NUTRIENT_SCALE),
-            canonical_pantry_unit(pantry.unit),
-            pantry.version,
+            raw.pantry_before.quantity, raw.pantry_before.unit, raw.pantry_before.version
         ),
         grocery_before=PantryQuantity(
-            quantize_decimal(grocery.quantity, NUTRIENT_SCALE),
-            canonical_pantry_unit(grocery.unit),
-            grocery.version,
+            raw.grocery_before.quantity, raw.grocery_before.unit, raw.grocery_before.version
         ),
-        pantry_after=pantry_after,
-        grocery_after=grocery_after,
-        pantry_amount=pantry_amount,
-        grocery_amount=grocery_amount,
-        assumption="Exact same-dimension conversion; no density or package-size assumption.",
+        pantry_after=PantryQuantity(
+            raw.pantry_after.quantity, raw.pantry_after.unit, raw.pantry_after.version
+        ),
+        grocery_after=PantryQuantity(
+            raw.grocery_after.quantity, raw.grocery_after.unit, raw.grocery_after.version
+        ),
+        pantry_amount=raw.pantry_amount,
+        grocery_amount=raw.grocery_amount,
+        assumption=raw.assumption,
     )
 
 
@@ -187,23 +126,42 @@ def reverse_quantity_deduction(
     pantry: PantryQuantity,
     grocery: PantryQuantity,
 ) -> tuple[PantryQuantity, PantryQuantity]:
-    if pantry != deduction.pantry_after or grocery != deduction.grocery_after:
-        raise DomainError(
-            "pantry_deduction_state_changed",
-            "Pantry or grocery quantity changed after the deduction; reload before reversing.",
-            409,
-        )
-    return (
-        PantryQuantity(
+    from cookfully.domain.ingredient_nutrition.quantities import PantryQuantity as QPantry
+    from cookfully.domain.ingredient_nutrition.quantities import QuantityDeduction as QDeduction
+
+    q_deduction = QDeduction(
+        pantry_before=QPantry(
             deduction.pantry_before.quantity,
             deduction.pantry_before.unit,
-            pantry.version + 1,
+            deduction.pantry_before.version,
         ),
-        PantryQuantity(
+        grocery_before=QPantry(
             deduction.grocery_before.quantity,
             deduction.grocery_before.unit,
-            grocery.version + 1,
+            deduction.grocery_before.version,
         ),
+        pantry_after=QPantry(
+            deduction.pantry_after.quantity,
+            deduction.pantry_after.unit,
+            deduction.pantry_after.version,
+        ),
+        grocery_after=QPantry(
+            deduction.grocery_after.quantity,
+            deduction.grocery_after.unit,
+            deduction.grocery_after.version,
+        ),
+        pantry_amount=deduction.pantry_amount,
+        grocery_amount=deduction.grocery_amount,
+        assumption=deduction.assumption,
+    )
+    q_pantry = QPantry(pantry.quantity, pantry.unit, pantry.version)
+    q_grocery = QPantry(grocery.quantity, grocery.unit, grocery.version)
+    raw_pantry, raw_grocery = engine.reverse_deduction(
+        q_deduction, pantry=q_pantry, grocery=q_grocery
+    )
+    return (
+        PantryQuantity(raw_pantry.quantity, raw_pantry.unit, raw_pantry.version),
+        PantryQuantity(raw_grocery.quantity, raw_grocery.unit, raw_grocery.version),
     )
 
 
@@ -221,6 +179,26 @@ class PantryService:
             return tuple(self._read(item) for item in items)
 
     def create(
+        self,
+        owner_id: UUID,
+        *,
+        display_name: str,
+        quantity: Decimal,
+        unit: str,
+        expires_on: date | None = None,
+        food_reference_id: UUID | None = None,
+    ) -> PantryItemRead:
+        # Legacy-only: bulk inline split is handled async in api/routes/pantry.py
+        return self._create_single(
+            owner_id,
+            display_name=display_name,
+            quantity=quantity,
+            unit=unit,
+            expires_on=expires_on,
+            food_reference_id=food_reference_id,
+        )
+
+    def _create_single(
         self,
         owner_id: UUID,
         *,
@@ -346,20 +324,15 @@ class PantryService:
             if session.get(FoodReference, requested_reference_id) is None:
                 raise DomainError("food_reference_not_found", "Food reference was not found.", 404)
             return requested_reference_id, "manual", Decimal("1.000000")
-        candidates = tuple(
-            (str(item.id), item.description)
-            for item in session.scalars(
-                select(FoodReference)
-                .join(ReferenceDataset)
-                .where(ReferenceDataset.status == "active")
-                .order_by(FoodReference.normalized_name, FoodReference.id)
-            )
-        )
-        match = match_food_name(display_name, candidates)
+        decision = engine.match_ingredient(session, display_name)
+        candidate = decision.candidate
+        if candidate is None and decision.status == "ambiguous" and decision.alternatives:
+            candidate = decision.alternatives[0]
+        status_map = {"matched": "matched", "ambiguous": "proposed", "unmatched": "unmatched"}
         return (
-            UUID(match.reference_id) if match.reference_id is not None else None,
-            match.status,
-            match.confidence if candidates else None,
+            UUID(str(candidate.food.id)) if candidate is not None else None,
+            status_map.get(decision.status, "unmatched"),
+            candidate.score if candidate is not None else None,
         )
 
     @staticmethod

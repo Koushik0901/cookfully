@@ -1,8 +1,22 @@
 import { apiRequest } from "../recipes/api";
-import type { JobAccepted } from "../recipes/types";
-import type { components } from "../../app/api/generated/schema";
+import type { Job, JobAccepted } from "../recipes/types";
 
-export type ReferenceDataStatus = components["schemas"]["ReferenceDataStatusResponse"];
+export type ReferenceDataRelease = {
+  datasetType: string;
+  releaseId: string;
+  releasedOn: string;
+  sourceUrl: string;
+  license: string;
+  reviewOverdue: boolean;
+};
+
+export type ReferenceDataStatus = {
+  available: boolean;
+  missing: string[];
+  releases: ReferenceDataRelease[];
+  requestedDatasets?: string[] | null;
+  job?: Job | null;
+};
 export type InstallUnit = "foundation_sr_legacy" | "branded";
 
 export const referenceDataApi = {

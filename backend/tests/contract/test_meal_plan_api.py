@@ -3,9 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from tests.planning_dates import week_date
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
+
+WEEK_START = week_date(0)
+NEXT_DAY = week_date(1)
+DAY_AFTER = week_date(2)
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -195,7 +200,7 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
             assert corrected.status_code == 201
 
         entry_payload = {
-            "localDate": "2026-03-09",
+            "localDate": WEEK_START,
             "mealSlot": "breakfast",
             "recipeId": recipe["id"],
             "servings": "1.500",
@@ -203,7 +208,7 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
             "refreshNutrition": False,
         }
         added = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
             json=entry_payload,
             headers={**headers, "Idempotency-Key": "plan-entry-add-0001"},
         )
@@ -221,16 +226,16 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
             "micronutrients": unavailable_micronutrients(),
         }
 
-        plan = client.get("/api/v1/meal-plans/2026-03-09")
+        plan = client.get(f"/api/v1/meal-plans/{WEEK_START}")
         assert plan.status_code == 200
         plan_body = plan.json()
         assert plan_body["timezone"] == "America/Vancouver"
         assert plan_body["weekTotal"]["caloriesKcal"] == "752"
-        assert plan_body["dayTotals"]["2026-03-09"]["targetDifference"]["proteinG"] == "-119.9"
+        assert plan_body["dayTotals"][WEEK_START]["targetDifference"]["proteinG"] == "-119.9"
 
         moved_payload = {
             **entry_payload,
-            "localDate": "2026-03-10",
+            "localDate": NEXT_DAY,
             "mealSlot": "lunch",
             "servings": "2.000",
         }
@@ -249,8 +254,8 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
         assert stale.status_code == 409
 
         copied = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
-            json={**entry_payload, "localDate": "2026-03-11", "position": 0},
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
+            json={**entry_payload, "localDate": DAY_AFTER, "position": 0},
             headers={**headers, "Idempotency-Key": "plan-entry-copy-0001"},
         )
         assert copied.status_code == 201
@@ -269,8 +274,8 @@ def test_meal_plan_crud_concurrency_and_decimal_contract(
         assert stale_recipe.status_code == 200
         assert stale_recipe.json()["nutritionState"] == "stale"
         stale_add = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
-            json={**entry_payload, "localDate": "2026-03-10", "position": 1},
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
+            json={**entry_payload, "localDate": NEXT_DAY, "position": 1},
             headers={**headers, "Idempotency-Key": "plan-entry-stale-recipe-01"},
         )
         assert stale_add.status_code == 409
@@ -299,9 +304,9 @@ def test_meal_plan_can_start_before_a_goal_exists(
             assert corrected.status_code == 201
 
         added = client.post(
-            "/api/v1/meal-plans/2026-03-09/entries",
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
             json={
-                "localDate": "2026-03-09",
+                "localDate": WEEK_START,
                 "mealSlot": "dinner",
                 "recipeId": recipe["id"],
                 "servings": "1.500",
@@ -312,9 +317,9 @@ def test_meal_plan_can_start_before_a_goal_exists(
         )
         assert added.status_code == 201
 
-        plan = client.get("/api/v1/meal-plans/2026-03-09")
+        plan = client.get(f"/api/v1/meal-plans/{WEEK_START}")
         assert plan.status_code == 200
         body = plan.json()
         assert body["goal"] is None
         assert body["entries"][0]["recipeTitle"] == "Plan bowl"
-        assert body["dayTotals"]["2026-03-09"]["targetDifference"] is None
+        assert body["dayTotals"][WEEK_START]["targetDifference"] is None

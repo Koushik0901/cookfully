@@ -10,16 +10,17 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.food_matching import _tokens, normalize_food
+from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import (
-    NUTRIENT_SCALE,
     DomainError,
-    quantize_decimal,
     require_version,
     utc_now,
     uuid7,
 )
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food
+from cookfully.domain.ingredient_nutrition.normalization import tokenize as _tokens
+from cookfully.domain.ingredient_nutrition.quantities import IngredientMeasure
 from cookfully.domain.recipes import (
     IngredientInput,
     RecipeDraft,
@@ -258,9 +259,10 @@ class RecipeService:
                 nutrition_state="pending",
                 input_hash=input_hash,
                 version=1,
-                thumbnail_focal_x=(write.thumbnail_crop or ThumbnailCrop()).focal_x,
-                thumbnail_focal_y=(write.thumbnail_crop or ThumbnailCrop()).focal_y,
-                thumbnail_zoom=(write.thumbnail_crop or ThumbnailCrop()).zoom,
+                thumbnail_x=(write.thumbnail_crop or ThumbnailCrop()).x,
+                thumbnail_y=(write.thumbnail_crop or ThumbnailCrop()).y,
+                thumbnail_width=(write.thumbnail_crop or ThumbnailCrop()).width,
+                thumbnail_height=(write.thumbnail_crop or ThumbnailCrop()).height,
                 origin_kind=write.origin_kind or "manual",
                 sections=sections,
                 ingredients=self._ingredients(recipe_id, write.ingredients, sections),
@@ -336,9 +338,10 @@ class RecipeService:
             recipe.prep_minutes = write.prep_minutes
             recipe.cook_minutes = write.cook_minutes
             if write.thumbnail_crop is not None:
-                recipe.thumbnail_focal_x = write.thumbnail_crop.focal_x
-                recipe.thumbnail_focal_y = write.thumbnail_crop.focal_y
-                recipe.thumbnail_zoom = write.thumbnail_crop.zoom
+                recipe.thumbnail_x = write.thumbnail_crop.x
+                recipe.thumbnail_y = write.thumbnail_crop.y
+                recipe.thumbnail_width = write.thumbnail_crop.width
+                recipe.thumbnail_height = write.thumbnail_crop.height
             if write.origin_kind is not None:
                 recipe.origin_kind = write.origin_kind
             recipe.input_hash = recipe_input_hash(recipe_id, write)
@@ -642,7 +645,6 @@ class RecipeService:
 
         for ingredient in recipe.ingredients:
             food_name = ingredient.food_name or _extract_food_from_text(ingredient.original_text)
-            parsed_unit = ingredient.unit_code or _extract_unit_from_text(ingredient.original_text)
             if not food_name.strip():
                 continue
             query = normalize_food(food_name)
@@ -672,31 +674,25 @@ class RecipeService:
                 grams_max: Decimal | None = None
                 conversion_method: str | None = None
                 assumption: str | None = None
-
-                if (
-                    best_food.typical_serving_g is not None
-                    and best_food.typical_serving_unit is not None
-                    and parsed_unit is not None
-                    and parsed_unit.casefold() == best_food.typical_serving_unit.casefold()
-                ):
-                    grams_min = quantize_decimal(
-                        ingredient.quantity_min * best_food.typical_serving_g
-                        if ingredient.quantity_min is not None
-                        else best_food.typical_serving_g,
-                        NUTRIENT_SCALE,
+                parsed_unit = ingredient.unit_code or _extract_unit_from_text(
+                    ingredient.original_text
+                )
+                try:
+                    converted = engine.to_grams(
+                        IngredientMeasure(
+                            ingredient.quantity_min,
+                            ingredient.quantity_max,
+                            parsed_unit,
+                            ingredient.optional,
+                        ),
+                        owner_food=best_food,
                     )
-                    grams_max = quantize_decimal(
-                        ingredient.quantity_max * best_food.typical_serving_g
-                        if ingredient.quantity_max is not None
-                        else best_food.typical_serving_g,
-                        NUTRIENT_SCALE,
-                    )
-                    conversion_method = "owner_serving"
-                    assumption = (
-                        f"1 {best_food.typical_serving_unit}"
-                        f" = {best_food.typical_serving_g}g"
-                        f" ({best_food.display_name})"
-                    )
+                    grams_min = converted.minimum
+                    grams_max = converted.maximum
+                    conversion_method = converted.method
+                    assumption = converted.assumption
+                except DomainError:
+                    grams_min = grams_max = conversion_method = assumption = None
 
                 NutritionRepository(session).activate_match(
                     IngredientMatch(

@@ -17,20 +17,18 @@ from cookfully.infrastructure.models.reference_foods import FoodReference, Refer
 def _token_variants(token: str) -> list[str]:
     """Singular/plural spellings of a query token for containment ordering.
 
-    Stored reference names keep their original inflection ("Bananas, raw"), so a raw
-    array-containment check for "banana" would exclude the canonical row from the
-    candidate window entirely. Mirrors the singularization in application.food_matching
-    without importing application code into the infrastructure layer.
+    Mirrors domain.ingredient_nutrition.normalization.singularize — kept in
+    infrastructure to avoid importing domain into the repository layer.
+    Covered by tests/unit/test_normalization_sync.py
     """
 
-    variants = {token}
     if token.endswith("ies") and len(token) > 4:
-        variants.add(token[:-3] + "y")
-    if token.endswith("s") and len(token) > 3 and not token.endswith(("ss", "us", "is")):
-        variants.add(token[:-1])
+        singular = token[:-3] + "y"
+    elif token.endswith("s") and len(token) > 3 and not token.endswith(("ss", "us", "is")):
+        singular = token[:-1]
     else:
-        variants.add(token + "s")
-    return sorted(variants)
+        singular = token
+    return sorted({token, singular, token + "s"})
 
 
 class NutritionRepository:

@@ -70,7 +70,10 @@ def test_recipe_and_job_openapi_surface(isolated_database_url: str, tmp_path: Pa
         assert "/api/v1/recipes/{recipeId}" in paths
         assert "/api/v1/recipes/bulk/archive" in paths
         assert "/api/v1/recipes/{recipeId}/nutrition/corrections/{correctionId}" in paths
-        assert "/api/v1/recipes/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}" in paths
+        assert (
+            "/api/v1/recipes/{recipeId}/ingredients/{ingredientId}/owner-food/{ownerFoodId}"
+            in paths
+        )
         assert "/api/v1/jobs/recipe-processing" in paths
         assert "/api/v1/jobs/{jobId}" in paths
         current = paths["/api/v1/jobs/current"]["get"]
@@ -211,19 +214,33 @@ def test_recipe_thumbnail_crop_and_origin_contract(
         headers = authenticate(client)
         payload = recipe_payload()
         payload["originKind"] = "cookbook_import"
-        payload["thumbnailCrop"] = {"focalX": "0.250000", "focalY": "0.750000", "zoom": "1.500000"}
+        payload["thumbnailCrop"] = {
+            "x": "0.250000",
+            "y": "0.125000",
+            "width": "0.500000",
+            "height": "0.500000",
+        }
 
         created = client.post("/api/v1/recipes", json=payload, headers=headers)
         assert created.status_code == 201, created.text
         body = created.json()
         assert body["originKind"] == "cookbook_import"
         assert body["thumbnailCrop"] == {
-            "focalX": "0.25",
-            "focalY": "0.75",
-            "zoom": "1.5",
+            "x": "0.25",
+            "y": "0.125",
+            "width": "0.5",
+            "height": "0.5",
         }
 
-        invalid = {**payload, "thumbnailCrop": {"focalX": "1.1", "focalY": "0.5", "zoom": "1"}}
+        invalid = {**payload, "thumbnailCrop": {"x": "1.100000"}}
+        response = client.post("/api/v1/recipes", json=invalid, headers=headers)
+        assert response.status_code == 422
+
+        invalid = {**payload, "thumbnailCrop": {"width": "0"}}
+        response = client.post("/api/v1/recipes", json=invalid, headers=headers)
+        assert response.status_code == 422
+
+        invalid = {**payload, "thumbnailCrop": {"y": "0.75", "height": "0.5"}}
         response = client.post("/api/v1/recipes", json=invalid, headers=headers)
         assert response.status_code == 422
 

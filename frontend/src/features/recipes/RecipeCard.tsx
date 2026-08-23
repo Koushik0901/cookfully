@@ -18,7 +18,7 @@ import { servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
 import type { Recipe } from "./types";
 
-const EMPTY_COLLECTIONS: Recipe["collections"] = [];
+const EMPTY_COLLECTIONS: NonNullable<Recipe["collections"]> = [];
 
 export function RecipeCard({
   recipe,

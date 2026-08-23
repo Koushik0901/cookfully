@@ -996,3 +996,63 @@ Compose also places the model service on a private network shared only with the 
 Postgres and Redis are not attached to that network. This makes the model-only boundary a deployment
 property as well as an application contract.
 
+
+## Thumbnail crop editor — 2026-08-22
+
+### Problem being solved
+
+Thumbnail framing was stored as focal-point/zoom metadata interpreted independently by each surface
+(card, hero, home tiles), so the editor preview drifted from what actually rendered and framing was not
+WYSIWYG.
+
+### Source inspected
+
+- [Immich asset crop/focus editing](https://docs.immich.app/features/automatic-backup) and its web client
+  crop editor: a contained image preview with the exterior dimmed, aspect-locked corner-handle resizing,
+  and a reset-to-fit action.
+
+### Benefits and liabilities observed
+
+Immich's contained editor captures exact user intent and renders predictably everywhere the same rect is
+used; the dimmed exterior makes the kept region unambiguous. Liabilities: the server trusts client
+geometry without validating composition quality, and because no pixel derivatives are generated, large
+originals are downloaded in full and cropped client-side on every render.
+
+### Local decision
+
+Adopt the interaction pattern, adapted to Cookfully's contract: a normalized `{x,y,width,height}` rect
+persisted as exact decimals beside the original media (migration 0026 replaced focal/zoom columns), never
+rewriting the original image. Reject backend derivative generation for now — it would add storage,
+cache invalidation, and media-pipeline complexity that this project's single-owner scale does not justify;
+client-side cropping from exact-decimal rects is deterministic across surfaces. Evidence:
+`backend/src/cookfully/api/schemas/recipes.py` (`ThumbnailCropRequest` bounds validation),
+`backend/migrations/versions/0026_recipe_thumbnail_crop_rect.py`, and the frontend `RecipeMedia` crop-var
+tests.
+
+## Ingredient & Nutrition Engine — P1 matching unification — 2026-08-22
+
+### Problem being solved
+
+Ingredient matching, normalization, and embedder policy were implemented separately per surface: pantry used a `difflib.SequenceMatcher` ratio (`application/pantry.py:118`), while recipe ingredients and the Foods picker shared the signal-based `FoodMatcher` with divergent embedder factories in `api/routes/foods.py:56` and `jobs/recipe_pipeline.py:446`. Behavior drifted per surface and only pantry surfaced its confidence as the Review-match chip. A planned default to the neural embedding model lacked a single place to enforce it.
+
+### Sources inspected
+
+- The live repository inventory of the current matching stack (phase-0 explore): `domain/ingredient_nutrition/matching.py` signals, `food_semantics` profiles, `semantic_embeddings` Hashing vs FastEmbed paths, `nutrition_intelligence` settings singleton, and the pantry/foods/pipeline call sites.
+- [Mealie matching](https://github.com/mealie-recipes/mealie/blob/mealie-next/mealie/services/matching.py) and [Tandoor ingredient parsing](https://github.com/TandoorRecipes/recipes/blob/develop/cookbook/helper/ingredient_parser.py) as previously recorded — both match against the user's small curated list, not a large USDA corpus, so neither justifies silent single-best matching for pantry use.
+
+### Objective comparison
+
+Scattered matchers let each surface evolve independently, but at this product's scale they produce conflicting confidences and statuses for the same input text. Copying a separately deployed matching microservice would add deployment/network complexity with no scaling benefit for a single-owner self-hosted app. A single in-process domain module with one embedder factory preserves uniform behavior and keeps the existing background-job and authoritative-DB contracts intact.
+
+### Local decision
+
+Adopt a single in-process **Ingredient & Nutrition Engine** boundary, not a deployed microservice:
+
+- `domain/ingredient_nutrition/{matching,normalization}.py` is the sole owner of matching signals/normalization; `application/ingredient_engine.py` (`IngredientEngine`) is the only facade routes/jobs may import — enforced by an architecture test.
+- All three existing consumers (pantry auto-match, Foods search picker, recipe ingredient pipeline) route through the engine; pantry's `proposed` status now maps from the shared `ambiguous` band so the Review-match chip is the same scorer as everywhere else.
+- The engine is the sole reader of `NutritionIntelligenceSettings`; background paths fall back to hashing when the model is not ready, while interactive settings flows keep explicit 409/503 readiness signals.
+- `fastembed` becomes the persisted default (`backend = 'fastembed'`, model `BAAI/bge-small-en-v1.5`) via migration `0027_default_neural_matching.py` and a `fastembed` column default; existing `hashing` rows are migrated.
+
+Rejected: keeping per-surface matchers or extracting a network microservice in P1. Deferred: normalization consolidation (P2), quantity/owner-serving deduplication (P3), and nutrition-data lookup/computation consolidation (P4) per the spec's phasing.
+
+Evidence: `backend/src/cookfully/application/ingredient_engine.py`, the moved `domain/ingredient_nutrition` package, `backend/migrations/versions/0027_default_neural_matching.py`, `backend/tests/unit/test_ingredient_engine.py` + `test_ingredient_engine_boundary.py`, and the updated `backend/tests/unit/test_pantry.py` mapping the engine's decisions to pantry statuses.
