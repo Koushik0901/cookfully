@@ -18,6 +18,25 @@ logger = logging.getLogger("cookfully.inline_repair")
 ALLOWED_UNITS = Literal["g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"]
 
 
+def _est_toks(s: str) -> int:
+    try:
+        import tiktoken  # type: ignore[import-not-found]
+
+        return len(tiktoken.get_encoding("cl100k_base").encode(s))
+    except Exception:
+        return len(s) // 4
+
+
+def _window(prompt: str) -> tuple[str, bool]:
+    est = _est_toks(prompt)
+    if est <= 100:
+        w = (prompt[:400] if len(prompt) > 400 else prompt)[:256]
+        return w, len(prompt) > 400
+    # long: first 400 chars ≈100 toks
+    first = prompt[:400][:256]
+    return first, len(prompt) > 400
+
+
 class RecipeExtractSchema(BaseModel):
     ingredients: Annotated[
         list[Annotated[str, Field(min_length=3, max_length=200)]],
@@ -58,7 +77,13 @@ class InlineRepairGateway:
         return resp.confidence >= self._threshold
 
     def _emit_log(
-        self, resp: InferenceResponse, *, applied: bool, latency_ms: int | None = None
+        self,
+        resp: InferenceResponse,
+        *,
+        applied: bool,
+        latency_ms: int | None = None,
+        prompt_toks_est: int | None = None,
+        window_index: int | None = None,
     ) -> None:
         # structured log — must not contain user text (prompt/ingredients), only metadata
         logger.info(
@@ -72,6 +97,8 @@ class InlineRepairGateway:
                 "prefill": getattr(resp, "prefill_tps", None),
                 "decode": getattr(resp, "decode_tps", None),
                 "peak_ram": getattr(resp, "peak_ram_mb", None),
+                "prompt_toks_est": prompt_toks_est if prompt_toks_est is not None else 0,
+                "window_index": window_index if window_index is not None else 1,
             },
         )
 

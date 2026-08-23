@@ -96,6 +96,7 @@ class ImportPreviewCoordinator:
                 from cookfully.application.inline_repair import (
                     InlineRepairGateway,
                     RecipeExtractSchema,
+                    _window,
                 )
                 from cookfully.infrastructure.observability import correlation_id
                 from cookfully.intelligence.client import IntelligenceClient
@@ -103,13 +104,6 @@ class ImportPreviewCoordinator:
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
                 cid = correlation_id.get() or trace_id or "unknown"
-
-                def _build_prompt(raw: str) -> str:
-                    # 256-tok window ~400 chars, 800 char budget = 2x400 naive chunks
-                    # gap-only first iteration uses first window only
-                    truncated = raw[:800]
-                    window = truncated[:400] if len(truncated) > 400 else truncated
-                    return window[:256]
 
                 tools = (
                     ToolDefinition(
@@ -155,7 +149,7 @@ class ImportPreviewCoordinator:
                                 pass
                     except Exception:
                         pass
-                    prompt = _build_prompt(prompt_text)
+                    prompt, has_more = _window(prompt_text)  # noqa: RUF059
                     req = InferenceRequest(
                         requestId=f"inline-{cid}",
                         operation="recipe_extract",

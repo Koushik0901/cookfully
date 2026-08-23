@@ -80,6 +80,7 @@ async def create_pantry_item(
                 from cookfully.application.inline_repair import (
                     InlineRepairGateway,
                     PantryExtractSchema,
+                    _window,
                 )
                 from cookfully.domain.common import utc_now
                 from cookfully.intelligence.client import IntelligenceClient
@@ -88,9 +89,7 @@ async def create_pantry_item(
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
 
                 def _build_prompt(raw: str) -> str:
-                    truncated = raw[:800]
-                    window = truncated[:400] if len(truncated) > 400 else truncated
-                    return window[:256]
+                    return _window(raw)[0]
 
                 prompt = _build_prompt(display_name)
                 client = IntelligenceClient(
