@@ -795,7 +795,15 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .grocery-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .grocery-item { position: relative; gap: 0.65rem; border: 1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); border-radius: var(--radius-lg); padding: 0.85rem 0.9rem; background: color-mix(in oklch, var(--color-surface-bright) 82%, var(--color-surface-low)); box-shadow: none; }
 .grocery-item:hover { border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-outline-variant)); background: var(--color-surface-bright); }
-.grocery-item__heading { grid-template-columns: 2.75rem minmax(0, 1fr) auto; gap: 0.7rem; }
+.grocery-item__icon { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:18px; background: color-mix(in oklch, var(--color-surface-bright) 88%, var(--color-primary-container)); color: var(--color-primary); border:1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); flex:0 0 auto; }
+.grocery-item__icon svg { width:20px; height:20px; }
+.grocery-item__heading { grid-template-columns: 2.5rem 2.5rem minmax(0,1fr) auto; gap: 0.7rem; }
+.grocery-item--checked .grocery-item__icon { opacity:0.62; }
+@media (max-width: 767px) {
+  .grocery-item__icon { width:2.25rem; height:2.25rem; border-radius:16px; }
+  .grocery-item__icon svg { width:18px; height:18px; }
+  .grocery-item__heading { grid-template-columns: 2.25rem 2.5rem minmax(0,1fr); }
+}
 .grocery-check { width: 2.75rem; height: 2.75rem; }
 .grocery-check .cf-checkbox { width: 1.45rem; height: 1.45rem; }
 .grocery-item__heading h3 { font-size: 1.05rem; }
@@ -857,7 +865,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .grocery-list-stage > .shopping-stops { padding-inline: 0.8rem; }
   .grocery-list-stage > .grocery-manual { padding-inline: 0.8rem; }
   .grocery-item { padding: 0.75rem 0.7rem; }
-  .grocery-item__heading { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .grocery-item__heading { grid-template-columns: 2.25rem 2.5rem minmax(0,1fr); }
   .grocery-check { width: 2.5rem; height: 2.5rem; }
   .grocery-item > .actions { margin-left: 3.2rem; }
   .grocery-item__controls { position: absolute; top: 0.7rem; right: 5.65rem; padding-right: 0; }

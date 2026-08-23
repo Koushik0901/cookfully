@@ -17,4 +17,8 @@ describe("GroceryIcon", () => {
     expect(categoryFor("Orange Juice")).toBe("beverage");
     expect(categoryFor("Paper Towels")).toBe("household");
   });
+  it("GroceryRow renders icon", async () => {
+    const { container } = render(<div className="grocery-item__heading"><span className="grocery-item__icon"><GroceryIcon name="milk" /></span><h3>Milk</h3></div>);
+    expect(container.querySelector(".grocery-item__icon svg")).toBeTruthy();
+  });
 });

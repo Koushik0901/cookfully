@@ -1209,7 +1209,7 @@
   transition: opacity var(--motion-state) ease, transform var(--motion-state) var(--ease-out-expo), background-color var(--motion-state) ease;
 }
 
-.grocery-item__heading { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; }
+.grocery-item__heading { display: grid; grid-template-columns: 2.5rem 2.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; }
 .grocery-check { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; cursor: pointer; }
 .grocery-check .cf-checkbox { width: 1.55rem; height: 1.55rem; }
 .grocery-item__heading > div:nth-child(2) { display: grid; gap: 0.1rem; }
@@ -1319,7 +1319,7 @@
   .grocery-ready { width: 100%; }
   .grocery-complete { grid-template-columns: auto 1fr; }
   .grocery-complete .cf-button { grid-column: 1 / -1; width: 100%; }
-  .grocery-item__heading { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .grocery-item__heading { grid-template-columns: 2.25rem 2.5rem minmax(0, 1fr); }
   .item-badges { grid-column: 2; justify-content: flex-start; }
   .grocery-edit { grid-template-columns: 1fr; }
   .grocery-edit > .cf-button { width: 100%; justify-self: stretch; }
