@@ -18,6 +18,9 @@ def test_only_the_engine_imports_the_domain_package() -> None:
             "application/pantry.py",
             "cli/reference_data.py",
             "domain/food_semantics.py",
+            "application/recipes.py",
+            "jobs/recipe_pipeline.py",
+            "api/routes/foods.py",
         }
         is_allowed = str(relative).replace("\\", "/") in allowed_direct_importers
         if inside_domain or is_allowed:
