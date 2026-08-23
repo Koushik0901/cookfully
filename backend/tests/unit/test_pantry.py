@@ -51,7 +51,9 @@ def test_resolve_match_maps_engine_decisions(monkeypatch) -> None:
     decision = MatchDecision("matched", "ranked", _candidate("0.850000"), ())
     fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
     monkeypatch.setattr(pantry, "engine", fake)
-    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "cherry tomatoes", None)
+    reference_id, status, confidence = pantry.PantryService._resolve_match(
+        None, "cherry tomatoes", None
+    )
     assert status == "matched"
     assert confidence == Decimal("0.850000")
     assert reference_id is not None
@@ -76,7 +78,9 @@ def test_resolve_match_unmatched_has_no_reference_or_confidence(monkeypatch) -> 
     decision = MatchDecision("unmatched", "ranked", None, ())
     fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
     monkeypatch.setattr(pantry, "engine", fake)
-    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "mystery item", None)
+    reference_id, status, confidence = pantry.PantryService._resolve_match(
+        None, "mystery item", None
+    )
     assert (reference_id, status, confidence) == (None, "unmatched", None)
 
 
