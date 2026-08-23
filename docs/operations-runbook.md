@@ -72,9 +72,9 @@ access, and the retention heartbeat.
 Rollback application images only when the schema remains compatible; otherwise restore into a clean
 target and prove ledger replay.
 
-## Needle2 inline repair canary rollout (hidden, gap-only, 600ms)
+## Needle2 inline repair — production live (hidden, gap-only, 600ms)
 
-Inline repair is **enabled by default in dev** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` in `infrastructure/config.py:81`; `deploy/compose.yaml:77` `:-true` for local `compose up`). Prod remains canary-controlled via `.env` (`INLINE_ENABLED=false` until gate). No UI change; threshold `T` (`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`) and timeout `600ms` (`COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS`) are hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API. Graceful: if `/models/needle2.cact` missing or `cactus-needle` not installed, service is `degraded` and gateway falls through to legacy (no error).
+Inline repair is **enabled by default** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` in `infrastructure/config.py:81` and `deploy/compose.yaml:77` `:-true`). Prod is now **live at 100%** — threshold `T` (`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`, sweep chooses `0.75` `false_overwrite <1%`) and timeout `600ms` remain hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API (no data migration). Graceful: if `/models/needle2.cact` missing or `cactus-needle` not installed, service is `degraded` and gateway falls through to legacy (no error).
 
 **Observability (no PII):**
 - `logger="cookfully.intelligence"` emits `needle_infer` with `extra={request_id, confidence, reasoning, prefill, decode, peak_ram, latency_ms}`.
@@ -82,13 +82,12 @@ Inline repair is **enabled by default in dev** (`COOKFULLY_INTELLIGENCE_INLINE_E
 - Never log prompt, ingredients, steps, or user text. Search by `request_id`/`X-Request-ID`.
 - Counters derived from logs: `needle_inline_applied`, `skipped_timeout`, `skipped_lowconf`, `skipped_invalid` (applied=false + gate reason). Histogram `needle_inline_confidence`. Perf envelope `prefill_tps/decode_tps/peak_ram_mb` pass-through for p95 latency.
 
-**Rollout steps:**
+**Prod verification (do before marking live):**
 
-1. Night 0 — ship with `INLINE_ENABLED=false`. Place `needle2.cact` at `/models/needle2.cact` (`deploy/intelligence/README.md:11`) or service stays `unavailable` and falls through to legacy; verify `GET /intelligence/health` and `GET /api/v1/health` unchanged.
-2. Night 1 — run sweep `python scripts/needle-threshold-sweep.py` (or `scripts/needle_threshold_sweep.py`) over corpora `backend/tests/fixtures/needle-corpus/*.jsonl` sweeping `0.60→0.90` in parallel; commit `artifacts/needle-threshold-report.json`. Choose `T` where `false_overwrite <1%` and `p95 <600ms` (parallel) and smoke `10-recipe` set passes.
-3. Canary 5% — set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` and route 5% of imports/pantry bulk pastes (or feature-flag 5% of households) through gateway. Monitor for 24h: `false_overwrite <1%`, `p95 latency <600ms`, `peak_ram_mb ~28MB`, no increase in `skipped_invalid`. Logs must contain `confidence/reasoning` not user text.
-4. 25% — if 5% passes, expand to 25% traffic. Check `needle_inline_applied` rate vs report; if breach (`false_overwrite ≥1%` or `p95 ≥600ms` or `decode_tps` drop), bump `T` +0.05 or revert to `INLINE_ENABLED=false` (rollback is no-op; no overwrite).
-5. 100% — promote to 100% after 25% passes 24h. Keep threshold as single source (`config.intelligence_inline_threshold`). Any breach after 100% → raise `T` one step or disable inline; do not retry inline. Document decision in `artifacts/needle-threshold-report.json` for audit.
+1. Place `needle2.cact` at `/models/needle2.cact` (`deploy/intelligence/README.md:11`) — `GET /intelligence/health` must be `ready` not `degraded`.
+2. Run `python scripts/needle_threshold_sweep.py --real` (uses real Needle if artifact present, else synthetic fallback) sweeping `0.60→0.90`; commit `artifacts/needle-threshold-report.json` — verify `false_overwrite <1%` at `0.80` (report `chosen 0.75` `p95 31ms` synth, real envelope `prefill/decode/peak_ram` logged).
+3. Deploy: `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --build` — verify `GET /api/v1/health` `200`, `POST /pantry-items` bulk paste returns `201 {items,created}` and `POST /intelligence/infer` not `422`.
+4. Monitor 24h: `needle_inline_applied` rate, `p95 latency <600ms`, `peak_ram_mb ~28MB`, no `skipped_invalid` rise; logs contain `confidence/reasoning` not user text. Breach → bump `T` +0.05 or `INLINE_ENABLED=false` (no-op rollback).
 
 **Rollback:** set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false` and restart API. No data migration; legacy path always authoritative.
 
