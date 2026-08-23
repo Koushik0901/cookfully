@@ -25,7 +25,7 @@ def available_accelerator_providers() -> tuple[str, ...]:
     fallback when the semantic extra is not installed.
     """
     try:
-        import onnxruntime  # type: ignore[import-not-found]
+        import onnxruntime  # type: ignore[import-untyped]
 
         return tuple(str(provider) for provider in onnxruntime.get_available_providers())
     except Exception:
@@ -87,7 +87,7 @@ class FastEmbedTextEmbedder:
         cache_dir: Path | None = None,
         local_files_only: bool = False,
     ) -> None:
-        from fastembed import TextEmbedding  # type: ignore[import-not-found]
+        from fastembed import TextEmbedding
 
         selected_provider = select_accelerator_provider()
         kwargs: dict[str, object] = {"model_name": model_name}
@@ -98,14 +98,14 @@ class FastEmbedTextEmbedder:
         if selected_provider != "CPUExecutionProvider":
             kwargs["providers"] = [selected_provider]
         try:
-            self._model = TextEmbedding(**kwargs)
+            self._model = TextEmbedding(**kwargs)  # type: ignore[arg-type]
         except Exception:
             # GPU packages/providers are optional. A driver mismatch should
             # degrade to CPU inference, not disable semantic matching.
             if selected_provider == "CPUExecutionProvider":
                 raise
             kwargs["providers"] = ["CPUExecutionProvider"]
-            self._model = TextEmbedding(**kwargs)
+            self._model = TextEmbedding(**kwargs)  # type: ignore[arg-type]
             selected_provider = "CPUExecutionProvider"
         self.provider = selected_provider
         self.dimensions = 384

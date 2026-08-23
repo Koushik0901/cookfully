@@ -65,7 +65,12 @@ def test_disabled_client_does_not_contact_model_service() -> None:
 
 
 def test_inference_contract_accepts_system():
-    req = InferenceRequest(requestId="r1", operation="recipe_extract", prompt="x", system="date: 2026-08-23; locale: en-US")
+    req = InferenceRequest(
+        requestId="r1",
+        operation="recipe_extract",
+        prompt="x",
+        system="date: 2026-08-23; locale: en-US",
+    )
     assert req.system == "date: 2026-08-23; locale: en-US"
     # client sends system
     payload = req.model_dump(mode="json", by_alias=True)

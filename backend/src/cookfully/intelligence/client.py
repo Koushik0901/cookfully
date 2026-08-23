@@ -32,7 +32,9 @@ class IntelligenceClient:
         if self._owns_client:
             self._client.close()
 
-    def infer(self, request: InferenceRequest, *, timeout_seconds: float | None = None) -> InferenceResponse:
+    def infer(
+        self, request: InferenceRequest, *, timeout_seconds: float | None = None
+    ) -> InferenceResponse:
         if not self._enabled:
             raise IntelligenceUnavailableError("Local intelligence is disabled.")
         eff = timeout_seconds if timeout_seconds is not None else self._timeout

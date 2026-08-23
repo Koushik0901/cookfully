@@ -86,9 +86,13 @@ async def create_pantry_item(
                 from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
-                prompt = display_name[:256]
-                if len(prompt) > 800:
-                    prompt = prompt[:800]
+
+                def _build_prompt(raw: str) -> str:
+                    truncated = raw[:800]
+                    window = truncated[:400] if len(truncated) > 400 else truncated
+                    return window[:256]
+
+                prompt = _build_prompt(display_name)
                 client = IntelligenceClient(
                     settings.intelligence_url,
                     settings.intelligence_service_key.get_secret_value(),
@@ -181,11 +185,7 @@ async def create_pantry_item(
             expires_on=payload.expires_on,
             food_reference_id=payload.food_reference_id,
         )
-        # service may return tuple when bulk split via sync fallback
-        if isinstance(result, tuple):
-            response = PantryItemResponse.from_read(result[0])
-        else:
-            response = PantryItemResponse.from_read(result)
+        response = PantryItemResponse.from_read(result)
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise

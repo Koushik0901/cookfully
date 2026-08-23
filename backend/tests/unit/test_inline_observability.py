@@ -60,7 +60,8 @@ def test_log_contains_fields(caplog):
     needle_records = [r for r in caplog.records if "needle_inline" in r.message]
     assert needle_records, "expected needle_inline log"
     r = needle_records[0]
-    # required fields per brief: request_id, confidence, reasoning, applied, latency_ms, prefill, decode, peak_ram
+    # required fields per brief: request_id, confidence, reasoning, applied,
+    # latency_ms, prefill, decode, peak_ram
     assert hasattr(r, "request_id")
     assert hasattr(r, "confidence")
     assert hasattr(r, "reasoning")
@@ -85,9 +86,7 @@ def test_log_skipped_low_conf_no_pii(caplog):
         status="ok",
         confidence=0.5,
         reasoning="low",
-        functionCalls=(
-            ToolCall(name="recipe", arguments={"ingredients": ["x"], "steps": ["y"]}),
-        ),
+        functionCalls=(ToolCall(name="recipe", arguments={"ingredients": ["x"], "steps": ["y"]}),),
     )
     gw = InlineRepairGateway(FakeClient(low), threshold=0.8, timeout_ms=600)
     with caplog.at_level(logging.INFO, logger="cookfully.inline_repair"):
@@ -103,8 +102,8 @@ def test_service_perf_envelope_logged(caplog):
     from pathlib import Path
     from unittest.mock import MagicMock, patch
 
-    from cookfully.intelligence.service import ModelEngine
     from cookfully.intelligence.contracts import InferenceRequest
+    from cookfully.intelligence.service import ModelEngine
 
     # simulate needle returning perf metrics
     fake_needle = MagicMock()
@@ -120,7 +119,9 @@ def test_service_perf_envelope_logged(caplog):
     engine = ModelEngine()
     engine._needle = fake_needle
     engine._error = None
-    req = InferenceRequest(requestId="svc-1", operation="recipe_extract", prompt="secret prompt should not be logged")
+    req = InferenceRequest(
+        requestId="svc-1", operation="recipe_extract", prompt="secret prompt should not be logged"
+    )
     with patch.object(Path, "is_file", return_value=True):
         with caplog.at_level(logging.INFO, logger="cookfully.intelligence"):
             resp = engine.complete(req)

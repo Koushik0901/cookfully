@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import pathlib
 import sys
 
@@ -44,7 +43,14 @@ def test_compute_metrics_fields():
         {"id": "c", "conf": 0.62, "correct": False},
     ]
     m = compute_metrics(samples, 0.80)
-    for k in ("threshold", "precision", "recall", "false_overwrite", "p95_ms", "confidence_histogram"):
+    for k in (
+        "threshold",
+        "precision",
+        "recall",
+        "false_overwrite",
+        "p95_ms",
+        "confidence_histogram",
+    ):
         assert k in m
     assert 0 <= m["precision"] <= 1
     assert 0 <= m["recall"] <= 1
@@ -79,7 +85,8 @@ def test_thresholds_list_and_parallel_sweep():
 
 
 def test_no_db_writes_flag():
-    # Script must not import SQLAlchemy DB or perform writes; we check source doesn't contain Session or engine writes
+    # Script must not import SQLAlchemy DB or perform writes;
+    # we check source doesn't contain Session or engine writes
     repo_root = pathlib.Path(__file__).resolve().parents[3]
     text = (repo_root / "scripts" / "needle_threshold_sweep.py").read_text(encoding="utf-8")
     # ensure no DB imports

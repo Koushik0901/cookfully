@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import (
@@ -242,8 +242,8 @@ async def _maybe_repair_recipe_ingredients(payload: RecipeWriteRequest) -> Recip
             timeout_ms=settings.intelligence_inline_timeout_ms,
         )
 
-        async def _repair_one(ing) -> str | None:
-            legacy = {
+        async def _repair_one(ing: Any) -> str | None:
+            legacy: dict[str, Any] = {
                 "quantity": float(ing.quantity_min) if ing.quantity_min is not None else None,
                 "unit": ing.unit,
             }
@@ -252,7 +252,7 @@ async def _maybe_repair_recipe_ingredients(payload: RecipeWriteRequest) -> Recip
             except Exception:
                 return None
             new_unit = result.get("unit")
-            if new_unit and new_unit != ing.unit and new_unit in _ALLOWED_UNITS:
+            if isinstance(new_unit, str) and new_unit != ing.unit and new_unit in _ALLOWED_UNITS:
                 return new_unit
             return None
 

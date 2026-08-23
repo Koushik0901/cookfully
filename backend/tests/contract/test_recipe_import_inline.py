@@ -2,16 +2,11 @@ from __future__ import annotations
 
 from decimal import Decimal
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import patch
-from uuid import uuid4
 
-import pytest
 from fastapi.testclient import TestClient
 
 from cookfully.api.main import create_app
 from cookfully.infrastructure.config import Settings
-from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.recipe_importer import ImportedRecipe
 from cookfully.intelligence.contracts import InferenceResponse, ToolCall
 
@@ -81,7 +76,9 @@ def _authenticate(client: TestClient) -> dict[str, str]:
     return {"X-CSRF-Token": csrf}
 
 
-def test_import_preview_enriched_no_extra_step(isolated_database_url: str, tmp_path: Path, monkeypatch) -> None:
+def test_import_preview_enriched_no_extra_step(
+    isolated_database_url: str, tmp_path: Path, monkeypatch
+) -> None:
     # enabled case: should enrich sparse page
     with _client_for(isolated_database_url, tmp_path, inline_enabled=True) as client:
         # inject sparse importer
@@ -91,7 +88,8 @@ def test_import_preview_enriched_no_extra_step(isolated_database_url: str, tmp_p
 
         client.app.state.import_previews._importer = SparseImporter()
 
-        # patch get_settings to return enabled settings (already via app but coordinator calls get_settings global)
+        # patch get_settings to return enabled settings
+        # (already via app but coordinator calls get_settings global)
         from cookfully.infrastructure import config as config_mod
 
         settings = Settings(
@@ -110,10 +108,18 @@ def test_import_preview_enriched_no_extra_step(isolated_database_url: str, tmp_p
         # mock IntelligenceClient.infer to return needle ok
         from cookfully.intelligence import client as client_mod
 
-        monkeypatch.setattr(client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: _needle_ok())
+        monkeypatch.setattr(
+            client_mod.IntelligenceClient,
+            "infer",
+            lambda self, req, timeout_seconds=None: _needle_ok(),
+        )
 
         headers = _authenticate(client)
-        resp = client.post("/api/v1/recipes/import/preview", json={"url": "https://example.com/sparse"}, headers=headers)
+        resp = client.post(
+            "/api/v1/recipes/import/preview",
+            json={"url": "https://example.com/sparse"},
+            headers=headers,
+        )
         assert resp.status_code == 200, resp.text
         body = resp.json()
         # sections[0] should have enriched ingredients (gap-only merge)
@@ -123,8 +129,11 @@ def test_import_preview_enriched_no_extra_step(isolated_database_url: str, tmp_p
         assert body["sections"][0]["instructions"] == ["Mix well", "Bake 10 min"]
 
 
-def test_import_preview_not_enriched_when_disabled(isolated_database_url: str, tmp_path: Path, monkeypatch) -> None:
+def test_import_preview_not_enriched_when_disabled(
+    isolated_database_url: str, tmp_path: Path, monkeypatch
+) -> None:
     with _client_for(isolated_database_url, tmp_path, inline_enabled=False) as client:
+
         class SparseImporter:
             async def import_url(self, url: str):
                 return _sparse_recipe()
@@ -153,7 +162,11 @@ def test_import_preview_not_enriched_when_disabled(isolated_database_url: str, t
         monkeypatch.setattr(client_mod.IntelligenceClient, "infer", _fail_infer)
 
         headers = _authenticate(client)
-        resp = client.post("/api/v1/recipes/import/preview", json={"url": "https://example.com/sparse"}, headers=headers)
+        resp = client.post(
+            "/api/v1/recipes/import/preview",
+            json={"url": "https://example.com/sparse"},
+            headers=headers,
+        )
         assert resp.status_code == 200, resp.text
         body = resp.json()
         ingredients = [ing["originalText"] for ing in body["sections"][0]["ingredients"]]

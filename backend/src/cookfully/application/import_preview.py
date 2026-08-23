@@ -103,14 +103,14 @@ class ImportPreviewCoordinator:
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
                 cid = correlation_id.get() or trace_id or "unknown"
-                # naive single window 256 char chunk; also cap at 800 per brief
-                raw_prompt = url
-                if len(raw_prompt) > 256:
-                    prompt = raw_prompt[:256]
-                else:
-                    prompt = raw_prompt
-                if len(prompt) > 800:
-                    prompt = prompt[:800]
+
+                def _build_prompt(raw: str) -> str:
+                    # 256-tok window ~400 chars, 800 char budget = 2x400 naive chunks
+                    # gap-only first iteration uses first window only
+                    truncated = raw[:800]
+                    window = truncated[:400] if len(truncated) > 400 else truncated
+                    return window[:256]
+
                 tools = (
                     ToolDefinition(
                         name="recipe",
@@ -129,21 +129,52 @@ class ImportPreviewCoordinator:
                     threshold=settings.intelligence_inline_threshold,
                     timeout_ms=settings.intelligence_inline_timeout_ms,
                 )
-                req = InferenceRequest(
-                    requestId=f"inline-{cid}",
-                    operation="recipe_extract",
-                    prompt=prompt,
-                    system=system,
-                    tools=tools,
-                    context={},
-                )
-                # Needle future races legacy; TimeoutError handled as no enrichment
-                needle_future = asyncio.create_task(
-                    asyncio.wait_for(
-                        asyncio.to_thread(gw._client.infer, req, timeout_seconds=gw._timeout),
-                        timeout=gw._timeout + 0.05,
+
+                async def _needle_infer() -> Any:
+                    assert gw is not None
+                    gw_local = gw
+                    prompt_text = url
+                    try:
+                        fetcher = getattr(self._importer, "_fetcher", None)
+                        if fetcher is not None:
+                            try:
+                                fetched = await asyncio.wait_for(
+                                    fetcher.fetch(
+                                        url,
+                                        allowed_content_types=frozenset(
+                                            {"text/html", "application/xhtml+xml"}
+                                        ),
+                                        max_bytes=50 * 1024,
+                                    ),
+                                    timeout=0.25,
+                                )
+                                html = fetched.content.decode("utf-8", errors="replace")
+                                if html.strip():
+                                    prompt_text = html
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    prompt = _build_prompt(prompt_text)
+                    req = InferenceRequest(
+                        requestId=f"inline-{cid}",
+                        operation="recipe_extract",
+                        prompt=prompt,
+                        system=system,
+                        tools=tools,
+                        context={},
                     )
-                )
+                    try:
+                        return await asyncio.wait_for(
+                            asyncio.to_thread(
+                                gw_local._client.infer, req, timeout_seconds=gw_local._timeout
+                            ),
+                            timeout=gw_local._timeout,
+                        )
+                    except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
+                        return None
+
+                needle_future = asyncio.create_task(_needle_infer())
             except Exception:
                 logger.exception("inline repair setup failed, falling back to legacy")
                 needle_future = None
@@ -165,7 +196,7 @@ class ImportPreviewCoordinator:
         if needle_future is not None:
             try:
                 needle_resp = await needle_future
-            except TimeoutError:
+            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
                 needle_resp = None
             except Exception:
                 needle_resp = None

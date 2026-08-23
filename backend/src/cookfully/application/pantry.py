@@ -187,81 +187,8 @@ class PantryService:
         unit: str,
         expires_on: date | None = None,
         food_reference_id: UUID | None = None,
-    ) -> PantryItemRead | tuple[PantryItemRead, ...]:
-        # Inline pantry bulk paste: detect delimiters and gate on Needle
-        if "," in display_name or ";" in display_name or "\n" in display_name:
-            try:
-                from cookfully.infrastructure.config import get_settings
-
-                settings = get_settings()
-                if settings.intelligence_inline_enabled:
-                    # best-effort inline split, fallback to single on any error
-                    try:
-                        from cookfully.application.inline_repair import (
-                            InlineRepairGateway,
-                            PantryExtractSchema,
-                        )
-                        from cookfully.domain.common import utc_now
-                        from cookfully.intelligence.client import IntelligenceClient
-                        from cookfully.intelligence.contracts import (
-                            InferenceRequest,
-                            ToolDefinition,
-                        )
-
-                        system = (
-                            f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
-                        )
-                        prompt = display_name[:256]
-                        if len(prompt) > 800:
-                            prompt = prompt[:800]
-                        client = IntelligenceClient(
-                            settings.intelligence_url,
-                            settings.intelligence_service_key.get_secret_value(),
-                            enabled=settings.intelligence_enabled,
-                            timeout_seconds=settings.intelligence_timeout_seconds,
-                        )
-                        gw = InlineRepairGateway(
-                            client,
-                            threshold=settings.intelligence_inline_threshold,
-                            timeout_ms=settings.intelligence_inline_timeout_ms,
-                        )
-                        tools = (
-                            ToolDefinition(
-                                name="pantry_items",
-                                description="Extract pantry items",
-                                parameters=PantryExtractSchema.model_json_schema(),
-                            ),
-                        )
-                        req = InferenceRequest(
-                            requestId="inline-pantry",
-                            operation="pantry_extract",
-                            prompt=prompt,
-                            tools=tools,
-                            context={},
-                            system=system,
-                        )
-                        resp = client.infer(req, timeout_seconds=gw._timeout)
-                        if gw._gate(resp):
-                            args = resp.function_calls[0].arguments
-                            parsed = PantryExtractSchema.model_validate(args)
-                            if len(parsed.items) > 1:
-                                results: list[PantryItemRead] = []
-                                for item in parsed.items:
-                                    results.append(
-                                        self._create_single(
-                                            owner_id,
-                                            display_name=item.name,
-                                            quantity=Decimal(str(item.quantity)),
-                                            unit=item.unit,
-                                            expires_on=expires_on,
-                                            food_reference_id=None,
-                                        )
-                                    )
-                                return tuple(results)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+    ) -> PantryItemRead:
+        # Legacy-only: bulk inline split is handled async in api/routes/pantry.py
         return self._create_single(
             owner_id,
             display_name=display_name,

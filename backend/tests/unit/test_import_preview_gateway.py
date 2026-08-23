@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
@@ -61,7 +60,6 @@ def owner_id(session_factory):
 
 @pytest.fixture
 def coordinator(session_factory, tmp_path):
-    from cookfully.domain.common import uuid7
 
     class FakeImporter:
         async def import_url(self, url: str):
@@ -69,17 +67,23 @@ def coordinator(session_factory, tmp_path):
 
     class StubRecipes:
         def create(self, *a, **kw):
-            return SimpleNamespace(recipe=SimpleNamespace(id=uuid4(), version=1), job=SimpleNamespace(id=uuid4()))
+            return SimpleNamespace(
+                recipe=SimpleNamespace(id=uuid4(), version=1), job=SimpleNamespace(id=uuid4())
+            )
 
     class StubPhotos:
         async def attach_url(self, *a, **kw):
             return None
 
-    coord = ImportPreviewCoordinator(session_factory, FakeImporter(), StubRecipes(), object(), photos=StubPhotos())
+    coord = ImportPreviewCoordinator(
+        session_factory, FakeImporter(), StubRecipes(), object(), photos=StubPhotos()
+    )
     return coord
 
 
-async def test_preview_gateway_enriches_when_enabled(session_factory, owner_id, coordinator, monkeypatch):
+async def test_preview_gateway_enriches_when_enabled(
+    session_factory, owner_id, coordinator, monkeypatch
+):
     from cookfully.infrastructure import config as config_mod
     from cookfully.intelligence import client as client_mod
 
@@ -91,15 +95,21 @@ async def test_preview_gateway_enriches_when_enabled(session_factory, owner_id, 
         intelligence_inline_timeout_ms=600,
     )
     monkeypatch.setattr(config_mod, "get_settings", lambda: settings)
-    monkeypatch.setattr(client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: _needle_ok())
+    monkeypatch.setattr(
+        client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: _needle_ok()
+    )
 
-    result = await coordinator.preview("https://example.com/sparse", owner_id=owner_id, trace_id="t")
+    result = await coordinator.preview(
+        "https://example.com/sparse", owner_id=owner_id, trace_id="t"
+    )
     ingredients = [i["original_text"] for i in result["sections"][0]["ingredients"]]
     assert ingredients == ["1 cup flour", "1 tsp salt"]
     assert result["sections"][0]["instructions"] == ["Mix"]
 
 
-async def test_preview_gateway_disabled_no_enrich(session_factory, owner_id, coordinator, monkeypatch):
+async def test_preview_gateway_disabled_no_enrich(
+    session_factory, owner_id, coordinator, monkeypatch
+):
     from cookfully.infrastructure import config as config_mod
     from cookfully.intelligence import client as client_mod
 
@@ -114,13 +124,17 @@ async def test_preview_gateway_disabled_no_enrich(session_factory, owner_id, coo
         raise AssertionError("should not be called")
 
     monkeypatch.setattr(client_mod.IntelligenceClient, "infer", _fail)
-    result = await coordinator.preview("https://example.com/sparse", owner_id=owner_id, trace_id="t")
+    result = await coordinator.preview(
+        "https://example.com/sparse", owner_id=owner_id, trace_id="t"
+    )
     ingredients = [i["original_text"] for i in result["sections"][0]["ingredients"]]
     assert ingredients == ["1 cup flour"]
     assert result["sections"][0]["instructions"] == []
 
 
-async def test_preview_gateway_low_conf_no_apply(session_factory, owner_id, coordinator, monkeypatch):
+async def test_preview_gateway_low_conf_no_apply(
+    session_factory, owner_id, coordinator, monkeypatch
+):
     from cookfully.infrastructure import config as config_mod
     from cookfully.intelligence import client as client_mod
 
@@ -139,13 +153,18 @@ async def test_preview_gateway_low_conf_no_apply(session_factory, owner_id, coor
         confidence=0.5,
         functionCalls=(ToolCall(name="recipe", arguments={"ingredients": ["x"], "steps": ["y"]}),),
     )
-    monkeypatch.setattr(client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: low)
-    result = await coordinator.preview("https://example.com/sparse", owner_id=owner_id, trace_id="t")
+    monkeypatch.setattr(
+        client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: low
+    )
+    result = await coordinator.preview(
+        "https://example.com/sparse", owner_id=owner_id, trace_id="t"
+    )
     assert [i["original_text"] for i in result["sections"][0]["ingredients"]] == ["1 cup flour"]
 
 
-async def test_preview_gateway_timeout_fallback(session_factory, owner_id, coordinator, monkeypatch):
-    import asyncio
+async def test_preview_gateway_timeout_fallback(
+    session_factory, owner_id, coordinator, monkeypatch
+):
 
     from cookfully.infrastructure import config as config_mod
     from cookfully.intelligence import client as client_mod
@@ -167,6 +186,8 @@ async def test_preview_gateway_timeout_fallback(session_factory, owner_id, coord
         return _needle_ok()
 
     monkeypatch.setattr(client_mod.IntelligenceClient, "infer", _slow)
-    result = await coordinator.preview("https://example.com/sparse", owner_id=owner_id, trace_id="t")
+    result = await coordinator.preview(
+        "https://example.com/sparse", owner_id=owner_id, trace_id="t"
+    )
     # should fallback to legacy, not hang > 600ms
     assert [i["original_text"] for i in result["sections"][0]["ingredients"]] == ["1 cup flour"]

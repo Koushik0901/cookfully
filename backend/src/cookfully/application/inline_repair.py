@@ -3,11 +3,15 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
-from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
+from cookfully.intelligence.contracts import (
+    InferenceRequest,
+    InferenceResponse,
+    ToolDefinition,
+)
 
 logger = logging.getLogger("cookfully.inline_repair")
 
@@ -30,10 +34,6 @@ class IngredientRowSchema(BaseModel):
     unit: ALLOWED_UNITS
 
 
-class PantryItemsSchema(BaseModel):
-    items: Annotated[list[IngredientRowSchema], Field(min_length=1, max_length=30)]
-
-
 class PantryItemSchema(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=80)]
     quantity: Annotated[float, Field(gt=0, le=5000)]
@@ -45,19 +45,21 @@ class PantryExtractSchema(BaseModel):
 
 
 class InlineRepairGateway:
-    def __init__(self, client, threshold: float = 0.80, timeout_ms: int = 600):
+    def __init__(self, client: Any, threshold: float = 0.80, timeout_ms: int = 600) -> None:
         self._client = client
         self._threshold = threshold
         self._timeout = timeout_ms / 1000
 
-    def _gate(self, resp) -> bool:
+    def _gate(self, resp: InferenceResponse) -> bool:
         if resp.status != "ok" or not resp.function_calls:
             return False
         if resp.confidence is None:
             return False
         return resp.confidence >= self._threshold
 
-    def _emit_log(self, resp, *, applied: bool, latency_ms: int | None = None) -> None:
+    def _emit_log(
+        self, resp: InferenceResponse, *, applied: bool, latency_ms: int | None = None
+    ) -> None:
         # structured log — must not contain user text (prompt/ingredients), only metadata
         logger.info(
             "needle_inline",
@@ -73,7 +75,9 @@ class InlineRepairGateway:
             },
         )
 
-    def merge_recipe(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
+    def merge_recipe(
+        self, legacy: dict[str, Any], resp: InferenceResponse, *, latency_ms: int | None = None
+    ) -> dict[str, Any]:
         if not self._gate(resp):
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
@@ -83,7 +87,7 @@ class InlineRepairGateway:
         except Exception:
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
-        out = dict(legacy)
+        out: dict[str, Any] = dict(legacy)
         if not legacy.get("ingredients"):
             out["ingredients"] = list(parsed.ingredients)
         elif len(parsed.ingredients) > len(legacy["ingredients"]):
@@ -96,7 +100,9 @@ class InlineRepairGateway:
         self._emit_log(resp, applied=applied, latency_ms=latency_ms)
         return out
 
-    def merge_ingredient_row(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
+    def merge_ingredient_row(
+        self, legacy: dict[str, Any], resp: InferenceResponse, *, latency_ms: int | None = None
+    ) -> dict[str, Any]:
         if not self._gate(resp):
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
@@ -106,7 +112,7 @@ class InlineRepairGateway:
         except Exception:
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
-        out = dict(legacy)
+        out: dict[str, Any] = dict(legacy)
         # gap-only + allowlist: merge ONLY unit, never quantity
         # invalid unit (not in ALLOWED) is treated as gap
         allowed = {"g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"}
@@ -122,7 +128,13 @@ class InlineRepairGateway:
         self._emit_log(resp, applied=applied, latency_ms=latency_ms)
         return out
 
-    def merge_pantry(self, legacy: dict, resp, *, latency_ms: int | None = None) -> dict:
+    def merge_pantry(
+        self,
+        legacy: dict[str, Any] | list[Any],
+        resp: InferenceResponse,
+        *,
+        latency_ms: int | None = None,
+    ) -> dict[str, Any] | list[Any]:
         if not self._gate(resp):
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
@@ -137,7 +149,7 @@ class InlineRepairGateway:
         if isinstance(legacy, dict) and "items" in legacy:
             legacy_items = legacy.get("items") or []
             if not legacy_items:
-                result = {"items": [item.model_dump() for item in parsed.items]}
+                result: dict[str, Any] = {"items": [item.model_dump() for item in parsed.items]}
                 self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
                 return result
             if len(parsed.items) > len(legacy_items):
@@ -158,9 +170,9 @@ class InlineRepairGateway:
         # legacy is list
         if isinstance(legacy, list):
             if not legacy:
-                result = [item.model_dump() for item in parsed.items]
-                self._emit_log(resp, applied=result != legacy, latency_ms=latency_ms)
-                return result
+                result_list: list[Any] = [item.model_dump() for item in parsed.items]
+                self._emit_log(resp, applied=result_list != legacy, latency_ms=latency_ms)
+                return result_list
             if len(parsed.items) > len(legacy):
                 existing_names = {
                     (item.get("name") if isinstance(item, dict) else getattr(item, "name", None))
@@ -170,9 +182,9 @@ class InlineRepairGateway:
                     item.model_dump() for item in parsed.items if item.name not in existing_names
                 ]
                 if extra:
-                    result = list(legacy) + extra
+                    result_list = list(legacy) + extra
                     self._emit_log(resp, applied=True, latency_ms=latency_ms)
-                    return result
+                    return result_list
             self._emit_log(resp, applied=False, latency_ms=latency_ms)
             return legacy
         # legacy is single-item dict (e.g., {"display_name": "..."} ) -> bulk paste case
@@ -194,7 +206,7 @@ class InlineRepairGateway:
                     return result
                 # single parsed item gap-only fill
                 single = parsed.items[0]
-                out = dict(legacy)
+                out: dict[str, Any] = dict(legacy)
                 if not legacy.get("name") and not legacy.get("display_name"):
                     out["name"] = single.name
                 if not legacy.get("quantity"):
@@ -206,7 +218,9 @@ class InlineRepairGateway:
         self._emit_log(resp, applied=False, latency_ms=latency_ms)
         return legacy
 
-    async def repair_recipe(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_recipe(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         tools = (
             ToolDefinition(
                 name="recipe",
@@ -228,17 +242,21 @@ class InlineRepairGateway:
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
                 timeout=self._timeout,
             )
-        except asyncio.TimeoutError:  # noqa: UP041
+        except TimeoutError:
             return legacy
         except Exception:
             return legacy
         latency_ms = int((time.perf_counter() - t0) * 1000)
         return self.merge_recipe(legacy, resp, latency_ms=latency_ms)
 
-    async def repair_recipe_async(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_recipe_async(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         return await self.repair_recipe(legacy, prompt, system)
 
-    async def repair_ingredient_row(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_ingredient_row(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         tools = (
             ToolDefinition(
                 name="ingredient_row",
@@ -260,17 +278,21 @@ class InlineRepairGateway:
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
                 timeout=self._timeout,
             )
-        except asyncio.TimeoutError:  # noqa: UP041
+        except TimeoutError:
             return legacy
         except Exception:
             return legacy
         latency_ms = int((time.perf_counter() - t0) * 1000)
         return self.merge_ingredient_row(legacy, resp, latency_ms=latency_ms)
 
-    async def repair_ingredient_row_async(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_ingredient_row_async(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         return await self.repair_ingredient_row(legacy, prompt, system)
 
-    async def repair_pantry(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_pantry(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         tools = (
             ToolDefinition(
                 name="pantry_items",
@@ -292,12 +314,18 @@ class InlineRepairGateway:
                 asyncio.to_thread(self._client.infer, req, timeout_seconds=self._timeout),
                 timeout=self._timeout,
             )
-        except asyncio.TimeoutError:  # noqa: UP041
+        except TimeoutError:
             return legacy
         except Exception:
             return legacy
         latency_ms = int((time.perf_counter() - t0) * 1000)
-        return self.merge_pantry(legacy, resp, latency_ms=latency_ms)
+        # merge_pantry may return list, but repair_pantry legacy is dict; cast
+        merged = self.merge_pantry(legacy, resp, latency_ms=latency_ms)
+        if isinstance(merged, dict):
+            return merged
+        return legacy
 
-    async def repair_pantry_async(self, legacy: dict, prompt: str, system: str) -> dict:
+    async def repair_pantry_async(
+        self, legacy: dict[str, Any], prompt: str, system: str
+    ) -> dict[str, Any]:
         return await self.repair_pantry(legacy, prompt, system)
