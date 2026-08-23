@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from decimal import Decimal
 from typing import Annotated, cast
 from uuid import UUID
@@ -19,6 +18,7 @@ from cookfully.api.schemas.foods import (
 )
 from cookfully.application.food_embedding_index import embedding_storage_key
 from cookfully.application.food_match_memories import remembered_food_reference
+from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import DomainError
 from cookfully.domain.food_semantics import (
     Compatibility,
@@ -28,80 +28,26 @@ from cookfully.domain.food_semantics import (
 )
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
 from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food
-from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import Ingredient
 from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
 from cookfully.infrastructure.models.semantic_matching import FoodSemanticIndex
-from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.owner_foods import (
     OwnerFoodWrite,
     UserFoodRepository,
 )
-from cookfully.infrastructure.semantic_embeddings import (
-    HashingTextEmbedder,
-    TextEmbedder,
-    create_text_embedder,
-)
 
 router = APIRouter(tags=["Foods"])
 
-_search_embedder: TextEmbedder | None = None
-_search_embedder_key: tuple[str, str, str | None, bool] | None = None
-_search_embedder_checked_at = 0.0
 _SEARCH_CANDIDATE_POOL_LIMIT = 256
 
 
-def _configured_search_embedder(session: Session) -> TextEmbedder:
-    """Build a matcher using the currently persisted embedding configuration."""
-
-    global _search_embedder, _search_embedder_key, _search_embedder_checked_at
-    settings = session.get(NutritionIntelligenceSettings, 1)
-    backend = settings.backend if settings is not None else "hashing"
-    model_name = settings.model_name if settings is not None else ""
-    revision = settings.model_revision if settings is not None else None
-    key = (backend, model_name, revision, bool(settings and settings.last_ready_at))
-    should_retry_local_model = (
-        backend == "fastembed"
-        and isinstance(_search_embedder, HashingTextEmbedder)
-        and time.monotonic() - _search_embedder_checked_at >= 30
-    )
-    if _search_embedder is None or _search_embedder_key != key or should_retry_local_model:
-        if backend == "fastembed":
-            if settings is not None and settings.last_ready_at is None:
-                raise DomainError(
-                    "embedding_model_not_ready",
-                    "The selected embedding model is still downloading.",
-                    409,
-                )
-            runtime = get_settings()
-            try:
-                _search_embedder = create_text_embedder(
-                    model_name=model_name,
-                    cache_dir=runtime.semantic_matching_model_dir,
-                    local_files_only=True,
-                    allow_fallback=False,
-                )
-            except Exception as exc:
-                raise DomainError(
-                    "embedding_model_unavailable",
-                    "The selected embedding model is not available locally. "
-                    "Save the model settings to retry its download.",
-                    503,
-                ) from exc
-        else:
-            _search_embedder = HashingTextEmbedder()
-        _search_embedder_key = key
-        _search_embedder_checked_at = time.monotonic()
-    return _search_embedder
-
-
 def _configured_search_matcher(session: Session) -> FoodMatcher:
-    return FoodMatcher(
-        NutritionRepository(session),
-        embedder=_configured_search_embedder(session),
+    return engine.matcher(
+        session,
+        fallback=False,
         candidate_pool_limit=_SEARCH_CANDIDATE_POOL_LIMIT,
     )
 
@@ -111,10 +57,8 @@ def warm_search_embedder(session_factory: sessionmaker[Session]) -> None:
 
     with session_factory() as session:
         try:
-            _configured_search_embedder(session)
+            engine.resolve_embedder(session, fallback=False)
         except DomainError:
-            # A model download job may still be warming the cache during API
-            # startup. Interactive requests remain gated until it is ready.
             return
 
 
@@ -129,7 +73,7 @@ def _indexed_candidates(
 
     settings = session.get(NutritionIntelligenceSettings, 1)
     model_name, model_version = embedding_storage_key(settings)
-    embedder = _configured_search_embedder(session)
+    embedder = engine.resolve_embedder(session, fallback=False)
     query_vector = list(embedder.embed((query,))[0])
     if len(query_vector) != 384:
         return []
