@@ -319,6 +319,12 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .grocery-onramp__lead { min-height: 22rem; }
 }
 
+@media (min-width: 768px) {
+  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem 0.75rem; }
+}
+@media (max-width: 767px) {
+  .recipe-library-page .recipe-grid { grid-template-columns: 1fr; gap: 1rem; }
+}
 @media (max-width: 47.99rem) {
   .recipe-add-menu,
   .recipe-add-menu > summary { width: 100%; }
@@ -328,7 +334,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .recipe-library-page .recipe-filter-disclosure { margin-top: 0; justify-self: stretch; }
   .recipe-library-page .recipe-filter-disclosure > summary { width: 100%; }
   .recipe-library-page { gap: 1.5rem; }
-  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem 0.75rem; margin-top: 0; }
+  .recipe-library-page .recipe-grid { margin-top: 0; }
   .recipe-library-page .recipe-card__primary { gap: 0.65rem; }
   .recipe-library-page .recipe-card__media { aspect-ratio: 5 / 4; border-radius: var(--radius-lg); }
   .recipe-library-page .recipe-card__body { gap: 0.35rem; padding-inline: 0; }
@@ -663,7 +669,6 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 }
 
 @media (max-width: 22.99rem) {
-  .recipe-library-page .recipe-grid { grid-template-columns: 1fr; }
   .recipe-library-page .recipe-card h2 { min-height: 0; }
 }
 
