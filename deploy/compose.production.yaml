@@ -9,9 +9,14 @@ services:
     networks: [backend]
     security_opt: ["no-new-privileges:true"]
 
-  intelligence:
+   intelligence:
     security_opt: ["no-new-privileges:true"]
     networks: [intelligence-net]
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - intelligence-model-data:/models
 
   api:
     environment:
