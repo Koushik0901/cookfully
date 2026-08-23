@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from cookfully.application.food_matching import FoodMatcher, normalize_food
 from cookfully.domain.common import uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, normalize_food
 from cookfully.infrastructure.models.reference_foods import FoodReference
 
 

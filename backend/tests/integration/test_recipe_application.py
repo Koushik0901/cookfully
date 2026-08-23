@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.auth import AuthService
 from cookfully.application.corrections import CorrectionService
-from cookfully.application.food_matching import FoodMatcher
 from cookfully.application.recipes import IngredientWrite, RecipeService, RecipeWrite
 from cookfully.domain.common import DomainError, uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
 from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
 from cookfully.infrastructure.models.nutrition import (

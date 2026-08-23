@@ -10,8 +10,8 @@ from cookfully.application.ai_provider import (
     FoodDisambiguationOutput,
     StructuredAiPort,
 )
-from cookfully.application.food_matching import FoodMatcher, normalize_food
 from cookfully.domain.common import DomainError, uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, normalize_food
 from cookfully.infrastructure.models.reference_foods import FoodReference
 
 

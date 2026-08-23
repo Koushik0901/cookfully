@@ -19,7 +19,7 @@ def _token_variants(token: str) -> list[str]:
 
     Stored reference names keep their original inflection ("Bananas, raw"), so a raw
     array-containment check for "banana" would exclude the canonical row from the
-    candidate window entirely. Mirrors the singularization in application.food_matching
+    candidate window entirely. Mirrors the singularization in domain.ingredient_nutrition.matching
     without importing application code into the infrastructure layer.
     """
 

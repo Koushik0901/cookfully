@@ -19,7 +19,6 @@ from cookfully.api.schemas.foods import (
 )
 from cookfully.application.food_embedding_index import embedding_storage_key
 from cookfully.application.food_match_memories import remembered_food_reference
-from cookfully.application.food_matching import FoodMatcher, normalize_food
 from cookfully.domain.common import DomainError
 from cookfully.domain.food_semantics import (
     Compatibility,
@@ -27,6 +26,8 @@ from cookfully.domain.food_semantics import (
     compare_compatibility,
     profile_from_text,
 )
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings

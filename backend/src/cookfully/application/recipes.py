@@ -10,7 +10,6 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.food_matching import _tokens, normalize_food
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
@@ -20,6 +19,8 @@ from cookfully.domain.common import (
     utc_now,
     uuid7,
 )
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food
+from cookfully.domain.ingredient_nutrition.normalization import tokenize as _tokens
 from cookfully.domain.recipes import (
     IngredientInput,
     RecipeDraft,

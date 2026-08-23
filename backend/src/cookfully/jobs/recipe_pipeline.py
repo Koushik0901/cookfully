@@ -17,7 +17,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.food_match_memories import remembered_food_reference
-from cookfully.application.food_matching import FoodMatcher
 from cookfully.application.jobs import JobService
 from cookfully.application.recipes import (
     IngredientWrite,
@@ -27,6 +26,7 @@ from cookfully.application.recipes import (
     recipe_input_hash,
 )
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now, uuid7
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,

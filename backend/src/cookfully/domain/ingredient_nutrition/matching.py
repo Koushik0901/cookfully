@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
@@ -16,6 +14,18 @@ from cookfully.domain.food_semantics import (
     compare_compatibility,
     profile_from_text,
 )
+from cookfully.domain.ingredient_nutrition.normalization import (
+    normalize as normalize_food,
+)
+from cookfully.domain.ingredient_nutrition.normalization import (
+    rank_query as _rank_query,
+)
+from cookfully.domain.ingredient_nutrition.normalization import (
+    semantic_query as _semantic_query,
+)
+from cookfully.domain.ingredient_nutrition.normalization import (
+    tokenize as _tokens,
+)
 from cookfully.infrastructure.models.nutrition import IngredientMatch
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
@@ -26,23 +36,6 @@ from cookfully.infrastructure.semantic_embeddings import (
     cosine_similarity,
 )
 
-ALIASES = {
-    "scallion": "green onion",
-    "garbanzo": "chickpea",
-    "caster sugar": "sugar",
-    "confectioners sugar": "powdered sugar",
-    "bell pepper": "sweet pepper",
-    # Recipe authors commonly use “super firm” for the same low-moisture tofu
-    # category USDA describes as “extra firm”. Prefer the generic reference over
-    # a branded product that happens to contain the marketing phrase verbatim.
-    "super firm tofu": "extra firm tofu",
-}
-
-# Tokens that signal a processed product form, a flavour variant, or a plant part
-# that is not the expected edible portion. Each carries -0.05 when the token is
-# *absent* from the query because the ingredient name alone implies the base staple,
-# not a breaded/dried/juice/flavoured/leaf form. Tokens in the query are never
-# penalised ("peanut butter" -> "butter" is safe).
 _FORM_TOKENS = frozenset(
     {
         "breaded",
@@ -99,12 +92,6 @@ _FLAVOR_TOKENS = frozenset(
 )
 _PART_TOKENS = frozenset({"leave", "peel", "seed", "stalk", "stem"})
 _PENALTY_TOKENS = _FORM_TOKENS | _FLAVOR_TOKENS | _PART_TOKENS
-
-
-def normalize_food(value: str) -> str:
-    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
-    normalized = re.sub(r"[^a-z0-9]+", " ", ascii_value.casefold()).strip()
-    return ALIASES.get(normalized, normalized)
 
 
 @dataclass(frozen=True, slots=True)
@@ -346,28 +333,6 @@ class FoodMatcher:
             profile = profile_from_text(food.description)
             self._food_profiles[food.id] = profile
         return profile
-
-
-def _semantic_query(concept: FoodSemanticProfile) -> str:
-    values = [concept.canonical_identity, concept.part, concept.form]
-    return " ".join(value for value in values if value and value != "whole_food")
-
-
-def _rank_query(value: str) -> str:
-    normalized = normalize_food(value)
-    return " ".join(token for token in normalized.split() if not token[:1].isdigit())
-
-
-def _tokens(value: str) -> list[str]:
-    return [_singular(token) for token in normalize_food(value).split() if token]
-
-
-def _singular(word: str) -> str:
-    if word.endswith("ies") and len(word) > 4:
-        return word[:-3] + "y"
-    if word.endswith("s") and len(word) > 3 and not word.endswith(("ss", "us", "is")):
-        return word[:-1]
-    return word
 
 
 def _has_block(query_set: set[str], candidate_tokens: list[str]) -> bool:
