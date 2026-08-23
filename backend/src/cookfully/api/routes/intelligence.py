@@ -158,14 +158,13 @@ _TOOLS: dict[str, tuple[ToolDefinition, ...]] = {
     "cook": (
         ToolDefinition(
             name="cooking_action",
-            description=(
-                "Interpret a cooking-mode command such as next, previous, repeat, or timer."
-            ),
+            description="Interpret next/previous/repeat/timer or ingredient quantity question from current step",
             parameters={
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string"},
-                    "minutes": {"type": "number"},
+                    "action": {"type": "string", "enum": ["next","previous","repeat","timer"]},
+                    "minutes": {"type": "integer", "minimum": 1, "maximum": 120},
+                    "query": {"type": "string", "minLength": 3, "maxLength": 80},
                 },
                 "required": ["action"],
             },
