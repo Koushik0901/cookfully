@@ -20,7 +20,9 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState }
 import { useNavigate } from "react-router-dom";
 
 import { RecipeFallbackArt } from "../components/cookfully/RecipeFallbackArt";
+import { groceryApi } from "../features/grocery/api";
 import { intelligenceApi } from "../features/intelligence/api";
+import { pantryApi } from "../features/pantry/api";
 import { planningApi } from "../features/plans/api";
 import { RecipeMetadata } from "../features/recipes/RecipeMetadata";
 
@@ -39,16 +41,51 @@ const COMMANDS = [
   { id: "add-grocery", label: "Add a grocery item", hint: "Open the manual item row", to: "/app/grocery?add=1", Icon: ShoppingBasket, group: "Quick actions" },
 ] as const;
 
+function getWeekStartISO(): string {
+  const today = new Date();
+  const weekday = today.getDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
+
 export function CommandPalette() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const interpretation = useMutation({
-    mutationFn: (prompt: string) => intelligenceApi.createDraft("command", prompt),
+  const inferred = useMutation({ mutationFn: (q: string) => intelligenceApi.infer("command", q) });
+  const pantryCreate = useMutation({
+    mutationFn: (args: Record<string, unknown>) =>
+      pantryApi.create({
+        displayName: String(args.name),
+        quantity: args.quantity != null ? String(args.quantity) : "1",
+        unit: args.unit != null ? String(args.unit) : "count",
+      }),
   });
-  const execution = useMutation({
-    mutationFn: (draftId: string) => intelligenceApi.executeDraft(draftId),
-    onSuccess: () => { void interpretation.reset(); },
+  const groceryCreate = useMutation({
+    mutationFn: (payload: { weekStart: string; args: Record<string, unknown> }) =>
+      groceryApi.create(payload.weekStart, {
+        displayName: String(payload.args.name),
+        quantity: payload.args.quantity != null ? String(payload.args.quantity) : null,
+        unit: payload.args.unit != null ? String(payload.args.unit) : null,
+      } as never),
+  });
+  const mealPlanCreate = useMutation({
+    mutationFn: async (args: Record<string, unknown>) => {
+      const weekStart = typeof args.localDate === "string" ? getWeekStartFromLocalDate(String(args.localDate)) : getWeekStartISO();
+      const queryText = String(args.query ?? "");
+      // Resolve recipe via search - list compat
+      const page = await planningApi.recipes(queryText);
+      const match = page.items.find((r) => r.title.toLocaleLowerCase().includes(queryText.toLocaleLowerCase())) ?? page.items[0];
+      if (!match) throw new Error("No recipe match");
+      return planningApi.addEntry(weekStart, {
+        localDate: String(args.localDate),
+        mealSlot: String(args.mealSlot),
+        recipeId: match.id,
+        servings: args.servings != null ? String(args.servings) : "1",
+      } as never);
+    },
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -102,6 +139,26 @@ export function CommandPalette() {
     event.preventDefault();
     items[next]?.focus();
   }
+
+  function handleAdd() {
+    const call = inferred.data?.functionCalls[0];
+    if (!call) return;
+    const args = call.arguments as Record<string, unknown>;
+    if (call.name === "add_pantry_item" && typeof args.name === "string") {
+      pantryCreate.mutate(args);
+    } else if (call.name === "add_grocery_item" && typeof args.name === "string") {
+      groceryCreate.mutate({ weekStart: getWeekStartISO(), args });
+    } else if (call.name === "add_recipe_to_plan" && typeof args.query === "string" && typeof args.localDate === "string" && typeof args.mealSlot === "string") {
+      mealPlanCreate.mutate(args);
+    } else if (typeof args.name === "string") {
+      // fallback: treat as pantry
+      pantryCreate.mutate(args);
+    }
+  }
+
+  const isAddPending = pantryCreate.isPending || groceryCreate.isPending || mealPlanCreate.isPending;
+  const isAddSuccess = pantryCreate.isSuccess || groceryCreate.isSuccess || mealPlanCreate.isSuccess;
+  const isAddError = pantryCreate.isError || groceryCreate.isError || mealPlanCreate.isError;
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(""); }}>
@@ -166,32 +223,33 @@ export function CommandPalette() {
                 <Sparkles aria-hidden="true" />
                 <strong>No direct match yet</strong>
                 <p>Ask Cookfully to interpret a grocery, pantry, recipe, or cooking action.</p>
-                <button
-                  data-command-item
-                  type="button"
-                  role="menuitem"
-                  onClick={() => interpretation.mutate(query.trim())}
-                  disabled={interpretation.isPending}
-                >
-                  <Sparkles aria-hidden="true" />
-                  <span><strong>{interpretation.isPending ? "Understanding…" : "Interpret with Cookfully"}</strong><small>Review the proposed action before anything changes</small></span>
-                  <kbd>↵</kbd>
-                </button>
-                {interpretation.data?.status === "ok" ? (
+                {!inferred.data ? (
+                  <button
+                    data-command-item
+                    type="button"
+                    role="menuitem"
+                    onClick={() => inferred.mutate(query.trim())}
+                    disabled={inferred.isPending}
+                  >
+                    <Sparkles aria-hidden="true" />
+                    <span><strong>{inferred.isPending ? "Understanding…" : "Interpret with Cookfully"}</strong><small>Review the proposed action before anything changes</small></span>
+                    <kbd>↵</kbd>
+                  </button>
+                ) : inferred.data.status === "ok" && (inferred.data.confidence ?? 0) >= 0.80 && inferred.data.functionCalls[0] ? (
                   <div className="command-note" role="status">
-                    <strong>Cookfully understood</strong>
-                    {interpretation.data.functionCalls.map((call, index) => <p key={`${call.name}-${index}`}>{call.name}</p>)}
-                    {interpretation.data.draftId ? (
-                      <button type="button" onClick={() => { const draftId = interpretation.data?.draftId; if (draftId) execution.mutate(draftId); }} disabled={execution.isPending}>
-                        {execution.isPending ? "Applying…" : "Confirm and apply"}
-                      </button>
-                    ) : <small>This is a proposal only. Nothing has changed.</small>}
+                    <span>We think you mean: {inferred.data.functionCalls[0].name} {JSON.stringify(inferred.data.functionCalls[0].arguments)} — </span>
+                    <button type="button" onClick={handleAdd} disabled={isAddPending}>
+                      {isAddPending ? "Adding…" : "Add"}
+                    </button>
+                    {isAddSuccess ? <span> Added.</span> : null}
+                    {isAddError ? <span role="alert"> Couldn’t add. Try manually.</span> : null}
                   </div>
-                ) : null}
-                {execution.isSuccess ? <p className="command-note" role="status">Applied. Cookfully’s data is up to date.</p> : null}
-                {execution.isError ? <p className="command-note" role="alert">Nothing was applied. Review the request and try again.</p> : null}
-                {interpretation.data?.status === "unsupported" ? <p className="command-note" role="status">That request does not map to a Cookfully action yet.</p> : null}
-                {interpretation.data?.status === "unavailable" ? <p className="command-note" role="status">Local intelligence is unavailable. Search and navigation still work.</p> : null}
+                ) : (
+                  <div className="command-note" role="status">
+                    <span>Not sure — Add manually? </span>
+                    <a href="/app/pantry?add=1">Open pantry</a>
+                  </div>
+                )}
               </div>
             ) : null}
             {recipes.isError ? <p className="command-note" role="status">Recipe search is unavailable. Navigation and actions still work.</p> : null}
@@ -201,4 +259,14 @@ export function CommandPalette() {
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function getWeekStartFromLocalDate(localDate: string): string {
+  const d = new Date(localDate + "T00:00:00.000Z");
+  if (Number.isNaN(d.getTime())) return getWeekStartISO();
+  const weekday = d.getUTCDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() + diff);
+  return monday.toISOString().slice(0, 10);
 }
