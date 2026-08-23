@@ -81,28 +81,17 @@ class InlineRepairGateway:
         except Exception:
             return legacy
         out = dict(legacy)
-        # gap-only: never overwrite existing valid values
-        if legacy.get("quantity") in (None, "", 0):
-            out["quantity"] = parsed.quantity
-        # if quantity missing or invalid, fill; otherwise keep legacy
-        # handle case where legacy quantity is 0 or None
-        if legacy.get("quantity") is None:
-            out["quantity"] = parsed.quantity
-        if not legacy.get("unit"):
+        # gap-only + allowlist: merge ONLY unit, never quantity
+        # invalid unit (not in ALLOWED) is treated as gap
+        allowed = {"g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"}
+        legacy_unit = legacy.get("unit")
+        if legacy_unit is None or legacy_unit not in allowed:
             out["unit"] = parsed.unit
-        # if legacy has quantity but no unit, still fill unit
-        # if legacy has unit, never overwrite
-        # ensure parsed values are only applied to gaps
-        if "quantity" not in legacy or legacy.get("quantity") is None:
-            out["quantity"] = parsed.quantity
-        if "unit" not in legacy or not legacy.get("unit"):
-            out["unit"] = parsed.unit
-        # final gap-only enforcement: if legacy already had valid values, keep them
-        # Re-apply: if legacy had truthy quantity/unit, restore them
-        if legacy.get("quantity") not in (None, "", 0) and "quantity" in legacy:
+        else:
+            out["unit"] = legacy_unit
+        # quantity is never overwritten — preserve legacy exactly
+        if "quantity" in legacy:
             out["quantity"] = legacy["quantity"]
-        if legacy.get("unit"):
-            out["unit"] = legacy["unit"]
         return out
 
     def merge_pantry(self, legacy: dict, resp) -> dict:
