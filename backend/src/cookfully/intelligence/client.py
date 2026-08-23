@@ -32,15 +32,16 @@ class IntelligenceClient:
         if self._owns_client:
             self._client.close()
 
-    def infer(self, request: InferenceRequest) -> InferenceResponse:
+    def infer(self, request: InferenceRequest, *, timeout_seconds: float | None = None) -> InferenceResponse:
         if not self._enabled:
             raise IntelligenceUnavailableError("Local intelligence is disabled.")
+        eff = timeout_seconds if timeout_seconds is not None else self._timeout
         try:
             response = self._client.post(
                 f"{self._base_url}/v1/infer",
                 headers={"x-cookfully-intelligence-key": self._service_key},
                 json=request.model_dump(mode="json", by_alias=True),
-                timeout=self._timeout,
+                timeout=eff,
             )
             response.raise_for_status()
             return InferenceResponse.model_validate(response.json())

@@ -34,6 +34,7 @@ class InferenceRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=50_000)
     tools: tuple[ToolDefinition, ...] = Field(default=())
     context: dict[str, str] = Field(default_factory=dict)
+    system: str | None = Field(default=None, max_length=500, description="Needle system facts: date, locale, device")
 
 
 class InferenceResponse(BaseModel):

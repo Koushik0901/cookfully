@@ -61,10 +61,10 @@ class ModelEngine:
             for tool in request.tools
         ]
         try:
-            tool_key = json.dumps(tools, sort_keys=True, separators=(",", ":"))
+            tool_key = json.dumps({"tools": tools, "system": request.system or ""}, sort_keys=True, separators=(",", ":"))
             agent = self._agents.get(tool_key)
             if agent is None:
-                agent = self._needle.Needle(weights=MODEL_PATH, tools=tools)
+                agent = self._needle.Needle(weights=MODEL_PATH, tools=tools, system=request.system or "", tool_index_path="/tmp/tools.idx" if len(tools)>5 else None)
                 self._agents[tool_key] = agent
             result = agent.complete(request.prompt)
             calls = tuple(
