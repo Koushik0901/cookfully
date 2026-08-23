@@ -454,8 +454,8 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
     };
   });
   expect(layout).not.toBeNull();
-  expect(layout!.columns).toBe(2);
-  expect(layout!.cardWidth).toBeLessThan(layout!.viewportWidth * 0.55);
+  expect(layout!.columns).toBe(1);
+  expect(layout!.cardWidth).toBeGreaterThan(layout!.viewportWidth * 0.85);
   expect(layout!.mediaRatio).toBeGreaterThan(1.15);
   expect(layout!.metadataVisible).toContain("kcal");
   expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
