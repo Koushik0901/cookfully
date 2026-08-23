@@ -28,12 +28,12 @@ domain/ingredient_nutrition/quantities.py   # sole owner
 
   Pint UnitRegistry (+ cookfully_teaspoon = 5*mL, etc.)
   alias map (comprehensive, casefold + trailing-dot stripped):
-    mg/milligram → milligram/gram, g/gram/grams → gram,
+    mg/milligram → milligram, g/gram/grams → gram,
     kg/kilogram → kilogram, oz/ounce/ounces → ounce, lb/pound → pound,
     ml/milliliter → milliliter, l/liter → liter,
     tsp/teaspoon → cookfully_teaspoon, tbsp/tablespoon → cookfully_tablespoon,
     cup → cookfully_cup, count/each/ea/item → item
-  canonical short for pantry storage: g/kg/ml/l/count (plus mg mapping to g)
+  canonical short for pantry storage: mg/g/kg/ml/l/count
   public:
     @dataclass IngredientMeasure / GramRange / Coverage  (moved from domain/units.py)
     def to_grams(measure, *, density_g_per_ml=None, count_weight_g=None, owner_food=None) -> GramRange
@@ -73,7 +73,7 @@ No database migration. No API shape change. Boundary test enforces only `domain/
 
 ### 1. Core module (`domain/ingredient_nutrition/quantities.py`)
 
-Owns the single `UnitRegistry` instance and the alias table. Helper `_normalize_alias(value)` does `value.strip().casefold().rstrip(".")` before lookup, matching pantry's current normalization. Lookup yields `(dimension, pint_name, factor)` equivalently via Pint rather than manual `Decimal` factors — the registry defines the factors, the table defines the aliases. Short canonical for storage: `milligram/gram → g`, `kilogram → kg`, `milliliter → ml`, `liter → l`, `item → count`; lookup still accepts the long forms.
+Owns the single `UnitRegistry` instance and the alias table. Helper `_normalize_alias(value)` does `value.strip().casefold().rstrip(".")` before lookup, matching pantry's current normalization. Lookup yields `(dimension, pint_name, factor)` equivalently via Pint rather than manual `Decimal` factors — the registry defines the factors, the table defines the aliases. Short canonical for storage: `milligram → mg`, `gram → g`, `kilogram → kg`, `milliliter → ml`, `liter → l`, `item → count`; lookup still accepts the long forms.
 
 Signatures:
 
@@ -135,7 +135,7 @@ recipe ingredient (quantity_min/max, unit_code, original_text)
   → grams_min/max (+ method/assumption) stored on IngredientMatch
 
 pantry deduction:
-  PantryItemRead (short canonical g/kg/ml/l/count) + grocery PantryQuantity
+  PantryItemRead (short canonical mg/g/kg/ml/l/count) + grocery PantryQuantity
     → engine.apply_deduction(pantry, grocery)
       convert_quantity via Pint alias table (tbsp→ml 15, cup→ml 240, oz→g 28.3495…)
       quantize NUTRIENT_SCALE → QuantityDeduction(before/after, amounts)
@@ -161,7 +161,7 @@ Domain errors are `DomainError` at 422: `quantity_unavailable`, `negative_quanti
 ## Risks
 
 - Pint factor string rounding vs hand-rolled `Decimal("0.001")` — mitigated by parity tests and `Decimal(str(magnitude))` quantization.
-- Short canonical drift (`gram` vs `g`) — shim `canonical_pantry_unit` returns short form; storage stays `g/kg/ml/l/count`.
+- Short canonical drift (`gram` vs `g`, `milligram` vs `mg`) — shim `canonical_pantry_unit` returns short form; storage stays `mg/g/kg/ml/l/count`.
 - Missed `owner_serving` casefold or `None` quantity — covered by sync tests.
 - Expanding pantry to `tbsp`/`cup`/`oz` without UI changes — reads/writes still accept the aliases; display keeps short canonical, no migration needed.
 
