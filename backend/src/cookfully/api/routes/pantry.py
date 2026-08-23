@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 from cookfully.api.dependencies.auth import require_browser_owner
 from cookfully.api.routes.recipes import expected_version, idempotency_key
 from cookfully.api.schemas.pantry import (
+    BulkPantryCreateResponse,
     PantryDeductionApplyRequest,
     PantryDeductionResponse,
     PantryItemResponse,
@@ -57,7 +58,7 @@ def list_pantry_items(
 
 @router.post(
     "/pantry-items",
-    response_model=PantryItemResponse,
+    response_model=PantryItemResponse | BulkPantryCreateResponse,
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
 )
@@ -67,7 +68,20 @@ async def create_pantry_item(
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
-) -> PantryItemResponse:
+) -> PantryItemResponse | BulkPantryCreateResponse:
+    # idempotency begin first to support replay of both single and bulk shapes
+    request_body = payload.model_dump(mode="json", by_alias=True)
+    decision = idempotency.begin(
+        owner_id=owner.id, key=key, operation="pantry.item.create", payload=request_body
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        if "items" in decision.response_body:
+            return BulkPantryCreateResponse.model_validate(decision.response_body)
+        return PantryItemResponse.model_validate(decision.response_body)
     # Inline bulk paste: detect delimiters and race pantry_extract (600ms gate)
     display_name = payload.display_name
     has_bulk = "," in display_name or ";" in display_name or "\n" in display_name
@@ -80,6 +94,7 @@ async def create_pantry_item(
                 from cookfully.application.inline_repair import (
                     InlineRepairGateway,
                     PantryExtractSchema,
+                    _window,
                 )
                 from cookfully.domain.common import utc_now
                 from cookfully.intelligence.client import IntelligenceClient
@@ -87,12 +102,14 @@ async def create_pantry_item(
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
 
-                def _build_prompt(raw: str) -> str:
-                    truncated = raw[:800]
-                    window = truncated[:400] if len(truncated) > 400 else truncated
-                    return window[:256]
+                import time as _time
 
-                prompt = _build_prompt(display_name)
+                from cookfully.application.inline_repair import _est_toks as _est
+
+                prompt, has_more = _window(display_name)
+                _prompt_toks_est = _est(
+                    prompt
+                )  # for observability (plumbed via _emit_log if needed)
                 client = IntelligenceClient(
                     settings.intelligence_url,
                     settings.intelligence_service_key.get_secret_value(),
@@ -120,15 +137,54 @@ async def create_pantry_item(
                     system=system,
                 )
                 resp = None
+                t0 = _time.perf_counter()
                 try:
                     resp = await asyncio.wait_for(
                         asyncio.to_thread(client.infer, req, timeout_seconds=gw._timeout),
                         timeout=gw._timeout,
                     )
-                except TimeoutError:
+                except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
                     resp = None
                 except Exception:
                     resp = None
+                # second-window retry: if first is empty/unsupported and has_more and budget>120ms
+                if has_more:
+                    is_empty = resp is None or resp.status != "ok" or not resp.function_calls
+                    if not is_empty and resp is not None and resp.function_calls:
+                        try:
+                            args0 = resp.function_calls[0].arguments
+                            if isinstance(args0, dict) and "items" in args0:
+                                vals = args0.get("items")
+                                if isinstance(vals, list) and len(vals) == 0:
+                                    is_empty = True
+                        except Exception:
+                            pass
+                    if is_empty:
+                        elapsed = _time.perf_counter() - t0
+                        remaining = gw._timeout - elapsed
+                        if remaining > 0.12:
+                            second_prompt = display_name[400:800][:256]
+                            second_req = InferenceRequest(
+                                requestId="inline-pantry",
+                                operation="pantry_extract",
+                                prompt=second_prompt,
+                                tools=tools,
+                                context={},
+                                system=system,
+                            )
+                            try:
+                                resp2 = await asyncio.wait_for(
+                                    asyncio.to_thread(
+                                        client.infer, second_req, timeout_seconds=remaining
+                                    ),
+                                    timeout=remaining,
+                                )
+                                if resp2 is not None and gw._gate(resp2):
+                                    resp = resp2
+                            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
+                                pass
+                            except Exception:
+                                pass
                 if resp is not None and gw._gate(resp):
                     try:
                         parsed = PantryExtractSchema.model_validate(
@@ -137,45 +193,40 @@ async def create_pantry_item(
                     except Exception:
                         parsed = None
                     if parsed is not None and len(parsed.items) > 1:
-                        # gap-only split: N rows via loop, return first
-                        created = []
-                        for item in parsed.items:
-                            # use single-create helper to avoid re-triggering bulk check
-                            read = service._create_single(
+                        created = [
+                            service._create_single(
                                 owner.id,
-                                display_name=item.name,
-                                quantity=Decimal(str(item.quantity)),
-                                unit=item.unit,
+                                display_name=i.name,
+                                quantity=Decimal(str(i.quantity)),
+                                unit=i.unit,
                                 expires_on=payload.expires_on,
                                 food_reference_id=None,
                             )
-                            created.append(read)
-                        # complete idempotency for bulk as first item
-                        response = PantryItemResponse.from_read(created[0])
-                        # store bulk result as first for replay (best-effort)
+                            for i in parsed.items
+                        ]
+                        bulk = BulkPantryCreateResponse(
+                            items=[PantryItemResponse.from_read(r) for r in created],
+                            created=len(created),
+                        )
+                        # idempotency stores vector
                         try:
                             idempotency.complete(
                                 owner_id=owner.id,
                                 key=key,
                                 response_status=201,
-                                resource_id=response.id,
-                                response_body=response.model_dump(mode="json", by_alias=True),
+                                resource_id=bulk.items[0].id,
+                                response_body={
+                                    "items": [
+                                        i.model_dump(mode="json", by_alias=True) for i in bulk.items
+                                    ],
+                                    "created": bulk.created,
+                                },
                             )
                         except Exception:
                             pass
-                        return response
+                        return bulk
         except Exception:
             pass
-    request_body = payload.model_dump(mode="json", by_alias=True)
-    decision = idempotency.begin(
-        owner_id=owner.id, key=key, operation="pantry.item.create", payload=request_body
-    )
-    if decision.replay:
-        if decision.response_body is None:
-            raise DomainError(
-                "idempotency_response_missing", "Stored response is unavailable.", 500
-            )
-        return PantryItemResponse.model_validate(decision.response_body)
     try:
         result = service.create(
             owner.id,

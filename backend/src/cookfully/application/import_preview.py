@@ -96,6 +96,7 @@ class ImportPreviewCoordinator:
                 from cookfully.application.inline_repair import (
                     InlineRepairGateway,
                     RecipeExtractSchema,
+                    _window,
                 )
                 from cookfully.infrastructure.observability import correlation_id
                 from cookfully.intelligence.client import IntelligenceClient
@@ -103,13 +104,6 @@ class ImportPreviewCoordinator:
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
                 cid = correlation_id.get() or trace_id or "unknown"
-
-                def _build_prompt(raw: str) -> str:
-                    # 256-tok window ~400 chars, 800 char budget = 2x400 naive chunks
-                    # gap-only first iteration uses first window only
-                    truncated = raw[:800]
-                    window = truncated[:400] if len(truncated) > 400 else truncated
-                    return window[:256]
 
                 tools = (
                     ToolDefinition(
@@ -131,6 +125,8 @@ class ImportPreviewCoordinator:
                 )
 
                 async def _needle_infer() -> Any:
+                    import time as _time
+
                     assert gw is not None
                     gw_local = gw
                     prompt_text = url
@@ -155,17 +151,22 @@ class ImportPreviewCoordinator:
                                 pass
                     except Exception:
                         pass
-                    prompt = _build_prompt(prompt_text)
+                    from cookfully.application.inline_repair import _est_toks as _est
+
+                    window, has_more = _window(prompt_text)
+                    prompt_toks_est = _est(window)
+                    window_index = 1
                     req = InferenceRequest(
                         requestId=f"inline-{cid}",
                         operation="recipe_extract",
-                        prompt=prompt,
+                        prompt=window,
                         system=system,
                         tools=tools,
                         context={},
                     )
+                    t0 = _time.perf_counter()
                     try:
-                        return await asyncio.wait_for(
+                        resp = await asyncio.wait_for(
                             asyncio.to_thread(
                                 gw_local._client.infer, req, timeout_seconds=gw_local._timeout
                             ),
@@ -173,6 +174,64 @@ class ImportPreviewCoordinator:
                         )
                     except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
                         return None
+                    # second-window retry: only if first is empty/unsupported
+                    # and has_more and budget >120ms
+                    is_empty = False
+                    try:
+                        is_empty = resp.status != "ok" or not resp.function_calls
+                        if not is_empty and resp.function_calls:
+                            args = resp.function_calls[0].arguments
+                            if isinstance(args, dict):
+                                for k in ("ingredients", "steps"):
+                                    if (
+                                        k in args
+                                        and isinstance(args[k], list)
+                                        and len(args[k]) == 0
+                                    ):
+                                        is_empty = True
+                    except Exception:
+                        is_empty = False
+                    if is_empty and has_more:
+                        elapsed = _time.perf_counter() - t0
+                        remaining = gw_local._timeout - elapsed
+                        if remaining > 0.12:
+                            second = prompt_text[400:800][:256]
+                            second_req = InferenceRequest(
+                                requestId=f"inline-{cid}",
+                                operation="recipe_extract",
+                                prompt=second,
+                                system=system,
+                                tools=tools,
+                                context={},
+                            )
+                            try:
+                                resp2 = await asyncio.wait_for(
+                                    asyncio.to_thread(
+                                        gw_local._client.infer,
+                                        second_req,
+                                        timeout_seconds=remaining,
+                                    ),
+                                    timeout=remaining,
+                                )
+                                # attach window metadata for caller logging via gw._emit_log
+                                try:
+                                    setattr(  # noqa: B010
+                                        resp2, "_prompt_toks_est", _est(second)
+                                    )
+                                    setattr(resp2, "_window_index", 2)  # noqa: B010
+                                except Exception:
+                                    pass
+                                return resp2
+                            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
+                                pass
+                            except Exception:
+                                pass
+                    try:
+                        setattr(resp, "_prompt_toks_est", prompt_toks_est)  # noqa: B010
+                        setattr(resp, "_window_index", window_index)  # noqa: B010
+                    except Exception:
+                        pass
+                    return resp
 
                 needle_future = asyncio.create_task(_needle_infer())
             except Exception:
@@ -211,7 +270,12 @@ class ImportPreviewCoordinator:
                             "ingredients": list(first.ingredients),
                             "steps": list(first.instructions),
                         }
-                        merged = gw.merge_recipe(legacy_dict, needle_resp)
+                        merged = gw.merge_recipe(
+                            legacy_dict,
+                            needle_resp,
+                            prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
+                            window_index=getattr(needle_resp, "_window_index", None),
+                        )
                         if merged is not legacy_dict and merged != legacy_dict:
                             new_ingredients = tuple(merged.get("ingredients", first.ingredients))
                             new_steps = tuple(merged.get("steps", first.instructions))
@@ -236,7 +300,12 @@ class ImportPreviewCoordinator:
                         "ingredients": list(imported.ingredients),
                         "steps": list(imported.instructions),
                     }
-                    merged = gw.merge_recipe(legacy_dict, needle_resp)
+                    merged = gw.merge_recipe(
+                        legacy_dict,
+                        needle_resp,
+                        prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
+                        window_index=getattr(needle_resp, "_window_index", None),
+                    )
                     if merged is not legacy_dict and merged != legacy_dict:
                         new_ingredients = tuple(merged.get("ingredients", imported.ingredients))
                         new_steps = tuple(merged.get("steps", imported.instructions))
