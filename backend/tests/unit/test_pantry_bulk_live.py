@@ -47,14 +47,25 @@ class _FakePantryService:
     def __init__(self):
         self.created = []
 
-    def _create_single(self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None):
+    def _create_single(
+        self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None
+    ):
         r = _FakeRead(display_name, quantity, unit)
         self.created.append(r)
         return r
 
-    def create(self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None):
+    def create(
+        self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None
+    ):
         # fallback single path
-        return self._create_single(owner_id, display_name=display_name, quantity=quantity, unit=unit, expires_on=expires_on, food_reference_id=food_reference_id)
+        return self._create_single(
+            owner_id,
+            display_name=display_name,
+            quantity=quantity,
+            unit=unit,
+            expires_on=expires_on,
+            food_reference_id=food_reference_id,
+        )
 
 
 class _FakeIdempotency:
@@ -66,11 +77,27 @@ class _FakeIdempotency:
 
         if key in self.store:
             rec = self.store[key]
-            return IdempotencyDecision(True, rec["resource_id"], None, rec["response_status"], rec["response_body"])
+            return IdempotencyDecision(
+                True, rec["resource_id"], None, rec["response_status"], rec["response_body"]
+            )
         return IdempotencyDecision(False)
 
-    def complete(self, *, owner_id, key, response_status, resource_id=None, response_body=None, job_id=None, now=None):
-        self.store[key] = {"response_status": response_status, "resource_id": resource_id, "response_body": response_body}
+    def complete(
+        self,
+        *,
+        owner_id,
+        key,
+        response_status,
+        resource_id=None,
+        response_body=None,
+        job_id=None,
+        now=None,
+    ):
+        self.store[key] = {
+            "response_status": response_status,
+            "resource_id": resource_id,
+            "response_body": response_body,
+        }
 
     def abort(self, *, owner_id, key):
         pass
@@ -98,8 +125,6 @@ async def test_bulk_returns_list(monkeypatch):
     import cookfully.infrastructure.config as cfg
     from cookfully.infrastructure.config import Settings
 
-    orig_get = cfg.get_settings
-
     def _patched_get():
         return Settings(
             environment="test",
@@ -121,7 +146,9 @@ async def test_bulk_returns_list(monkeypatch):
 
     from cookfully.api.schemas.pantry import PantryItemWriteRequest
 
-    payload = PantryItemWriteRequest(displayName="3 bananas, 500g chicken, 1L oat milk", quantity=Decimal("1"), unit="count")
+    payload = PantryItemWriteRequest(
+        displayName="3 bananas, 500g chicken, 1L oat milk", quantity=Decimal("1"), unit="count"
+    )
     service = _FakePantryService()
     idempotency = _FakeIdempotency()
     owner = _FakeOwner()
@@ -131,7 +158,9 @@ async def test_bulk_returns_list(monkeypatch):
     # before fix: single PantryItemResponse without items; after fix: BulkPantryCreateResponse
     data = result.model_dump(by_alias=True) if hasattr(result, "model_dump") else {}
     # brief expects items len 3 and created 3
-    assert "items" in data and data["created"] == 3 and len(data["items"]) == 3, f"got {data} type {type(result).__name__}"
+    assert "items" in data and data["created"] == 3 and len(data["items"]) == 3, (
+        f"got {data} type {type(result).__name__}"
+    )
 
 
 @pytest.mark.asyncio

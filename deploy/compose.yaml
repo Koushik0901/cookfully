@@ -41,8 +41,11 @@ services:
       COOKFULLY_INTELLIGENCE_SERVICE_KEY: ${COOKFULLY_INTELLIGENCE_SERVICE_KEY:-cookfully-intelligence-development}
       COOKFULLY_INTELLIGENCE_MODEL: ${COOKFULLY_INTELLIGENCE_MODEL:-needle2}
       COOKFULLY_INTELLIGENCE_MODEL_PATH: /models/needle2.cact
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
-      - intelligence-model-data:/models
+      - intelligence-model-data:/models:ro
     networks:
       - intelligence-net
     expose:

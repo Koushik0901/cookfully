@@ -76,7 +76,7 @@ class ModelEngine:
                     weights=MODEL_PATH,
                     tools=tools,
                     system=request.system or "",
-                    tool_index_path="/tmp/tools.idx" if len(tools) > 5 else None,
+                    tool_index_path="/models/tools.idx" if len(tools) > 5 else None,
                 )
                 self._agents[tool_key] = agent
             t0 = time.perf_counter()
