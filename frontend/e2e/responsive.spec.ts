@@ -119,6 +119,76 @@ test("mobile keeps secondary places in a deliberate More menu", async ({ page },
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
+test("recipes grid is 1-col on mobile, 2-col on desktop", async ({ page }) => {
+  // Brief Step 1 — TDD gate: 1fr below 767px, repeat(2 at >=768px)
+  // Mock minimal recipes API so .recipe-grid is rendered in both viewports.
+  const recipeId = "00000000-0000-4000-8000-000000000001";
+  const collection = { id: "00000000-0000-4000-8000-000000000010", name: "Weeknight favourites", position: 0, version: 1, recipeCount: 0 };
+  const recipe = {
+    id: recipeId,
+    title: "Protein oats",
+    description: "Reliable breakfast",
+    sourceUrl: "https://example.com/protein-oats",
+    imageUrl: null,
+    yieldQuantity: "2.000",
+    yieldUnit: "servings",
+    status: "ready",
+    archivedFromStatus: null,
+    nutritionState: "estimated",
+    nutrition: {
+      status: "estimated",
+      basisServings: "2.000",
+      coverageRatio: "0.950000",
+      caloriesKcal: "540.000000",
+      proteinG: "38.500000",
+      carbohydrateG: "62.000000",
+      fatG: "14.000000",
+      provenance: [{ kind: "reference", label: "USDA Foundation Foods", version: "2026-04-30" }],
+      assumptions: [],
+      corrections: [],
+    },
+    version: 1,
+    updatedAt: "2026-08-10T10:00:00Z",
+    ingredients: [],
+    instructions: [],
+    activeJob: null,
+  };
+  await page.context().addCookies([{ name: "cookfully_csrf", value: "e2e-csrf", domain: "127.0.0.1", path: "/" }]);
+  await page.route("**/api/v1/**", async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    const method = route.request().method();
+    const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
+    if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/recipes/collections" && method === "GET") return json([collection]);
+    if (path === "/api/v1/recipes" && method === "GET") return json({ items: [recipe], nextCursor: null });
+    if (path.startsWith("/api/v1/recipes/") && method === "GET") return json(recipe);
+    return json({ code: "not_found", title: "Not found", status: 404 }, 404);
+  });
+
+  // Mobile: 390×844 → single column (1fr)
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/app/recipes");
+  await expect(page.locator(".recipe-grid").first()).toBeVisible();
+  const mobileColumns = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(mobileColumns).toBe(1);
+  // Also assert computed style is single value (not repeat) — mirrors brief's /1fr/ intent via column count
+  const mobileGrid = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns);
+  expect(mobileGrid.trim().split(" ").length).toBe(1);
+
+  // Desktop: 1024×900 → two columns repeat(2, ...)
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.waitForFunction(() => {
+    const grid = document.querySelector<HTMLElement>(".recipe-grid");
+    return grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length === 2 : false;
+  });
+  const desktopColumns = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(desktopColumns).toBe(2);
+  const desktopGrid = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns);
+  expect(desktopGrid.trim().split(" ").length).toBe(2);
+});
+
 test("cook mode takes over the viewport and adapts its ingredient checklist", async ({ page }, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}/cook`);

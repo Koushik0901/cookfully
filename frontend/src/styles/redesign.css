@@ -319,6 +319,12 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .grocery-onramp__lead { min-height: 22rem; }
 }
 
+@media (min-width: 768px) {
+  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem 0.75rem; }
+}
+@media (max-width: 767.98px) {
+  .recipe-library-page .recipe-grid { grid-template-columns: 1fr; gap: 1rem; }
+}
 @media (max-width: 47.99rem) {
   .recipe-add-menu,
   .recipe-add-menu > summary { width: 100%; }
@@ -328,7 +334,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .recipe-library-page .recipe-filter-disclosure { margin-top: 0; justify-self: stretch; }
   .recipe-library-page .recipe-filter-disclosure > summary { width: 100%; }
   .recipe-library-page { gap: 1.5rem; }
-  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.35rem 0.75rem; margin-top: 0; }
+  .recipe-library-page .recipe-grid { margin-top: 0; }
   .recipe-library-page .recipe-card__primary { gap: 0.65rem; }
   .recipe-library-page .recipe-card__media { aspect-ratio: 5 / 4; border-radius: var(--radius-lg); }
   .recipe-library-page .recipe-card__body { gap: 0.35rem; padding-inline: 0; }
@@ -663,7 +669,6 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 }
 
 @media (max-width: 22.99rem) {
-  .recipe-library-page .recipe-grid { grid-template-columns: 1fr; }
   .recipe-library-page .recipe-card h2 { min-height: 0; }
 }
 
@@ -795,12 +800,20 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .grocery-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .grocery-item { position: relative; gap: 0.65rem; border: 1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); border-radius: var(--radius-lg); padding: 0.85rem 0.9rem; background: color-mix(in oklch, var(--color-surface-bright) 82%, var(--color-surface-low)); box-shadow: none; }
 .grocery-item:hover { border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-outline-variant)); background: var(--color-surface-bright); }
-.grocery-item__heading { grid-template-columns: 2.75rem minmax(0, 1fr) auto; gap: 0.7rem; }
+.grocery-item__icon { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:18px; background: color-mix(in oklch, var(--color-surface-bright) 88%, var(--color-primary-container)); color: var(--color-primary); border:1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); flex:0 0 auto; }
+.grocery-item__icon svg { width:20px; height:20px; }
+.grocery-item__heading { grid-template-columns: 2.5rem 2.75rem minmax(0,1fr) auto; gap: 0.7rem; }
+.grocery-item--checked .grocery-item__icon { opacity:0.62; }
+@media (max-width: 767.98px) {
+  .grocery-item__icon { width:2.25rem; height:2.25rem; border-radius:16px; }
+  .grocery-item__icon svg { width:18px; height:18px; }
+  .grocery-item__heading { grid-template-columns: 2.25rem 2.75rem minmax(0,1fr); }
+}
 .grocery-check { width: 2.75rem; height: 2.75rem; }
 .grocery-check .cf-checkbox { width: 1.45rem; height: 1.45rem; }
 .grocery-item__heading h3 { font-size: 1.05rem; }
 .grocery-item__heading p { font-size: 0.9rem; }
-.grocery-item__heading > div:nth-child(2) { padding-right: 5.15rem; }
+.grocery-item__heading > div.grocery-item__content { padding-right: 5.15rem; }
 .grocery-item__uses { display: flex; flex-wrap: wrap; gap: 0.15rem 0.4rem; margin-top: 0.35rem; color: var(--color-on-surface-variant); font-size: 0.78rem; line-height: 1.35; }
 .grocery-item__uses > span:first-child { color: var(--color-primary); font-weight: 630; }
 .grocery-item__uses a { color: var(--color-on-surface); font-weight: 580; text-decoration-color: color-mix(in oklch, var(--color-primary) 40%, transparent); text-underline-offset: 0.16em; }
@@ -857,7 +870,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .grocery-list-stage > .shopping-stops { padding-inline: 0.8rem; }
   .grocery-list-stage > .grocery-manual { padding-inline: 0.8rem; }
   .grocery-item { padding: 0.75rem 0.7rem; }
-  .grocery-item__heading { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .grocery-item__heading { grid-template-columns: 2.25rem 2.5rem minmax(0,1fr); }
   .grocery-check { width: 2.5rem; height: 2.5rem; }
   .grocery-item > .actions { margin-left: 3.2rem; }
   .grocery-item__controls { position: absolute; top: 0.7rem; right: 5.65rem; padding-right: 0; }
@@ -1028,13 +1041,13 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 @media (pointer: coarse) {
   .grocery-item__remove,
   .grocery-item__edit > summary { width: 2.75rem; height: 2.75rem; }
-  .grocery-item__heading > div:nth-child(2) { padding-right: 6.6rem; }
+  .grocery-item__heading > div.grocery-item__content { padding-right: 6.6rem; }
   .grocery-item__controls { padding-right: 6.6rem; }
   .grocery-item__edit > summary { right: 3.8rem; }
 }
 
 @media (pointer: coarse) and (max-width: 47.99rem) {
-  .grocery-item__heading > div:nth-child(2) { padding-right: 6.6rem; }
+  .grocery-item__heading > div.grocery-item__content { padding-right: 6.6rem; }
   .grocery-item__controls { right: 6.6rem; padding-right: 0; }
   .grocery-item__edit > summary { right: 3.6rem; }
 }
