@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from typing import TYPE_CHECKING
 
-from cookfully.domain.food_semantics import FoodSemanticProfile
+if TYPE_CHECKING:
+    from cookfully.domain.food_semantics import FoodSemanticProfile
 
 aliases = {
     "scallion": "green onion",
