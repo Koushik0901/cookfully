@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Path, Query, Request, Response, status
 from cookfully.api.dependencies.auth import require_browser_owner
 from cookfully.api.routes.recipes import expected_version, idempotency_key
 from cookfully.api.schemas.pantry import (
+    BulkPantryCreateResponse,
     PantryDeductionApplyRequest,
     PantryDeductionResponse,
     PantryItemResponse,
@@ -57,7 +58,7 @@ def list_pantry_items(
 
 @router.post(
     "/pantry-items",
-    response_model=PantryItemResponse,
+    response_model=PantryItemResponse | BulkPantryCreateResponse,
     response_model_by_alias=True,
     status_code=status.HTTP_201_CREATED,
 )
@@ -67,7 +68,20 @@ async def create_pantry_item(
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
     key: Annotated[str, Depends(idempotency_key)],
-) -> PantryItemResponse:
+) -> PantryItemResponse | BulkPantryCreateResponse:
+    # idempotency begin first to support replay of both single and bulk shapes
+    request_body = payload.model_dump(mode="json", by_alias=True)
+    decision = idempotency.begin(
+        owner_id=owner.id, key=key, operation="pantry.item.create", payload=request_body
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        if "items" in decision.response_body:
+            return BulkPantryCreateResponse.model_validate(decision.response_body)
+        return PantryItemResponse.model_validate(decision.response_body)
     # Inline bulk paste: detect delimiters and race pantry_extract (600ms gate)
     display_name = payload.display_name
     has_bulk = "," in display_name or ";" in display_name or "\n" in display_name
@@ -136,45 +150,40 @@ async def create_pantry_item(
                     except Exception:
                         parsed = None
                     if parsed is not None and len(parsed.items) > 1:
-                        # gap-only split: N rows via loop, return first
-                        created = []
-                        for item in parsed.items:
-                            # use single-create helper to avoid re-triggering bulk check
-                            read = service._create_single(
+                        created = [
+                            service._create_single(
                                 owner.id,
-                                display_name=item.name,
-                                quantity=Decimal(str(item.quantity)),
-                                unit=item.unit,
+                                display_name=i.name,
+                                quantity=Decimal(str(i.quantity)),
+                                unit=i.unit,
                                 expires_on=payload.expires_on,
                                 food_reference_id=None,
                             )
-                            created.append(read)
-                        # complete idempotency for bulk as first item
-                        response = PantryItemResponse.from_read(created[0])
-                        # store bulk result as first for replay (best-effort)
+                            for i in parsed.items
+                        ]
+                        bulk = BulkPantryCreateResponse(
+                            items=[PantryItemResponse.from_read(r) for r in created],
+                            created=len(created),
+                        )
+                        # idempotency stores vector
                         try:
                             idempotency.complete(
                                 owner_id=owner.id,
                                 key=key,
                                 response_status=201,
-                                resource_id=response.id,
-                                response_body=response.model_dump(mode="json", by_alias=True),
+                                resource_id=bulk.items[0].id,
+                                response_body={
+                                    "items": [
+                                        i.model_dump(mode="json", by_alias=True) for i in bulk.items
+                                    ],
+                                    "created": bulk.created,
+                                },
                             )
                         except Exception:
                             pass
-                        return response
+                        return bulk
         except Exception:
             pass
-    request_body = payload.model_dump(mode="json", by_alias=True)
-    decision = idempotency.begin(
-        owner_id=owner.id, key=key, operation="pantry.item.create", payload=request_body
-    )
-    if decision.replay:
-        if decision.response_body is None:
-            raise DomainError(
-                "idempotency_response_missing", "Stored response is unavailable.", 500
-            )
-        return PantryItemResponse.model_validate(decision.response_body)
     try:
         result = service.create(
             owner.id,

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.schemas.recipes import ApiModel, Decimal6
 from cookfully.application.pantry import PantryItemRead
@@ -46,6 +46,12 @@ class PantryItemResponse(PantryItemWriteRequest):
             ),
             version=value.version,
         )
+
+
+class BulkPantryCreateResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    items: list[PantryItemResponse]
+    created: int = Field(ge=1)
 
 
 class PantryRecipeMatchResponse(ApiModel):
