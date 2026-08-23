@@ -25,8 +25,10 @@ def test_normalization_and_conversion_preserve_six_decimal_precision() -> None:
 def test_conversion_rejects_cross_dimension_and_unknown_units() -> None:
     with pytest.raises(DomainError, match="compatible"):
         convert_quantity(Decimal("250"), "g", "ml")
-    with pytest.raises(DomainError, match="supported"):
+    with pytest.raises(DomainError, match="compatible"):
         convert_quantity(Decimal("1"), "cup", "g")
+    with pytest.raises(DomainError, match="supported"):
+        convert_quantity(Decimal("1"), "stone", "g")
 
 
 def _candidate(score: str, external_id: str = "food-1"):

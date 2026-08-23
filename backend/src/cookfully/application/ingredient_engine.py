@@ -1,12 +1,20 @@
 import time
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from cookfully.domain.common import DomainError
+from cookfully.domain.ingredient_nutrition import quantities as _q
 from cookfully.domain.ingredient_nutrition.matching import (
     FoodCandidate,
     FoodMatcher,
     MatchDecision,
+)
+from cookfully.domain.ingredient_nutrition.quantities import (
+    GramRange,
+    IngredientMeasure,
+    PantryQuantity,
+    QuantityDeduction,
 )
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.nutrition_intelligence import (
@@ -105,6 +113,35 @@ class IngredientEngine:
         fallback: bool = False,
     ) -> tuple[FoodCandidate, ...]:
         return self.matcher(session, fallback=fallback).candidates(query, limit=limit)
+
+    def to_grams(
+        self,
+        measure: IngredientMeasure,
+        *,
+        owner_food: object | None = None,
+        density_g_per_ml: Decimal | None = None,
+        count_weight_g: Decimal | None = None,
+    ) -> GramRange:
+        return _q.to_grams(
+            measure,
+            density_g_per_ml=density_g_per_ml,
+            count_weight_g=count_weight_g,
+            owner_food=owner_food,
+        )
+
+    def convert_quantity(self, qty: Decimal, from_unit: str, to_unit: str) -> Decimal:
+        return _q.convert_quantity(qty, from_unit, to_unit)
+
+    def canonical_pantry_unit(self, value: str) -> str:
+        return _q.canonical_pantry_unit(value)
+
+    def apply_deduction(self, pantry: PantryQuantity, grocery: PantryQuantity) -> QuantityDeduction:
+        return _q.apply_quantity_deduction(pantry, grocery)
+
+    def reverse_deduction(
+        self, deduction: QuantityDeduction, *, pantry: PantryQuantity, grocery: PantryQuantity
+    ) -> tuple[PantryQuantity, PantryQuantity]:
+        return _q.reverse_quantity_deduction(deduction, pantry=pantry, grocery=grocery)
 
 
 engine = IngredientEngine()

@@ -29,27 +29,6 @@ __all__ = [
 
 
 @dataclass(frozen=True, slots=True)
-class _Unit:
-    dimension: str
-    canonical: str
-    factor: Decimal
-
-
-_UNITS = {
-    "mg": _Unit("mass", "mg", Decimal("0.001")),
-    "g": _Unit("mass", "g", Decimal("1")),
-    "gram": _Unit("mass", "g", Decimal("1")),
-    "grams": _Unit("mass", "g", Decimal("1")),
-    "kg": _Unit("mass", "kg", Decimal("1000")),
-    "ml": _Unit("volume", "ml", Decimal("1")),
-    "l": _Unit("volume", "l", Decimal("1000")),
-    "count": _Unit("count", "count", Decimal("1")),
-    "each": _Unit("count", "count", Decimal("1")),
-    "ea": _Unit("count", "count", Decimal("1")),
-}
-
-
-@dataclass(frozen=True, slots=True)
 class PantryQuantity:
     quantity: Decimal
     unit: str
@@ -82,70 +61,62 @@ class PantryItemRead:
 
 
 def canonical_pantry_unit(value: str) -> str:
-    normalized = value.strip().casefold().rstrip(".")
-    unit = _UNITS.get(normalized)
-    if unit is None:
-        raise DomainError(
-            "pantry_unit_unsupported",
-            "Pantry quantities require a supported mass, volume, or count unit.",
-            422,
-        )
-    return unit.canonical
+    try:
+        return engine.canonical_pantry_unit(value)
+    except DomainError as e:
+        if e.code in ("unsafe_conversion", "quantity_unavailable"):
+            raise DomainError(
+                "pantry_unit_unsupported",
+                "Pantry quantities require a supported mass, volume, or count unit.",
+                422,
+            ) from e
+        raise
 
 
 def convert_quantity(quantity: Decimal, from_unit: str, to_unit: str) -> Decimal:
-    source = _UNITS.get(from_unit.strip().casefold().rstrip("."))
-    target = _UNITS.get(to_unit.strip().casefold().rstrip("."))
-    if source is None or target is None:
-        raise DomainError(
-            "pantry_unit_unsupported",
-            "Pantry quantities require a supported mass, volume, or count unit.",
-            422,
-        )
-    if source.dimension != target.dimension:
-        raise DomainError(
-            "pantry_unit_incompatible",
-            "Pantry and grocery quantities must use compatible units.",
-            422,
-        )
-    if quantity < 0:
-        raise DomainError("pantry_quantity_negative", "Pantry quantity cannot be negative.", 422)
-    return quantize_decimal(quantity * source.factor / target.factor, NUTRIENT_SCALE)
+    try:
+        return engine.convert_quantity(quantity, from_unit, to_unit)
+    except DomainError as e:
+        if e.code == "unsafe_conversion":
+            raise DomainError(
+                "pantry_unit_incompatible",
+                "Pantry and grocery quantities must use compatible units.",
+                422,
+            ) from e
+        if e.code in ("quantity_unavailable",):
+            raise DomainError(
+                "pantry_unit_unsupported",
+                "Pantry quantities require a supported mass, volume, or count unit.",
+                422,
+            ) from e
+        raise
 
 
 def apply_quantity_deduction(
     pantry: PantryQuantity,
     grocery: PantryQuantity,
 ) -> QuantityDeduction:
-    available_in_grocery_units = convert_quantity(pantry.quantity, pantry.unit, grocery.unit)
-    grocery_amount = min(available_in_grocery_units, grocery.quantity)
-    pantry_amount = convert_quantity(grocery_amount, grocery.unit, pantry.unit)
-    pantry_after = PantryQuantity(
-        quantize_decimal(pantry.quantity - pantry_amount, NUTRIENT_SCALE),
-        canonical_pantry_unit(pantry.unit),
-        pantry.version + 1,
-    )
-    grocery_after = PantryQuantity(
-        quantize_decimal(grocery.quantity - grocery_amount, NUTRIENT_SCALE),
-        canonical_pantry_unit(grocery.unit),
-        grocery.version + 1,
-    )
+    from cookfully.domain.ingredient_nutrition.quantities import PantryQuantity as QPantry
+
+    q_pantry = QPantry(pantry.quantity, pantry.unit, pantry.version)
+    q_grocery = QPantry(grocery.quantity, grocery.unit, grocery.version)
+    raw = engine.apply_deduction(q_pantry, q_grocery)
     return QuantityDeduction(
         pantry_before=PantryQuantity(
-            quantize_decimal(pantry.quantity, NUTRIENT_SCALE),
-            canonical_pantry_unit(pantry.unit),
-            pantry.version,
+            raw.pantry_before.quantity, raw.pantry_before.unit, raw.pantry_before.version
         ),
         grocery_before=PantryQuantity(
-            quantize_decimal(grocery.quantity, NUTRIENT_SCALE),
-            canonical_pantry_unit(grocery.unit),
-            grocery.version,
+            raw.grocery_before.quantity, raw.grocery_before.unit, raw.grocery_before.version
         ),
-        pantry_after=pantry_after,
-        grocery_after=grocery_after,
-        pantry_amount=pantry_amount,
-        grocery_amount=grocery_amount,
-        assumption="Exact same-dimension conversion; no density or package-size assumption.",
+        pantry_after=PantryQuantity(
+            raw.pantry_after.quantity, raw.pantry_after.unit, raw.pantry_after.version
+        ),
+        grocery_after=PantryQuantity(
+            raw.grocery_after.quantity, raw.grocery_after.unit, raw.grocery_after.version
+        ),
+        pantry_amount=raw.pantry_amount,
+        grocery_amount=raw.grocery_amount,
+        assumption=raw.assumption,
     )
 
 
@@ -155,23 +126,42 @@ def reverse_quantity_deduction(
     pantry: PantryQuantity,
     grocery: PantryQuantity,
 ) -> tuple[PantryQuantity, PantryQuantity]:
-    if pantry != deduction.pantry_after or grocery != deduction.grocery_after:
-        raise DomainError(
-            "pantry_deduction_state_changed",
-            "Pantry or grocery quantity changed after the deduction; reload before reversing.",
-            409,
-        )
-    return (
-        PantryQuantity(
+    from cookfully.domain.ingredient_nutrition.quantities import PantryQuantity as QPantry
+    from cookfully.domain.ingredient_nutrition.quantities import QuantityDeduction as QDeduction
+
+    q_deduction = QDeduction(
+        pantry_before=QPantry(
             deduction.pantry_before.quantity,
             deduction.pantry_before.unit,
-            pantry.version + 1,
+            deduction.pantry_before.version,
         ),
-        PantryQuantity(
+        grocery_before=QPantry(
             deduction.grocery_before.quantity,
             deduction.grocery_before.unit,
-            grocery.version + 1,
+            deduction.grocery_before.version,
         ),
+        pantry_after=QPantry(
+            deduction.pantry_after.quantity,
+            deduction.pantry_after.unit,
+            deduction.pantry_after.version,
+        ),
+        grocery_after=QPantry(
+            deduction.grocery_after.quantity,
+            deduction.grocery_after.unit,
+            deduction.grocery_after.version,
+        ),
+        pantry_amount=deduction.pantry_amount,
+        grocery_amount=deduction.grocery_amount,
+        assumption=deduction.assumption,
+    )
+    q_pantry = QPantry(pantry.quantity, pantry.unit, pantry.version)
+    q_grocery = QPantry(grocery.quantity, grocery.unit, grocery.version)
+    raw_pantry, raw_grocery = engine.reverse_deduction(
+        q_deduction, pantry=q_pantry, grocery=q_grocery
+    )
+    return (
+        PantryQuantity(raw_pantry.quantity, raw_pantry.unit, raw_pantry.version),
+        PantryQuantity(raw_grocery.quantity, raw_grocery.unit, raw_grocery.version),
     )
 
 
