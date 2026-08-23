@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-import unicodedata
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -13,8 +11,21 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, require_version
+from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_pantry_name
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.reference_foods import FoodReference
+
+__all__ = [
+    "PantryItemRead",
+    "PantryQuantity",
+    "PantryService",
+    "QuantityDeduction",
+    "apply_quantity_deduction",
+    "canonical_pantry_unit",
+    "convert_quantity",
+    "normalize_pantry_name",
+    "reverse_quantity_deduction",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,11 +79,6 @@ class PantryItemRead:
     match_status: str
     match_confidence: Decimal | None
     version: int
-
-
-def normalize_pantry_name(value: str) -> str:
-    folded = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode().casefold()
-    return re.sub(r"[^a-z0-9]+", " ", folded).strip()
 
 
 def canonical_pantry_unit(value: str) -> str:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import unicodedata
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -221,9 +220,11 @@ def compare_compatibility(
     return CompatibilityResult(Compatibility.COMPATIBLE, tuple(reasons))
 
 
+from cookfully.domain.ingredient_nutrition.normalization import normalize as _core_normalize  # noqa: E402, I001
+
+
 def _normalize(value: str) -> str:
-    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode()
-    return " ".join(_TOKEN_RE.findall(ascii_value.casefold()))
+    return _core_normalize(value)
 
 
 def _identity(text: str) -> str | None:
