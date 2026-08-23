@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { intelligenceApi } from "../intelligence/api";
 
@@ -26,10 +26,11 @@ function toStepTexts(instructions: CookModeProps["recipe"]["instructions"]): str
 }
 
 function TimerChip({ minutes }: { minutes: number }) {
-  const [remaining, setRemaining] = useState(minutes * 60);
+  const clamped = Math.min(120, Math.max(1, minutes));
+  const [remaining, setRemaining] = useState(clamped * 60);
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
-    setRemaining(minutes * 60);
+    setRemaining(clamped * 60);
     if (timerRef.current) window.clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => {
       setRemaining((prev) => {
@@ -43,65 +44,94 @@ function TimerChip({ minutes }: { minutes: number }) {
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
     };
-  }, [minutes]);
+  }, [clamped]);
   const displayMin = Math.floor(remaining / 60);
   const displaySec = remaining % 60;
   return (
-    <div role="status" aria-label={`Timer ${minutes} min`}>
-      Timer {minutes} min{displayMin !== minutes || displaySec !== 0 ? ` — ${displayMin}:${String(displaySec).padStart(2, "0")} remaining` : ""}
+    <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>
+      Timer {clamped} min{displayMin !== clamped || displaySec !== 0 ? ` — ${displayMin}:${String(displaySec).padStart(2, "0")} remaining` : ""}
     </div>
   );
 }
 
 function AnswerChip({ children }: { children: string }) {
-  return <div role="status">{children}</div>;
+  return (
+    <div role="status" aria-live="polite">
+      {children}
+    </div>
+  );
 }
 
 export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps) {
   const ingredients = toIngredientTexts(recipe.ingredients);
   const steps = toStepTexts(recipe.instructions);
   const [internalStep, setInternalStep] = useState(initialStep);
+  const internalStepRef = useRef(internalStep);
+  const stepsRef = useRef(steps);
+  const ingredientsRef = useRef(ingredients);
 
   useEffect(() => {
     setInternalStep(initialStep);
   }, [initialStep]);
 
+  useEffect(() => {
+    internalStepRef.current = internalStep;
+  }, [internalStep]);
+
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
+
+  useEffect(() => {
+    ingredientsRef.current = ingredients;
+  }, [ingredients]);
+
   const utteranceMut = useMutation({
-    mutationFn: (u: string) => {
-      const prompt = `Step: ${steps[internalStep]}\nIngredients: ${ingredients.join(", ")}\nUser: ${u}`;
+    mutationFn: (payload: { utterance: string; stepIdx: number }) => {
+      const stepText = stepsRef.current[payload.stepIdx] ?? "";
+      const ing = ingredientsRef.current.join(", ");
+      const prompt = `Step: ${stepText}\nIngredients: ${ing}\nUser: ${payload.utterance}`;
       return intelligenceApi.infer("cook", prompt);
+    },
+    onSuccess: (data) => {
+      const call = data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
+      const confidence = data?.confidence ?? 0;
+      const isOk = data?.status === "ok" && confidence >= 0.80;
+      if (!isOk || call?.name !== "cooking_action") return;
+      const action = call.arguments.action as string | undefined;
+      if (action === "next") {
+        setInternalStep((s) => Math.min(s + 1, Math.max(stepsRef.current.length - 1, 0)));
+      } else if (action === "previous") {
+        setInternalStep((s) => Math.max(s - 1, 0));
+      }
     },
   });
 
-  function onUtterance(u: string) {
-    utteranceMut.mutate(u);
-  }
+  const onUtterance = useCallback(
+    (u: string) => {
+      const idx = internalStepRef.current;
+      utteranceMut.mutate({ utterance: u, stepIdx: idx });
+    },
+    [utteranceMut],
+  );
 
   const call = utteranceMut.data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
   const confidence = utteranceMut.data?.confidence ?? 0;
   const isOk = utteranceMut.data?.status === "ok" && confidence >= 0.80;
 
-  // Voice-driven step navigation (gated, fail-quiet)
-  useEffect(() => {
-    if (!isOk || call?.name !== "cooking_action") return;
-    const action = call.arguments.action as string | undefined;
-    if (action === "next") {
-      setInternalStep((s) => Math.min(s + 1, Math.max(steps.length - 1, 0)));
-    } else if (action === "previous") {
-      setInternalStep((s) => Math.max(s - 1, 0));
-    }
-    // repeat/timer/query do not change step index beyond answer chip
-  }, [isOk, call, steps.length]);
-
   const query = (call?.arguments.query as string | undefined)?.trim();
   const hasEvidence = Boolean(query && ingredients.join(",").toLowerCase().includes(query.toLowerCase()));
   const matchedIngredient = query ? ingredients.find((i) => i.toLowerCase().includes(query.toLowerCase())) : undefined;
 
+  const rawMinutes = call?.arguments.minutes as number | undefined;
+  const clampedMinutes = typeof rawMinutes === "number" ? Math.min(120, Math.max(1, Math.floor(rawMinutes))) : undefined;
   const showTimer =
     isOk &&
     call?.name === "cooking_action" &&
     (call.arguments.action as string) === "timer" &&
-    typeof call.arguments.minutes === "number";
+    typeof clampedMinutes === "number" &&
+    clampedMinutes >= 1 &&
+    clampedMinutes <= 120;
 
   const showAnswerChip = Boolean(hasEvidence && matchedIngredient);
 
@@ -115,43 +145,60 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
 
       {/* Manual step controls */}
       <div>
-        <button type="button" disabled={internalStep === 0} onClick={() => setInternalStep((s) => Math.max(s - 1, 0))}>
+        <button
+          type="button"
+          aria-label="Previous step"
+          disabled={internalStep === 0}
+          onClick={() => setInternalStep((s) => Math.max(s - 1, 0))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setInternalStep((s) => Math.max(s - 1, 0));
+            }
+          }}
+        >
           Previous
         </button>
-        <button type="button" disabled={internalStep >= steps.length - 1} onClick={() => setInternalStep((s) => Math.min(s + 1, steps.length - 1))}>
+        <button
+          type="button"
+          aria-label="Next step"
+          disabled={internalStep >= steps.length - 1}
+          onClick={() => setInternalStep((s) => Math.min(s + 1, steps.length - 1))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setInternalStep((s) => Math.min(s + 1, steps.length - 1));
+            }
+          }}
+        >
           Next step
         </button>
       </div>
 
       {/* Voice entry — STT transcript=prompt hook (doc-only, voice button wires transcript to onUtterance) */}
-      <div>
-        <button type="button" onClick={() => onUtterance("timer 5")}>
+      <div aria-label="Voice commands">
+        <button type="button" aria-label="Set timer 5 minutes" onClick={() => onUtterance("timer 5")}>
           timer 5
         </button>
-        <button type="button" onClick={() => onUtterance("how much garlic")}>
+        <button type="button" aria-label="Ask how much garlic" onClick={() => onUtterance("how much garlic")}>
           how much garlic
         </button>
-        <button type="button" onClick={() => onUtterance("next")}>
+        <button type="button" aria-label="Next step voice" onClick={() => onUtterance("next")}>
           next
         </button>
-        <button type="button" onClick={() => onUtterance("previous")}>
+        <button type="button" aria-label="Previous step voice" onClick={() => onUtterance("previous")}>
           previous
         </button>
-        <button type="button" onClick={() => onUtterance("repeat")}>
+        <button type="button" aria-label="Repeat step voice" onClick={() => onUtterance("repeat")}>
           repeat
         </button>
       </div>
 
-      {/* Timer chip — only when 0.80 gate + cooking_action timer */}
-      {showTimer && <TimerChip minutes={call!.arguments.minutes as number} />}
+      {/* Timer chip — only when 0.80 gate + cooking_action timer + clamped 1..120 */}
+      {showTimer && <TimerChip minutes={clampedMinutes!} />}
 
       {/* Query answer chip only when evidenced; fallback is repeat step text (already visible) */}
       {showAnswerChip && <AnswerChip>{matchedIngredient!}</AnswerChip>}
-
-      {/* Expose onUtterance for STT integration */}
-      <span data-testid="cook-utterance-handler" style={{ display: "none" }}>
-        {String(utteranceMut.isPending)}
-      </span>
     </div>
   );
 }
