@@ -74,9 +74,7 @@ target and prove ledger replay.
 
 ## Needle2 inline repair canary rollout (hidden, gap-only, 600ms)
 
-Inline repair is disabled by default (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false`). No UI change; threshold `T`
-(`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`) and timeout `600ms` (`COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS`)
-are hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API.
+Inline repair is **enabled by default in dev** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` in `infrastructure/config.py:81`; `deploy/compose.yaml:77` `:-true` for local `compose up`). Prod remains canary-controlled via `.env` (`INLINE_ENABLED=false` until gate). No UI change; threshold `T` (`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`) and timeout `600ms` (`COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS`) are hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API. Graceful: if `/models/needle2.cact` missing or `cactus-needle` not installed, service is `degraded` and gateway falls through to legacy (no error).
 
 **Observability (no PII):**
 - `logger="cookfully.intelligence"` emits `needle_infer` with `extra={request_id, confidence, reasoning, prefill, decode, peak_ram, latency_ms}`.
