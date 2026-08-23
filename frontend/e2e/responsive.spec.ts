@@ -179,8 +179,10 @@ test("recipes grid is 1-col on mobile, 2-col on desktop", async ({ page }) => {
 
   // Desktop: 1024×900 → two columns repeat(2, ...)
   await page.setViewportSize({ width: 1024, height: 900 });
-  // allow resize to settle
-  await page.waitForTimeout(200);
+  await page.waitForFunction(() => {
+    const grid = document.querySelector<HTMLElement>(".recipe-grid");
+    return grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length === 2 : false;
+  });
   const desktopColumns = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(desktopColumns).toBe(2);
   const desktopGrid = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns);

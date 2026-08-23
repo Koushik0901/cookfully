@@ -4,7 +4,7 @@ import svgr from "vite-plugin-svgr";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), svgr()],
+  plugins: [svgr(), react(), tailwindcss()],
   resolve: {
     alias: {
       "@": new URL("./src", import.meta.url).pathname,
