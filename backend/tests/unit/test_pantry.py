@@ -8,11 +8,11 @@ from cookfully.application.pantry import (
     PantryQuantity,
     apply_quantity_deduction,
     convert_quantity,
-    match_food_name,
     normalize_pantry_name,
     reverse_quantity_deduction,
 )
 from cookfully.domain.common import DomainError
+from cookfully.domain.ingredient_nutrition.matching import FoodCandidate, MatchDecision
 
 
 def test_normalization_and_conversion_preserve_six_decimal_precision() -> None:
@@ -29,19 +29,76 @@ def test_conversion_rejects_cross_dimension_and_unknown_units() -> None:
         convert_quantity(Decimal("1"), "cup", "g")
 
 
-def test_match_confidence_is_explicit_and_ambiguous_results_are_not_automatic() -> None:
-    exact = match_food_name("Chicken Breast", (("food-1", "chicken breast"),))
-    assert exact.reference_id == "food-1"
-    assert exact.status == "matched"
-    assert exact.confidence == Decimal("1.000000")
+def _candidate(score: str, external_id: str = "food-1"):
+    from cookfully.domain.common import uuid7
+    from cookfully.infrastructure.models.reference_foods import FoodReference
 
-    ambiguous = match_food_name(
-        "chicken",
-        (("food-1", "chicken breast"), ("food-2", "chicken thigh")),
+    food = FoodReference(
+        id=uuid7(),
+        dataset_id=uuid7(),
+        external_id=external_id,
+        description="Cherry tomatoes, raw",
+        normalized_name="cherry tomato",
+        data_type="sr_legacy",
+        basis_grams=100,
     )
-    assert ambiguous.reference_id is None
-    assert ambiguous.status == "proposed"
-    assert ambiguous.confidence < Decimal("1.000000")
+    return FoodCandidate(food, Decimal(score))
+
+
+def test_resolve_match_maps_engine_decisions(monkeypatch) -> None:
+    from cookfully.application import pantry
+
+    decision = MatchDecision("matched", "ranked", _candidate("0.850000"), ())
+    fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
+    monkeypatch.setattr(pantry, "engine", fake)
+    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "cherry tomatoes", None)
+    assert status == "matched"
+    assert confidence == Decimal("0.850000")
+    assert reference_id is not None
+
+
+def test_resolve_match_proposes_ambiguous_top_alternative(monkeypatch) -> None:
+    from cookfully.application import pantry
+
+    top = _candidate("0.700000")
+    decision = MatchDecision("ambiguous", "ranked", None, (top,))
+    fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
+    monkeypatch.setattr(pantry, "engine", fake)
+    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "tomato", None)
+    assert status == "proposed"
+    assert confidence == Decimal("0.700000")
+    assert reference_id == top.food.id
+
+
+def test_resolve_match_unmatched_has_no_reference_or_confidence(monkeypatch) -> None:
+    from cookfully.application import pantry
+
+    decision = MatchDecision("unmatched", "ranked", None, ())
+    fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
+    monkeypatch.setattr(pantry, "engine", fake)
+    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "mystery item", None)
+    assert (reference_id, status, confidence) == (None, "unmatched", None)
+
+
+def test_resolve_match_manual_selection_pins_confidence(monkeypatch) -> None:
+    from unittest.mock import MagicMock
+
+    from cookfully.application import pantry
+    from cookfully.domain.common import uuid7
+
+    food_id = uuid7()
+    session = MagicMock()
+    session.get.return_value = object()
+
+    def fail(self, session, name, **kwargs):
+        raise AssertionError("engine must not be consulted for manual selection")
+
+    monkeypatch.setattr(pantry, "engine", type("E", (), {"match_ingredient": fail})())
+    reference_id, status, confidence = pantry.PantryService._resolve_match(
+        session, "anything", food_id
+    )
+    session.get.assert_called_once()
+    assert (reference_id, status, confidence) == (food_id, "manual", Decimal("1.000000"))
 
 
 def test_deduction_and_reversal_are_exact_and_state_guarded() -> None:

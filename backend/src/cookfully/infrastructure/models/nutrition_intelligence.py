@@ -18,7 +18,7 @@ class NutritionIntelligenceSettings(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
-    backend: Mapped[str] = mapped_column(String(16), nullable=False, default="hashing")
+    backend: Mapped[str] = mapped_column(String(16), nullable=False, default="fastembed")
     model_name: Mapped[str] = mapped_column(
         String(200), nullable=False, default="BAAI/bge-small-en-v1.5"
     )

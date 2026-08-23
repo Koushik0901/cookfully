@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from difflib import SequenceMatcher
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, require_version
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
-from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
+from cookfully.infrastructure.models.reference_foods import FoodReference
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,13 +36,6 @@ _UNITS = {
     "each": _Unit("count", "count", Decimal("1")),
     "ea": _Unit("count", "count", Decimal("1")),
 }
-
-
-@dataclass(frozen=True, slots=True)
-class FoodNameMatch:
-    reference_id: str | None
-    status: str
-    confidence: Decimal
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,36 +105,6 @@ def convert_quantity(quantity: Decimal, from_unit: str, to_unit: str) -> Decimal
     if quantity < 0:
         raise DomainError("pantry_quantity_negative", "Pantry quantity cannot be negative.", 422)
     return quantize_decimal(quantity * source.factor / target.factor, NUTRIENT_SCALE)
-
-
-def match_food_name(
-    display_name: str,
-    candidates: Sequence[tuple[str, str]],
-) -> FoodNameMatch:
-    query = normalize_pantry_name(display_name)
-    if not query or not candidates:
-        return FoodNameMatch(None, "unmatched", Decimal("0.000000"))
-    scored = sorted(
-        (
-            (
-                quantize_decimal(
-                    Decimal(str(SequenceMatcher(None, query, normalize_pantry_name(name)).ratio())),
-                    NUTRIENT_SCALE,
-                ),
-                reference_id,
-                normalize_pantry_name(name),
-            )
-            for reference_id, name in candidates
-        ),
-        key=lambda item: (-item[0], item[2], item[1]),
-    )
-    best_score, best_id, best_name = scored[0]
-    if best_name == query:
-        return FoodNameMatch(best_id, "matched", Decimal("1.000000"))
-    tied = len(scored) > 1 and best_score - scored[1][0] <= Decimal("0.050000")
-    if best_score >= Decimal("0.600000"):
-        return FoodNameMatch(None if tied else best_id, "proposed", best_score)
-    return FoodNameMatch(None, "unmatched", best_score)
 
 
 def apply_quantity_deduction(
@@ -346,20 +308,15 @@ class PantryService:
             if session.get(FoodReference, requested_reference_id) is None:
                 raise DomainError("food_reference_not_found", "Food reference was not found.", 404)
             return requested_reference_id, "manual", Decimal("1.000000")
-        candidates = tuple(
-            (str(item.id), item.description)
-            for item in session.scalars(
-                select(FoodReference)
-                .join(ReferenceDataset)
-                .where(ReferenceDataset.status == "active")
-                .order_by(FoodReference.normalized_name, FoodReference.id)
-            )
-        )
-        match = match_food_name(display_name, candidates)
+        decision = engine.match_ingredient(session, display_name)
+        candidate = decision.candidate
+        if candidate is None and decision.status == "ambiguous" and decision.alternatives:
+            candidate = decision.alternatives[0]
+        status_map = {"matched": "matched", "ambiguous": "proposed", "unmatched": "unmatched"}
         return (
-            UUID(match.reference_id) if match.reference_id is not None else None,
-            match.status,
-            match.confidence if candidates else None,
+            UUID(str(candidate.food.id)) if candidate is not None else None,
+            status_map.get(decision.status, "unmatched"),
+            candidate.score if candidate is not None else None,
         )
 
     @staticmethod

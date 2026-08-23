@@ -32,7 +32,7 @@ class IngredientEngine:
 
     def resolve_embedder(self, session: Session, *, fallback: bool = True) -> TextEmbedder:
         settings = session.get(NutritionIntelligenceSettings, 1)
-        backend = settings.backend if settings is not None else "hashing"
+        backend = settings.backend if settings is not None else "fastembed"
         model_name = settings.model_name if settings is not None else _DEFAULT_MODEL
         revision = settings.model_revision if settings is not None else None
         ready = bool(settings and settings.last_ready_at)
