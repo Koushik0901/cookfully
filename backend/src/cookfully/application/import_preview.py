@@ -10,9 +10,11 @@ delegates the actual recipe persistence + job enqueue to ``RecipeService.create`
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import secrets
+from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Protocol, cast
@@ -68,8 +70,160 @@ class ImportPreviewCoordinator:
         self._ttl = ttl
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str) -> dict[str, Any]:
-        """Fetch+parse a URL, persist a short-lived preview, and return its shape."""
-        imported = await self._importer.import_url(url)
+        """Fetch+parse a URL, persist a short-lived preview, and return its shape.
+
+        When ``intelligence_inline_enabled`` is true the preview races the
+        legacy scrape against a Needle ``recipe_extract`` call. The Needle
+        request uses a single 256-char window (gap-only first iteration) and
+        a 600 ms gate; it never overwrites existing ingredients/steps.
+        """
+        legacy_task = asyncio.create_task(self._importer.import_url(url))
+        # Determine inline gate from Settings (Task 1 fields)
+        settings = None
+        inline_enabled = False
+        try:
+            from cookfully.infrastructure.config import get_settings
+
+            settings = get_settings()
+            inline_enabled = bool(settings.intelligence_inline_enabled)
+        except Exception:
+            inline_enabled = False
+
+        needle_future: asyncio.Task[Any] | None = None
+        gw = None
+        if inline_enabled and settings is not None:
+            try:
+                from cookfully.application.inline_repair import (
+                    InlineRepairGateway,
+                    RecipeExtractSchema,
+                )
+                from cookfully.infrastructure.observability import correlation_id
+                from cookfully.intelligence.client import IntelligenceClient
+                from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
+
+                system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
+                cid = correlation_id.get() or trace_id or "unknown"
+                # naive single window 256 char chunk; also cap at 800 per brief
+                raw_prompt = url
+                if len(raw_prompt) > 256:
+                    prompt = raw_prompt[:256]
+                else:
+                    prompt = raw_prompt
+                if len(prompt) > 800:
+                    prompt = prompt[:800]
+                tools = (
+                    ToolDefinition(
+                        name="recipe",
+                        description="Extract ingredients and steps",
+                        parameters=RecipeExtractSchema.model_json_schema(),
+                    ),
+                )
+                client = IntelligenceClient(
+                    settings.intelligence_url,
+                    settings.intelligence_service_key.get_secret_value(),
+                    enabled=settings.intelligence_enabled,
+                    timeout_seconds=settings.intelligence_timeout_seconds,
+                )
+                gw = InlineRepairGateway(
+                    client,
+                    threshold=settings.intelligence_inline_threshold,
+                    timeout_ms=settings.intelligence_inline_timeout_ms,
+                )
+                req = InferenceRequest(
+                    requestId=f"inline-{cid}",
+                    operation="recipe_extract",
+                    prompt=prompt,
+                    system=system,
+                    tools=tools,
+                    context={},
+                )
+                # Needle future races legacy; TimeoutError handled as no enrichment
+                needle_future = asyncio.create_task(
+                    asyncio.wait_for(
+                        asyncio.to_thread(gw._client.infer, req, timeout_seconds=gw._timeout),
+                        timeout=gw._timeout + 0.05,
+                    )
+                )
+            except Exception:
+                logger.exception("inline repair setup failed, falling back to legacy")
+                needle_future = None
+                gw = None
+
+        # Await legacy (always) - if it fails, cancel needle and propagate
+        try:
+            imported = await legacy_task
+        except Exception:
+            if needle_future is not None and not needle_future.done():
+                needle_future.cancel()
+                try:
+                    await needle_future
+                except Exception:
+                    pass
+            raise
+
+        needle_resp = None
+        if needle_future is not None:
+            try:
+                needle_resp = await needle_future
+            except TimeoutError:
+                needle_resp = None
+            except Exception:
+                needle_resp = None
+
+        # Gap-only merge when gated
+        if gw is not None and needle_resp is not None and gw._gate(needle_resp):
+            try:
+                if isinstance(imported, ImportedCookbook):
+                    first = imported.recipes[0] if imported.recipes else None
+                    if first is not None:
+                        legacy_dict: dict[str, Any] = {
+                            "ingredients": list(first.ingredients),
+                            "steps": list(first.instructions),
+                        }
+                        merged = gw.merge_recipe(legacy_dict, needle_resp)
+                        if merged is not legacy_dict and merged != legacy_dict:
+                            new_ingredients = tuple(merged.get("ingredients", first.ingredients))
+                            new_steps = tuple(merged.get("steps", first.instructions))
+                            extra = len(new_ingredients) - len(first.ingredients)
+                            new_sections = first.ingredient_sections
+                            if extra > 0:
+                                new_sections = tuple(
+                                    list(first.ingredient_sections) + [None] * extra
+                                )
+                            enriched_first = replace(
+                                first,
+                                ingredients=new_ingredients,
+                                ingredient_sections=new_sections,
+                                instructions=new_steps,
+                            )
+                            imported = replace(
+                                imported,
+                                recipes=(enriched_first,) + tuple(imported.recipes[1:]),  # noqa: RUF005
+                            )
+                else:
+                    legacy_dict = {
+                        "ingredients": list(imported.ingredients),
+                        "steps": list(imported.instructions),
+                    }
+                    merged = gw.merge_recipe(legacy_dict, needle_resp)
+                    if merged is not legacy_dict and merged != legacy_dict:
+                        new_ingredients = tuple(merged.get("ingredients", imported.ingredients))
+                        new_steps = tuple(merged.get("steps", imported.instructions))
+                        extra = len(new_ingredients) - len(imported.ingredients)
+                        new_sections = imported.ingredient_sections
+                        if extra > 0:
+                            new_sections = tuple(
+                                list(imported.ingredient_sections) + [None] * extra
+                            )
+                        imported = replace(
+                            imported,
+                            ingredients=new_ingredients,
+                            ingredient_sections=new_sections,
+                            instructions=new_steps,
+                        )
+            except Exception:
+                logger.exception("inline repair merge failed, returning legacy preview")
+
         first = imported.recipes[0] if isinstance(imported, ImportedCookbook) else imported
         sections = self._build_sections(first)
         origin_kind = "cookbook_import" if isinstance(imported, ImportedCookbook) else "web_import"
