@@ -102,10 +102,14 @@ async def create_pantry_item(
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
 
-                def _build_prompt(raw: str) -> str:
-                    return _window(raw)[0]
+                import time as _time
 
-                prompt = _build_prompt(display_name)
+                from cookfully.application.inline_repair import _est_toks as _est
+
+                prompt, has_more = _window(display_name)
+                _prompt_toks_est = _est(
+                    prompt
+                )  # for observability (plumbed via _emit_log if needed)
                 client = IntelligenceClient(
                     settings.intelligence_url,
                     settings.intelligence_service_key.get_secret_value(),
@@ -133,15 +137,54 @@ async def create_pantry_item(
                     system=system,
                 )
                 resp = None
+                t0 = _time.perf_counter()
                 try:
                     resp = await asyncio.wait_for(
                         asyncio.to_thread(client.infer, req, timeout_seconds=gw._timeout),
                         timeout=gw._timeout,
                     )
-                except TimeoutError:
+                except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
                     resp = None
                 except Exception:
                     resp = None
+                # second-window retry: if first is empty/unsupported and has_more and budget>120ms
+                if has_more:
+                    is_empty = resp is None or resp.status != "ok" or not resp.function_calls
+                    if not is_empty and resp is not None and resp.function_calls:
+                        try:
+                            args0 = resp.function_calls[0].arguments
+                            if isinstance(args0, dict) and "items" in args0:
+                                vals = args0.get("items")
+                                if isinstance(vals, list) and len(vals) == 0:
+                                    is_empty = True
+                        except Exception:
+                            pass
+                    if is_empty:
+                        elapsed = _time.perf_counter() - t0
+                        remaining = gw._timeout - elapsed
+                        if remaining > 0.12:
+                            second_prompt = display_name[400:800][:256]
+                            second_req = InferenceRequest(
+                                requestId="inline-pantry",
+                                operation="pantry_extract",
+                                prompt=second_prompt,
+                                tools=tools,
+                                context={},
+                                system=system,
+                            )
+                            try:
+                                resp2 = await asyncio.wait_for(
+                                    asyncio.to_thread(
+                                        client.infer, second_req, timeout_seconds=remaining
+                                    ),
+                                    timeout=remaining,
+                                )
+                                if resp2 is not None and gw._gate(resp2):
+                                    resp = resp2
+                            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
+                                pass
+                            except Exception:
+                                pass
                 if resp is not None and gw._gate(resp):
                     try:
                         parsed = PantryExtractSchema.model_validate(
