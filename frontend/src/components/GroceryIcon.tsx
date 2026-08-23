@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 type Category = "produce"|"dairy"|"bakery"|"meat"|"pantry"|"frozen"|"beverage"|"household"|"other";
 const MAP: Array<[Category, RegExp]> = [
   ["dairy", /\b(milk|cheese|yogurt|yoghurt|butter|cream|ghee|paneer)\b/i],
