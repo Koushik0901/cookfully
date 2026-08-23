@@ -11,9 +11,6 @@ aliases = {
     "caster sugar": "sugar",
     "confectioners sugar": "powdered sugar",
     "bell pepper": "sweet pepper",
-    # Recipe authors commonly use “super firm” for the same low-moisture tofu
-    # category USDA describes as “extra firm”. Prefer the generic reference over
-    # a branded product that happens to contain the marketing phrase verbatim.
     "super firm tofu": "extra firm tofu",
 }
 
