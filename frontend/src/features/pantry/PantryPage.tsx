@@ -28,6 +28,7 @@ import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { planningApi } from "../plans/api";
 import { todayInTimezone } from "../plans/dates";
 import { pantryApi } from "./api";
+import { expiryBadge } from "./expiry";
 import type { PantryItem, PantryItemWrite, PantryRecipeMatch } from "./types";
 
 const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
@@ -128,6 +129,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
     });
   }
 
+  const expiry = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
   return (
     <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
       <span className="pantry-staple__stamp" aria-hidden="true">{item.displayName.trim().charAt(0).toUpperCase() || "?"}</span>
@@ -146,6 +148,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
           ) : (
             <span className="pantry-staple__useby pantry-staple__useby--none">No date</span>
           )}
+          {expiry ? <span className={`expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}`}>{expiry.label}</span> : null}
         </p>
         {item.matchStatus === "proposed" ? (
           <p className="pantry-staple__note">Confirm this food match before Cookfully uses it for recipe ideas or pantry deductions.</p>
@@ -318,9 +321,7 @@ export function PantryPage() {
   const useSoonItems = datedItems.filter((item) => item.expiresOn! >= today).sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
   const readyCount = items.data.filter((item) => item.matchStatus === "matched" || item.matchStatus === "manual").length;
   const reviewCount = items.data.length - readyCount;
-  const shelf = [...items.data].sort((a, b) =>
-    (MATCH_ORDER.get(a.matchStatus) ?? 3) - (MATCH_ORDER.get(b.matchStatus) ?? 3)
-    || (a.expiresOn ?? "9999-12-31").localeCompare(b.expiresOn ?? "9999-12-31"));
+  const shelf = [...items.data].sort((a, b) => (a.expiresOn ? 0 : 1) - (b.expiresOn ? 0 : 1) || (a.expiresOn || "").localeCompare(b.expiresOn || "") || (MATCH_ORDER.get(a.matchStatus) ?? 3) - (MATCH_ORDER.get(b.matchStatus) ?? 3));
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
 
   const pulse = [

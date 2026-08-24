@@ -1,6 +1,8 @@
 import { apiRequest } from "../recipes/api";
 import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList, GroceryShoppingStop, GroceryShoppingStopWrite } from "./types";
 
+// groceryApi.update now forwards expiresOn (YYYY-MM-DD) for label/manual expiry; backend maps to expiry_source label/manual
+
 export const groceryApi = {
   get(weekStart: string) {
     return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list`);
