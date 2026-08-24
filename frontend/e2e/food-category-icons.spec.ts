@@ -193,13 +193,13 @@ test("food item surfaces render illustrated category images", async ({ page }, t
   await expect(homeProduceIcon).toHaveAttribute("aria-hidden", "true");
   // No initial-letter fallback — the wrapper must contain an IMG, not bare text
   await expect(page.locator(".home-use-soon__produce").first()).not.toHaveText(/^[A-Z]$/);
-  const homeProduceNatural = await homeProduceIcon.evaluate((img: HTMLImageElement) => img.naturalWidth);
-  // Natural width may be 0 if image hasn't fully decoded yet in headless; accept either rendered size or naturalWidth via src check
-  expect(homeProduceNatural).toBeGreaterThanOrEqual(0);
+  const homeProduceLoaded = await homeProduceIcon.evaluate(
+    (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+  );
+  expect(homeProduceLoaded).toBe(true);
   // Also verify at least one pantry-related icon is an IMG, not text
   const homeIconTag = await homeProduceIcon.evaluate((el) => el.tagName);
   expect(homeIconTag).toBe("IMG");
-  await expect(page.locator(".home-use-soon__produce").first()).toContainText("");
 
   await page.goto("/app/pantry");
   const pantryStampIcon = page.locator(".pantry-staple__stamp img.grocery-icon").first();

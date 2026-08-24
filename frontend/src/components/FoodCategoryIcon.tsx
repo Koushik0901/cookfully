@@ -19,7 +19,7 @@ export type Category =
 const CATEGORY_RULES: Array<[Category, RegExp]> = [
   [
     "vegetables",
-    /\b(frozen vegetables?|tomato(?:es)?|carrot(?:s)?|potato(?:es)?|broccoli|cauliflower|celery|cucumber|zucchini|pepper(?:s)?|mushroom(?:s)?|eggplant|corn|peas|beans|cabbage|asparagus|radish|leek)\b/i,
+    /\b(frozen vegetables?|tomato(?:es)?|carrot(?:s)?|potato(?:es)?|broccoli|cauliflower|celery|cucumber|zucchini|pepper(?:s)?|mushroom(?:s)?|eggplant|corn|peas|beans?|cabbage|asparagus|radish|leek)\b/i,
   ],
   ["beverages-drinks", /\b(milkshake|smoothie|water|coffee|tea|soda|juice|wine|beer|drink|beverage)\b/i],
   ["eggs", /\beggs?\b/i],
@@ -33,7 +33,7 @@ const CATEGORY_RULES: Array<[Category, RegExp]> = [
     /\b(apples?|bananas?|berry|berries|strawberr(?:y|ies)|blueberr(?:y|ies)|raspberr(?:y|ies)|grapes?|lemons?|limes?|oranges?|avocados?|melons?|peach(?:es)?|pears?|fruit)\b/i,
   ],
   ["bread-bakery", /\b(bread|roll|bagel|croissant|bun|pita|dough|tortilla|bakery)\b/i],
-  ["pantry-sauce", /\b(sauce|canned|can|oil|vinegar|condiment|honey|syrup|sugar|salt|lentil|chickpea|bean)\b/i],
+  ["pantry-sauce", /\b(sauce|canned|cans|oil|vinegar|condiment|honey|syrup|sugar|salt|lentils?|chickpeas?|beans?)\b/i],
   ["grains-rice", /\b(rice|pasta|flour|oat(?:s|meal)?|quinoa|barley|couscous|cereal|grain)\b/i],
   ["snacks", /\b(snack|chip|cracker|nut|nuts|granola|popcorn|pretzel)\b/i],
 ];
