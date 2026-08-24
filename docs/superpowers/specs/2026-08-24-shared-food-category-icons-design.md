@@ -33,7 +33,7 @@ The component owns:
 
 Consumers provide only a food name and visual context size. They must not import category assets, call the matcher directly, render initials, or define their own category fallback.
 
-The implementation uses public PNG assets rather than the old SVG imports. The `64px` image is the normal source and the `256px` image is provided through `srcSet` for high-density displays. The wrapper shape and surrounding layout remain consumer concerns.
+The implementation uses public PNG assets rather than the old SVG imports. The `*-64.png` image is the normal source and the manifest's base `*.png` image is the `256px` source provided through `srcSet` for high-density displays. The wrapper shape and surrounding layout remain consumer concerns.
 
 ## Asset Taxonomy
 
@@ -41,19 +41,19 @@ The canonical categories and assets are:
 
 | Category | Asset | Typical matches |
 |---|---|---|
-| `leafy-greens` | `leafy-greens-64.png` | spinach, lettuce, kale, arugula, collard greens |
-| `grains-rice` | `grains-rice-64.png` | rice, pasta, oats, flour, quinoa, barley, cereal |
-| `dairy-milk` | `dairy-milk-64.png` | milk, cheese, yogurt, butter, cream, ghee, paneer |
-| `fruit` | `fruit-64.png` | apples, bananas, berries, citrus, grapes, avocado |
-| `vegetables` | `vegetables-64.png` | tomatoes, carrots, potatoes, broccoli, peppers, mushrooms |
-| `pantry-sauce` | `pantry-sauce-64.png` | sauces, canned goods, oil, vinegar, condiments |
-| `bread-bakery` | `bread-bakery-64.png` | bread, rolls, bagels, tortillas, croissants |
-| `protein-chicken` | `protein-chicken-64.png` | chicken, beef, pork, turkey, tofu |
-| `herbs-spices` | `herbs-spices-64.png` | herbs and spices |
-| `beverages-drinks` | `beverages-drinks-64.png` | water, coffee, tea, soda, juice, wine |
-| `seafood` | `seafood-64.png` | fish, salmon, shrimp, tuna |
-| `eggs` | `eggs-64.png` | egg, eggs |
-| `snacks` | `snacks-64.png` | chips, crackers, nuts, granola bars |
+| `leafy-greens` | `leafy-greens-64.png` / `leafy-greens.png` | spinach, lettuce, kale, arugula, collard greens |
+| `grains-rice` | `grains-rice-64.png` / `grains-rice.png` | rice, pasta, oats, flour, quinoa, barley, cereal |
+| `dairy-milk` | `dairy-milk-64.png` / `dairy-milk.png` | milk, cheese, yogurt, butter, cream, ghee, paneer |
+| `fruit` | `fruit-64.png` / `fruit.png` | apples, bananas, berries, citrus, grapes, avocado |
+| `vegetables` | `vegetables-64.png` / `vegetables.png` | tomatoes, carrots, potatoes, broccoli, peppers, mushrooms |
+| `pantry-sauce` | `pantry-sauce-64.png` / `pantry-sauce.png` | sauces, canned goods, oil, vinegar, condiments |
+| `bread-bakery` | `bread-bakery-64.png` / `bread-bakery.png` | bread, rolls, bagels, tortillas, croissants |
+| `protein-chicken` | `protein-chicken-64.png` / `protein-chicken.png` | chicken, beef, pork, turkey, tofu |
+| `herbs-spices` | `herbs-spices-64.png` / `herbs-spices.png` | herbs and spices |
+| `beverages-drinks` | `beverages-drinks-64.png` / `beverages-drinks.png` | water, coffee, tea, soda, juice, wine |
+| `seafood` | `seafood-64.png` / `seafood.png` | fish, salmon, shrimp, tuna |
+| `eggs` | `eggs-64.png` / `eggs.png` | egg, eggs |
+| `snacks` | `snacks-64.png` / `snacks.png` | chips, crackers, nuts, granola bars |
 
 Anything unmatched uses `pantry-sauce-64.png`. Existing `frozen`, `beverage`, `household`, and `other` categories are removed from the frontend matcher because they do not correspond to the supplied visual system. Frozen food maps to its nearest food category, beverages map to `beverages-drinks`, and household items use the neutral `pantry-sauce` fallback until a dedicated asset exists.
 
