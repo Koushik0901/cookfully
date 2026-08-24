@@ -99,15 +99,7 @@ class GroceryItemResponse(ApiModel):
         purchased_at = getattr(value, "purchased_at", None)
         expires_on = getattr(value, "expires_on", None)
         expiry_source = getattr(value, "expiry_source", None)
-        # computed: needs expiry when checked, no expiry, and label required
-        needs_expiry_date = False
-        if getattr(value, "checked", False) and expires_on is None:
-            try:
-                from cookfully.domain.expiry_lifespans import is_label_required
-
-                needs_expiry_date = is_label_required(value.display_name)
-            except Exception:
-                needs_expiry_date = False
+        needs_expiry_date = bool(getattr(value, "needs_expiry_date", False))
         return cls(
             id=value.id,
             display_name=value.display_name,

@@ -56,6 +56,10 @@ class GroceryItemRead:
     shopping_stop_version: int | None
     sources: tuple[GrocerySourceRead, ...]
     version: int
+    purchased_at: datetime | None = None
+    expires_on: date | None = None
+    expiry_source: str | None = None
+    needs_expiry_date: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -381,6 +385,11 @@ class GroceryListService:
 
     @classmethod
     def _item_read(cls, value: GroceryItem) -> GroceryItemRead:
+        from cookfully.domain.expiry_lifespans import is_label_required
+
+        needs_expiry_date = bool(
+            value.checked and value.expires_on is None and is_label_required(value.display_name)
+        )
         return GroceryItemRead(
             value.id,
             value.display_name,
@@ -403,6 +412,10 @@ class GroceryListService:
                 for source in value.sources
             ),
             value.version,
+            purchased_at=value.purchased_at,
+            expires_on=value.expires_on,
+            expiry_source=value.expiry_source,
+            needs_expiry_date=needs_expiry_date,
         )
 
     @classmethod
