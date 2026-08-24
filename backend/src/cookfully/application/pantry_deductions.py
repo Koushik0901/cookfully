@@ -102,6 +102,16 @@ class PantryDeductionService:
                     )
                 )
                 for pantry in pantry_items:
+                    # copy expiry from grocery to pantry if grocery has expiry and pantry not manual
+                    if (
+                        grocery.expires_on is not None
+                        and grocery.purchased_at is not None
+                        and grocery.expiry_source is not None
+                        and pantry.expiry_source != "manual"
+                    ):
+                        pantry.expires_on = grocery.expires_on
+                        pantry.purchased_at = grocery.purchased_at
+                        pantry.expiry_source = grocery.expiry_source
                     if grocery.quantity <= 0:
                         break
                     try:

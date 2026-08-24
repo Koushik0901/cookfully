@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -58,6 +58,8 @@ class PantryItemRead:
     match_status: str
     match_confidence: Decimal | None
     version: int
+    purchased_at: datetime | None = None
+    expiry_source: str | None = None
 
 
 def canonical_pantry_unit(value: str) -> str:
@@ -348,4 +350,6 @@ class PantryService:
             match_status=item.match_status,
             match_confidence=item.match_confidence,
             version=item.version,
+            purchased_at=item.purchased_at,
+            expiry_source=item.expiry_source,
         )

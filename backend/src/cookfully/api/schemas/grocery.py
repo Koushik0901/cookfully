@@ -22,6 +22,7 @@ class GroceryItemWriteRequest(ApiModel):
     position: int | None = Field(default=None, ge=0)
     shopping_stop_id: UUID | None = Field(alias="shoppingStopId", default=None)
     remember_placement: bool | None = Field(alias="rememberPlacement", default=None)
+    expires_on: date | None = Field(alias="expiresOn", default=None)
 
     @model_validator(mode="after")
     def reject_disallowed_nulls(self) -> GroceryItemWriteRequest:
