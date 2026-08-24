@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 
 from cookfully.domain.common import utc_now
@@ -80,7 +81,7 @@ def _norm(name: str) -> str:
 
 def is_label_required(display_name: str) -> bool:
     low = display_name.casefold()
-    return any(kw in low for kw in LABEL_REQUIRED_KEYWORDS)
+    return any(re.search(r"\b" + re.escape(kw) + r"\b", low) for kw in LABEL_REQUIRED_KEYWORDS)
 
 
 def resolve_expiry(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -230,11 +230,12 @@ class GroceryListService:
                 item.unit_code = str(unit).strip() if unit else None
                 item.unit_text = str(unit).strip() if unit else None
                 item.manual_quantity = True
-            # validate expiry range if provided
+            # validate expiry range — allow 1-day skew for UTC vs wall-clock
             if "expires_on" in values and values["expires_on"] is not None:
                 today = utc_now().date()
                 exp = values["expires_on"]
-                if not (today <= exp <= date.fromordinal(today.toordinal() + 90)):
+                # allow yesterday UTC (PT midnight) — max stays +90
+                if not (today - timedelta(days=1) <= exp <= today + timedelta(days=90)):
                     raise DomainError(
                         "expiry_out_of_range", "Expiry must be within 0-90 days from today.", 422
                     )
@@ -251,7 +252,7 @@ class GroceryListService:
                         if requested is not None:
                             item.expires_on = requested
                             item.expiry_source = "manual"
-                            item.purchased_at = utc_now()
+                            item.purchased_at = item.purchased_at or utc_now()
                         else:
                             if item.purchased_at is None:
                                 item.purchased_at = utc_now()
@@ -261,7 +262,7 @@ class GroceryListService:
                             source_label = "label" if item.expiry_source is None else "manual"
                             item.expires_on = requested
                             item.expiry_source = source_label
-                            item.purchased_at = utc_now()
+                            item.purchased_at = item.purchased_at or utc_now()
                         else:
                             r_expires_on, r_source, r_purchased_at, r_needs = resolve_expiry(
                                 item.display_name,
@@ -289,6 +290,12 @@ class GroceryListService:
                 item.checked = new_checked
             # handle expires_on without checked transition (standalone expiry edit)
             if "expires_on" in values and values["expires_on"] is not None:
+                if not item.checked:
+                    raise DomainError(
+                        "expiry_requires_checked",
+                        "Check off the item before setting an expiry date.",
+                        422,
+                    )
                 if "checked" not in values:
                     # first time with label-required -> label, later edits -> manual
                     if item.expiry_source == "manual" or item.expiry_source == "label":

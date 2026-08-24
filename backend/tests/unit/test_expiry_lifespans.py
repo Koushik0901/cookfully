@@ -32,3 +32,22 @@ def test_pasta_no_expiry():
     assert expires_on is None
     assert source is None
     assert needs is False
+
+
+def test_veggie_not_label_required():
+    # word-boundary check: "veggie" should not trigger egg keyword
+    expires_on, source, _, needs = resolve_expiry("Veggie soup", today=date(2026, 8, 24))
+    assert expires_on is None
+    assert source is None
+    assert needs is False
+
+
+def test_eggplant_not_label_required():
+    _expires_on, _source, _, needs = resolve_expiry("Eggplant", today=date(2026, 8, 24))
+    # eggplant is produce with auto lifespan, but label not required beyond auto
+    # check that is_label_required does not false-positive on eggplant
+    from cookfully.domain.expiry_lifespans import is_label_required
+
+    assert is_label_required("Eggplant") is False
+    # resolve should give auto expiry from FRESH_LIFESPANS, not needs prompt
+    assert needs is False

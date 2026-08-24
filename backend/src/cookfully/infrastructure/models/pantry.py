@@ -98,6 +98,11 @@ class PantryDeduction(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="applied")
     pantry_version_after: Mapped[int] = mapped_column(Integer, nullable=False)
     grocery_version_after: Mapped[int] = mapped_column(Integer, nullable=False)
+    prev_purchased_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    prev_expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    prev_expiry_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     applied_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     reversed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

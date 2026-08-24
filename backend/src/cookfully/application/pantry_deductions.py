@@ -118,6 +118,10 @@ class PantryDeductionService:
                     )
                     if value.grocery_amount <= 0:
                         continue
+                    # capture prior expiry for reversible restore before overwriting
+                    prev_purchased_at = pantry.purchased_at
+                    prev_expires_on = pantry.expires_on
+                    prev_expiry_source = pantry.expiry_source
                     # copy expiry from grocery to pantry if grocery has expiry
                     # and pantry not manual; after guards so we don't
                     # clobber pantry when no deduction occurs
@@ -151,6 +155,9 @@ class PantryDeductionService:
                         status="applied",
                         pantry_version_after=pantry.version,
                         grocery_version_after=grocery.version,
+                        prev_purchased_at=prev_purchased_at,
+                        prev_expires_on=prev_expires_on,
+                        prev_expiry_source=prev_expiry_source,
                         applied_at=utc_now(),
                         version=1,
                     )
@@ -213,6 +220,10 @@ class PantryDeductionService:
                 (grocery.quantity or Decimal(0)) + deduction.grocery_quantity,
                 NUTRIENT_SCALE,
             )
+            # restore prior expiry saved at apply time (reversible)
+            pantry.purchased_at = deduction.prev_purchased_at
+            pantry.expires_on = deduction.prev_expires_on
+            pantry.expiry_source = deduction.prev_expiry_source
             pantry.version += 1
             grocery.version += 1
             grocery.grocery_list.version += 1
