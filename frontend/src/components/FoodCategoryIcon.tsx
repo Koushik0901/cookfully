@@ -79,7 +79,7 @@ export function FoodCategoryIcon({ name, size = "compact", className = "" }: Foo
     className: `grocery-icon grocery-icon--${category} ${SIZE_CLASS[size]} ${className}`.trim(),
     src: `/media/grocery-icons/${asset}-64.png`,
     srcSet: `/media/grocery-icons/${asset}-64.png 64w, /media/grocery-icons/${asset}.png 256w`,
-    sizes: size === "tile" ? "32px" : size === "row" ? "28px" : "24px",
+    sizes: size === "tile" ? "48px" : size === "row" ? "40px" : "32px",
     alt: "",
     "aria-hidden": true,
   };

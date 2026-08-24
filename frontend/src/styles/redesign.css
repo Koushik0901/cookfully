@@ -220,15 +220,12 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .pantry-attention__companion svg { width: 4.75rem; }
 .pantry-attention__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .pantry-attention__item { display: grid; min-width: 0; grid-template-columns: 2.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.75rem; background: color-mix(in oklch, var(--color-surface-bright) 88%, transparent); box-shadow: var(--shadow-card-rest); }
-.pantry-attention__icon { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
-.pantry-attention__icon .grocery-icon { width: 1.55rem; height: 1.55rem; }
+.pantry-attention__icon { display: grid; place-items: center; }
 .pantry-attention__item > div { display: grid; min-width: 0; gap: 0.15rem; }
 .pantry-attention__item strong,
 .pantry-attention__item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pantry-attention__item small { color: var(--color-on-surface-variant); font-size: 0.72rem; }
 .pantry-attention__urgency { border-radius: var(--radius-full); padding: 0.3rem 0.65rem; color: var(--color-primary-hover); background: color-mix(in oklch, var(--color-primary) 11%, transparent); font-size: 0.72rem; font-weight: 680; white-space: nowrap; }
-.pantry-attention__urgency--critical,
-.pantry-attention__item--critical .pantry-attention__icon { color: var(--color-tomato); }
 .pantry-attention__urgency--critical { color: var(--color-tomato); background: color-mix(in oklch, var(--status-error-container) 88%, transparent); }
 
 /* Staple cards replace hairline rows: produce stamp, facts as chips, and the
@@ -236,9 +233,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .pantry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 0.9rem; }
 .pantry-staple { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; border-radius: var(--radius-lg); padding: 1rem 1.15rem 1rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
 .pantry-staple--review { background: color-mix(in oklch, var(--status-warning-container) 46%, var(--color-surface-bright)); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-warning) 34%, transparent), var(--shadow-card-rest); }
-.pantry-staple__stamp { display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
-.pantry-staple__stamp .grocery-icon { width: 1.7rem; height: 1.7rem; }
-.pantry-staple--review .pantry-staple__stamp { background: var(--status-warning); }
+.pantry-staple__stamp { display: grid; place-items: center; flex: 0 0 auto; }
 .pantry-staple__body { display: grid; min-width: 0; align-content: start; gap: 0.55rem; }
 .pantry-staple__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pantry-staple__heading h3 { overflow-wrap: anywhere; font-size: 1.2rem; }
@@ -408,8 +403,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .pantry-attention__companion { justify-self: start; width: 6.25rem; }
   .pantry-attention__companion svg { width: 4.1rem; }
   .pantry-attention__items { grid-template-columns: 1fr; }
-  .pantry-attention__item { grid-template-columns: 2.5rem minmax(0, 1fr); }
-  .pantry-attention__icon { width: 2.5rem; height: 2.5rem; font-size: 1rem; }
+  .pantry-attention__item { grid-template-columns: auto minmax(0, 1fr); }
   .pantry-attention__urgency { grid-column: 2; justify-self: start; }
 
   .pantry-grid { grid-template-columns: 1fr; }
@@ -802,14 +796,11 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .grocery-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .grocery-item { position: relative; gap: 0.65rem; border: 1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); border-radius: var(--radius-lg); padding: 0.85rem 0.9rem; background: color-mix(in oklch, var(--color-surface-bright) 82%, var(--color-surface-low)); box-shadow: none; }
 .grocery-item:hover { border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-outline-variant)); background: var(--color-surface-bright); }
-.grocery-item__icon { width:2.5rem; height:2.5rem; display:grid; place-items:center; border-radius:18px; background: color-mix(in oklch, var(--color-surface-bright) 88%, var(--color-primary-container)); color: var(--color-primary); border:1px solid color-mix(in oklch, var(--color-outline-variant) 52%, transparent); flex:0 0 auto; }
-.grocery-item__icon svg { width:20px; height:20px; }
-.grocery-item__heading { grid-template-columns: 2.5rem 2.75rem minmax(0,1fr) auto; gap: 0.7rem; }
-.grocery-item--checked .grocery-item__icon { opacity:0.62; }
+.grocery-item__icon { display: grid; place-items: center; flex: 0 0 auto; }
+.grocery-item__heading { grid-template-columns: auto 2.75rem minmax(0, 1fr) auto; gap: 0.7rem; }
+.grocery-item--checked .grocery-item__icon { opacity: 0.62; }
 @media (max-width: 767.98px) {
-  .grocery-item__icon { width:2.25rem; height:2.25rem; border-radius:16px; }
-  .grocery-item__icon svg { width:18px; height:18px; }
-  .grocery-item__heading { grid-template-columns: 2.25rem 2.75rem minmax(0,1fr); }
+  .grocery-item__heading { grid-template-columns: auto 2.75rem minmax(0, 1fr); }
 }
 .grocery-check { width: 2.75rem; height: 2.75rem; }
 .grocery-check .cf-checkbox { width: 1.45rem; height: 1.45rem; }
@@ -872,7 +863,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .grocery-list-stage > .shopping-stops { padding-inline: 0.8rem; }
   .grocery-list-stage > .grocery-manual { padding-inline: 0.8rem; }
   .grocery-item { padding: 0.75rem 0.7rem; }
-  .grocery-item__heading { grid-template-columns: 2.25rem 2.5rem minmax(0,1fr); }
+  .grocery-item__heading { grid-template-columns: auto 2.5rem minmax(0, 1fr); }
   .grocery-check { width: 2.5rem; height: 2.5rem; }
   .grocery-item > .actions { margin-left: 3.2rem; }
   .grocery-item__controls { position: absolute; top: 0.7rem; right: 5.65rem; padding-right: 0; }

@@ -4,7 +4,7 @@ import { ArrowRight, CalendarDays, ChefHat, PackageOpen, Plus, ShoppingBasket } 
 import { Link } from "react-router-dom";
 
 import { Button, ErrorRecovery, RecipeMedia, Skeleton } from "../../components";
-import { GroceryIcon } from "../../components/GroceryIcon";
+import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { groceryApi } from "../grocery/api";
 import { pantryApi } from "../pantry/api";
@@ -179,7 +179,7 @@ export function HomePage() {
       <div className="home-priorities">
         <section className="home-use-soon" aria-labelledby="home-use-soon-heading">
           <div className="home-section-heading"><div><p className="eyebrow">Pantry</p><h2 id="home-use-soon-heading">Use soon</h2></div><Link to="/app/pantry">Open pantry <ArrowRight aria-hidden="true" /></Link></div>
-          {pantry.isPending ? <Skeleton label="Checking pantry dates" lines={2} /> : pantry.isError ? <p className="muted">Pantry dates are out of reach right now.</p> : useSoon.length ? <ul className="home-use-soon__list">{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><GroceryIcon name={item.displayName} /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantry.data?.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
+          {pantry.isPending ? <Skeleton label="Checking pantry dates" lines={2} /> : pantry.isError ? <p className="muted">Pantry dates are out of reach right now.</p> : useSoon.length ? <ul className="home-use-soon__list">{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantry.data?.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
         </section>
 
         <nav className="home-quick-actions" aria-labelledby="home-quick-actions-heading">
