@@ -68,11 +68,11 @@ All food-item surfaces use the component:
 - `PantryPage` use-soon attention rows use `size="row"`.
 - `HomePage` use-soon rows use `size="row"`.
 
-No production food-item surface may render a first letter. The existing colored wrappers remain in place, but their SVG dimensions come from shared component size classes rather than selectors tied to individual screens.
+No production food-item surface may render a first letter. The illustrated PNG itself is the visible badge; there is no second dummy colored circle underneath. Consumers render no background shape — the component's image provides the dark-green circular badge at the consumed size. Shared size classes set the consumed image dimensions.
 
 ## Styling Contract
 
-The component emits `grocery-icon grocery-icon--<category> grocery-icon--size-<size>` classes. Shared styles define the SVG dimensions and preserve the source illustration's aspect ratio. Screen styles only define the badge wrapper, background, spacing, and responsive layout.
+The component emits `grocery-icon grocery-icon--<category> grocery-icon--size-<size>` classes. Shared styles define the image dimensions (e.g. `tile ≈ 2.75–3rem`, `row ≈ 2.5–2.75rem` actual badge, not an inner icon) and preserve the source illustration's aspect ratio with `object-fit: contain`. Consumers must not introduce a second background circle. Any wrapper shape used for the previous initials is removed.
 
 The icon must remain recognizable at `24–32px`, fit inside the existing `390×844` mobile layout, and inherit existing oklch design tokens. No raw colors or new per-screen icon sizing rules are introduced.
 

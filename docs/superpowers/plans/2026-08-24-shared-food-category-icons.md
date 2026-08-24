@@ -31,7 +31,7 @@
 - **Modify:** `frontend/src/features/grocery/GroceryListPage.tsx` — use `FoodCategoryIcon size="tile"`.
 - **Modify:** `frontend/src/features/pantry/PantryPage.tsx` — use shared icon for shelf and use-soon rows.
 - **Modify:** `frontend/src/features/home/HomePage.tsx` — use shared icon for Home use-soon rows.
-- **Modify:** `frontend/src/styles/features.css`, `frontend/src/styles/home.css`, `frontend/src/styles/redesign.css` — remove consumer icon sizing overrides and retain wrapper/layout styling.
+- **Modify:** `frontend/src/styles/features.css`, `frontend/src/styles/home.css`, `frontend/src/styles/redesign.css` — remove wrapper dummy circles and inner-icon sizing; keep only layout/space for food-item rows.
 - **Modify:** `frontend/src/features/grocery/__tests__/GroceryIcon.test.tsx` — migrate to the new component or replace with the shared component test.
 - **Modify/Create:** `frontend/e2e/responsive.spec.ts` or focused icon e2e test — verify icons at desktop and 390×844.
 
@@ -231,13 +231,13 @@ Delete all initial-letter expressions from Grocery, Pantry, and Home. Do not dup
 
 - [ ] **Step 4: Remove local icon sizing overrides**
 
-Keep wrapper rules such as `.pantry-staple__stamp` and `.home-use-soon__produce`, but remove selectors that set `.grocery-icon` width/height inside individual screens. Add shared sizing once in `features.css`:
+Remove dummy-circle styling from `.grocery-item__icon`, `.pantry-staple__stamp`, `.pantry-attention__icon`, and `.home-use-soon__produce` (no second background shape — the supplied PNG is the badge). Add shared sizing once in `features.css` so the consumed image is the visible circle:
 
 ```css
-.grocery-icon { display: block; width: 1.5rem; height: 1.5rem; object-fit: contain; }
-.grocery-icon--size-compact { width: 1.25rem; height: 1.25rem; }
-.grocery-icon--size-row { width: 1.5rem; height: 1.5rem; }
-.grocery-icon--size-tile { width: 1.75rem; height: 1.75rem; }
+.grocery-icon { display: block; object-fit: contain; }
+.grocery-icon--size-compact { width: 2rem; height: 2rem; }
+.grocery-icon--size-row { width: 2.5rem; height: 2.5rem; }
+.grocery-icon--size-tile { width: 3rem; height: 3rem; }
 ```
 
 Preserve existing wrapper colors and `390×844` layout. Remove the obsolete `font-family`/font-size icon styling only if it exists solely for initials.
