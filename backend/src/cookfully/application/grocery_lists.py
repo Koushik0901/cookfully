@@ -426,6 +426,9 @@ class GroceryListService:
                 )
                 for source in item.sources
             ),
+            purchased_at=item.purchased_at,
+            expires_on=item.expires_on,
+            expiry_source=item.expiry_source,
         )
 
     @staticmethod
@@ -444,6 +447,10 @@ class GroceryListService:
         model.position = value.position
         model.version = value.version
         model.shopping_stop_id = value.shopping_stop_id
+        # preserve manual expiry through generate/regenerate: existing expiry survives
+        model.purchased_at = value.purchased_at
+        model.expires_on = value.expires_on
+        model.expiry_source = value.expiry_source
 
     @staticmethod
     def _position_available(

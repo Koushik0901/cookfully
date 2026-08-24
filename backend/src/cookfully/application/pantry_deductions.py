@@ -102,16 +102,6 @@ class PantryDeductionService:
                     )
                 )
                 for pantry in pantry_items:
-                    # copy expiry from grocery to pantry if grocery has expiry and pantry not manual
-                    if (
-                        grocery.expires_on is not None
-                        and grocery.purchased_at is not None
-                        and grocery.expiry_source is not None
-                        and pantry.expiry_source != "manual"
-                    ):
-                        pantry.expires_on = grocery.expires_on
-                        pantry.purchased_at = grocery.purchased_at
-                        pantry.expiry_source = grocery.expiry_source
                     if grocery.quantity <= 0:
                         break
                     try:
@@ -128,10 +118,28 @@ class PantryDeductionService:
                     )
                     if value.grocery_amount <= 0:
                         continue
+                    # copy expiry from grocery to pantry if grocery has expiry
+                    # and pantry not manual; after guards so we don't
+                    # clobber pantry when no deduction occurs
+                    if (
+                        grocery.expires_on is not None
+                        and grocery.purchased_at is not None
+                        and grocery.expiry_source is not None
+                        and pantry.expiry_source != "manual"
+                    ):
+                        pantry.expires_on = grocery.expires_on
+                        pantry.purchased_at = grocery.purchased_at
+                        pantry.expiry_source = grocery.expiry_source
                     pantry.quantity = value.pantry_after.quantity
                     pantry.version = value.pantry_after.version
                     grocery.quantity = value.grocery_after.quantity
                     grocery.version = value.grocery_after.version
+                    assumption = value.assumption
+                    if grocery.expires_on is not None and grocery.expiry_source is not None:
+                        assumption = (
+                            f"{value.assumption}; expiry "
+                            f"{grocery.expiry_source} {grocery.expires_on}"
+                        )
                     deduction = PantryDeduction(
                         pantry_item_id=pantry.id,
                         grocery_item_id=grocery.id,
@@ -139,7 +147,7 @@ class PantryDeductionService:
                         pantry_unit=value.pantry_after.unit,
                         grocery_quantity=value.grocery_amount,
                         grocery_unit=value.grocery_after.unit,
-                        assumption=value.assumption,
+                        assumption=assumption,
                         status="applied",
                         pantry_version_after=pantry.version,
                         grocery_version_after=grocery.version,
