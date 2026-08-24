@@ -117,6 +117,7 @@
 .home-use-soon__list li { display: grid; grid-template-columns: 2.5rem 1fr; align-items: center; gap: 0.75rem; min-width: 0; padding: 0.5rem 1rem; }
 .home-use-soon__list li + li { border-left: 1px solid color-mix(in oklch, var(--color-primary) 18%, transparent); }
 .home-use-soon__produce { display: grid; width: 2.5rem; aspect-ratio: 1; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-heading); font-size: 1rem; }
+.home-use-soon__produce .grocery-icon { width: 1.45rem; height: 1.45rem; }
 .home-use-soon__list li > span:nth-child(2) { min-width: 0; }
 .home-use-soon__list strong,
 .home-use-soon__list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
