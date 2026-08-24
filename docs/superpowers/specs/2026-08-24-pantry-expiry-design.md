@@ -89,12 +89,12 @@ X-Idempotency-Key: <uuid>
 { "expiresOn": "2026-08-30" }         // manual correction → becomes manual
 ```
 
-- New optional fields: `expiresOn: date | null`, `expirySource` is server-only (client `auto` ignored).
+- New optional write fields: `expiresOn: date | null` (client may set on label prompt or manual edit). `expirySource` and `purchasedAt` are server-set only — client-sent `expirySource` is ignored; server sets `auto`/`label`/`manual` based on resolver.
 - On `checked: true` transition server runs `resolve_expiry`:
   - fresh hit → atomically sets `purchased_at=now(), expires_on=today+days, expiry_source='auto'`
-  - label-required and no `expiresOn` → returns `200` with `item{..., expiresOn:null, expirySource:null}` + `meta: { needsExpiryDate: true }` (convenience field, not error) so UI prompts; `checked` stays `true` regardless.
-  - client re-PATCHes with `expiresOn` → `expiry_source='label'` (or `'manual'` if editing later).
-- `checked: false` → clears `purchased_at/expires_on/expiry_source`.
+  - label-required and no `expiresOn` provided → returns `200` with `item{..., expiresOn:null, expirySource:null, needsExpiryDate:true}` (computed response-only boolean, not stored) so UI knows to prompt; `checked` stays `true` regardless.
+  - client re-PATCHes with `expiresOn` → server sets `expiry_source='label'` on first prompt, `'manual'` on later edits, and `purchased_at=now()` if not already set.
+- `checked: false` → clears `purchased_at/expires_on/expiry_source` atomically.
 - Still `If-Match: version` + `X-Idempotency-Key` guarded; replay returns stored response.
 - Validation: `expiresOn` must satisfy `today <= expiresOn <= today+90` (covers potato/cheese); `422` only if `expiresOn` is out of range, never for missing label — missing just means no nudge.
 
