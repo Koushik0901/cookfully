@@ -8,6 +8,7 @@ import { ApiProblem } from "../recipes/api";
 import { planningApi } from "./api";
 import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
 import { DayTabs } from "./DayTabs";
+import { ExpiringBanner } from "./ExpiringBanner";
 import { MacroSummary } from "./MacroSummary";
 import { NutritionPulse } from "./NutritionPulse";
 import { PrepOverview } from "./PrepOverview";
@@ -16,6 +17,7 @@ import { DayMealBoard } from "./DayMealBoard";
 import { WeekOverview } from "./WeekOverview";
 import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
 import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
+import { useExpiringPantry } from "./useExpiringPantry";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
@@ -55,6 +57,8 @@ export function WeeklyPlannerPage() {
   const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
   const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: ({ signal }) => planningApi.recipes("", signal) });
   const dates = useMemo(() => weekStart ? weekDates(weekStart) : [], [weekStart]);
+  const todayForBanner = preferences.data ? todayInTimezone(preferences.data.timezone) : "";
+  const { expiring: expiringPantry } = useExpiringPantry(3, todayForBanner);
   const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
   const goalMissing = goal.error instanceof ApiProblem && goal.error.status === 404;
   const add = useMutation({
@@ -196,9 +200,10 @@ export function WeeklyPlannerPage() {
         {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
       </div>
 
-       {view === "week" ? <section id="planner-panel-week" role="tabpanel" aria-labelledby="planner-tab-week">
-         {addMessage ? <p className={move.isError || copy.isError || swap.isError || remove.isError ? "error-text" : "success-text"} role={move.isError || copy.isError || swap.isError || remove.isError ? "alert" : "status"}>{addMessage}</p> : null}
-         <WeekOverview
+        {view === "week" ? <section id="planner-panel-week" role="tabpanel" aria-labelledby="planner-tab-week">
+          {addMessage ? <p className={move.isError || copy.isError || swap.isError || remove.isError ? "error-text" : "success-text"} role={move.isError || copy.isError || swap.isError || remove.isError ? "alert" : "status"}>{addMessage}</p> : null}
+          <ExpiringBanner pantry={expiringPantry} plan={plan.data ?? { entries: [] }} today={todayForBanner} />
+          <WeekOverview
            dates={dates}
            entries={entries}
            recipesById={recipesById}
