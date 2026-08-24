@@ -221,6 +221,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .pantry-attention__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
 .pantry-attention__item { display: grid; min-width: 0; grid-template-columns: 2.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.75rem; background: color-mix(in oklch, var(--color-surface-bright) 88%, transparent); box-shadow: var(--shadow-card-rest); }
 .pantry-attention__icon { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
+.pantry-attention__icon .grocery-icon { width: 1.55rem; height: 1.55rem; }
 .pantry-attention__item > div { display: grid; min-width: 0; gap: 0.15rem; }
 .pantry-attention__item strong,
 .pantry-attention__item small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -236,6 +237,7 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .pantry-staple { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem; border-radius: var(--radius-lg); padding: 1rem 1.15rem 1rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
 .pantry-staple--review { background: color-mix(in oklch, var(--status-warning-container) 46%, var(--color-surface-bright)); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-warning) 34%, transparent), var(--shadow-card-rest); }
 .pantry-staple__stamp { display: grid; width: 3rem; height: 3rem; flex: 0 0 auto; place-items: center; border-radius: 45% 55% 52% 48%; color: var(--color-on-primary); background: var(--color-primary); font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
+.pantry-staple__stamp .grocery-icon { width: 1.7rem; height: 1.7rem; }
 .pantry-staple--review .pantry-staple__stamp { background: var(--status-warning); }
 .pantry-staple__body { display: grid; min-width: 0; align-content: start; gap: 0.55rem; }
 .pantry-staple__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
