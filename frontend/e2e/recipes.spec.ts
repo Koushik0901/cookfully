@@ -450,14 +450,15 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
       mediaRatio: mediaBox.width / mediaBox.height,
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
-      metadataVisible: card.querySelector(".recipe-meta")?.textContent,
+      metadataDisplay: card.querySelector<HTMLElement>(".recipe-meta") ? getComputedStyle(card.querySelector<HTMLElement>(".recipe-meta")!).display : "missing",
     };
   });
   expect(layout).not.toBeNull();
-  expect(layout!.columns).toBe(1);
-  expect(layout!.cardWidth).toBeGreaterThan(layout!.viewportWidth * 0.85);
+  expect(layout!.columns).toBe(2);
+  expect(layout!.cardWidth).toBeGreaterThan(layout!.viewportWidth * 0.4);
+  expect(layout!.cardWidth).toBeLessThan(layout!.viewportWidth * 0.6);
   expect(layout!.mediaRatio).toBeGreaterThan(1.15);
-  expect(layout!.metadataVisible).toContain("kcal");
+  expect(layout!.metadataDisplay).toBe("none");
   expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
   const textFit = await page.locator(".recipe-card").evaluateAll((cards) => cards.map((card) => {
     const metadata = card.querySelector<HTMLElement>(".recipe-meta");
@@ -468,7 +469,7 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
       overflows: card.scrollWidth > card.clientWidth + 1,
     };
   }));
-  expect(textFit.every((item) => item.metadataFont >= 15 && item.yieldFont >= 15 && !item.overflows)).toBe(true);
+  expect(textFit.every((item) => item.metadataFont >= 14 && item.yieldFont >= 14 && !item.overflows)).toBe(true);
 });
 
 test("makes a focused recipe-library view easy to understand and clear", async ({ page }, testInfo) => {
@@ -478,6 +479,10 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await expect(page.locator(".recipe-card--featured")).toHaveCount(0);
   await expect(page.locator(".recipe-card__media .recipe-card__state")).toHaveCount(0);
   await expect(page.locator(".recipe-card__body .recipe-card__state")).toBeVisible();
+  if (testInfo.project.name === "desktop-chromium") {
+    await expect(page.locator(".recipe-card .recipe-meta__item--time svg").first()).toBeVisible();
+  }
+  await expect(page.getByText("Time not set")).toHaveCount(0);
   const libraryStyling = await page.evaluate(() => {
     const favorite = document.querySelector<HTMLElement>(".recipe-card__favorite-toggle");
     const discovery = document.querySelector<HTMLElement>(".recipe-discovery");

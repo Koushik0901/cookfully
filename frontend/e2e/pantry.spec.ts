@@ -33,6 +33,34 @@ async function mockPantryApi(page: Page) {
       pantry = [...pantry, { id: "00000000-0000-4000-8000-000000000602", normalizedFoodName: "black beans", foodReferenceId: null, matchStatus: "unmatched", matchConfidence: null, version: 1, ...value, quantity: String(Number(value.quantity)) }];
       return route.fulfill({ status: 201, json: pantry.at(-1) });
     }
+    if (path === "/api/v1/foods/search" && request.method() === "GET") {
+      return route.fulfill({ json: {
+        query: new URL(request.url()).searchParams.get("q") ?? "",
+        candidates: [{
+          source: "usda",
+          id: "00000000-0000-4000-8000-000000000604",
+          description: "Rice, brown, long-grain, cooked",
+          brandOwner: null,
+          servingSizeG: "100",
+          servingUnit: "g",
+          compatibility: "compatible",
+          remembered: false,
+        }],
+      } });
+    }
+    if (path.startsWith("/api/v1/pantry-items/") && request.method() === "PATCH") {
+      const itemId = path.split("/").at(-1);
+      const value = request.postDataJSON();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      pantry = pantry.map((item) => item.id === itemId ? {
+        ...item,
+        ...value,
+        matchStatus: value.foodReferenceId ? "manual" : item.matchStatus,
+        matchConfidence: value.foodReferenceId ? "1.000000" : item.matchConfidence,
+        version: item.version + 1,
+      } : item);
+      return route.fulfill({ json: pantry.find((item) => item.id === itemId) });
+    }
     if (path === "/api/v1/pantry/recipe-matches") {
       return route.fulfill({ json: [{ recipeId: "00000000-0000-4000-8000-000000000603", recipeTitle: "Chicken rice", availability: "partial", coverageRatio: "0.5", missingIngredients: ["400 g chicken breast"] }] });
     }
@@ -46,7 +74,24 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await expect(page.getByRole("heading", { name: "What’s already at home?" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nothing needs attention yet" })).toBeVisible();
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
+  await expect(page.getByText("Add a matching name below so recipes can use this item.")).toBeVisible();
+  await page.getByText("Add a match", { exact: true }).click();
+  await expect(page.getByLabel("Pantry name")).toBeVisible();
+  await page.getByText("Use a specific reference (advanced)", { exact: true }).click();
+  await expect(page.getByText("Leave blank for an automatic rematch.")).toBeVisible();
   await captureUi(page, testInfo, "pantry");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByText("Add a match", { exact: true }).click();
+  const editDialog = page.getByRole("dialog", { name: "Add a match · Brown rice" });
+  await expect(editDialog.getByRole("searchbox", { name: "Search USDA foods" })).toBeVisible();
+  await expect(editDialog.getByRole("button", { name: /Rice, brown, long-grain, cooked/ })).toBeVisible();
+  await editDialog.getByRole("button", { name: /Rice, brown, long-grain, cooked/ }).click();
+  await expect(editDialog.getByText("Using Rice, brown, long-grain, cooked from USDA for this pantry item.")).toBeVisible();
+  await editDialog.getByRole("button", { name: "Save Brown rice" }).click();
+  await expect(editDialog).toBeHidden();
+  await expect(page.locator(".pantry-staple__feedback")).toHaveText("Saving changes…");
+  await expect(page.locator(".pantry-staple__feedback")).toBeHidden({ timeout: 2_000 });
+  await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("Ready to use");
 
   await page.getByRole("button", { name: "Add item" }).click();
   const addDialog = page.getByRole("dialog", { name: "Add something on hand" });

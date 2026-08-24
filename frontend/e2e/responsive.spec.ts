@@ -119,8 +119,9 @@ test("mobile keeps secondary places in a deliberate More menu", async ({ page },
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("recipes grid is 1-col on mobile, 2-col on desktop", async ({ page }) => {
-  // Brief Step 1 — TDD gate: 1fr below 767px, repeat(2 at >=768px)
+test("recipes grid scales from one to four columns without oversized cards", async ({ page }) => {
+  // Keep phone layouts compact at two columns, use two columns at compact desktop widths,
+  // and add columns as the recipe surface has room to breathe.
   // Mock minimal recipes API so .recipe-grid is rendered in both viewports.
   const recipeId = "00000000-0000-4000-8000-000000000001";
   const collection = { id: "00000000-0000-4000-8000-000000000010", name: "Weeknight favourites", position: 0, version: 1, recipeCount: 0 };
@@ -167,15 +168,14 @@ test("recipes grid is 1-col on mobile, 2-col on desktop", async ({ page }) => {
     return json({ code: "not_found", title: "Not found", status: 404 }, 404);
   });
 
-  // Mobile: 390×844 → single column (1fr)
+  // Mobile: 390×844 → two compact columns
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/recipes");
   await expect(page.locator(".recipe-grid").first()).toBeVisible();
   const mobileColumns = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
-  expect(mobileColumns).toBe(1);
-  // Also assert computed style is single value (not repeat) — mirrors brief's /1fr/ intent via column count
+  expect(mobileColumns).toBe(2);
   const mobileGrid = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns);
-  expect(mobileGrid.trim().split(" ").length).toBe(1);
+  expect(mobileGrid.trim().split(" ").length).toBe(2);
 
   // Desktop: 1024×900 → two columns repeat(2, ...)
   await page.setViewportSize({ width: 1024, height: 900 });
@@ -187,6 +187,22 @@ test("recipes grid is 1-col on mobile, 2-col on desktop", async ({ page }) => {
   expect(desktopColumns).toBe(2);
   const desktopGrid = await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns);
   expect(desktopGrid.trim().split(" ").length).toBe(2);
+
+  // Standard desktop: 1280×900 → three columns
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForFunction(() => {
+    const grid = document.querySelector<HTMLElement>(".recipe-grid");
+    return grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length === 3 : false;
+  });
+  expect(await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(3);
+
+  // Wide desktop: 2209×1272 → four columns
+  await page.setViewportSize({ width: 2209, height: 1272 });
+  await page.waitForFunction(() => {
+    const grid = document.querySelector<HTMLElement>(".recipe-grid");
+    return grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length === 4 : false;
+  });
+  expect(await page.locator(".recipe-grid").first().evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(4);
 });
 
 test("cook mode takes over the viewport and adapts its ingredient checklist", async ({ page }, testInfo) => {

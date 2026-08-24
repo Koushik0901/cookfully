@@ -117,6 +117,12 @@ test("Home opens on tonight, the week, recent recipes, and focused quick search"
     expect(home!.width / canvas!.width).toBeGreaterThan(0.9);
     expect(await page.locator(".home-page").evaluate((element) => element.scrollHeight)).toBeGreaterThan(1100);
     expect(await page.locator(".home-for-you__grid").evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(500);
+    const priorities = await page.locator(".home-priorities").evaluate((element) => {
+      const useSoon = element.querySelector<HTMLElement>(".home-use-soon")?.getBoundingClientRect();
+      const quickActions = element.querySelector<HTMLElement>(".home-quick-actions")?.getBoundingClientRect();
+      return { useSoonHeight: useSoon?.height ?? 0, quickActionsHeight: quickActions?.height ?? 0 };
+    });
+    expect(Math.abs(priorities.useSoonHeight - priorities.quickActionsHeight)).toBeLessThanOrEqual(24);
   }
   if (testInfo.project.name === "narrow-mobile") {
     const recentShelf = page.locator(".home-recent__grid");

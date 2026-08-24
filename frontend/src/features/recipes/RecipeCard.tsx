@@ -93,12 +93,13 @@ export function RecipeCard({
             <h2 style={{ viewTransitionName: `recipe-title-${recipe.id}` } as CSSProperties}>{recipe.title}</h2>
             {recipe.status === "processing" ? <PollingStatusBadge status="running" /> : null}
           </div>
-          <p className="recipe-card__yield data-value">
-            Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}
-            {" · "}
-             <span className={`recipe-card__state recipe-card__state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
-          </p>
-          {recipeCollections.length ? <div className="recipe-card__context"><span className="recipe-card__collection">{recipeCollections[0].name}</span>{recipeCollections.length > 1 ? <span className="recipe-card__collection">+{recipeCollections.length - 1}</span> : null}</div> : null}
+          <div className="recipe-card__summary">
+            <span className="recipe-card__yield data-value">Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</span>
+            <span className={`recipe-card__state recipe-card__state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
+          </div>
+          <div className={`recipe-card__context${recipeCollections.length ? "" : " recipe-card__context--empty"}`} aria-hidden={!recipeCollections.length}>
+            {recipeCollections.length ? <><span className="recipe-card__collection">{recipeCollections[0].name}</span>{recipeCollections.length > 1 ? <span className="recipe-card__collection">+{recipeCollections.length - 1}</span> : null}</> : null}
+          </div>
           <RecipeMetadata recipe={recipe} />
         </div>
       </Link>

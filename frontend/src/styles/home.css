@@ -106,7 +106,7 @@
 .home-section-heading svg,
 .home-grocery > a svg { width: 0.9rem; }
 
-.home-priorities { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(20rem, 0.58fr); gap: 2.75rem; align-items: stretch; }
+.home-priorities { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(20rem, 0.58fr); gap: 2.75rem; align-items: start; }
 .home-use-soon { display: grid; align-content: start; gap: 1.25rem; border-radius: 1.5rem 3.5rem 1.5rem 1.5rem; padding: 1.5rem; background: color-mix(in oklch, var(--color-primary-container) 72%, var(--color-surface)); }
 .home-section-heading h2,
 .home-quick-actions h2 { font-size: 1.625rem; font-weight: 500; line-height: 1.05; }
@@ -181,6 +181,12 @@
   .home-quick-actions > a:hover > svg:last-child { transform: translateX(0.2rem); }
   .home-recommendation:hover img,
   .home-recent-recipe:hover img { transform: scale(1.035); }
+}
+
+@media (min-width: 85rem) {
+  .home-quick-actions { padding-block: 0.75rem; }
+  .home-quick-actions h2 { margin-bottom: 0.35rem; }
+  .home-quick-actions > a { min-height: 2.75rem; }
 }
 
 @media (max-width: 84rem) {

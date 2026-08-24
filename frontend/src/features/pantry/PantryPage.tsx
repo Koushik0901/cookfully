@@ -23,6 +23,9 @@ import {
 import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { RecipeMedia, type RecipeMediaSource } from "../../components/cookfully/RecipeMedia";
+import { FoodRow } from "../foods/FoodCandidateRow";
+import { foodsApi } from "../foods/api";
+import type { FoodCandidate } from "../foods/types";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
@@ -57,6 +60,10 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
   const [unit, setUnit] = useState(item.unit);
   const [expiresOn, setExpiresOn] = useState(item.expiresOn ?? "");
   const [referenceId, setReferenceId] = useState(item.foodReferenceId ?? "");
+  const [editOpen, setEditOpen] = useState(false);
+  const [foodSearch, setFoodSearch] = useState("");
+  const [foodSearchQuery, setFoodSearchQuery] = useState("");
+  const [selectedFood, setSelectedFood] = useState<FoodCandidate | null>(null);
   useEffect(() => {
     setDisplayName(item.displayName);
     setQuantity(formatCookingInput(item.quantity));
@@ -64,6 +71,26 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
     setExpiresOn(item.expiresOn ?? "");
     setReferenceId(item.foodReferenceId ?? "");
   }, [item]);
+  useEffect(() => {
+    const handle = window.setTimeout(() => setFoodSearchQuery(foodSearch.trim()), 220);
+    return () => window.clearTimeout(handle);
+  }, [foodSearch]);
+  useEffect(() => {
+    if (editOpen) {
+      setFoodSearch(item.displayName);
+      setFoodSearchQuery(item.displayName.trim());
+    } else {
+      setFoodSearch("");
+      setFoodSearchQuery("");
+      setSelectedFood(null);
+    }
+  }, [editOpen, item.displayName]);
+  const foodCandidates = useQuery({
+    queryKey: ["pantry-food-candidates", foodSearchQuery],
+    queryFn: () => foodsApi.search(foodSearchQuery),
+    enabled: editOpen && foodSearchQuery.length > 0,
+    staleTime: 60_000,
+  });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
   const update = useMutation({
     mutationFn: (value: PantryItemWrite) => pantryApi.update(item.id, item.version, value),
@@ -80,6 +107,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
     },
     onSuccess: (saved) => {
       queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.map((candidate) => candidate.id === saved.id ? saved : candidate));
+      setEditOpen(false);
       void refresh();
     },
   });
@@ -101,6 +129,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
 
   function save(event: FormEvent) {
     event.preventDefault();
+    update.reset();
     update.mutate({
       displayName: displayName.trim(),
       quantity,
@@ -108,10 +137,15 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
       expiresOn: expiresOn || null,
       foodReferenceId: referenceId.trim() || null,
     });
+    setEditOpen(false);
   }
+
+  const usdaCandidates = foodCandidates.data?.candidates.filter((candidate) => candidate.source === "usda") ?? [];
+  const activeFood = selectedFood ?? usdaCandidates.find((candidate) => candidate.id === referenceId) ?? null;
 
   const expiry = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
   const usebyTone = expiry ? (expiry.tone === "mint" ? "later" : expiry.tone === "amber" ? "soon" : "critical") : "none";
+  const matchActionLabel = item.matchStatus === "proposed" ? "Correct match" : item.matchStatus === "unmatched" ? "Add a match" : `Edit ${item.displayName}`;
   return (
     <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
       <span className="pantry-staple__stamp pantry-staple__stamp--icon" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="tile" /></span>
@@ -132,35 +166,101 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
           )}
         </p>
         {item.matchStatus === "proposed" ? (
-          <p className="pantry-staple__note">Confirm this food match before Cookfully uses it for recipe ideas or pantry deductions.</p>
+          <p className="pantry-staple__note">Change the matching name below and save to rematch this item.</p>
         ) : item.matchStatus === "unmatched" ? (
-          <p className="pantry-staple__note pantry-staple__note--quiet">This stays on your inventory, but Cookfully will not subtract or match it automatically yet.</p>
+          <p className="pantry-staple__note pantry-staple__note--quiet">Add a matching name below so recipes can use this item.</p>
         ) : null}
+        {update.isPending ? <p className="pantry-staple__feedback" role="status" aria-live="polite">Saving changes…</p> : null}
         {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
-        <details className="disclosure pantry-staple__edit"><summary>Edit {item.displayName}</summary><form className="pantry-edit" onSubmit={save}>
-          <Field label={`${item.displayName} food name`}>
-            <input className="input" value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
-          </Field>
-          <div className="pantry-edit__row">
-            <Field label={`${item.displayName} quantity`}>
-              <DecimalInput value={quantity} onValueChange={setQuantity} />
-            </Field>
-            <Field label={`${item.displayName} unit`}>
-              <Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>
-                {UNITS.map((value) => <option key={value}>{value}</option>)}
-              </Select>
-            </Field>
-          </div>
-          <div className="pantry-edit__row">
-            <Field label={`${item.displayName} use-by date`} hint="Optional. Only fresh food benefits from a reminder.">
-              <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
-            </Field>
-            <Field label={`${item.displayName} food reference ID`} hint="Optional advanced correction. Clear it to rematch by name.">
-              <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
-            </Field>
-          </div>
-          <Button variant="secondary" type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>Save {item.displayName}</Button>
-        </form></details>
+        <Dialog.Root open={editOpen} onOpenChange={setEditOpen}>
+          <Dialog.Trigger asChild><button type="button" className="pantry-staple__edit-trigger">{matchActionLabel}</button></Dialog.Trigger>
+          <Dialog.Portal>
+            <Dialog.Overlay className="dialog-overlay" />
+            <Dialog.Content className="dialog food-picker-dialog pantry-edit-dialog" aria-describedby={`pantry-edit-description-${item.id}`}>
+              <header className="pantry-dialog__header">
+                <div>
+                  <p className="eyebrow">Keep the shelf accurate</p>
+                  <Dialog.Title>{matchActionLabel} · {item.displayName}</Dialog.Title>
+                  <Dialog.Description id={`pantry-edit-description-${item.id}`} className="pantry-dialog__description">Change the matching name and save. Leave the advanced reference blank for Cookfully to choose again.</Dialog.Description>
+                </div>
+                <DialogCloseButton label={`Close ${matchActionLabel.toLowerCase()} dialog`} />
+              </header>
+              <form className="pantry-dialog__form" onSubmit={save}>
+                <Field label="Pantry name" hint="Keep the familiar name you use on your shelf.">
+                  <input className="input" value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
+                </Field>
+                <section className="pantry-food-search" aria-labelledby={`pantry-food-search-${item.id}`}>
+                  <div className="pantry-food-search__heading">
+                    <div>
+                      <h3 id={`pantry-food-search-${item.id}`}>Choose the USDA food</h3>
+                      <p>Search for a close database match so recipes use the right nutrition reference.</p>
+                    </div>
+                    {activeFood ? <span className="pantry-food-search__selected">Selected</span> : null}
+                  </div>
+                  <SearchField
+                    label="Search USDA foods"
+                    value={foodSearch}
+                    onChange={(event) => setFoodSearch(event.currentTarget.value)}
+                    onClear={() => setFoodSearch("")}
+                    placeholder="Search foods by name"
+                    autoFocus
+                  />
+                  <div className="food-picker__results-heading">
+                    <strong>{foodSearchQuery ? `Results for “${foodSearchQuery}”` : "Best matches"}</strong>
+                    <span>USDA</span>
+                  </div>
+                  {foodCandidates.isLoading ? <p className="muted food-picker__loading">Searching foods…</p> : null}
+                  {foodCandidates.isError ? <p className="error-text" role="alert">Could not load USDA matches. Try again.</p> : null}
+                  {usdaCandidates.length > 0 ? (
+                    <ul className="food-candidate-list">
+                      {usdaCandidates.slice(0, 5).map((candidate) => (
+                        <li key={candidate.id}>
+                          <button
+                            type="button"
+                            className="food-candidate-button"
+                            aria-pressed={activeFood?.id === candidate.id}
+                            onClick={() => {
+                              setReferenceId(candidate.id);
+                              setSelectedFood(candidate);
+                            }}
+                            disabled={update.isPending || remove.isPending}
+                          >
+                            <FoodRow candidate={candidate} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {!foodCandidates.isLoading && foodSearchQuery && foodCandidates.data && usdaCandidates.length === 0 ? (
+                    <div className="food-picker__empty">
+                      <strong>No USDA foods found</strong>
+                      <span>Try a broader name, such as “tomato” instead of a brand or recipe name.</span>
+                    </div>
+                  ) : null}
+                  {activeFood ? <p className="pantry-food-search__confirmation" role="status">Using <strong>{activeFood.description}</strong> from USDA for this pantry item.</p> : null}
+                </section>
+                <div className="pantry-dialog__quantity">
+                  <Field label="Quantity"><DecimalInput value={quantity} onValueChange={setQuantity} /></Field>
+                  <Field label="Unit"><Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>{UNITS.map((value) => <option key={value}>{value}</option>)}</Select></Field>
+                </div>
+                <Field label="Use-by date" hint="Optional. Add one when timing matters.">
+                  <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
+                </Field>
+                <details className="pantry-edit__advanced">
+                  <summary>Use a specific reference (advanced)</summary>
+                  <Field label="Reference food ID" hint="Leave blank for an automatic rematch.">
+                    <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
+                  </Field>
+                </details>
+                {update.error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : update.error.message}</p> : null}
+                <div className="pantry-dialog__actions">
+                  <Dialog.Close asChild><Button type="button" variant="secondary">Cancel</Button></Dialog.Close>
+                  <Button type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>{update.isPending ? "Saving…" : `Save ${item.displayName}`}</Button>
+                </div>
+              </form>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
         <div className="actions pantry-staple__actions">
           {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
           <ConfirmDialog
