@@ -29,7 +29,7 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
   const [checked, setChecked] = useState(item.checked ?? false);
   useEffect(() => setChecked(item.checked ?? false), [item.checked]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
-  const fallbackToday = new Date().toISOString().slice(0, 10);
+  const fallbackToday = todayInTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const today = todayProp ?? fallbackToday;
   const plus90 = addDays(today, 90);
   const [showExpirySheet, setShowExpirySheet] = useState(false);
@@ -210,7 +210,7 @@ export function GroceryListPage() {
   const sourceMealsByEntry = new Map(plan.data?.entries.map((entry) => [entry.id, { recipeId: entry.recipeId, recipeTitle: entry.recipeTitle }]) ?? []);
   const purchasedItems = list.data.items.filter((item) => item.checked);
   const progress = list.data.items.length ? Math.round((purchasedItems.length / list.data.items.length) * 100) : 0;
-  const today = preferences.data ? todayInTimezone(preferences.data.timezone) : new Date().toISOString().slice(0, 10);
+  const today = preferences.data ? todayInTimezone(preferences.data.timezone) : todayInTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const groups = [
     ...((stops.data ?? []).map((stop) => [stop.name, activeItems.filter((item) => item.shoppingStop?.id === stop.id)] as const)),
     ["Unassigned", activeItems.filter((item) => !item.shoppingStop)] as const,

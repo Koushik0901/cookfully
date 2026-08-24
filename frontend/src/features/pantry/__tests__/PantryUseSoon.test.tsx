@@ -203,7 +203,7 @@ describe("pantry use-soon chips and sort", () => {
       </QueryClientProvider>,
     );
     expect((await screen.findAllByText("Berries")).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Expired 1d ago/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Expired 1d ago/).length).toBeGreaterThanOrEqual(1);
     expect(document.querySelector(".expiry-chip--danger")).toBeInTheDocument();
   });
 });

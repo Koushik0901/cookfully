@@ -1,6 +1,6 @@
 export function daysLeft(expiresOn: string, todayStr: string): number {
-  const e = new Date(expiresOn + "T00:00:00");
-  const t = new Date(todayStr + "T00:00:00");
+  const e = new Date(expiresOn + "T00:00:00Z");
+  const t = new Date(todayStr + "T00:00:00Z");
   return Math.round((e.getTime() - t.getTime()) / 86400000);
 }
 

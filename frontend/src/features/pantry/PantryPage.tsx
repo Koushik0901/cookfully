@@ -32,7 +32,6 @@ import { expiryBadge } from "./expiry";
 import type { PantryItem, PantryItemWrite, PantryRecipeMatch } from "./types";
 
 const UNITS = ["g", "kg", "mg", "ml", "l", "count"] as const;
-const DAY_MS = 86_400_000;
 
 function weekdayLabel(value: string) {
   return new Intl.DateTimeFormat("en-CA", { weekday: "long", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
@@ -40,25 +39,6 @@ function weekdayLabel(value: string) {
 
 function formatUseBy(value: string) {
   return new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
-}
-
-function daysUntil(value: string, todayValue: string) {
-  return Math.round((Date.parse(`${value}T00:00:00Z`) - Date.parse(`${todayValue}T00:00:00Z`)) / DAY_MS);
-}
-
-function urgencyLabel(value: string, todayValue: string) {
-  const days = daysUntil(value, todayValue);
-  if (days < 0) return "Past use-by";
-  if (days === 0) return "Use today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
-}
-
-function urgencyTone(value: string, todayValue: string) {
-  const days = daysUntil(value, todayValue);
-  if (days <= 1) return "critical";
-  if (days <= 3) return "soon";
-  return "later";
 }
 
 const MATCH_ORDER = new Map([["proposed", 0], ["unmatched", 1], ["matched", 2], ["manual", 2]]);
@@ -130,6 +110,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
   }
 
   const expiry = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
+  const usebyTone = expiry ? (expiry.tone === "mint" ? "later" : expiry.tone === "amber" ? "soon" : "critical") : "none";
   return (
     <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
       <span className="pantry-staple__stamp" aria-hidden="true">{item.displayName.trim().charAt(0).toUpperCase() || "?"}</span>
@@ -140,15 +121,14 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
         </header>
         <p className="pantry-staple__facts">
           <span className="pantry-staple__quantity">{formatCookingNumber(item.quantity)} {item.unit}</span>
-          {item.expiresOn ? (
-            <span className={`pantry-staple__useby pantry-staple__useby--${urgencyTone(item.expiresOn, today)}`}>
+          {expiry ? (
+            <span className={`pantry-staple__useby pantry-staple__useby--${usebyTone} expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}`}>
               <CalendarClock aria-hidden="true" />
-              Use by {formatUseBy(item.expiresOn)} · {urgencyLabel(item.expiresOn, today)}
+              Use by {formatUseBy(item.expiresOn!)} · {expiry.label}
             </span>
           ) : (
             <span className="pantry-staple__useby pantry-staple__useby--none">No date</span>
           )}
-          {expiry ? <span className={`expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}`}>{expiry.label}</span> : null}
         </p>
         {item.matchStatus === "proposed" ? (
           <p className="pantry-staple__note">Confirm this food match before Cookfully uses it for recipe ideas or pantry deductions.</p>
@@ -371,8 +351,15 @@ export function PantryPage() {
         />
         {expiredItems.length || useSoonItems.length ? (
           <div className="pantry-attention__items">
-            {expiredItems.slice(0, 4).map((item) => <AttentionRow key={item.id} item={item} tone="critical" urgency="Past use-by" />)}
-            {useSoonItems.slice(0, expiredItems.length ? 2 : 4).map((item) => <AttentionRow key={item.id} item={item} tone={urgencyTone(item.expiresOn!, today)} urgency={urgencyLabel(item.expiresOn!, today)} />)}
+            {expiredItems.slice(0, 4).map((item) => {
+              const badge = expiryBadge(item.expiresOn!, today);
+              return <AttentionRow key={item.id} item={item} tone={badge.tone === "danger" ? "critical" : badge.tone} urgency={badge.label} />;
+            })}
+            {useSoonItems.slice(0, expiredItems.length ? 2 : 4).map((item) => {
+              const badge = expiryBadge(item.expiresOn!, today);
+              const tone = badge.tone === "mint" ? "later" : badge.tone === "amber" ? "soon" : "critical";
+              return <AttentionRow key={item.id} item={item} tone={tone} urgency={badge.label} />;
+            })}
           </div>
         ) : (
           <span className="pantry-attention__companion" aria-hidden="true"><KitchenCompanion moment="empty" size="sm" /></span>
