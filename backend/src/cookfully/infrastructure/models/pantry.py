@@ -35,6 +35,10 @@ class PantryItem(TimestampMixin, Base):
             name="valid_match_confidence",
         ),
         CheckConstraint("version > 0", name="positive_version"),
+        CheckConstraint(
+            "expiry_source IN ('auto', 'label', 'manual')",
+            name="valid_expiry_source",
+        ),
         Index("ix_pantry_items_owner_name", "owner_id", "normalized_food_name"),
         Index("ix_pantry_items_owner_expires_on", "owner_id", "expires_on"),
     )
@@ -48,6 +52,8 @@ class PantryItem(TimestampMixin, Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     unit_code: Mapped[str] = mapped_column(String(20), nullable=False)
     expires_on: Mapped[date | None] = mapped_column(Date)
+    purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expiry_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     food_reference_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("food_references.id", ondelete="SET NULL")
     )

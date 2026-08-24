@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -64,6 +65,14 @@ class GroceryItem(TimestampMixin, Base):
         CheckConstraint("origin IN ('generated', 'manual')", name="valid_origin"),
         CheckConstraint("position >= 0", name="nonnegative_position"),
         CheckConstraint("version > 0", name="positive_version"),
+        CheckConstraint(
+            "expiry_source IN ('auto', 'label', 'manual')",
+            name="valid_expiry_source",
+        ),
+        CheckConstraint(
+            "expires_on IS NULL OR purchased_at IS NOT NULL",
+            name="expires_on_requires_purchased_at",
+        ),
         Index("uq_grocery_items_position", "grocery_list_id", "position", unique=True),
         Index("ix_grocery_items_aggregation_key", "grocery_list_id", "aggregation_key"),
     )
@@ -85,6 +94,9 @@ class GroceryItem(TimestampMixin, Base):
     needs_review: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    expiry_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     shopping_stop_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("grocery_shopping_stops.id", ondelete="SET NULL")
     )
