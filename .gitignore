@@ -31,6 +31,10 @@ artifacts/exports/
 artifacts/*.zip
 artifacts/*.html
 media/
+!frontend/public/media/
+!frontend/public/media/grocery-icons/
+!frontend/public/media/grocery-icons/*.png
+!frontend/public/media/grocery-icons/manifest.json
 erasure-ledger/
 
 # Local review notes and TLS material

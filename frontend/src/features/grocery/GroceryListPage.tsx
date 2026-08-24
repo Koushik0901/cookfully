@@ -5,7 +5,7 @@ import { CalendarDays, MoreHorizontal, PackageCheck, Plus, RefreshCw, ShoppingBa
 import { Link, useSearchParams } from "react-router-dom";
 
 import { Button, ConfirmDialog, DecimalInput, DialogCloseButton, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, SectionHeading, Select, Skeleton } from "../../components";
-import { GroceryIcon } from "../../components/GroceryIcon";
+import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { pantryApi } from "../pantry/api";
 import { expiryBadge } from "../pantry/expiry";
@@ -82,7 +82,7 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
   return (
     <article className={`grocery-item ${checked ? "grocery-item--checked" : ""}`}>
       <div className="grocery-item__heading">
-        <span className="grocery-item__icon"><GroceryIcon name={title} /></span>
+        <span className="grocery-item__icon"><FoodCategoryIcon name={title} size="tile" /></span>
         <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={(value) => { if (readOnly || update.isPending || remove.isPending) return; const next = value === true; setChecked(next); update.mutate({ checked: next }, { onError: () => setChecked(!next) }); }} /></label>
         <div className="grocery-item__content"><h3>{title}</h3><p className="data-value">{item.quantity ? formatCookingNumber(item.quantity) : "As needed"}{item.unit ? ` ${item.unit}` : ""}{badge ? <button type="button" aria-label={`Expires ${item.expiresOn}`} className={`expiry-badge expiry-badge--${badge.tone}`} onClick={() => setShowExpirySheet(true)}>{badge.label}</button> : null}</p>{sourceMeals.length ? <p className="grocery-item__uses"><span>Used for</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p> : item.sources.length ? <p className="grocery-item__uses"><span>Used for planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}</div>
         <div className="grocery-item__controls">{item.needsReview ? <span className="review-badge">Needs review</span> : null}{!readOnly ? <ConfirmDialog trigger={<button className="grocery-item__remove" type="button" aria-label={`Remove ${title}`} title={`Remove ${title}`} disabled={remove.isPending || update.isPending}><X aria-hidden="true" /></button>} title={`Remove ${title} from your list?`} description={sourceMeals.length ? "This removes the item and its recipe-source context from this shopping pass." : "This removes the item from this shopping pass."} confirmLabel="Remove item" onConfirm={() => remove.mutate()} /> : null}</div>

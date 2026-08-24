@@ -1,0 +1,132 @@
+{
+  "leafy-greens": {
+    "detected_circle": {
+      "cx": 267,
+      "cy": 236,
+      "radius": 46
+    },
+    "native": "leafy-greens-native.png",
+    "256": "leafy-greens.png",
+    "64": "leafy-greens-64.png"
+  },
+  "grains-rice": {
+    "detected_circle": {
+      "cx": 491,
+      "cy": 236,
+      "radius": 45
+    },
+    "native": "grains-rice-native.png",
+    "256": "grains-rice.png",
+    "64": "grains-rice-64.png"
+  },
+  "dairy-milk": {
+    "detected_circle": {
+      "cx": 723,
+      "cy": 235,
+      "radius": 45
+    },
+    "native": "dairy-milk-native.png",
+    "256": "dairy-milk.png",
+    "64": "dairy-milk-64.png"
+  },
+  "fruit": {
+    "detected_circle": {
+      "cx": 953,
+      "cy": 236,
+      "radius": 46
+    },
+    "native": "fruit-native.png",
+    "256": "fruit.png",
+    "64": "fruit-64.png"
+  },
+  "vegetables": {
+    "detected_circle": {
+      "cx": 1177,
+      "cy": 236,
+      "radius": 45
+    },
+    "native": "vegetables-native.png",
+    "256": "vegetables.png",
+    "64": "vegetables-64.png"
+  },
+  "pantry-sauce": {
+    "detected_circle": {
+      "cx": 266,
+      "cy": 369,
+      "radius": 45
+    },
+    "native": "pantry-sauce-native.png",
+    "256": "pantry-sauce.png",
+    "64": "pantry-sauce-64.png"
+  },
+  "bread-bakery": {
+    "detected_circle": {
+      "cx": 490,
+      "cy": 370,
+      "radius": 46
+    },
+    "native": "bread-bakery-native.png",
+    "256": "bread-bakery.png",
+    "64": "bread-bakery-64.png"
+  },
+  "protein-chicken": {
+    "detected_circle": {
+      "cx": 723,
+      "cy": 369,
+      "radius": 45
+    },
+    "native": "protein-chicken-native.png",
+    "256": "protein-chicken.png",
+    "64": "protein-chicken-64.png"
+  },
+  "herbs-spices": {
+    "detected_circle": {
+      "cx": 953,
+      "cy": 369,
+      "radius": 45
+    },
+    "native": "herbs-spices-native.png",
+    "256": "herbs-spices.png",
+    "64": "herbs-spices-64.png"
+  },
+  "beverages-drinks": {
+    "detected_circle": {
+      "cx": 1175,
+      "cy": 370,
+      "radius": 45
+    },
+    "native": "beverages-drinks-native.png",
+    "256": "beverages-drinks.png",
+    "64": "beverages-drinks-64.png"
+  },
+  "seafood": {
+    "detected_circle": {
+      "cx": 490,
+      "cy": 502,
+      "radius": 46
+    },
+    "native": "seafood-native.png",
+    "256": "seafood.png",
+    "64": "seafood-64.png"
+  },
+  "eggs": {
+    "detected_circle": {
+      "cx": 723,
+      "cy": 502,
+      "radius": 46
+    },
+    "native": "eggs-native.png",
+    "256": "eggs.png",
+    "64": "eggs-64.png"
+  },
+  "snacks": {
+    "detected_circle": {
+      "cx": 951,
+      "cy": 502,
+      "radius": 45
+    },
+    "native": "snacks-native.png",
+    "256": "snacks.png",
+    "64": "snacks-64.png"
+  }
+}

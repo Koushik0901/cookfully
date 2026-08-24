@@ -20,7 +20,7 @@ import {
   Select,
   Skeleton,
 } from "../../components";
-import { GroceryIcon } from "../../components/GroceryIcon";
+import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { RecipeMedia, type RecipeMediaSource } from "../../components/cookfully/RecipeMedia";
 import { ApiProblem } from "../recipes/api";
@@ -114,7 +114,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
   const usebyTone = expiry ? (expiry.tone === "mint" ? "later" : expiry.tone === "amber" ? "soon" : "critical") : "none";
   return (
     <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
-      <span className="pantry-staple__stamp pantry-staple__stamp--icon" aria-hidden="true"><GroceryIcon name={item.displayName} /></span>
+      <span className="pantry-staple__stamp pantry-staple__stamp--icon" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="tile" /></span>
       <div className="pantry-staple__body">
         <header className="pantry-staple__heading">
           <h3>{item.displayName}</h3>
@@ -179,7 +179,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
 function AttentionRow({ item, tone, urgency }: { item: PantryItem; tone: string; urgency: string }) {
   return (
     <article className={`pantry-attention__item${tone === "critical" ? " pantry-attention__item--critical" : ""}`}>
-      <span className="pantry-attention__icon pantry-attention__icon--has-icon" aria-hidden="true"><GroceryIcon name={item.displayName} /></span>
+      <span className="pantry-attention__icon pantry-attention__icon--has-icon" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span>
       <div>
         <strong>{item.displayName}</strong>
         <small>{formatCookingNumber(item.quantity)} {item.unit} · Use by {formatUseBy(item.expiresOn!)}</small>
