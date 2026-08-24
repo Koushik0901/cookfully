@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -25,6 +26,9 @@ class ExistingGroceryItem:
     version: int
     sources: tuple[GrocerySource, ...]
     shopping_stop_id: UUID | None = None
+    purchased_at: datetime | None = None
+    expires_on: date | None = None
+    expiry_source: str | None = None
 
 
 def _source_ids(sources: tuple[GrocerySource, ...]) -> frozenset[tuple[UUID, UUID | None]]:

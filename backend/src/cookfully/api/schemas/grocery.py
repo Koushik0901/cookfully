@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -21,6 +22,7 @@ class GroceryItemWriteRequest(ApiModel):
     position: int | None = Field(default=None, ge=0)
     shopping_stop_id: UUID | None = Field(alias="shoppingStopId", default=None)
     remember_placement: bool | None = Field(alias="rememberPlacement", default=None)
+    expires_on: date | None = Field(alias="expiresOn", default=None)
 
     @model_validator(mode="after")
     def reject_disallowed_nulls(self) -> GroceryItemWriteRequest:
@@ -86,9 +88,19 @@ class GroceryItemResponse(ApiModel):
     shopping_stop: GroceryShoppingStopResponse | None = Field(alias="shoppingStop")
     sources: tuple[GrocerySourceResponse, ...]
     version: int
+    purchased_at: datetime | None = Field(alias="purchasedAt", default=None)
+    expires_on: date | None = Field(alias="expiresOn", default=None)
+    expiry_source: Literal["auto", "label", "manual"] | None = Field(
+        alias="expirySource", default=None
+    )
+    needs_expiry_date: bool = Field(alias="needsExpiryDate", default=False)
 
     @classmethod
     def from_read(cls, value: GroceryItemRead) -> GroceryItemResponse:
+        purchased_at = getattr(value, "purchased_at", None)
+        expires_on = getattr(value, "expires_on", None)
+        expiry_source = getattr(value, "expiry_source", None)
+        needs_expiry_date = bool(getattr(value, "needs_expiry_date", False))
         return cls(
             id=value.id,
             display_name=value.display_name,
@@ -121,6 +133,10 @@ class GroceryItemResponse(ApiModel):
                 for source in value.sources
             ),
             version=value.version,
+            purchased_at=purchased_at,
+            expires_on=expires_on,
+            expiry_source=expiry_source,
+            needs_expiry_date=needs_expiry_date,
         )
 
 

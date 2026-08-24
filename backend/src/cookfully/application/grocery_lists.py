@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -14,6 +14,7 @@ from cookfully.application.grocery_reconciliation import (
     reconcile_grocery_items,
 )
 from cookfully.domain.common import DomainError, require_version, utc_now
+from cookfully.domain.expiry_lifespans import resolve_expiry
 from cookfully.domain.grocery import (
     GroceryIngredient,
     GrocerySource,
@@ -56,6 +57,10 @@ class GroceryItemRead:
     shopping_stop_version: int | None
     sources: tuple[GrocerySourceRead, ...]
     version: int
+    purchased_at: datetime | None = None
+    expires_on: date | None = None
+    expiry_source: str | None = None
+    needs_expiry_date: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,8 +230,95 @@ class GroceryListService:
                 item.unit_code = str(unit).strip() if unit else None
                 item.unit_text = str(unit).strip() if unit else None
                 item.manual_quantity = True
+            # validate expiry range — allow 1-day skew for UTC vs wall-clock
+            if "expires_on" in values and values["expires_on"] is not None:
+                today = utc_now().date()
+                exp = values["expires_on"]
+                # allow yesterday UTC (PT midnight) — max stays +90
+                if not (today - timedelta(days=1) <= exp <= today + timedelta(days=90)):
+                    raise DomainError(
+                        "expiry_out_of_range", "Expiry must be within 0-90 days from today.", 422
+                    )
+            handled_via_checked = False
+            old_checked = bool(item.checked)
+            new_checked: bool | None = None
             if "checked" in values:
-                item.checked = bool(values["checked"])
+                new_checked = bool(values["checked"])
+                if new_checked and not old_checked:
+                    # transitioning false -> true
+                    requested = values.get("expires_on")
+                    handled_via_checked = requested is not None
+                    if item.expiry_source == "manual":
+                        if requested is not None:
+                            item.expires_on = requested
+                            item.expiry_source = "manual"
+                            item.purchased_at = item.purchased_at or utc_now()
+                        else:
+                            if item.purchased_at is None:
+                                item.purchased_at = utc_now()
+                    else:
+                        if requested is not None:
+                            # client provided date -> label on first prompt, manual on later edits
+                            source_label = "label" if item.expiry_source is None else "manual"
+                            item.expires_on = requested
+                            item.expiry_source = source_label
+                            item.purchased_at = item.purchased_at or utc_now()
+                        else:
+                            r_expires_on, r_source, r_purchased_at, r_needs = resolve_expiry(
+                                item.display_name,
+                                requested_expires_on=None,
+                                today=utc_now().date(),
+                            )
+                            if r_expires_on is not None:
+                                item.expires_on = r_expires_on
+                                item.expiry_source = r_source  # auto
+                                item.purchased_at = r_purchased_at
+                            elif r_needs:
+                                # leave null, signal via response computed field
+                                item.purchased_at = utc_now()
+                                item.expires_on = None
+                                item.expiry_source = None
+                            else:
+                                if item.purchased_at is None:
+                                    item.purchased_at = utc_now()
+                                item.expires_on = None
+                                item.expiry_source = None
+                elif not new_checked and old_checked:
+                    item.purchased_at = None
+                    item.expires_on = None
+                    item.expiry_source = None
+                item.checked = new_checked
+            # handle expires_on without checked transition (standalone expiry edit)
+            if "expires_on" in values and values["expires_on"] is not None:
+                if not item.checked:
+                    raise DomainError(
+                        "expiry_requires_checked",
+                        "Check off the item before setting an expiry date.",
+                        422,
+                    )
+                if "checked" not in values:
+                    # first time with label-required -> label, later edits -> manual
+                    if item.expiry_source == "manual" or item.expiry_source == "label":
+                        item.expiry_source = "manual"
+                    else:
+                        item.expiry_source = "label"
+                    item.expires_on = values["expires_on"]
+                    if item.purchased_at is None:
+                        item.purchased_at = utc_now()
+                elif (
+                    new_checked is not None
+                    and old_checked
+                    and new_checked
+                    and not handled_via_checked
+                ):
+                    # already checked, now editing expiry (manual edit while staying checked)
+                    if item.expiry_source == "manual" or item.expiry_source == "label":
+                        item.expiry_source = "manual"
+                    else:
+                        item.expiry_source = "label"
+                    item.expires_on = values["expires_on"]
+                    if item.purchased_at is None:
+                        item.purchased_at = utc_now()
             if "position" in values:
                 position = int(values["position"])
                 self._position_available(
@@ -341,6 +433,9 @@ class GroceryListService:
                 )
                 for source in item.sources
             ),
+            purchased_at=item.purchased_at,
+            expires_on=item.expires_on,
+            expiry_source=item.expiry_source,
         )
 
     @staticmethod
@@ -359,6 +454,10 @@ class GroceryListService:
         model.position = value.position
         model.version = value.version
         model.shopping_stop_id = value.shopping_stop_id
+        # preserve manual expiry through generate/regenerate: existing expiry survives
+        model.purchased_at = value.purchased_at
+        model.expires_on = value.expires_on
+        model.expiry_source = value.expiry_source
 
     @staticmethod
     def _position_available(
@@ -381,6 +480,11 @@ class GroceryListService:
 
     @classmethod
     def _item_read(cls, value: GroceryItem) -> GroceryItemRead:
+        from cookfully.domain.expiry_lifespans import is_label_required
+
+        needs_expiry_date = bool(
+            value.checked and value.expires_on is None and is_label_required(value.display_name)
+        )
         return GroceryItemRead(
             value.id,
             value.display_name,
@@ -403,6 +507,10 @@ class GroceryListService:
                 for source in value.sources
             ),
             value.version,
+            purchased_at=value.purchased_at,
+            expires_on=value.expires_on,
+            expiry_source=value.expiry_source,
+            needs_expiry_date=needs_expiry_date,
         )
 
     @classmethod

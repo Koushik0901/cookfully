@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Dialog from "@radix-ui/react-dialog";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { CalendarDays, MoreHorizontal, PackageCheck, Plus, RefreshCw, ShoppingBasket, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, ConfirmDialog, DecimalInput, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, SectionHeading, Select, Skeleton } from "../../components";
+import { Button, ConfirmDialog, DecimalInput, DialogCloseButton, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, SectionHeading, Select, Skeleton } from "../../components";
 import { GroceryIcon } from "../../components/GroceryIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { pantryApi } from "../pantry/api";
+import { expiryBadge } from "../pantry/expiry";
 import type { PantryDeduction } from "../pantry/types";
 import { planningApi } from "../plans/api";
-import { longDate, todayInTimezone, weekStartFor } from "../plans/dates";
+import { addDays, longDate, todayInTimezone, weekStartFor } from "../plans/dates";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { groceryApi } from "./api";
@@ -18,7 +20,7 @@ import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList, Gro
 
 type SourceMeal = { recipeId: string | null; recipeTitle: string };
 
-function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry }: { item: GroceryItem; weekStart: string; stops: GroceryShoppingStop[]; readOnly: boolean; sourceMealsByEntry: Map<string, SourceMeal> }) {
+export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry, today: todayProp }: { item: GroceryItem; weekStart: string; stops: GroceryShoppingStop[]; readOnly: boolean; sourceMealsByEntry: Map<string, SourceMeal>; today?: string }) {
   const queryClient = useQueryClient();
   const title = item.displayName ?? "Unnamed grocery item";
   const [name, setName] = useState(title);
@@ -27,6 +29,16 @@ function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry }: { 
   const [checked, setChecked] = useState(item.checked ?? false);
   useEffect(() => setChecked(item.checked ?? false), [item.checked]);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
+  const fallbackToday = todayInTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const today = todayProp ?? fallbackToday;
+  const plus90 = addDays(today, 90);
+  const [showExpirySheet, setShowExpirySheet] = useState(false);
+  const [draftExpiresOn, setDraftExpiresOn] = useState(item.expiresOn ?? "");
+  useEffect(() => setDraftExpiresOn(item.expiresOn ?? ""), [item.expiresOn]);
+  useEffect(() => {
+    if (item.needsExpiryDate) setShowExpirySheet(true);
+  }, [item.needsExpiryDate]);
+  const badge = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
   const update = useMutation({
     mutationFn: (value: GroceryItemWrite) => groceryApi.update(item.id, item.version, value),
     onSuccess: (saved, value) => {
@@ -36,6 +48,12 @@ function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry }: { 
       queryClient.setQueryData<GroceryList>(["grocery-list", weekStart], (current) => current
         ? { ...current, items: current.items.map((candidate) => candidate.id === item.id ? saved : candidate) }
         : current);
+      if ((saved as GroceryItem).needsExpiryDate) setShowExpirySheet(true);
+      if ((saved as GroceryItem).expiresOn) {
+        setDraftExpiresOn((saved as GroceryItem).expiresOn ?? "");
+        // keep sheet closed after successful save unless needsExpiryDate still true
+        if (!(saved as GroceryItem).needsExpiryDate) setShowExpirySheet(false);
+      }
       void refresh();
     },
   });
@@ -66,12 +84,36 @@ function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntry }: { 
       <div className="grocery-item__heading">
         <span className="grocery-item__icon"><GroceryIcon name={title} /></span>
         <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={(value) => { if (readOnly || update.isPending || remove.isPending) return; const next = value === true; setChecked(next); update.mutate({ checked: next }, { onError: () => setChecked(!next) }); }} /></label>
-        <div className="grocery-item__content"><h3>{title}</h3><p className="data-value">{item.quantity ? formatCookingNumber(item.quantity) : "As needed"}{item.unit ? ` ${item.unit}` : ""}</p>{sourceMeals.length ? <p className="grocery-item__uses"><span>Used for</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p> : item.sources.length ? <p className="grocery-item__uses"><span>Used for planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}</div>
+        <div className="grocery-item__content"><h3>{title}</h3><p className="data-value">{item.quantity ? formatCookingNumber(item.quantity) : "As needed"}{item.unit ? ` ${item.unit}` : ""}{badge ? <button type="button" aria-label={`Expires ${item.expiresOn}`} className={`expiry-badge expiry-badge--${badge.tone}`} onClick={() => setShowExpirySheet(true)}>{badge.label}</button> : null}</p>{sourceMeals.length ? <p className="grocery-item__uses"><span>Used for</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p> : item.sources.length ? <p className="grocery-item__uses"><span>Used for planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}</div>
         <div className="grocery-item__controls">{item.needsReview ? <span className="review-badge">Needs review</span> : null}{!readOnly ? <ConfirmDialog trigger={<button className="grocery-item__remove" type="button" aria-label={`Remove ${title}`} title={`Remove ${title}`} disabled={remove.isPending || update.isPending}><X aria-hidden="true" /></button>} title={`Remove ${title} from your list?`} description={sourceMeals.length ? "This removes the item and its recipe-source context from this shopping pass." : "This removes the item from this shopping pass."} confirmLabel="Remove item" onConfirm={() => remove.mutate()} /> : null}</div>
       </div>
       {!readOnly ? <details className="grocery-item__edit"><summary aria-label={`Edit ${title}`} title={`Edit ${title}`}><MoreHorizontal aria-hidden="true" /></summary><form className="grocery-edit" onSubmit={save}><Field label={`${title} name`}><input className="input" disabled={remove.isPending} value={name} onChange={(event) => setName(event.target.value)} /></Field><Field label={`${title} quantity`}><DecimalInput value={quantity} onInput={(event) => setQuantity(event.currentTarget.value)} /></Field><Field label={`${title} unit`}><input className="input" disabled={remove.isPending} value={unit} onChange={(event) => setUnit(event.target.value)} /></Field><Field label={`Shopping stop for ${title}`}><Select value={item.shoppingStop?.id ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ shoppingStopId: event.target.value || null })}><option value="">Unassigned</option>{stops.map((stop) => <option value={stop.id} key={stop.id}>{stop.name}</option>)}</Select></Field>{item.origin === "generated" && !item.needsReview && item.shoppingStop ? <label className="check-label"><Checkbox disabled={remove.isPending || update.isPending} onCheckedChange={(value) => { if (value === true) update.mutate({ rememberPlacement: true }); }} />Always put {title} at this stop</label> : null}<Button variant="secondary" type="submit" disabled={!name.trim() || update.isPending || remove.isPending}>Save changes</Button></form></details> : null}
       {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This item changed elsewhere. Reload the list before trying again." : error.message}</p> : null}
       {conflict ? <div className="actions"><Button onClick={() => void refresh()}>Reload list</Button></div> : null}
+      <Dialog.Root open={showExpirySheet} onOpenChange={setShowExpirySheet}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="dialog expiry-sheet" aria-describedby="expiry-sheet-description">
+            <header className="expiry-sheet__header">
+              <div>
+                <p className="eyebrow">Freshness</p>
+                <Dialog.Title>When does {title} expire?</Dialog.Title>
+                <Dialog.Description id="expiry-sheet-description" className="muted">Add the date from the label so Cookfully can nudge you before it spoils.</Dialog.Description>
+              </div>
+              <DialogCloseButton label="Close expiry sheet" />
+            </header>
+            <div className="expiry-sheet__form">
+              <Field label="Expiry date">
+                <input className="input" type="date" min={today} max={plus90} value={draftExpiresOn} onChange={(event) => setDraftExpiresOn(event.currentTarget.value)} />
+              </Field>
+              <div className="actions">
+                <Button onClick={() => update.mutate({ expiresOn: draftExpiresOn || null })} disabled={!draftExpiresOn || update.isPending}>Save expiry</Button>
+                <Button variant="ghost" onClick={() => setShowExpirySheet(false)}>Skip</Button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </article>
   );
 }
@@ -168,6 +210,7 @@ export function GroceryListPage() {
   const sourceMealsByEntry = new Map(plan.data?.entries.map((entry) => [entry.id, { recipeId: entry.recipeId, recipeTitle: entry.recipeTitle }]) ?? []);
   const purchasedItems = list.data.items.filter((item) => item.checked);
   const progress = list.data.items.length ? Math.round((purchasedItems.length / list.data.items.length) * 100) : 0;
+  const today = preferences.data ? todayInTimezone(preferences.data.timezone) : todayInTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const groups = [
     ...((stops.data ?? []).map((stop) => [stop.name, activeItems.filter((item) => item.shoppingStop?.id === stop.id)] as const)),
     ["Unassigned", activeItems.filter((item) => !item.shoppingStop)] as const,
@@ -201,7 +244,7 @@ export function GroceryListPage() {
         {list.data.status !== "completed" ? <ShoppingStopManager /> : null}
         {!readOnly ? <details className="manual-item grocery-manual" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>Staples and extras that are not part of a planned recipe</small></span></summary><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}><Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></details> : null}
       {deductions.length ? <section className="pantry-deduction-panel" aria-labelledby="deduction-heading"><div><h2 id="deduction-heading">Pantry deductions from this action</h2><p className="muted">Conversions are recorded on both sides. Reverse newer deductions first if quantities overlap.</p></div><div className="deduction-list">{deductions.map((deduction) => <article key={deduction.id} className="deduction-row"><div><strong>{deduction.groceryQuantity} {deduction.groceryUnit} removed from groceries</strong><p className="data-value">Pantry change: {deduction.pantryQuantity} {deduction.pantryUnit}</p><small>{deduction.assumption}</small></div><span className="reliability-badge">{deduction.status}</span>{deduction.status === "applied" ? <ConfirmDialog trigger={<Button variant="secondary" disabled={reverseDeduction.isPending}>Reverse deduction</Button>} title="Reverse this pantry deduction?" description="Cookfully will restore the grocery quantity and undo the matching pantry change. Newer deductions may need to be reversed first." confirmLabel="Reverse deduction" onConfirm={() => reverseDeduction.mutate(deduction)} /> : null}</article>)}</div></section> : null}
-        <div className="grocery-groups">{groups.map(([label, items]) => <section className="grocery-group" key={label}><SectionHeading title={label} meta={`${items.length} item${items.length === 1 ? "" : "s"}`} /><div className="grocery-items">{items.map((item) => <GroceryRow key={item.id} item={item} weekStart={weekStart} stops={stops.data ?? []} readOnly={readOnly} sourceMealsByEntry={sourceMealsByEntry} />)}</div></section>)}</div>
+        <div className="grocery-groups">{groups.map(([label, items]) => <section className="grocery-group" key={label}><SectionHeading title={label} meta={`${items.length} item${items.length === 1 ? "" : "s"}`} /><div className="grocery-items">{items.map((item) => <GroceryRow key={item.id} item={item} weekStart={weekStart} stops={stops.data ?? []} readOnly={readOnly} sourceMealsByEntry={sourceMealsByEntry} today={today} />)}</div></section>)}</div>
       </section> : null}
       {isListEmpty && !readOnly ? <details className="manual-item grocery-manual grocery-manual--empty" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>Staples and extras that are not part of a planned recipe</small></span></summary><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}><Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></details> : null}
       {list.data.status !== "completed" && list.data.items.length > 0 && activeItems.length === 0 ? <ConfirmDialog trigger={<Button className="grocery-finish" disabled={anyMutationPending}>{complete.isPending ? "Finishing…" : "Finish this shopping pass"}</Button>} title="Finish this shopping pass?" description="This keeps the checked list as a record and makes it read-only until you reopen it." confirmLabel="Finish shopping pass" onConfirm={() => complete.mutate()} /> : null}

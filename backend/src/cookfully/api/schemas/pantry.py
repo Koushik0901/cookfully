@@ -27,9 +27,15 @@ class PantryItemResponse(PantryItemWriteRequest):
     match_status: Literal["unmatched", "proposed", "matched", "manual"] = Field(alias="matchStatus")
     match_confidence: str | None = Field(alias="matchConfidence")
     version: int
+    purchased_at: datetime | None = Field(alias="purchasedAt", default=None)
+    expiry_source: Literal["auto", "label", "manual"] | None = Field(
+        alias="expirySource", default=None
+    )
 
     @classmethod
     def from_read(cls, value: PantryItemRead) -> PantryItemResponse:
+        purchased_at = getattr(value, "purchased_at", None)
+        expiry_source = getattr(value, "expiry_source", None)
         return cls(
             id=value.id,
             display_name=value.display_name,
@@ -45,6 +51,8 @@ class PantryItemResponse(PantryItemWriteRequest):
                 else None
             ),
             version=value.version,
+            purchased_at=purchased_at,
+            expiry_source=expiry_source,
         )
 
 
