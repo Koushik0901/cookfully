@@ -19,6 +19,7 @@ class PantryItemWriteRequest(ApiModel):
     unit: str = Field(min_length=1, max_length=80)
     expires_on: date | None = Field(alias="expiresOn", default=None)
     food_reference_id: UUID | None = Field(alias="foodReferenceId", default=None)
+    owner_food_id: UUID | None = Field(alias="ownerFoodId", default=None)
 
 
 class PantryItemResponse(PantryItemWriteRequest):
@@ -44,6 +45,7 @@ class PantryItemResponse(PantryItemWriteRequest):
             unit=value.unit,
             expires_on=value.expires_on,
             food_reference_id=value.food_reference_id,
+            owner_food_id=value.owner_food_id,
             match_status=value.match_status,
             match_confidence=(
                 canonical_decimal(value.match_confidence)

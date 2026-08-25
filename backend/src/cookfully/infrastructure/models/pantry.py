@@ -34,6 +34,10 @@ class PantryItem(TimestampMixin, Base):
             "match_confidence IS NULL OR (match_confidence >= 0 AND match_confidence <= 1)",
             name="valid_match_confidence",
         ),
+        CheckConstraint(
+            "(food_reference_id IS NULL) OR (owner_food_id IS NULL)",
+            name="single_pantry_food_source",
+        ),
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint(
             "expiry_source IN ('auto', 'label', 'manual')",
@@ -56,6 +60,9 @@ class PantryItem(TimestampMixin, Base):
     expiry_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     food_reference_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("food_references.id", ondelete="SET NULL")
+    )
+    owner_food_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("owner_foods.id", ondelete="SET NULL")
     )
     match_status: Mapped[str] = mapped_column(String(24), nullable=False, default="unmatched")
     match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(7, 6))

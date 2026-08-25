@@ -2762,6 +2762,7 @@ components:
         unit: { type: string, minLength: 1, maxLength: 80 }
         expiresOn: { type: [string, "null"], format: date }
         foodReferenceId: { type: [string, "null"], format: uuid }
+        ownerFoodId: { type: [string, "null"], format: uuid }
     PantryItem:
       allOf:
         - $ref: "#/components/schemas/PantryItemWrite"

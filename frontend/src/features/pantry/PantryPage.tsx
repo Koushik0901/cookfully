@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowRight, CalendarClock, PackagePlus, Search, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarClock, PackagePlus, Search } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -23,9 +23,10 @@ import {
 import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { RecipeMedia, type RecipeMediaSource } from "../../components/cookfully/RecipeMedia";
+import { CreateFoodDialog } from "../foods/CreateFoodDialog";
 import { FoodRow } from "../foods/FoodCandidateRow";
 import { foodsApi } from "../foods/api";
-import type { FoodCandidate } from "../foods/types";
+import type { FoodCandidate, OwnerFood } from "../foods/types";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
@@ -47,9 +48,21 @@ function formatUseBy(value: string) {
 
 const MATCH_ORDER = new Map([["proposed", 0], ["unmatched", 1], ["matched", 2], ["manual", 2]]);
 
+function invalidateFoodMatchQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["pantry-items"] }),
+    queryClient.invalidateQueries({ queryKey: ["pantry-recipe-matches"] }),
+    queryClient.invalidateQueries({ queryKey: ["planning-recipes"] }),
+    queryClient.invalidateQueries({ queryKey: ["recipes"] }),
+    queryClient.invalidateQueries({ queryKey: ["recipe"] }),
+    queryClient.invalidateQueries({ queryKey: ["grocery-list"] }),
+    queryClient.invalidateQueries({ queryKey: ["meal-plan"] }),
+  ]);
+}
+
 function matchLabel(item: PantryItem) {
   if (item.matchStatus === "matched" || item.matchStatus === "manual") return "Ready to use";
-  if (item.matchStatus === "proposed") return `Review match${item.matchConfidence ? ` · ${Math.round(Number(item.matchConfidence) * 100)}%` : ""}`;
+  if (item.matchStatus === "proposed") return "Needs confirmation";
   return "Needs a match";
 }
 
@@ -60,16 +73,19 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
   const [unit, setUnit] = useState(item.unit);
   const [expiresOn, setExpiresOn] = useState(item.expiresOn ?? "");
   const [referenceId, setReferenceId] = useState(item.foodReferenceId ?? "");
+  const [ownerFoodId, setOwnerFoodId] = useState(item.ownerFoodId ?? "");
   const [editOpen, setEditOpen] = useState(false);
   const [foodSearch, setFoodSearch] = useState("");
   const [foodSearchQuery, setFoodSearchQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<FoodCandidate | null>(null);
+  const [savedNotice, setSavedNotice] = useState(false);
   useEffect(() => {
     setDisplayName(item.displayName);
     setQuantity(formatCookingInput(item.quantity));
     setUnit(item.unit);
     setExpiresOn(item.expiresOn ?? "");
     setReferenceId(item.foodReferenceId ?? "");
+    setOwnerFoodId(item.ownerFoodId ?? "");
   }, [item]);
   useEffect(() => {
     const handle = window.setTimeout(() => setFoodSearchQuery(foodSearch.trim()), 220);
@@ -85,20 +101,25 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
       setSelectedFood(null);
     }
   }, [editOpen, item.displayName]);
+  useEffect(() => {
+    if (!savedNotice) return;
+    const handle = window.setTimeout(() => setSavedNotice(false), 1600);
+    return () => window.clearTimeout(handle);
+  }, [savedNotice]);
   const foodCandidates = useQuery({
     queryKey: ["pantry-food-candidates", foodSearchQuery],
     queryFn: () => foodsApi.search(foodSearchQuery),
     enabled: editOpen && foodSearchQuery.length > 0,
     staleTime: 60_000,
   });
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
+  const refresh = () => invalidateFoodMatchQueries(queryClient);
   const update = useMutation({
     mutationFn: (value: PantryItemWrite) => pantryApi.update(item.id, item.version, value),
     onMutate: async (value) => {
       await queryClient.cancelQueries({ queryKey: ["pantry-items"] });
       const previous = queryClient.getQueryData<PantryItem[]>(["pantry-items"]);
       queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.map((candidate) => candidate.id === item.id
-        ? { ...candidate, ...value, displayName: value.displayName ?? candidate.displayName, quantity: value.quantity ?? candidate.quantity, unit: value.unit ?? candidate.unit, expiresOn: value.expiresOn ?? candidate.expiresOn, foodReferenceId: value.foodReferenceId ?? candidate.foodReferenceId }
+        ? { ...candidate, ...value, displayName: value.displayName ?? candidate.displayName, quantity: value.quantity ?? candidate.quantity, unit: value.unit ?? candidate.unit, expiresOn: value.expiresOn ?? candidate.expiresOn, foodReferenceId: value.foodReferenceId ?? candidate.foodReferenceId, ownerFoodId: value.ownerFoodId ?? candidate.ownerFoodId }
         : candidate));
       return { previous };
     },
@@ -108,6 +129,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
     onSuccess: (saved) => {
       queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => current?.map((candidate) => candidate.id === saved.id ? saved : candidate));
       setEditOpen(false);
+      setSavedNotice(true);
       void refresh();
     },
   });
@@ -136,23 +158,26 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
       unit,
       expiresOn: expiresOn || null,
       foodReferenceId: referenceId.trim() || null,
+      ownerFoodId: ownerFoodId.trim() || null,
     });
     setEditOpen(false);
   }
 
-  const usdaCandidates = foodCandidates.data?.candidates.filter((candidate) => candidate.source === "usda") ?? [];
-  const activeFood = selectedFood ?? usdaCandidates.find((candidate) => candidate.id === referenceId) ?? null;
+  const candidates = foodCandidates.data?.candidates ?? [];
+  const activeFood = selectedFood ?? candidates.find((candidate) => candidate.source === "owner" ? candidate.id === ownerFoodId : candidate.id === referenceId) ?? null;
 
   const expiry = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
   const usebyTone = expiry ? (expiry.tone === "mint" ? "later" : expiry.tone === "amber" ? "soon" : "critical") : "none";
-  const matchActionLabel = item.matchStatus === "proposed" ? "Correct match" : item.matchStatus === "unmatched" ? "Add a match" : `Edit ${item.displayName}`;
+  const matchActionLabel = item.matchStatus === "proposed" || item.matchStatus === "unmatched" ? "Choose a food match" : "Edit pantry item";
   return (
     <article className={`pantry-staple${item.matchStatus === "proposed" ? " pantry-staple--review" : ""}`} aria-label={item.displayName}>
+      <Dialog.Root open={editOpen} onOpenChange={setEditOpen}>
+        <Dialog.Trigger asChild><button type="button" className="pantry-staple__card-trigger" aria-label={`${matchActionLabel} for ${item.displayName}`} /></Dialog.Trigger>
       <span className="pantry-staple__stamp pantry-staple__stamp--icon" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="tile" /></span>
       <div className="pantry-staple__body">
         <header className="pantry-staple__heading">
           <h3>{item.displayName}</h3>
-          <span className={`match-badge match-badge--${item.matchStatus}`}>{matchLabel(item)}</span>
+          <span className={`pantry-staple__status pantry-staple__status--${item.matchStatus}`}>{matchLabel(item)}</span>
         </header>
         <p className="pantry-staple__facts">
           <span className="pantry-staple__quantity">{formatCookingNumber(item.quantity)} {item.unit}</span>
@@ -162,26 +187,21 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
               Use by {formatUseBy(item.expiresOn!)} · {expiry.label}
             </span>
           ) : (
-            <span className="pantry-staple__useby pantry-staple__useby--none">No date</span>
+            <span className="pantry-staple__useby pantry-staple__useby--none">No use-by date</span>
           )}
         </p>
-        {item.matchStatus === "proposed" ? (
-          <p className="pantry-staple__note">Change the matching name below and save to rematch this item.</p>
-        ) : item.matchStatus === "unmatched" ? (
-          <p className="pantry-staple__note pantry-staple__note--quiet">Add a matching name below so recipes can use this item.</p>
-        ) : null}
-        {update.isPending ? <p className="pantry-staple__feedback" role="status" aria-live="polite">Saving changes…</p> : null}
+        {update.isPending ? <p className="pantry-staple__feedback" role="status" aria-live="polite">Saving changes…</p> : savedNotice ? <p className="pantry-staple__feedback" role="status" aria-live="polite">Changes saved</p> : null}
         {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : error.message}</p> : null}
-        <Dialog.Root open={editOpen} onOpenChange={setEditOpen}>
-          <Dialog.Trigger asChild><button type="button" className="pantry-staple__edit-trigger">{matchActionLabel}</button></Dialog.Trigger>
-          <Dialog.Portal>
-            <Dialog.Overlay className="dialog-overlay" />
-            <Dialog.Content className="dialog food-picker-dialog pantry-edit-dialog" aria-describedby={`pantry-edit-description-${item.id}`}>
+        <div className="pantry-staple__footer">
+            <Dialog.Trigger asChild><button type="button" className={`pantry-staple__edit-trigger${item.matchStatus === "proposed" || item.matchStatus === "unmatched" ? " pantry-staple__edit-trigger--primary" : ""}`}>{matchActionLabel}</button></Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="dialog-overlay" />
+              <Dialog.Content className="dialog food-picker-dialog pantry-edit-dialog" aria-describedby={`pantry-edit-description-${item.id}`}>
               <header className="pantry-dialog__header">
                 <div>
                   <p className="eyebrow">Keep the shelf accurate</p>
                   <Dialog.Title>{matchActionLabel} · {item.displayName}</Dialog.Title>
-                  <Dialog.Description id={`pantry-edit-description-${item.id}`} className="pantry-dialog__description">Change the matching name and save. Leave the advanced reference blank for Cookfully to choose again.</Dialog.Description>
+                  <Dialog.Description id={`pantry-edit-description-${item.id}`} className="pantry-dialog__description">Choose the closest USDA food so recipes can use this shelf item confidently.</Dialog.Description>
                 </div>
                 <DialogCloseButton label={`Close ${matchActionLabel.toLowerCase()} dialog`} />
               </header>
@@ -192,8 +212,8 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                 <section className="pantry-food-search" aria-labelledby={`pantry-food-search-${item.id}`}>
                   <div className="pantry-food-search__heading">
                     <div>
-                      <h3 id={`pantry-food-search-${item.id}`}>Choose the USDA food</h3>
-                      <p>Search for a close database match so recipes use the right nutrition reference.</p>
+                      <h3 id={`pantry-food-search-${item.id}`}>Food match</h3>
+                      <p>Search for the closest USDA food. Your shelf name can stay familiar.</p>
                     </div>
                     {activeFood ? <span className="pantry-food-search__selected">Selected</span> : null}
                   </div>
@@ -207,20 +227,21 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                   />
                   <div className="food-picker__results-heading">
                     <strong>{foodSearchQuery ? `Results for “${foodSearchQuery}”` : "Best matches"}</strong>
-                    <span>USDA</span>
+                    <span>USDA + yours</span>
                   </div>
                   {foodCandidates.isLoading ? <p className="muted food-picker__loading">Searching foods…</p> : null}
-                  {foodCandidates.isError ? <p className="error-text" role="alert">Could not load USDA matches. Try again.</p> : null}
-                  {usdaCandidates.length > 0 ? (
+                  {foodCandidates.isError ? <div className="food-picker__error" role="alert"><span>Food matches could not be loaded.</span><Button type="button" variant="ghost" onClick={() => void foodCandidates.refetch()}>Retry search</Button></div> : null}
+                  {candidates.length > 0 ? (
                     <ul className="food-candidate-list">
-                      {usdaCandidates.slice(0, 5).map((candidate) => (
-                        <li key={candidate.id}>
+                      {candidates.slice(0, 5).map((candidate) => (
+                        <li key={`${candidate.source}:${candidate.id}`}>
                           <button
                             type="button"
                             className="food-candidate-button"
-                            aria-pressed={activeFood?.id === candidate.id}
+                            aria-pressed={activeFood?.source === candidate.source && activeFood.id === candidate.id}
                             onClick={() => {
-                              setReferenceId(candidate.id);
+                              setReferenceId(candidate.source === "usda" ? candidate.id : "");
+                              setOwnerFoodId(candidate.source === "owner" ? candidate.id : "");
                               setSelectedFood(candidate);
                             }}
                             disabled={update.isPending || remove.isPending}
@@ -231,26 +252,44 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                       ))}
                     </ul>
                   ) : null}
-                  {!foodCandidates.isLoading && foodSearchQuery && foodCandidates.data && usdaCandidates.length === 0 ? (
+                  {!foodCandidates.isLoading && foodSearchQuery && foodCandidates.data && candidates.length === 0 ? (
                     <div className="food-picker__empty">
-                      <strong>No USDA foods found</strong>
-                      <span>Try a broader name, such as “tomato” instead of a brand or recipe name.</span>
+                      <strong>No foods found</strong>
+                      <span>Try a broader name, or create a custom food from its package label.</span>
                     </div>
                   ) : null}
-                  {activeFood ? <p className="pantry-food-search__confirmation" role="status">Using <strong>{activeFood.description}</strong> from USDA for this pantry item.</p> : null}
+                  <div className="food-picker__create">
+                    <div>
+                      <strong>Not seeing the right food?</strong>
+                      <span>Create a reusable custom food from a label.</span>
+                    </div>
+                    <CreateFoodDialog
+                      ingredientName={foodSearch.trim() || item.displayName}
+                      trigger={<Button type="button" variant="secondary" size="sm">Create custom food</Button>}
+                      onCreated={(food: OwnerFood) => {
+                        setReferenceId("");
+                        setOwnerFoodId(food.id);
+                        setSelectedFood({ source: "owner", id: food.id, description: food.displayName, brandOwner: food.brand, servingSizeG: food.typicalServingG, servingUnit: food.typicalServingUnit });
+                      }}
+                    />
+                  </div>
+                  {activeFood ? <p className="pantry-food-search__confirmation" role="status">Using <strong>{activeFood.description}</strong> from {activeFood.source === "owner" ? "your custom foods" : "USDA"} for this pantry item.</p> : null}
                 </section>
-                <div className="pantry-dialog__quantity">
-                  <Field label="Quantity"><DecimalInput value={quantity} onValueChange={setQuantity} /></Field>
-                  <Field label="Unit"><Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>{UNITS.map((value) => <option key={value}>{value}</option>)}</Select></Field>
-                </div>
-                <Field label="Use-by date" hint="Optional. Add one when timing matters.">
-                  <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
-                </Field>
-                <details className="pantry-edit__advanced">
-                  <summary>Use a specific reference (advanced)</summary>
-                  <Field label="Reference food ID" hint="Leave blank for an automatic rematch.">
-                    <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
+                <details className="pantry-edit__details">
+                  <summary>Edit pantry details</summary>
+                  <div className="pantry-dialog__quantity">
+                    <Field label="Quantity"><DecimalInput value={quantity} onValueChange={setQuantity} /></Field>
+                    <Field label="Unit"><Select value={unit} onChange={(event) => setUnit(event.currentTarget.value)}>{UNITS.map((value) => <option key={value}>{value}</option>)}</Select></Field>
+                  </div>
+                  <Field label="Use-by date" hint="Optional. Add one when timing matters.">
+                    <input className="input" type="date" value={expiresOn} onChange={(event) => setExpiresOn(event.currentTarget.value)} />
                   </Field>
+                  <details className="pantry-edit__advanced">
+                    <summary>Use a specific reference (advanced)</summary>
+                    <Field label="Reference food ID" hint="Leave blank for an automatic rematch.">
+                      <input className="input" value={referenceId} onChange={(event) => setReferenceId(event.currentTarget.value)} placeholder="UUID" />
+                    </Field>
+                  </details>
                 </details>
                 {update.error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This pantry item changed. Reload before trying again." : update.error.message}</p> : null}
                 <div className="pantry-dialog__actions">
@@ -258,20 +297,21 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                   <Button type="submit" disabled={!displayName.trim() || update.isPending || remove.isPending}>{update.isPending ? "Saving…" : `Save ${item.displayName}`}</Button>
                 </div>
               </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
-        <div className="actions pantry-staple__actions">
-          {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
-          <ConfirmDialog
-            trigger={<Button variant="ghost" disabled={update.isPending || remove.isPending}>Remove {item.displayName}</Button>}
-            title={`Remove ${item.displayName}?`}
-            description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
-            confirmLabel="Remove pantry item"
-            onConfirm={() => remove.mutate()}
-          />
+              </Dialog.Content>
+            </Dialog.Portal>
+          <div className="actions pantry-staple__actions">
+            {conflict ? <Button onClick={() => void refresh()}>Reload</Button> : null}
+            <ConfirmDialog
+              trigger={<Button variant="ghost" aria-label={`Remove ${item.displayName}`} disabled={update.isPending || remove.isPending}>Remove</Button>}
+              title={`Remove ${item.displayName}?`}
+              description="Applied grocery deductions must be reversed first. Removing an item cannot be undone."
+              confirmLabel="Remove pantry item"
+              onConfirm={() => remove.mutate()}
+            />
+          </div>
         </div>
       </div>
+      </Dialog.Root>
     </article>
   );
 }
@@ -331,20 +371,21 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
     unit: "g",
     expiresOn: null,
     foodReferenceId: null,
+    ownerFoodId: null,
   });
   const create = useMutation({
     mutationFn: () => pantryApi.create(draft),
     onSuccess: () => {
       setOpen(false);
-      setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null });
-      void queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
+      setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
+      void invalidateFoodMatchQueries(queryClient);
     },
   });
 
   return (
     <Dialog.Root open={open} onOpenChange={(value) => {
       setOpen(value);
-      if (!value) setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null });
+      if (!value) setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
     }}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>
@@ -386,6 +427,7 @@ export function PantryPage() {
   const items = useQuery({ queryKey: ["pantry-items"], queryFn: pantryApi.list });
   const [recipeQuery, setRecipeQuery] = useState("");
   const [searchEnabled, setSearchEnabled] = useState(false);
+  const [cookOpen, setCookOpen] = useState(false);
   const matches = useQuery({
     queryKey: ["pantry-recipe-matches", recipeQuery],
     queryFn: () => pantryApi.search(recipeQuery),
@@ -400,17 +442,9 @@ export function PantryPage() {
   const datedItems = items.data.filter((item) => item.expiresOn);
   const expiredItems = datedItems.filter((item) => item.expiresOn! < today).sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
   const useSoonItems = datedItems.filter((item) => item.expiresOn! >= today).sort((a, b) => a.expiresOn!.localeCompare(b.expiresOn!));
-  const readyCount = items.data.filter((item) => item.matchStatus === "matched" || item.matchStatus === "manual").length;
-  const reviewCount = items.data.length - readyCount;
+  const reviewCount = items.data.filter((item) => item.matchStatus !== "matched" && item.matchStatus !== "manual").length;
   const shelf = [...items.data].sort((a, b) => (a.expiresOn ? 0 : 1) - (b.expiresOn ? 0 : 1) || (a.expiresOn || "").localeCompare(b.expiresOn || "") || (MATCH_ORDER.get(a.matchStatus) ?? 3) - (MATCH_ORDER.get(b.matchStatus) ?? 3));
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
-
-  const pulse = [
-    { label: "On hand", value: items.data.length },
-    { label: "Ready to cook with", value: readyCount },
-    { label: reviewCount ? "Need your review" : "Nothing to review", value: reviewCount, href: reviewCount ? "#pantry-shelf" : undefined, attention: reviewCount > 0 },
-    { label: "Use soon", value: useSoonItems.length, href: useSoonItems.length ? "#pantry-use-soon" : undefined },
-  ];
 
   return (
     <main className="page-shell pantry-page">
@@ -421,22 +455,17 @@ export function PantryPage() {
         actions={<><AddPantryDialog trigger={<Button><PackagePlus aria-hidden="true" />Add item</Button>} /><Button asChild variant="secondary"><Link to="/app/grocery">Open grocery list</Link></Button></>}
       />
 
-      <nav className="pantry-pulse" aria-label="Shelf at a glance">
-        {pulse.map((stat) => {
-          const content = <>
-            <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
-          </>;
-          return stat.href ? (
-            <a key={stat.label} className={`pantry-pulse__stat${stat.attention ? " pantry-pulse__stat--attention" : ""}`} href={stat.href}>
-              {content}
-              <ArrowRight aria-hidden="true" />
-            </a>
-          ) : (
-            <div key={stat.label} className="pantry-pulse__stat">{content}</div>
-          );
-        })}
-      </nav>
+      <section className="pantry-overview" aria-label="Shelf at a glance">
+        <div>
+          <p className="eyebrow">Shelf at a glance</p>
+          <strong>{items.data.length} item{items.data.length === 1 ? "" : "s"} on hand</strong>
+          <span>{reviewCount ? `${reviewCount} need${reviewCount === 1 ? "s" : ""} a match` : "All food matches are ready"} · {useSoonItems.length + expiredItems.length} use soon</span>
+        </div>
+        <div className="pantry-overview__links">
+          {reviewCount ? <a href="#pantry-shelf">Review matches <ArrowRight aria-hidden="true" /></a> : null}
+          {useSoonItems.length || expiredItems.length ? <a href="#pantry-use-soon">View use soon <ArrowRight aria-hidden="true" /></a> : null}
+        </div>
+      </section>
 
       <section className={`pantry-attention${useSoonItems.length || expiredItems.length ? "" : " pantry-attention--calm"}`} id="pantry-use-soon" aria-labelledby="pantry-use-soon-title">
         <SectionHeading
@@ -476,18 +505,28 @@ export function PantryPage() {
         ) : (
           <div className="pantry-empty">
             <div className="pantry-empty__intro"><KitchenCompanion moment="empty" size="md" /><div><h3>Start with what you reach for</h3><p>Rough quantities are completely fine. A small, current shelf is more useful than a perfect inventory.</p><AddPantryDialog trigger={<Button>Add your first item</Button>} /></div></div>
-            <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Oats", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
+            <div className="pantry-empty__starters"><p className="eyebrow">Good first items</p><h3>Pick a staple</h3><p>Choose one to start with its name already filled in.</p><div>{["Rice", "Eggs", "Frozen vegetables"].map((name) => <AddPantryDialog key={name} prefillName={name} trigger={<Button variant="secondary">{name}</Button>} />)}</div></div>
           </div>
         )}
       </section>
 
-      {items.data.length ? (
+      {items.data.length > 0 && !cookOpen ? (
+        <section className="pantry-section pantry-cook-launch" aria-labelledby="pantry-cook-launch-title">
+          <div>
+            <p className="eyebrow">A useful next step</p>
+            <h2 id="pantry-cook-launch-title">Find recipes from your shelf</h2>
+            <p>See what you can cook with what is already here.</p>
+          </div>
+          <Button onClick={() => setCookOpen(true)}><Search aria-hidden="true" />Show recipe ideas</Button>
+        </section>
+      ) : null}
+      {items.data.length > 0 && cookOpen ? (
         <section className="pantry-section pantry-cook" id="pantry-cook">
           <SectionHeading
             eyebrow="Use what you have"
             title="Cook from your shelf"
-            description="Compare your recipes with what is on hand. Ingredients awaiting a match stay out until you review them."
-            action={<span className="pantry-cook__hint" aria-hidden="true"><Sparkles /> Shelf-aware ideas</span>}
+            description="Compare recipes with what is on hand. Unconfirmed matches stay out until you review them."
+            action={<Button variant="ghost" onClick={() => { setCookOpen(false); setSearchEnabled(false); }}>Hide recipe ideas</Button>}
           />
           <div className="pantry-search">
             <SearchField

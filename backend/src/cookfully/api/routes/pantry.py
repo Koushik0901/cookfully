@@ -201,6 +201,7 @@ async def create_pantry_item(
                                 unit=i.unit,
                                 expires_on=payload.expires_on,
                                 food_reference_id=None,
+                                owner_food_id=None,
                             )
                             for i in parsed.items
                         ]
@@ -235,6 +236,7 @@ async def create_pantry_item(
             unit=payload.unit,
             expires_on=payload.expires_on,
             food_reference_id=payload.food_reference_id,
+            owner_food_id=payload.owner_food_id,
         )
         response = PantryItemResponse.from_read(result)
     except Exception:

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from cookfully.domain.food_semantics import IngredientConcept, concept_signature, profile_from_text
 from cookfully.infrastructure.models.nutrition import IngredientMatch
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import Ingredient
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.models.semantic_matching import FoodMatchMemory
@@ -33,7 +34,27 @@ def remember_food_reference(
     ingredient: Ingredient,
     food: FoodReference,
 ) -> FoodMatchMemory:
-    concept = profile_from_text(ingredient.food_name or ingredient.original_text)
+    return remember_food_choice(
+        session,
+        owner_id=owner_id,
+        food_name=ingredient.food_name or ingredient.original_text,
+        food_reference_id=food.id,
+        source_release_id=food.dataset.release_id,
+    )
+
+
+def remember_food_choice(
+    session: Session,
+    *,
+    owner_id: UUID,
+    food_name: str,
+    food_reference_id: UUID | None = None,
+    owner_food_id: UUID | None = None,
+    source_release_id: str | None = None,
+) -> FoodMatchMemory:
+    if (food_reference_id is None) == (owner_food_id is None):
+        raise ValueError("Exactly one food source is required")
+    concept = profile_from_text(food_name)
     signature_hash = concept_signature(concept)
     memory = session.scalar(
         select(FoodMatchMemory).where(
@@ -47,19 +68,35 @@ def remember_food_reference(
             owner_id=owner_id,
             signature_hash=signature_hash,
             signature=concept_payload(concept),
-            food_reference_id=food.id,
-            source_release_id=food.dataset.release_id,
+            food_reference_id=food_reference_id,
+            owner_food_id=owner_food_id,
+            source_release_id=source_release_id,
             active=True,
             use_count=0,
         )
         session.add(memory)
     else:
-        memory.food_reference_id = food.id
-        memory.owner_food_id = None
-        memory.source_release_id = food.dataset.release_id
+        memory.food_reference_id = food_reference_id
+        memory.owner_food_id = owner_food_id
+        memory.source_release_id = source_release_id
         memory.signature = concept_payload(concept)
     session.flush()
     return memory
+
+
+def remember_owner_food(
+    session: Session,
+    *,
+    owner_id: UUID,
+    food_name: str,
+    food: OwnerFood,
+) -> FoodMatchMemory:
+    return remember_food_choice(
+        session,
+        owner_id=owner_id,
+        food_name=food_name,
+        owner_food_id=food.id,
+    )
 
 
 def remembered_food_reference(

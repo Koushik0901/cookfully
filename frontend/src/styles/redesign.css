@@ -209,19 +209,14 @@
    urgency second, inventory third, shelf-aware discovery last. */
 .pantry-page { gap: 2.25rem; }
 
-/* Pulse: four facts that orient the page before any scrolling. */
-.pantry-pulse { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
-.pantry-pulse__stat { position: relative; display: grid; align-content: center; gap: 0.18rem; min-height: 5.5rem; border-radius: var(--radius-xl) 2.75rem var(--radius-xl) var(--radius-xl); padding: 0.85rem 1.15rem; color: inherit; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
-a.pantry-pulse__stat { padding-right: 3.1rem; text-decoration: none; transition: transform var(--motion-fast) var(--ease-out-quart), box-shadow var(--motion-fast) ease; }
-a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width: 0.95rem; translate: 0 -50%; color: var(--color-primary); opacity: 0.5; transition: opacity var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
-@media (hover: hover) {
-  a.pantry-pulse__stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
-  a.pantry-pulse__stat:hover > svg { opacity: 1; transform: translateX(0.18rem); }
-}
-.pantry-pulse__stat strong { color: var(--color-on-surface); font-family: var(--font-display); font-size: clamp(1.65rem, 2.4vw, 2rem); font-weight: 560; font-variant-numeric: tabular-nums; line-height: 1; }
-.pantry-pulse__stat > span { overflow: hidden; color: var(--color-on-surface-variant); font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
-.pantry-pulse__stat--attention strong { color: var(--status-warning); }
-.pantry-pulse__stat--attention > span { color: var(--color-on-surface); font-weight: 620; }
+.pantry-overview { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border-block: 1px solid var(--color-outline-variant); padding-block: 0.85rem; }
+.pantry-overview > div:first-child { display: grid; min-width: 0; gap: 0.2rem; }
+.pantry-overview strong { color: var(--color-on-surface); font-family: var(--font-display); font-size: 1.2rem; font-weight: 560; }
+.pantry-overview > div:first-child > span { color: var(--color-on-surface-variant); font-size: 0.8rem; }
+.pantry-overview__links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.9rem 1.25rem; }
+.pantry-overview__links a { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-primary); font-size: 0.8rem; font-weight: 650; text-decoration: none; }
+.pantry-overview__links a:hover { color: var(--color-primary-hover); text-decoration: underline; text-underline-offset: 0.18rem; }
+.pantry-overview__links svg { width: 0.85rem; }
 
 /* Use-soon surface keeps the mint attention field; calm days collapse it to
    a single teaching row instead of an empty stage. */
@@ -243,25 +238,30 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 
 /* Shelf cards use one calm surface; urgency belongs to the status treatments,
    not to a competing yellow card background. */
-.pantry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); align-items: start; gap: 1rem; }
-.pantry-staple { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); align-items: start; gap: 0.75rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-xl); padding: 0.9rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
+.pantry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); align-items: start; gap: 0.85rem; }
+.pantry-staple { position: relative; display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); align-items: start; gap: 0.8rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface-bright); transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
+.pantry-staple__card-trigger { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.pantry-staple__card-trigger:focus-visible { outline: 3px solid var(--color-primary); outline-offset: -3px; }
 .pantry-staple--review { border-color: var(--color-outline-variant); background: var(--color-surface-bright); }
-.pantry-staple__stamp { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; background: transparent; }
+.pantry-staple__stamp { position: relative; z-index: 1; display: grid; width: 2.25rem; height: 2.25rem; place-items: center; background: transparent; pointer-events: none; }
 .pantry-staple--review .pantry-staple__stamp { background: transparent; }
-.pantry-staple__stamp img { width: 2.5rem; height: 2.5rem; }
-.pantry-staple__body { display: grid; min-width: 0; align-content: start; gap: 0.65rem; }
-.pantry-staple__heading { display: grid; gap: 0.35rem; }
-.pantry-staple__heading h3 { overflow-wrap: anywhere; font-size: 1rem; line-height: 1.15; }
-.pantry-staple__facts { display: grid; justify-items: start; gap: 0.4rem; margin: 0; }
-.pantry-staple__quantity { font-weight: 620; font-variant-numeric: tabular-nums; }
-.pantry-staple__useby { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-full); padding: 0.24rem 0.65rem; font-size: 0.74rem; font-weight: 620; white-space: nowrap; }
+.pantry-staple__stamp img { width: 2.25rem; height: 2.25rem; }
+.pantry-staple__body { position: relative; z-index: 1; display: grid; min-width: 0; align-content: start; gap: 0.7rem; pointer-events: none; }
+.pantry-staple__heading { display: flex; align-items: start; justify-content: space-between; gap: 0.75rem; }
+.pantry-staple__heading h3 { min-width: 0; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.15; }
+.pantry-staple__status { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 0.35rem; color: var(--color-on-surface-variant); font-size: 0.72rem; font-weight: 660; line-height: 1.25; text-align: right; white-space: nowrap; }
+.pantry-staple__status::before { width: 0.42rem; height: 0.42rem; border-radius: 50%; background: var(--color-outline); content: ""; }
+.pantry-staple__status--proposed::before { background: var(--status-warning); }
+.pantry-staple__status--matched::before,
+.pantry-staple__status--manual::before { background: var(--color-primary); }
+.pantry-staple__facts { display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem 0.85rem; margin: 0; }
+.pantry-staple__quantity { color: var(--color-on-surface); font-size: 1.05rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.pantry-staple__useby { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 0.45rem; padding: 0.18rem 0.42rem; font-size: 0.73rem; font-weight: 620; white-space: nowrap; }
 .pantry-staple__useby svg { width: 0.8rem; }
-.pantry-staple__useby--none { color: var(--color-on-surface-variant); background: var(--color-surface-low); font-weight: 500; }
-.pantry-staple__useby--later { color: var(--color-primary-hover); background: color-mix(in oklch, var(--color-primary-container) 66%, transparent); }
-.pantry-staple__useby--soon { color: var(--status-warning); background: var(--status-warning-container); }
-.pantry-staple__useby--critical { color: var(--color-tomato); background: var(--status-error-container); }
-.pantry-staple__note { max-width: 56ch; margin: 0; color: var(--color-on-surface-variant); font-size: 0.76rem; line-height: 1.35; }
-.pantry-staple--review .pantry-staple__note { color: var(--color-on-surface-variant); }
+.pantry-staple__useby--none { color: var(--color-on-surface-variant); padding-inline: 0; font-weight: 500; }
+.pantry-staple__useby--later { color: var(--color-primary-hover); background: color-mix(in oklch, var(--color-primary-container) 46%, transparent); }
+.pantry-staple__useby--soon { color: var(--status-warning); background: color-mix(in oklch, var(--status-warning-container) 66%, transparent); }
+.pantry-staple__useby--critical { color: var(--color-tomato); background: color-mix(in oklch, var(--status-error-container) 72%, transparent); }
 .pantry-staple__feedback { margin: 0; color: var(--color-primary); font-size: 0.76rem; font-weight: 620; }
 .pantry-food-search { display: grid; gap: 0.75rem; border-radius: var(--radius-lg); padding: 0.9rem; background: var(--color-surface-low); }
 .pantry-food-search__heading { display: flex; align-items: start; justify-content: space-between; gap: 0.75rem; }
@@ -271,23 +271,33 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 .pantry-food-search__selected { flex: 0 0 auto; border-radius: var(--radius-full); padding: 0.25rem 0.55rem; color: var(--color-on-primary-container); background: var(--color-primary-container); font-size: 0.7rem; font-weight: 680; }
 .pantry-food-search__confirmation { margin: 0; color: var(--color-on-surface-variant); font-size: 0.76rem; line-height: 1.35; }
 .pantry-food-search__confirmation strong { color: var(--color-on-surface); }
-.pantry-staple__edit-trigger { min-height: 2.25rem; justify-self: start; border: 0; padding: 0; color: var(--color-primary); background: transparent; font: inherit; font-size: 0.8rem; font-weight: 620; text-align: left; cursor: pointer; }
+.pantry-staple__footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.15rem; pointer-events: auto; }
+.pantry-staple__edit-trigger { display: inline-flex; min-height: 2.1rem; align-items: center; justify-self: start; border: 0; border-radius: var(--radius-full); padding: 0.35rem 0.05rem; color: var(--color-primary); background: transparent; font: inherit; font-size: 0.78rem; font-weight: 680; text-align: left; cursor: pointer; }
+.pantry-staple__edit-trigger--primary { padding-inline: 0.75rem; background: var(--color-primary-container); }
 .pantry-staple__edit-trigger:hover { color: var(--color-primary-hover); text-decoration: underline; text-underline-offset: 0.18rem; }
+.pantry-staple__edit-trigger--primary:hover { text-decoration: none; filter: brightness(0.98); }
 .pantry-edit-dialog { width: min(34rem, calc(100% - 2rem)); }
-.pantry-edit__advanced { border-block: 1px solid var(--color-outline-variant); }
+.pantry-edit__details { border-top: 1px solid var(--color-outline-variant); }
+.pantry-edit__details > summary,
 .pantry-edit__advanced > summary { min-height: 2.75rem; color: var(--color-on-surface-variant); font-size: 0.8rem; }
+.pantry-edit__details[open] { display: grid; gap: 0.75rem; padding-top: 0.25rem; }
+.pantry-edit__advanced { border-block: 1px solid var(--color-outline-variant); }
 .pantry-edit__advanced > .field { padding-bottom: 0.75rem; }
-.pantry-staple__actions { margin: 0; justify-content: flex-start; gap: 0.25rem; border: 0; padding-top: 0; }
-.pantry-staple .match-badge--proposed { color: var(--color-on-surface-variant); background: var(--color-surface-low); }
+.pantry-staple__actions { margin: 0; justify-content: flex-end; gap: 0.25rem; border: 0; padding-top: 0; }
+.pantry-staple__actions .cf-button { min-height: 2rem; padding-inline: 0.35rem; color: var(--color-on-surface-variant); font-size: 0.74rem; }
 @media (hover: hover) {
   .pantry-staple:hover { border-color: var(--color-outline); box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
 }
 
 /* Shelf-aware discovery sits on its own quiet field with media-led results. */
+.pantry-cook-launch { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border-block: 1px solid var(--color-outline-variant); padding-block: 1.25rem; }
+.pantry-cook-launch > div { display: grid; gap: 0.3rem; }
+.pantry-cook-launch h2 { font-size: 1.35rem; }
+.pantry-cook-launch p:last-child { color: var(--color-on-surface-variant); font-size: 0.82rem; }
 .pantry-cook { gap: 1.4rem; border-radius: var(--radius-xl) 4.5rem var(--radius-xl) var(--radius-xl); padding: clamp(1.25rem, 2.5vw, 2rem); background: var(--color-surface-low); }
 .pantry-cook > .section-heading { border-bottom: 0; align-items: start; padding-bottom: 0; }
-.pantry-cook__hint { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: var(--radius-full); padding: 0.38rem 0.8rem; color: var(--color-on-primary-container); background: var(--color-accent-soft); font-size: var(--text-caption); font-weight: 620; white-space: nowrap; }
-.pantry-cook__hint svg { width: 0.9rem; }
+.food-picker__error { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-radius: var(--radius); padding: 0.55rem 0.7rem; color: var(--color-tomato); background: var(--status-error-container); font-size: 0.78rem; }
+.food-picker__error .cf-button { min-height: 2rem; padding-inline: 0.5rem; color: inherit; }
 .pantry-search { max-width: 44rem; }
 .pantry-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 33rem), 1fr)); gap: 1rem; }
 .pantry-match { display: grid; grid-template-columns: minmax(7.5rem, 10.5rem) minmax(0, 1fr); overflow: hidden; border-radius: var(--radius-lg); background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); transition: transform var(--motion-fast) var(--ease-out-quart), box-shadow var(--motion-fast) ease; }
@@ -320,22 +330,24 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
    kitchen loop and offers a direct first action. */
 .grocery-page--onramp { align-content: start; }
 .grocery-onramp { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr); overflow: hidden; border-radius: var(--radius-xl) 4.75rem var(--radius-xl) var(--radius-xl); background: var(--color-surface-bright); box-shadow: var(--shadow-card-raised); }
-.grocery-onramp__lead { display: grid; align-content: center; gap: 0.8rem; min-height: 25rem; padding: clamp(1.5rem, 4vw, 3.5rem); color: var(--color-on-primary); background: var(--color-herb-800); }
+.grocery-onramp__lead { display: grid; align-content: center; gap: 0.7rem; min-height: 21rem; padding: clamp(1.5rem, 4vw, 3rem); color: var(--color-on-primary); background: var(--color-herb-800); }
 .grocery-onramp__lead .eyebrow { color: var(--color-accent); }
-.grocery-onramp__lead h2 { max-width: 13ch; color: var(--color-on-primary); font-size: clamp(2rem, 3.5vw, 3.25rem); line-height: 1; }
-.grocery-onramp__lead > p:not(.eyebrow) { max-width: 46ch; color: var(--color-on-herb-muted); }
+.grocery-onramp__lead h2 { max-width: 18ch; color: var(--color-on-primary); font-size: clamp(1.8rem, 3vw, 2.75rem); line-height: 1.05; }
+.grocery-onramp__lead > p:not(.eyebrow) { max-width: 42ch; color: var(--color-on-herb-muted); }
 .grocery-onramp__mark { display: grid; width: 3.25rem; height: 3.25rem; place-items: center; margin-bottom: 0.5rem; border-radius: 50%; color: var(--color-primary); background: var(--color-accent-soft); }
 .grocery-onramp__mark svg { width: 1.3rem; }
 .grocery-onramp__lead .actions { justify-content: flex-start; margin-top: 0.4rem; }
 .grocery-onramp__lead .cf-button--primary { color: var(--color-on-primary-container); background: var(--color-accent-soft); }
 .grocery-onramp__lead .cf-button--secondary { border-color: var(--color-on-dark-line-strong); color: var(--color-on-primary); background: transparent; }
-.grocery-onramp__steps { display: grid; align-content: center; padding: clamp(1.25rem, 3vw, 2.5rem); list-style: none; }
-.grocery-onramp__steps li { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 1rem; border-bottom: 1px solid var(--color-outline-variant); padding-block: 1.25rem; }
+.grocery-onramp__steps { display: grid; align-content: center; padding: clamp(1.25rem, 3vw, 2rem); list-style: none; }
+.grocery-onramp__steps li { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0.8rem; border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.85rem; }
 .grocery-onramp__steps li:last-child { border-bottom: 0; }
-.grocery-onramp__steps li > span { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-primary-container); }
+.grocery-onramp__steps li > span { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-primary-container); }
 .grocery-onramp__steps svg { width: 1.1rem; }
 .grocery-onramp__steps li > div { display: grid; gap: 0.25rem; }
-.grocery-onramp__steps p { color: var(--color-on-surface-variant); font-size: 0.84rem; }
+.grocery-onramp__steps p { color: var(--color-on-surface-variant); font-size: 0.8rem; }
+.grocery-onramp__error { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; margin: 0; color: var(--color-on-primary); }
+.grocery-onramp__error .cf-button { min-height: 2rem; padding-inline: 0.55rem; color: var(--color-on-primary); }
 
 
 @media (max-width: 69rem) {
@@ -428,9 +440,8 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
   .week-meal__body { grid-template-columns: 3.25rem minmax(0, 1fr); padding-right: 2.5rem; }
   .week-meal__media { width: 3.25rem; height: 3.25rem; }
   .week-meal__actions { top: 0.35rem; right: 0.35rem; background: transparent; box-shadow: none; opacity: 1; }
-  .pantry-pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pantry-pulse__stat { min-height: 4.75rem; padding: 0.8rem 0.95rem; border-radius: var(--radius-lg); }
-  a.pantry-pulse__stat { padding-right: 2.6rem; min-height: 3.25rem; align-content: center; }
+  .pantry-overview { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
+  .pantry-overview__links { justify-content: flex-start; }
   .pantry-attention { gap: 1rem; border-radius: var(--radius-xl) 3.5rem var(--radius-xl) var(--radius-xl); padding: 1.1rem; }
   .pantry-attention .section-heading { display: grid; }
   .pantry-attention--calm { grid-template-columns: 1fr; row-gap: 1.1rem; }
@@ -442,9 +453,13 @@ a.pantry-pulse__stat > svg { position: absolute; top: 50%; right: 1.05rem; width
 
   .pantry-grid { grid-template-columns: 1fr; }
   .pantry-staple { padding: 0.9rem; }
+  .pantry-staple__heading { flex-wrap: wrap; }
+  .pantry-staple__status { text-align: left; }
   .pantry-edit__row { grid-template-columns: 1fr; }
   .pantry-cook { gap: 1.15rem; border-radius: var(--radius-xl) 3rem var(--radius-xl) var(--radius-xl); padding: 1.1rem; }
   .pantry-cook > .section-heading { display: grid; }
+  .pantry-cook-launch { align-items: stretch; flex-direction: column; gap: 0.9rem; }
+  .pantry-cook-launch .cf-button { width: 100%; }
   .pantry-search { max-width: none; grid-template-columns: 1fr; }
   .pantry-results { grid-template-columns: 1fr; }
   .pantry-match { grid-template-columns: 1fr; }

@@ -13,6 +13,12 @@ export const groceryApi = {
       idempotent: true,
     });
   },
+  createEmpty(weekStart: string) {
+    return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list/empty`, {
+      method: "POST",
+      idempotent: true,
+    });
+  },
   complete(weekStart: string, version: number) {
     return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list/complete`, {
       method: "POST", version,

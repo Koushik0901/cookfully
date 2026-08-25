@@ -11,6 +11,7 @@ async function mockPantryApi(page: Page) {
       quantity: "0.25",
       unit: "kg",
       foodReferenceId: null,
+      ownerFoodId: null,
       matchStatus: "unmatched",
       matchConfidence: null,
       version: 1,
@@ -55,8 +56,8 @@ async function mockPantryApi(page: Page) {
       pantry = pantry.map((item) => item.id === itemId ? {
         ...item,
         ...value,
-        matchStatus: value.foodReferenceId ? "manual" : item.matchStatus,
-        matchConfidence: value.foodReferenceId ? "1.000000" : item.matchConfidence,
+        matchStatus: value.foodReferenceId || value.ownerFoodId ? "manual" : item.matchStatus,
+        matchConfidence: value.foodReferenceId || value.ownerFoodId ? "1.000000" : item.matchConfidence,
         version: item.version + 1,
       } : item);
       return route.fulfill({ json: pantry.find((item) => item.id === itemId) });
@@ -73,16 +74,18 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await page.goto("/app/pantry");
   await expect(page.getByRole("heading", { name: "What’s already at home?" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nothing needs attention yet" })).toBeVisible();
-  await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("0.25 kg");
-  await expect(page.getByText("Add a matching name below so recipes can use this item.")).toBeVisible();
-  await page.getByText("Add a match", { exact: true }).click();
+  const brownRiceCard = page.getByRole("article", { name: "Brown rice" });
+  await expect(brownRiceCard).toContainText("0.25 kg");
+  await expect(page.getByText("Needs a match", { exact: true })).toBeVisible();
+  await brownRiceCard.click();
   await expect(page.getByLabel("Pantry name")).toBeVisible();
+  await page.getByText("Edit pantry details", { exact: true }).click();
   await page.getByText("Use a specific reference (advanced)", { exact: true }).click();
   await expect(page.getByText("Leave blank for an automatic rematch.")).toBeVisible();
   await captureUi(page, testInfo, "pantry");
   await page.getByRole("button", { name: "Cancel" }).click();
-  await page.getByText("Add a match", { exact: true }).click();
-  const editDialog = page.getByRole("dialog", { name: "Add a match · Brown rice" });
+  await brownRiceCard.getByRole("button", { name: "Choose a food match", exact: true }).click();
+  const editDialog = page.getByRole("dialog", { name: "Choose a food match · Brown rice" });
   await expect(editDialog.getByRole("searchbox", { name: "Search USDA foods" })).toBeVisible();
   await expect(editDialog.getByRole("button", { name: /Rice, brown, long-grain, cooked/ })).toBeVisible();
   await editDialog.getByRole("button", { name: /Rice, brown, long-grain, cooked/ }).click();
@@ -108,6 +111,7 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await addDialog.getByRole("button", { name: "Add to pantry" }).click();
   await expect(page.getByRole("article", { name: "Black beans" })).toContainText("2 count");
 
+  await page.getByRole("button", { name: "Show recipe ideas" }).click();
   await page.getByRole("button", { name: "Find recipes" }).click();
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("Partially makeable");
   await expect(page.getByRole("article", { name: "Chicken rice" })).toContainText("400 g chicken breast");

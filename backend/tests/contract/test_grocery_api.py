@@ -109,8 +109,26 @@ def test_grocery_openapi_surface(isolated_database_url: str, tmp_path: Path) -> 
     with client_for(isolated_database_url, tmp_path) as client:
         paths = client.get("/api/openapi.json").json()["paths"]
         assert "/api/v1/meal-plans/{weekStart}/grocery-list" in paths
+        assert "/api/v1/meal-plans/{weekStart}/grocery-list/empty" in paths
         assert "/api/v1/meal-plans/{weekStart}/grocery-list/items" in paths
         assert "/api/v1/grocery-items/{itemId}" in paths
+
+
+def test_empty_grocery_list_creates_blank_week_shell(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        response = client.post(
+            f"/api/v1/meal-plans/{WEEK_START}/grocery-list/empty",
+            headers={**headers, "Idempotency-Key": "grocery-empty-0001"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "current"
+        assert body["items"] == []
+        assert body["weekStart"] == WEEK_START
+        assert client.get(f"/api/v1/meal-plans/{WEEK_START}/grocery-list").json() == body
 
 
 def test_generation_manual_crud_regeneration_decimals_and_concurrency(

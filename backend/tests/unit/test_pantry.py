@@ -53,9 +53,10 @@ def test_resolve_match_maps_engine_decisions(monkeypatch) -> None:
     decision = MatchDecision("matched", "ranked", _candidate("0.850000"), ())
     fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
     monkeypatch.setattr(pantry, "engine", fake)
-    reference_id, status, confidence = pantry.PantryService._resolve_match(
-        None, "cherry tomatoes", None
+    reference_id, owner_food_id, status, confidence = pantry.PantryService._resolve_match(
+        None, None, "cherry tomatoes", None, None
     )
+    assert owner_food_id is None
     assert status == "matched"
     assert confidence == Decimal("0.850000")
     assert reference_id is not None
@@ -68,7 +69,10 @@ def test_resolve_match_proposes_ambiguous_top_alternative(monkeypatch) -> None:
     decision = MatchDecision("ambiguous", "ranked", None, (top,))
     fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
     monkeypatch.setattr(pantry, "engine", fake)
-    reference_id, status, confidence = pantry.PantryService._resolve_match(None, "tomato", None)
+    reference_id, owner_food_id, status, confidence = pantry.PantryService._resolve_match(
+        None, None, "tomato", None, None
+    )
+    assert owner_food_id is None
     assert status == "proposed"
     assert confidence == Decimal("0.700000")
     assert reference_id == top.food.id
@@ -80,10 +84,10 @@ def test_resolve_match_unmatched_has_no_reference_or_confidence(monkeypatch) -> 
     decision = MatchDecision("unmatched", "ranked", None, ())
     fake = type("E", (), {"match_ingredient": lambda self, session, name, **kw: decision})()
     monkeypatch.setattr(pantry, "engine", fake)
-    reference_id, status, confidence = pantry.PantryService._resolve_match(
-        None, "mystery item", None
+    reference_id, owner_food_id, status, confidence = pantry.PantryService._resolve_match(
+        None, None, "mystery item", None, None
     )
-    assert (reference_id, status, confidence) == (None, "unmatched", None)
+    assert (reference_id, owner_food_id, status, confidence) == (None, None, "unmatched", None)
 
 
 def test_resolve_match_manual_selection_pins_confidence(monkeypatch) -> None:
@@ -100,11 +104,16 @@ def test_resolve_match_manual_selection_pins_confidence(monkeypatch) -> None:
         raise AssertionError("engine must not be consulted for manual selection")
 
     monkeypatch.setattr(pantry, "engine", type("E", (), {"match_ingredient": fail})())
-    reference_id, status, confidence = pantry.PantryService._resolve_match(
-        session, "anything", food_id
+    reference_id, owner_food_id, status, confidence = pantry.PantryService._resolve_match(
+        session, None, "anything", food_id, None
     )
     session.get.assert_called_once()
-    assert (reference_id, status, confidence) == (food_id, "manual", Decimal("1.000000"))
+    assert (reference_id, owner_food_id, status, confidence) == (
+        food_id,
+        None,
+        "manual",
+        Decimal("1.000000"),
+    )
 
 
 def test_deduction_and_reversal_are_exact_and_state_guarded() -> None:

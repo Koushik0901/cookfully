@@ -28,6 +28,7 @@ from cookfully.infrastructure.models.grocery import (
     GroceryShoppingStop,
     RememberedGroceryPlacement,
 )
+from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.plans import MealPlan
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.repositories.grocery import GroceryRepository
@@ -81,6 +82,36 @@ class GroceryListService:
     def get(self, owner_id: UUID, week_start: date) -> GroceryListRead:
         with self._session_factory() as session:
             return self._list_read(GroceryRepository(session).get_for_week(owner_id, week_start))
+
+    def create_empty(self, owner_id: UUID, week_start: date) -> GroceryListRead:
+        with self._session_factory.begin() as session:
+            plan = MealPlanRepository(session).find_week(owner_id, week_start)
+            if plan is None:
+                owner = session.get(OwnerAccount, owner_id)
+                if owner is None:
+                    raise DomainError("owner_not_found", "Owner account was not found.", 404)
+                plan = MealPlan(
+                    owner_id=owner_id,
+                    week_start=week_start,
+                    timezone=owner.timezone,
+                    version=1,
+                )
+                session.add(plan)
+                session.flush()
+
+            repository = GroceryRepository(session)
+            grocery_list = repository.find_for_plan(plan.id, for_update=True)
+            if grocery_list is None:
+                grocery_list = GroceryList(
+                    meal_plan_id=plan.id,
+                    status="current",
+                    source_plan_version=plan.version,
+                    generated_at=utc_now(),
+                    version=1,
+                )
+                session.add(grocery_list)
+                session.flush()
+            return self._list_read(grocery_list)
 
     def generate(self, owner_id: UUID, week_start: date) -> GroceryListRead:
         with self._session_factory.begin() as session:

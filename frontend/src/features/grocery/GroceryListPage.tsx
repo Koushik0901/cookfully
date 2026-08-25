@@ -145,6 +145,10 @@ export function GroceryListPage() {
     mutationFn: () => groceryApi.regenerate(weekStart),
     onSuccess: (value) => queryClient.setQueryData(["grocery-list", weekStart], value),
   });
+  const createEmpty = useMutation({
+    mutationFn: () => groceryApi.createEmpty(weekStart),
+    onSuccess: (value) => queryClient.setQueryData(["grocery-list", weekStart], value),
+  });
   const create = useMutation({
     mutationFn: () => groceryApi.create(weekStart, newItem),
     onSuccess: (saved) => {
@@ -173,7 +177,7 @@ export function GroceryListPage() {
   });
   const complete = useMutation({ mutationFn: () => groceryApi.complete(weekStart, list.data!.version), onSuccess: (value) => queryClient.setQueryData(["grocery-list", weekStart], value) });
   const reopen = useMutation({ mutationFn: () => groceryApi.reopen(weekStart, list.data!.version), onSuccess: (value) => queryClient.setQueryData(["grocery-list", weekStart], value) });
-  const anyMutationPending = regenerate.isPending || create.isPending || applyDeductions.isPending || reverseDeduction.isPending || complete.isPending || reopen.isPending;
+  const anyMutationPending = regenerate.isPending || createEmpty.isPending || create.isPending || applyDeductions.isPending || reverseDeduction.isPending || complete.isPending || reopen.isPending;
   const reloadList = () => void queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] });
   const missing = list.error instanceof ApiProblem && list.error.status === 404;
 
@@ -184,21 +188,22 @@ export function GroceryListPage() {
     <main className="page-shell grocery-page grocery-page--onramp">
       <PageHeader
         eyebrow="Grocery"
-        title="Your grocery list starts with your plan"
-        description="Choose the meals first. Cookfully will gather what they need, preserve the quantities, and keep pantry decisions visible."
+        title="Plan meals. Shop with a clear list."
+        description="Cookfully gathers ingredients from your plan and keeps the list editable."
       />
       <section className="grocery-onramp" aria-labelledby="grocery-onramp-title">
         <div className="grocery-onramp__lead">
           <span className="grocery-onramp__mark" aria-hidden="true"><ShoppingBasket /></span>
           <p className="eyebrow">One useful shopping pass</p>
-          <h2 id="grocery-onramp-title">From this week’s meals to one practical list</h2>
-          <p>Plan as much or as little as you like. The list stays editable, so staples and last-minute extras still have a natural place.</p>
-          <div className="actions"><Button asChild><Link to="/app/plan">Open meal plan</Link></Button><Button variant="secondary" onClick={() => regenerate.mutate()} disabled={regenerate.isPending}>{regenerate.isPending ? "Starting your list…" : "Start an empty list"}</Button></div>
+          <h2 id="grocery-onramp-title">Everything for the meals you actually want to cook.</h2>
+          <p>Start with your plan, or make a list for anything else you need.</p>
+          <div className="actions"><Button asChild><Link to="/app/plan">Open meal plan</Link></Button><Button variant="secondary" onClick={() => createEmpty.mutate()} disabled={createEmpty.isPending}>{createEmpty.isPending ? "Starting your list…" : "Start an empty list"}</Button></div>
+          {createEmpty.error instanceof Error ? <p className="error-text grocery-onramp__error" role="alert">{createEmpty.error.message} <Button variant="ghost" onClick={() => createEmpty.mutate()} disabled={createEmpty.isPending}>Try again</Button></p> : null}
         </div>
         <ol className="grocery-onramp__steps">
-          <li><span><CalendarDays aria-hidden="true" /></span><div><strong>Plan the meals that matter</strong><p>Dinner-only is fine; breakfast, lunch, and snacks are available when useful.</p></div></li>
-          <li><span><PackageCheck aria-hidden="true" /></span><div><strong>Use what is already home</strong><p>Reviewed pantry matches can reduce the list without hiding the deduction.</p></div></li>
-          <li><span><ShoppingBasket aria-hidden="true" /></span><div><strong>Shop and check off</strong><p>Items stay grouped, editable, and easy to tap with one hand.</p></div></li>
+          <li><span><CalendarDays aria-hidden="true" /></span><div><strong>Plan meals</strong><p>Pick what you want to cook.</p></div></li>
+          <li><span><PackageCheck aria-hidden="true" /></span><div><strong>Use what you have</strong><p>Pantry matches reduce the list.</p></div></li>
+          <li><span><ShoppingBasket aria-hidden="true" /></span><div><strong>Shop and check off</strong><p>Keep the list editable as you go.</p></div></li>
         </ol>
       </section>
     </main>

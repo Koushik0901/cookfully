@@ -89,6 +89,12 @@ async function mockGroceryApi(page: Page, { empty = false, missing = false }: { 
       return route.fulfill({ status: 204 });
     }
     if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "GET") return missing ? route.fulfill({ status: 404, json: { code: "grocery_list_not_found", title: "Not found" } }) : route.fulfill({ json: grocery() });
+    if (path === `/api/v1/meal-plans/${weekStart}/grocery-list/empty` && method === "POST") {
+      status = "current";
+      items = [];
+      listVersion += 1;
+      return route.fulfill({ json: grocery() });
+    }
     if (path === `/api/v1/meal-plans/${weekStart}/grocery-list` && method === "POST") {
       status = "current";
       listVersion += 1;
@@ -129,15 +135,16 @@ async function mockGroceryApi(page: Page, { empty = false, missing = false }: { 
 }
 
 test("keeps a missing grocery list focused on one useful choice", async ({ page }, testInfo) => {
-  await mockGroceryApi(page, { missing: true });
+  await mockGroceryApi(page, { missing: true, empty: true });
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { level: 1, name: "Your grocery list starts with your plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Plan meals. Shop with a clear list." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Start an empty list" })).toHaveCount(1);
-  await expect(page.getByText("Plan the meals that matter")).toBeVisible();
-  await expect(page.getByText("Use what is already home")).toBeVisible();
+  await expect(page.getByText("Plan meals", { exact: true })).toBeVisible();
+  await expect(page.getByText("Use what you have", { exact: true })).toBeVisible();
   await expect(page.getByText("Shop and check off")).toBeVisible();
-  await expect(page.getByText("Build the list from your plan")).toHaveCount(0);
+  await page.getByRole("button", { name: "Start an empty list" }).click();
+  await expect(page.getByRole("heading", { name: "Nothing to pick up yet" })).toBeVisible();
   await captureUi(page, testInfo, "grocery-missing");
 });
 

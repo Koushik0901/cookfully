@@ -1873,6 +1873,8 @@ export interface components {
             expiresOn?: string | null;
             /** Format: uuid */
             foodReferenceId?: string | null;
+            /** Format: uuid */
+            ownerFoodId?: string | null;
         };
         PantryItem: components["schemas"]["PantryItemWrite"] & {
             /** Format: uuid */

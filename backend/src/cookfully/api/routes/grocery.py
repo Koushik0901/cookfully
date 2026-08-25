@@ -152,6 +152,45 @@ def regenerate_grocery_list(
 
 
 @router.post(
+    "/meal-plans/{weekStart}/grocery-list/empty",
+    response_model=GroceryListResponse,
+    response_model_by_alias=True,
+)
+def create_empty_grocery_list(
+    week_start: Annotated[date, Path(alias="weekStart")],
+    service: Annotated[GroceryListService, Depends(grocery_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> GroceryListResponse:
+    decision = idempotency.begin(
+        owner_id=owner.id,
+        key=key,
+        operation="grocery.create_empty",
+        payload={"weekStart": week_start.isoformat()},
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        return GroceryListResponse.model_validate(decision.response_body)
+    try:
+        response = GroceryListResponse.from_read(service.create_empty(owner.id, week_start))
+    except Exception:
+        idempotency.abort(owner_id=owner.id, key=key)
+        raise
+    idempotency.complete(
+        owner_id=owner.id,
+        key=key,
+        response_status=200,
+        resource_id=response.id,
+        response_body=response.model_dump(mode="json", by_alias=True),
+    )
+    return response
+
+
+@router.post(
     "/meal-plans/{weekStart}/grocery-list/complete",
     response_model=GroceryListResponse,
     response_model_by_alias=True,

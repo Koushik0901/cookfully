@@ -9,9 +9,11 @@ from uuid import UUID
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.food_match_propagation import propagate_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, require_version
 from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_pantry_name
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.reference_foods import FoodReference
 
@@ -58,6 +60,7 @@ class PantryItemRead:
     match_status: str
     match_confidence: Decimal | None
     version: int
+    owner_food_id: UUID | None = None
     purchased_at: datetime | None = None
     expiry_source: str | None = None
 
@@ -168,8 +171,9 @@ def reverse_quantity_deduction(
 
 
 class PantryService:
-    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+    def __init__(self, session_factory: sessionmaker[Session], jobs: object | None = None) -> None:
         self._session_factory = session_factory
+        self._jobs = jobs
 
     def list(self, owner_id: UUID) -> tuple[PantryItemRead, ...]:
         with self._session_factory() as session:
@@ -189,6 +193,7 @@ class PantryService:
         unit: str,
         expires_on: date | None = None,
         food_reference_id: UUID | None = None,
+        owner_food_id: UUID | None = None,
     ) -> PantryItemRead:
         # Legacy-only: bulk inline split is handled async in api/routes/pantry.py
         return self._create_single(
@@ -198,6 +203,7 @@ class PantryService:
             unit=unit,
             expires_on=expires_on,
             food_reference_id=food_reference_id,
+            owner_food_id=owner_food_id,
         )
 
     def _create_single(
@@ -209,12 +215,15 @@ class PantryService:
         unit: str,
         expires_on: date | None = None,
         food_reference_id: UUID | None = None,
+        owner_food_id: UUID | None = None,
     ) -> PantryItemRead:
         name = self._name(display_name)
         amount = self._quantity(quantity)
         canonical_unit = canonical_pantry_unit(unit)
         with self._session_factory.begin() as session:
-            reference_id, status, confidence = self._resolve_match(session, name, food_reference_id)
+            reference_id, resolved_owner_food_id, status, confidence = self._resolve_match(
+                session, owner_id, name, food_reference_id, owner_food_id
+            )
             item = PantryItem(
                 owner_id=owner_id,
                 display_name=name,
@@ -223,12 +232,22 @@ class PantryService:
                 unit_code=canonical_unit,
                 expires_on=expires_on,
                 food_reference_id=reference_id,
+                owner_food_id=resolved_owner_food_id,
                 match_status=status,
                 match_confidence=confidence,
                 version=1,
             )
             session.add(item)
             session.flush()
+            if food_reference_id is not None or owner_food_id is not None:
+                propagate_food_choice(
+                    session,
+                    owner_id=owner_id,
+                    ingredient_name=name,
+                    food_reference_id=reference_id,
+                    owner_food_id=resolved_owner_food_id,
+                    jobs=self._jobs,
+                )
             return self._read(item)
 
     def update(
@@ -257,17 +276,31 @@ class PantryService:
                 item.unit_code = canonical_pantry_unit(str(values["unit"]))
             if "expires_on" in values:
                 item.expires_on = values["expires_on"]
-            if "food_reference_id" in values:
-                reference_id = values["food_reference_id"]
-                resolved, status, confidence = self._resolve_match(
-                    session, item.display_name, reference_id
+            if "food_reference_id" in values or "owner_food_id" in values:
+                reference_id = values.get("food_reference_id")
+                owner_food_id = values.get("owner_food_id")
+                resolved, resolved_owner_food_id, status, confidence = self._resolve_match(
+                    session, owner_id, item.display_name, reference_id, owner_food_id
                 )
                 item.food_reference_id = resolved
+                item.owner_food_id = resolved_owner_food_id
                 item.match_status = status
                 item.match_confidence = confidence
+                if reference_id is not None or owner_food_id is not None:
+                    propagate_food_choice(
+                        session,
+                        owner_id=owner_id,
+                        ingredient_name=item.display_name,
+                        food_reference_id=resolved,
+                        owner_food_id=resolved_owner_food_id,
+                        jobs=self._jobs,
+                    )
             elif "display_name" in values and item.match_status != "manual":
-                resolved, status, confidence = self._resolve_match(session, item.display_name, None)
+                resolved, resolved_owner_food_id, status, confidence = self._resolve_match(
+                    session, owner_id, item.display_name, None, None
+                )
                 item.food_reference_id = resolved
+                item.owner_food_id = resolved_owner_food_id
                 item.match_status = status
                 item.match_confidence = confidence
             item.version += 1
@@ -319,13 +352,22 @@ class PantryService:
     @staticmethod
     def _resolve_match(
         session: Session,
+        owner_id: UUID,
         display_name: str,
         requested_reference_id: UUID | None,
-    ) -> tuple[UUID | None, str, Decimal | None]:
+        requested_owner_food_id: UUID | None,
+    ) -> tuple[UUID | None, UUID | None, str, Decimal | None]:
+        if requested_reference_id is not None and requested_owner_food_id is not None:
+            raise DomainError("food_match_source_conflict", "Choose one food source.", 422)
         if requested_reference_id is not None:
             if session.get(FoodReference, requested_reference_id) is None:
                 raise DomainError("food_reference_not_found", "Food reference was not found.", 404)
-            return requested_reference_id, "manual", Decimal("1.000000")
+            return requested_reference_id, None, "manual", Decimal("1.000000")
+        if requested_owner_food_id is not None:
+            owner_food = session.get(OwnerFood, requested_owner_food_id)
+            if owner_food is None or owner_food.owner_id != owner_id or not owner_food.is_active:
+                raise DomainError("owner_food_not_found", "Your custom food was not found.", 404)
+            return None, requested_owner_food_id, "manual", Decimal("1.000000")
         decision = engine.match_ingredient(session, display_name)
         candidate = decision.candidate
         if candidate is None and decision.status == "ambiguous" and decision.alternatives:
@@ -333,6 +375,7 @@ class PantryService:
         status_map = {"matched": "matched", "ambiguous": "proposed", "unmatched": "unmatched"}
         return (
             UUID(str(candidate.food.id)) if candidate is not None else None,
+            None,
             status_map.get(decision.status, "unmatched"),
             candidate.score if candidate is not None else None,
         )
@@ -347,6 +390,7 @@ class PantryService:
             unit=item.unit_code,
             expires_on=item.expires_on,
             food_reference_id=item.food_reference_id,
+            owner_food_id=item.owner_food_id,
             match_status=item.match_status,
             match_confidence=item.match_confidence,
             version=item.version,

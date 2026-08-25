@@ -176,7 +176,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     idempotency_service = IdempotencyService(sessions)
     recipe_query_service = RecipeQueryService(sessions)
     suggestion_service = SuggestionService(sessions)
-    pantry_service = PantryService(sessions)
+    job_service = JobService(sessions)
+    pantry_service = PantryService(sessions, job_service)
     mcp_security = McpSecurity(
         access_token_service,
         RedisTokenRateLimiter(redis_client),
@@ -228,7 +229,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.access_tokens = access_token_service
             app.state.owner_preferences = OwnerPreferenceService(sessions)
             app.state.owner_onboarding = OwnerOnboardingService(sessions)
-            app.state.jobs = JobService(sessions)
+            app.state.jobs = job_service
             media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
             app.state.media_store = media_store
             app.state.recipes = RecipeService(
@@ -257,7 +258,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.meal_plans = meal_plan_service
             app.state.grocery_lists = grocery_list_service
             app.state.grocery_shopping_stops = GroceryShoppingStopService(sessions)
-            app.state.pantry = PantryService(sessions)
+            app.state.pantry = pantry_service
             app.state.pantry_search = PantrySearchService(sessions)
             app.state.pantry_deductions = PantryDeductionService(sessions)
             app.state.suggestions = SuggestionService(sessions)
