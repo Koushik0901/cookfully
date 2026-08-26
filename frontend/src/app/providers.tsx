@@ -27,10 +27,11 @@ export function RequireAuthentication({ children }: { children: ReactNode }) {
       <main className="auth-screen">
         <div className="auth-layout">
           <figure className="auth-visual">
-            <img
-              src="/cookfully-hero-balanced-table.png"
-              alt="A balanced salmon grain bowl with roasted vegetables"
-            />
+            <picture>
+              <source type="image/avif" srcSet="/cookfully-hero-balanced-table-960.avif 960w, /cookfully-hero-balanced-table-1440.avif 1440w" sizes="(max-width: 900px) 0px, 50vw" />
+              <source type="image/webp" srcSet="/cookfully-hero-balanced-table-960.webp 960w, /cookfully-hero-balanced-table-1440.webp 1440w" sizes="(max-width: 900px) 0px, 50vw" />
+              <img src="/cookfully-hero-balanced-table-960.webp" width="1536" height="1024" alt="A balanced salmon grain bowl with roasted vegetables" />
+            </picture>
             <figcaption>
               <span>Cook with clarity</span>
               <strong>Good food, organized around your life.</strong>

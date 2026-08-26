@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, DialogCloseButton, SearchField } from "../../components";
 import { Checkbox } from "@/components/ui/checkbox";
 import { foodsApi } from "./api";
+import { invalidateFoodChoiceQueries } from "./foodChoiceQueries";
 import { CreateFoodDialog } from "./CreateFoodDialog";
 import { FoodRow } from "./FoodCandidateRow";
 import type { FoodCandidate, OwnerFood } from "./types";
@@ -24,6 +25,7 @@ export function FoodPicker({
   ingredientName,
   onSelected,
 }: FoodPickerProps) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [rememberMatch, setRememberMatch] = useState(true);
   const [searchValue, setSearchValue] = useState("");
@@ -60,6 +62,7 @@ export function FoodPicker({
     },
     onSuccess: (accepted) => {
       setOpen(false);
+      void invalidateFoodChoiceQueries(queryClient);
       onSelected(accepted);
     },
     onError: () => {
@@ -78,7 +81,7 @@ export function FoodPicker({
               <p className="eyebrow">Nutrition reference</p>
               <Dialog.Title>Match &ldquo;{ingredientName}&rdquo;</Dialog.Title>
               <Dialog.Description id="food-picker-desc">
-                Search your foods or choose one of the best matches.
+                Choose the food this ingredient represents. The choice can update similar ingredients across your kitchen.
               </Dialog.Description>
             </div>
             <DialogCloseButton label="Close food matching dialog" />
@@ -166,9 +169,9 @@ export function FoodPicker({
           </div>
 
           <div className="food-picker__footer">
-            <label className="checkbox-row">
+          <label className="checkbox-row">
               <Checkbox checked={rememberMatch} onCheckedChange={(checked) => setRememberMatch(checked === true)} />
-              Remember this choice for similar ingredients
+              Use this choice for similar ingredients everywhere
             </label>
             <Dialog.Close asChild><Button variant="ghost" disabled={selectFood.isPending}>Cancel</Button></Dialog.Close>
           </div>

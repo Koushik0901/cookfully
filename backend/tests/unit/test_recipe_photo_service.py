@@ -9,11 +9,13 @@ from uuid import UUID
 import httpx
 import pytest
 from PIL import Image
+from sqlalchemy import select
 
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.domain.common import DomainError, uuid7
 from cookfully.infrastructure.media_store import MediaStore
 from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.media import RecipePhotoDerivative, RecipePhotoStage
 from cookfully.infrastructure.recipe_images import RecipeImageService
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
@@ -120,3 +122,39 @@ async def test_attach_url_rejects_stale_version(session_factory, tmp_path: Path)
         await service.attach_url(recipe_id, _png_data_uri(), expected_version=99)
     assert stale.value.code == "stale_version"
     assert stale.value.status == 409
+
+
+async def test_staged_photo_claims_responsive_variants_without_reprocessing_on_save(
+    session_factory, tmp_path: Path
+) -> None:
+    from cookfully.application.auth import AuthService
+
+    service = _build_service(session_factory, tmp_path)
+    owner = AuthService(session_factory).bootstrap_owner(
+        "stage@example.com", "correct horse battery staple", "Stage owner"
+    )
+    recipe_id = _seed_recipe(session_factory, "Prepared photo")
+
+    stage = service.stage(owner_id=owner.id, content=_png_bytes(), content_type="image/png")
+    with session_factory() as session:
+        pending = session.get(RecipePhotoStage, stage.id)
+        assert pending is not None and pending.detail_asset_id != pending.card_asset_id
+
+    claimed = service.claim_stage(
+        recipe_id,
+        stage.id,
+        owner_id=owner.id,
+        expected_version=1,
+    )
+
+    assert claimed.image_asset_id is not None
+    assert claimed.version == 2
+    with session_factory() as session:
+        assert session.get(RecipePhotoStage, stage.id) is None
+        card = session.scalar(
+            select(RecipePhotoDerivative).where(
+                RecipePhotoDerivative.recipe_id == recipe_id,
+                RecipePhotoDerivative.role == "card",
+            )
+        )
+        assert card is not None and card.asset_id != claimed.image_asset_id

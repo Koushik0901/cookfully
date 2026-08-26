@@ -117,11 +117,10 @@ services:
       start_period: 15s
     restart: unless-stopped
 
-  worker:
+  worker-interactive: &worker
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
-    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--concurrency=${COOKFULLY_WORKER_MAX_CONCURRENCY:-4}"]
     environment:
       <<: *backend-environment
       COOKFULLY_RUN_MIGRATIONS: "false"
@@ -137,6 +136,11 @@ services:
       - export-data:/data/exports
       - erasure-ledger-data:/data/erasure-ledger
     restart: unless-stopped
+    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--queues=interactive", "--concurrency=${COOKFULLY_INTERACTIVE_WORKER_CONCURRENCY:-2}"]
+
+  worker-bulk:
+    <<: *worker
+    command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--queues=bulk,maintenance", "--concurrency=${COOKFULLY_BULK_WORKER_CONCURRENCY:-2}"]
 
   outbox:
     build:

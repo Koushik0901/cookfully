@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.food_match_memories import remembered_food_reference
+from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
 from cookfully.application.recipes import (
@@ -398,11 +398,44 @@ class RecipePipeline:
                 if active is not None and active.status == "manual":
                     job.progress_current = position
                     continue
-                remembered = (
-                    remembered_food_reference(session, owner_id=owner_id, ingredient=ingredient)
+                remembered_choice = (
+                    remembered_food_choice(session, owner_id=owner_id, ingredient=ingredient)
                     if owner_id is not None
                     else None
                 )
+                if remembered_choice is not None and remembered_choice.owner_food is not None:
+                    owner_food = remembered_choice.owner_food
+                    try:
+                        converted = engine.to_grams(
+                            IngredientMeasure(
+                                ingredient.quantity_min,
+                                ingredient.quantity_max,
+                                ingredient.unit_code,
+                                ingredient.optional,
+                            ),
+                            owner_food=owner_food,
+                        )
+                    except DomainError:
+                        converted = None
+                    repository.activate_match(
+                        IngredientMatch(
+                            ingredient_id=ingredient.id,
+                            food_reference_id=None,
+                            owner_food_id=owner_food.id,
+                            status="manual",
+                            match_method="remembered_owner_food",
+                            match_score=None,
+                            grams_min=converted.minimum if converted else None,
+                            grams_max=converted.maximum if converted else None,
+                            conversion_method=converted.method if converted else None,
+                            assumption_text=converted.assumption if converted else None,
+                            input_hash=recipe.input_hash,
+                            active=True,
+                        )
+                    )
+                    job.progress_current = position
+                    continue
+                remembered = remembered_choice.food_reference if remembered_choice else None
                 decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
                 candidate = decision.candidate
                 density = (

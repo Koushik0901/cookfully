@@ -1,13 +1,23 @@
 from datetime import datetime
 from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
+from cookfully.api.schemas.grocery import GroceryListResponse
+from cookfully.api.schemas.pantry import PantryItemResponse, PantryRecipeMatchResponse
+from cookfully.api.schemas.plans import MealPlanResponse
+from cookfully.api.schemas.recipes import RecipePageResponse
+from cookfully.application.grocery_lists import GroceryListService
+from cookfully.application.meal_plans import MealPlanService
 from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
-from cookfully.domain.common import DomainError
+from cookfully.application.pantry import PantryService
+from cookfully.application.pantry_search import PantrySearchService
+from cookfully.application.recipe_queries import RecipeQueryService
+from cookfully.domain.common import DomainError, utc_now
 from cookfully.infrastructure.models.identity import OwnerAccount
 
 router = APIRouter(prefix="/owner", tags=["Owner"])
@@ -36,6 +46,24 @@ class OwnerOnboarding(BaseModel):
     version: int = Field(ge=1)
 
 
+class HomeBootstrap(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    preferences: OwnerPreferences
+    recipes: RecipePageResponse
+    pantry: tuple[PantryItemResponse, ...]
+    plan: MealPlanResponse | None = None
+    grocery: GroceryListResponse | None = None
+    pantry_matches: tuple[PantryRecipeMatchResponse, ...] = Field(alias="pantryMatches")
+
+
+def _current_week_start(owner: OwnerAccount):
+    local_today = utc_now().astimezone(ZoneInfo(owner.timezone)).date()
+    return local_today.fromordinal(
+        local_today.toordinal() - ((local_today.isoweekday() - owner.week_starts_on) % 7)
+    )
+
+
 @router.get("/preferences", response_model=OwnerPreferences)
 def get_preferences(
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
@@ -45,6 +73,60 @@ def get_preferences(
         timezone=owner.timezone,
         week_starts_on=owner.week_starts_on,
         version=owner.version,
+    )
+
+
+@router.get("/home", response_model=HomeBootstrap, response_model_by_alias=True)
+def get_home_bootstrap(
+    request: Request,
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> HomeBootstrap:
+    """One bounded projection for Home, instead of a browser request fan-out."""
+
+    recipes: RecipeQueryService = request.app.state.recipe_queries
+    pantry: PantryService = request.app.state.pantry
+    pantry_search: PantrySearchService = request.app.state.pantry_search
+    meal_plans: MealPlanService = request.app.state.meal_plans
+    groceries: GroceryListService = request.app.state.grocery_lists
+    week_start = _current_week_start(owner)
+    recipe_page = recipes.list(
+        query=None,
+        nutrition_state=None,
+        include_archived=True,
+        cursor=None,
+        limit=12,
+    )
+    pantry_items = pantry.list(owner.id)
+    try:
+        plan = MealPlanResponse.from_read(meal_plans.get(owner.id, week_start))
+    except DomainError as error:
+        if error.status != 404:
+            raise
+        plan = None
+    try:
+        grocery = GroceryListResponse.from_read(groceries.get(owner.id, week_start))
+    except DomainError as error:
+        if error.status != 404:
+            raise
+        grocery = None
+    recipe_ids = {item.id for item in recipe_page.items}
+    matches = (
+        tuple(item for item in pantry_search.search(owner.id) if item.recipe_id in recipe_ids)
+        if pantry_items and recipe_ids
+        else ()
+    )
+    return HomeBootstrap(
+        preferences=OwnerPreferences(
+            display_name=owner.display_name,
+            timezone=owner.timezone,
+            week_starts_on=owner.week_starts_on,
+            version=owner.version,
+        ),
+        recipes=RecipePageResponse.from_read(recipe_page),
+        pantry=tuple(PantryItemResponse.from_read(item) for item in pantry_items),
+        plan=plan,
+        grocery=grocery,
+        pantry_matches=tuple(PantryRecipeMatchResponse.from_score(item) for item in matches),
     )
 
 

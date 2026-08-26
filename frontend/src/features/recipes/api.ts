@@ -82,7 +82,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 export const recipesApi = {
-  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string } = {}, cursor?: string, limit = 30) {
+  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string } = {}, cursor?: string, limit = 30, signal?: AbortSignal) {
     const params = new URLSearchParams();
     if (filters.query) params.set("query", filters.query);
     if (filters.nutritionState) params.set("nutritionState", filters.nutritionState);
@@ -93,7 +93,7 @@ export const recipesApi = {
     params.set("limit", String(limit));
     if (cursor) params.set("cursor", cursor);
     const suffix = params.size ? `?${params.toString()}` : "";
-    return apiRequest<RecipePage>(`/recipes${suffix}`);
+    return apiRequest<RecipePage>(`/recipes${suffix}`, { signal });
   },
   get(recipeId: string) {
     return apiRequest<RecipeDetail>(`/recipes/${recipeId}`);
@@ -143,6 +143,14 @@ export const recipesApi = {
   },
   archive(recipeId: string, version: number) {
     return apiRequest<void>(`/recipes/${recipeId}`, { method: "DELETE", version });
+  },
+  stagePhoto(photo: File) {
+    const body = new FormData();
+    body.set("photo", photo);
+    return apiRequest<{ id: string; expiresAt: string }>("/recipes/photo-stages", {
+      method: "POST",
+      body,
+    });
   },
   bulkArchive(items: Array<{ id: string; version: number }>) {
     return apiRequest<BulkArchiveResponse>("/recipes/bulk/archive", {

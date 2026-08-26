@@ -22,7 +22,7 @@ export function Button(props: ComponentProps<typeof ShadcnButton>) {
 }
 
 export function BrandMark({ className = "" }: { className?: string }) {
-  return <img className={`brand-mark ${className}`} src="/brand/cookfully-mark.svg" alt="" aria-hidden="true" />;
+  return <img className={`brand-mark ${className}`} src="/brand/cookfully-mark.webp" width="96" height="96" alt="" aria-hidden="true" />;
 }
 
 export function Field({ label, error, hint, endAdornment, accessibilityLabel, children }: { label: string; error?: string; hint?: string; endAdornment?: ReactNode; accessibilityLabel?: string; children: ReactElement<{ "aria-label"?: string; "aria-labelledby"?: string; "aria-describedby"?: string }> }) {

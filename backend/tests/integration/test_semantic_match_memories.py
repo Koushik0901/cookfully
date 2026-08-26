@@ -3,17 +3,21 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.food_match_memories import (
     forget_food_reference,
     remember_food_reference,
+    remembered_food_choice,
     remembered_food_reference,
 )
-from cookfully.domain.common import uuid7
+from cookfully.domain.common import utc_now, uuid7
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, normalize_food
 from cookfully.infrastructure.models.identity import OwnerAccount
+from cookfully.infrastructure.models.nutrition import IngredientMatch
+from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import Ingredient, Recipe
 from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
@@ -100,6 +104,27 @@ def build_ingredient(session: Session, *, food_name: str) -> Ingredient:
     session.add(ingredient)
     session.flush()
     return ingredient
+
+
+def build_owner_food(session: Session, owner: OwnerAccount, *, name: str) -> OwnerFood:
+    now = utc_now()
+    food = OwnerFood(
+        owner_id=owner.id,
+        display_name=name,
+        normalized_name=normalize_food(name),
+        calories_kcal=Decimal("120"),
+        protein_g=Decimal("12"),
+        carbohydrate_g=Decimal("4"),
+        fat_g=Decimal("6"),
+        basis_grams=Decimal("100"),
+        is_active=True,
+        version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    session.add(food)
+    session.flush()
+    return food
 
 
 class FoodRepositoryStub:
@@ -306,3 +331,38 @@ def test_correction_with_remember_match_creates_memory(
     with session_factory() as session:
         remembered = remembered_food_reference(session, owner_id=owner.id, ingredient=ingredient)
         assert remembered is not None and remembered.id == food.id
+
+
+def test_custom_food_choice_is_remembered_and_propagates(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with session_factory.begin() as session:
+        owner = build_owner(session, email="owner-custom@example.com")
+        food = build_owner_food(session, owner, name="House tofu")
+        chosen_ingredient = build_ingredient(session, food_name="tofu")
+        other_ingredient = build_ingredient(session, food_name="tofu")
+
+    CorrectionService(session_factory).activate_owner_food_match(
+        recipe_id=chosen_ingredient.recipe_id,
+        ingredient_id=chosen_ingredient.id,
+        owner_food_id=food.id,
+        owner_id=owner.id,
+        remember_match=True,
+    )
+
+    with session_factory() as session:
+        choice = remembered_food_choice(
+            session,
+            owner_id=owner.id,
+            ingredient=other_ingredient,
+        )
+        assert choice.owner_food is not None and choice.owner_food.id == food.id
+        propagated = session.scalar(
+            select(IngredientMatch).where(
+                IngredientMatch.ingredient_id == other_ingredient.id,
+                IngredientMatch.active.is_(True),
+            )
+        )
+        assert propagated is not None
+        assert propagated.owner_food_id == food.id
+        assert propagated.status == "manual"

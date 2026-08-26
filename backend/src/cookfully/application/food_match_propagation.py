@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from cookfully.application.food_match_memories import remember_food_choice
 from cookfully.application.ingredient_engine import engine
@@ -59,64 +59,74 @@ def propagate_food_choice(
 
     recipes_updated = 0
     ingredients_updated = 0
-    recipes = session.scalars(
-        select(Recipe).where(Recipe.status != "archived").options(selectinload(Recipe.ingredients))
+    candidate_rows = session.execute(
+        select(Ingredient, Recipe)
+        .join(Recipe, Ingredient.recipe_id == Recipe.id)
+        .where(Recipe.status != "archived")
     ).all()
+    candidate_ingredients = [
+        (ingredient, recipe)
+        for ingredient, recipe in candidate_rows
+        if _ingredient_signature(ingredient) == signature
+    ]
+    active_matches = {
+        match.ingredient_id: match
+        for match in session.scalars(
+            select(IngredientMatch).where(
+                IngredientMatch.ingredient_id.in_(
+                    ingredient.id for ingredient, _recipe in candidate_ingredients
+                ),
+                IngredientMatch.active.is_(True),
+            )
+        )
+    } if candidate_ingredients else {}
     repository = NutritionRepository(session)
-    for recipe in recipes:
-        recipe_changed = False
-        for ingredient in recipe.ingredients:
-            if _ingredient_signature(ingredient) != signature:
-                continue
-            active = session.scalar(
-                select(IngredientMatch).where(
-                    IngredientMatch.ingredient_id == ingredient.id,
-                    IngredientMatch.active.is_(True),
-                )
+    changed_recipes: dict[UUID, Recipe] = {}
+    for ingredient, recipe in candidate_ingredients:
+        active = active_matches.get(ingredient.id)
+        if active is not None and active.status == "manual":
+            continue
+        grams_min, grams_max, method, assumption = _grams(
+            ingredient, food_reference=food_reference, owner_food=owner_food
+        )
+        repository.activate_match(
+            IngredientMatch(
+                ingredient_id=ingredient.id,
+                food_reference_id=food_reference.id if food_reference else None,
+                owner_food_id=owner_food.id if owner_food else None,
+                status="manual",
+                match_method="pantry_memory",
+                match_score=None,
+                grams_min=grams_min,
+                grams_max=grams_max,
+                conversion_method=method,
+                density_g_per_ml=(
+                    density_for(food_reference.description) if food_reference else None
+                ),
+                assumption_text=assumption,
+                source_release_id=(
+                    food_reference.dataset.release_id if food_reference else None
+                ),
+                input_hash=recipe.input_hash,
+                active=True,
             )
-            if active is not None and active.status == "manual":
-                continue
-            grams_min, grams_max, method, assumption = _grams(
-                ingredient, food_reference=food_reference, owner_food=owner_food
+        )
+        ingredients_updated += 1
+        changed_recipes[recipe.id] = recipe
+    for recipe in changed_recipes.values():
+        recipe.status = "processing"
+        recipe.nutrition_state = "stale"
+        recipe.version += 1
+        recipes_updated += 1
+        if jobs is not None:
+            jobs.accept_in_session(
+                session,
+                kind="nutrition_match",
+                aggregate_type="recipe",
+                aggregate_id=recipe.id,
+                input_hash=recipe.input_hash,
+                trace_id=f"food-match-{uuid7()}",
             )
-            repository.activate_match(
-                IngredientMatch(
-                    ingredient_id=ingredient.id,
-                    food_reference_id=food_reference.id if food_reference else None,
-                    owner_food_id=owner_food.id if owner_food else None,
-                    status="manual",
-                    match_method="pantry_memory",
-                    match_score=None,
-                    grams_min=grams_min,
-                    grams_max=grams_max,
-                    conversion_method=method,
-                    density_g_per_ml=(
-                        density_for(food_reference.description) if food_reference else None
-                    ),
-                    assumption_text=assumption,
-                    source_release_id=(
-                        food_reference.dataset.release_id if food_reference else None
-                    ),
-                    input_hash=recipe.input_hash,
-                    active=True,
-                )
-            )
-            ingredients_updated += 1
-            recipe_changed = True
-        if recipe_changed:
-            recipe.status = "processing"
-            recipe.nutrition_state = "stale"
-            recipe.version += 1
-            recipes_updated += 1
-            if jobs is not None:
-                jobs.accept_in_session(
-                    session,
-                    kind="nutrition_match",
-                    aggregate_type="recipe",
-                    aggregate_id=recipe.id,
-                    input_hash=recipe.input_hash,
-                    trace_id=f"pantry-match-{uuid7()}",
-                )
     return FoodMatchPropagation(recipes_updated, ingredients_updated)
 
 

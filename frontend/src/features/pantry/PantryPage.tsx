@@ -26,6 +26,7 @@ import { RecipeMedia, type RecipeMediaSource } from "../../components/cookfully/
 import { CreateFoodDialog } from "../foods/CreateFoodDialog";
 import { FoodRow } from "../foods/FoodCandidateRow";
 import { foodsApi } from "../foods/api";
+import { invalidateFoodChoiceQueries } from "../foods/foodChoiceQueries";
 import type { FoodCandidate, OwnerFood } from "../foods/types";
 import { ApiProblem } from "../recipes/api";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
@@ -48,22 +49,10 @@ function formatUseBy(value: string) {
 
 const MATCH_ORDER = new Map([["proposed", 0], ["unmatched", 1], ["matched", 2], ["manual", 2]]);
 
-function invalidateFoodMatchQueries(queryClient: ReturnType<typeof useQueryClient>) {
-  return Promise.all([
-    queryClient.invalidateQueries({ queryKey: ["pantry-items"] }),
-    queryClient.invalidateQueries({ queryKey: ["pantry-recipe-matches"] }),
-    queryClient.invalidateQueries({ queryKey: ["planning-recipes"] }),
-    queryClient.invalidateQueries({ queryKey: ["recipes"] }),
-    queryClient.invalidateQueries({ queryKey: ["recipe"] }),
-    queryClient.invalidateQueries({ queryKey: ["grocery-list"] }),
-    queryClient.invalidateQueries({ queryKey: ["meal-plan"] }),
-  ]);
-}
-
 function matchLabel(item: PantryItem) {
   if (item.matchStatus === "matched" || item.matchStatus === "manual") return "Ready to use";
-  if (item.matchStatus === "proposed") return "Needs confirmation";
-  return "Needs a match";
+  if (item.matchStatus === "proposed") return "Review match";
+  return "Choose a food match";
 }
 
 function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
@@ -112,7 +101,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
     enabled: editOpen && foodSearchQuery.length > 0,
     staleTime: 60_000,
   });
-  const refresh = () => invalidateFoodMatchQueries(queryClient);
+  const refresh = () => invalidateFoodChoiceQueries(queryClient);
   const update = useMutation({
     mutationFn: (value: PantryItemWrite) => pantryApi.update(item.id, item.version, value),
     onMutate: async (value) => {
@@ -201,7 +190,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                 <div>
                   <p className="eyebrow">Keep the shelf accurate</p>
                   <Dialog.Title>{matchActionLabel} · {item.displayName}</Dialog.Title>
-                  <Dialog.Description id={`pantry-edit-description-${item.id}`} className="pantry-dialog__description">Choose the closest USDA food so recipes can use this shelf item confidently.</Dialog.Description>
+                <Dialog.Description id={`pantry-edit-description-${item.id}`} className="pantry-dialog__description">Choose the food this item represents. We’ll use that choice across your pantry and recipes.</Dialog.Description>
                 </div>
                 <DialogCloseButton label={`Close ${matchActionLabel.toLowerCase()} dialog`} />
               </header>
@@ -213,7 +202,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                   <div className="pantry-food-search__heading">
                     <div>
                       <h3 id={`pantry-food-search-${item.id}`}>Food match</h3>
-                      <p>Search for the closest USDA food. Your shelf name can stay familiar.</p>
+                      <p>Search USDA or your saved foods. Your shelf name can stay familiar.</p>
                     </div>
                     {activeFood ? <span className="pantry-food-search__selected">Selected</span> : null}
                   </div>
@@ -378,7 +367,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
     onSuccess: () => {
       setOpen(false);
       setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
-      void invalidateFoodMatchQueries(queryClient);
+      void invalidateFoodChoiceQueries(queryClient);
     },
   });
 

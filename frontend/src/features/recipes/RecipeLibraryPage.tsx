@@ -20,6 +20,7 @@ export function RecipeLibraryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const addMenuRef = useRef<HTMLDetailsElement>(null);
   const [importOpen, setImportOpen] = useState(searchParams.get("import") === "1");
+  const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
   const [libraryView, setLibraryView] = useState<"all" | "ready" | "attention" | "archived">("all");
   const [sortBy, setSortBy] = useState<"updated" | "title-asc" | "title-desc" | "protein" | "calories">("updated");
@@ -34,6 +35,10 @@ export function RecipeLibraryPage() {
   useEffect(() => {
     if (searchParams.get("import") === "1") setImportOpen(true);
   }, [searchParams]);
+  useEffect(() => {
+    const debounce = window.setTimeout(() => setQuery(queryInput.trim()), 180);
+    return () => window.clearTimeout(debounce);
+  }, [queryInput]);
   const unfiled = collectionId === "__unfiled__";
   const collections = useQuery({ queryKey: ["recipe-collections"], queryFn: recipesApi.collections, retry: 1 });
   const onboarding = useQuery({ queryKey: ["owner-onboarding"], queryFn: onboardingApi.get, retry: 1 });
@@ -47,7 +52,8 @@ export function RecipeLibraryPage() {
   const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: unfiled ? undefined : collectionId || undefined, mealRole: mealRole || undefined };
   const recipes = useQuery({
     queryKey: ["recipes", filters],
-    queryFn: () => recipesApi.list(filters),
+    queryFn: ({ signal }) => recipesApi.list(filters, undefined, 30, signal),
+    placeholderData: (previous) => previous,
     retry: 1,
   });
   const filterKey = JSON.stringify(filters);
@@ -153,6 +159,7 @@ export function RecipeLibraryPage() {
   const isGenuinelyEmpty = Boolean(recipes.data && loadedItems.length === 0 && !hasDiscoveryFilter && !bulkMessage);
   const hasArchivedRecipes = Boolean(loadedItems.some((recipe) => recipe.status === "archived"));
   const clearDiscovery = () => {
+    setQueryInput("");
     setQuery("");
     setLibraryView("all");
     setFavoriteOnly(false);
@@ -217,7 +224,7 @@ export function RecipeLibraryPage() {
       <RecipeImportDialog open={importOpen} onOpenChange={closeImport} />
 
       <section className="recipe-discovery" aria-label="Find recipes">
-        <SearchField className="recipe-search" label="Search recipes" placeholder="Search by recipe name" value={query} onChange={(event) => setQuery(event.target.value)} onClear={() => setQuery("")} />
+        <SearchField className="recipe-search" label="Search recipes" placeholder="Search by recipe name" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} onClear={() => setQueryInput("")} />
         <TabList className="recipe-view-tabs" label="Recipe views">
           <button type="button" id="recipe-view-tab-all" role="tab" aria-controls="recipe-view-panel" aria-selected={!favoriteOnly} tabIndex={!favoriteOnly ? 0 : -1} onClick={() => setFavoriteOnly(false)}>All recipes</button>
           <button type="button" id="recipe-view-tab-favorites" role="tab" aria-controls="recipe-view-panel" aria-selected={favoriteOnly} tabIndex={favoriteOnly ? 0 : -1} onClick={() => setFavoriteOnly(true)}>Favorites</button>

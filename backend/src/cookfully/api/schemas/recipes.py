@@ -190,6 +190,7 @@ class RecipeWriteRequest(ApiModel):
     sections: tuple[SectionWriteRequest, ...] = Field(default=(), max_length=50)
     thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
     origin_kind: RecipeOrigin | None = Field(alias="originKind", default=None)
+    staged_photo_id: UUID | None = Field(alias="stagedPhotoId", default=None)
 
     def to_write(self) -> RecipeWrite:
         return RecipeWrite(
@@ -209,6 +210,11 @@ class RecipeWriteRequest(ApiModel):
             thumbnail_crop=self.thumbnail_crop.to_domain() if self.thumbnail_crop else None,
             origin_kind=self.origin_kind,
         )
+
+
+class RecipePhotoStageResponse(ApiModel):
+    id: UUID
+    expires_at: datetime = Field(alias="expiresAt")
 
 
 class RecipeBulkArchiveItem(ApiModel):
@@ -629,6 +635,7 @@ class RecipeResponse(ApiModel):
     title: str
     source_url: str | None = Field(alias="sourceUrl", default=None)
     image_url: str | None = Field(alias="imageUrl", default=None)
+    image_src_set: str | None = Field(alias="imageSrcSet", default=None)
     yield_quantity: ServingDecimal = Field(alias="yieldQuantity")
     yield_unit: str = Field(alias="yieldUnit")
     prep_minutes: int | None = Field(alias="prepMinutes", default=None, ge=0, le=1440)
@@ -654,6 +661,7 @@ class RecipeResponse(ApiModel):
             title=value.title,
             source_url=value.source_url,
             image_url=value.image_url,
+            image_src_set=value.image_src_set,
             yield_quantity=value.yield_quantity,
             yield_unit=value.yield_unit,
             prep_minutes=value.prep_minutes,

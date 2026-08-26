@@ -28,6 +28,7 @@ from cookfully.domain.nutrition import (
 )
 from cookfully.domain.recipes import ThumbnailCrop
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
+from cookfully.infrastructure.models.media import RecipePhotoDerivative
 from cookfully.infrastructure.models.nutrition import (
     IngredientMatch,
     NutritionCorrection,
@@ -112,6 +113,7 @@ class RecipeRead:
     description: str | None
     source_url: str | None
     image_url: str | None
+    image_src_set: str | None
     yield_quantity: Decimal
     yield_unit: str
     prep_minutes: int | None
@@ -202,6 +204,19 @@ class RecipeQueryService:
                 if estimate_ids
                 else {}
             )
+            cards_by_recipe = (
+                {
+                    item.recipe_id: item.asset_id
+                    for item in session.scalars(
+                        select(RecipePhotoDerivative).where(
+                            RecipePhotoDerivative.recipe_id.in_(recipe_ids),
+                            RecipePhotoDerivative.role == "card",
+                        )
+                    )
+                }
+                if recipe_ids
+                else {}
+            )
             items = tuple(
                 self._read(
                     session,
@@ -213,6 +228,7 @@ class RecipeQueryService:
                         if recipe.active_estimate_id is not None
                         else None
                     ),
+                    card_asset_id=cards_by_recipe.get(recipe.id),
                 )
                 for recipe in recipes
             )
@@ -241,6 +257,7 @@ class RecipeQueryService:
         detail: bool,
         prefetched_corrections: Sequence[NutritionCorrection] | None = None,
         prefetched_estimate: NutritionEstimate | None = None,
+        card_asset_id: UUID | None = None,
     ) -> RecipeRead:
         corrections = (
             list(prefetched_corrections)
@@ -286,12 +303,26 @@ class RecipeQueryService:
                 .limit(1)
             )
             active_job = JobService._progress(job) if job is not None else None
+        if card_asset_id is None and recipe.image_asset_id is not None:
+            card_asset_id = session.scalar(
+                select(RecipePhotoDerivative.asset_id).where(
+                    RecipePhotoDerivative.recipe_id == recipe.id,
+                    RecipePhotoDerivative.role == "card",
+                )
+            )
+        image_url = f"/api/v1/media/{recipe.image_asset_id}" if recipe.image_asset_id else None
+        image_src_set = (
+            f"/api/v1/media/{card_asset_id} 480w, {image_url} 960w"
+            if card_asset_id is not None and image_url is not None
+            else None
+        )
         return RecipeRead(
             id=recipe.id,
             title=recipe.title,
             description=recipe.description,
             source_url=recipe.source_url,
-            image_url=(f"/api/v1/media/{recipe.image_asset_id}" if recipe.image_asset_id else None),
+            image_url=image_url,
+            image_src_set=image_src_set,
             thumbnail_crop=ThumbnailCrop(
                 recipe.thumbnail_x,
                 recipe.thumbnail_y,

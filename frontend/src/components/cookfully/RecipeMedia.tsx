@@ -6,6 +6,7 @@ import { RecipeFallbackArt } from "./RecipeFallbackArt";
 export interface RecipeMediaSource {
   title: string;
   imageUrl?: string | null;
+  imageSrcSet?: string | null;
   thumbnailCrop?: {
     x: string | number;
     y: string | number;
@@ -20,12 +21,14 @@ export function RecipeMedia({
   alt = "",
   loading = "lazy",
   decoding = "async",
+  sizes = "(max-width: 700px) 100vw, 480px",
 }: {
   recipe: RecipeMediaSource;
   className?: string;
   alt?: string;
   loading?: ImgHTMLAttributes<HTMLImageElement>["loading"];
   decoding?: ImgHTMLAttributes<HTMLImageElement>["decoding"];
+  sizes?: string;
 }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [recipe.imageUrl]);
@@ -35,6 +38,8 @@ export function RecipeMedia({
     <img
       className={className}
       src={recipe.imageUrl}
+      srcSet={recipe.imageSrcSet ?? undefined}
+      sizes={recipe.imageSrcSet ? sizes : undefined}
       alt={alt}
       loading={loading}
       decoding={decoding}

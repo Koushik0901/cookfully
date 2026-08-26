@@ -8,7 +8,10 @@ services:
   api:
     cpuset: "0-3"
 
-  worker:
+  worker-interactive:
+    cpuset: "0-3"
+
+  worker-bulk:
     cpuset: "0-3"
 
   outbox:
@@ -40,7 +43,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      worker:
+      worker-interactive:
         condition: service_started
     volumes:
       - ../artifacts:/app/artifacts

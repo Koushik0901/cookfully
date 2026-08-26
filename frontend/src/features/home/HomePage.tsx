@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ArrowRight, CalendarDays, ChefHat, PackageOpen, Plus, ShoppingBasket } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,18 +6,16 @@ import { Link } from "react-router-dom";
 import { Button, ErrorRecovery, RecipeMedia, Skeleton } from "../../components";
 import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
-import { groceryApi } from "../grocery/api";
-import { pantryApi } from "../pantry/api";
 import type { PantryRecipeMatch } from "../pantry/types";
-import { planningApi } from "../plans/api";
 import { todayInTimezone, weekDates, weekStartFor } from "../plans/dates";
 import type { MealPlanEntry } from "../plans/types";
-import { ApiProblem } from "../recipes/api";
 import { formatCookingNumber, servingLabel } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { recipeTimeLabel } from "../recipes/recipeMetadataUtils";
 import type { Recipe } from "../recipes/types";
 import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
+import { homeApi } from "./api";
+import { prefetchRecipeIntent } from "../../app/routeIntent";
 
 const DAY_MS = 86_400_000;
 const MEAL_ORDER = new Map(["breakfast", "lunch", "dinner", "snack"].map((slot, index) => [slot, index]));
@@ -83,32 +81,33 @@ function WeekDay({ date, entries, recipesById, today }: { date: string; entries:
 }
 
 export function HomePage() {
+  const queryClient = useQueryClient();
   const commandShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K";
-  const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
-  const recipes = useQuery({ queryKey: ["planning-recipes"], queryFn: ({ signal }) => planningApi.recipes("", signal), retry: 1 });
-  const pantry = useQuery({ queryKey: ["pantry-items"], queryFn: pantryApi.list, retry: false });
-  const today = preferences.data ? todayInTimezone(preferences.data.timezone) : "";
-  const weekStart = preferences.data ? weekStartFor(today, preferences.data.weekStartsOn) : "";
-  const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });
-  const grocery = useQuery({ queryKey: ["grocery-list", weekStart], queryFn: () => groceryApi.get(weekStart), enabled: Boolean(weekStart), retry: false });
-  const pantryMatches = useQuery({
-    queryKey: ["pantry-recipe-matches", "home"],
-    queryFn: () => pantryApi.search(),
-    enabled: Boolean(pantry.data?.length && recipes.data?.items.length),
-    retry: false,
+  const home = useQuery({
+    queryKey: ["home-bootstrap"],
+    queryFn: homeApi.get,
+    staleTime: 15_000,
+    retry: 1,
   });
+  const preferences = home.data?.preferences;
+  const recipePage = home.data?.recipes;
+  const pantryItems = home.data?.pantry;
+  const plan = home.data?.plan;
+  const grocery = home.data?.grocery;
+  const pantryMatches = home.data?.pantryMatches;
+  const today = preferences ? todayInTimezone(preferences.timezone) : "";
+  const weekStart = preferences ? weekStartFor(today, preferences.weekStartsOn) : "";
 
-  const activeRecipes = useMemo(() => recipes.data?.items.filter((recipe) => recipe.status !== "archived") ?? [], [recipes.data?.items]);
+  const activeRecipes = useMemo(() => recipePage?.items.filter((recipe) => recipe.status !== "archived") ?? [], [recipePage?.items]);
   const readyRecipes = useMemo(() => activeRecipes.filter(isRecipeReadyToPlan), [activeRecipes]);
   const recipesById = useMemo(() => new Map(activeRecipes.map((recipe) => [recipe.id, recipe])), [activeRecipes]);
   const recentRecipes = useMemo(() => [...activeRecipes].sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()).slice(0, 4), [activeRecipes]);
 
-  if (preferences.isPending) return <main className="page-shell home-page"><Skeleton label="Preparing your kitchen" lines={7} /></main>;
-  if (preferences.isError) return <main className="page-shell home-page"><ErrorRecovery title="Your kitchen could not be prepared" onRetry={() => void preferences.refetch()} /></main>;
+  if (home.isPending) return <main className="page-shell home-page"><Skeleton label="Preparing your kitchen" lines={7} /></main>;
+  if (home.isError || !preferences || !recipePage || !pantryItems) return <main className="page-shell home-page"><ErrorRecovery title="Your kitchen could not be prepared" onRetry={() => void home.refetch()} /></main>;
 
-  const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
-  const groceryMissing = grocery.error instanceof ApiProblem && grocery.error.status === 404;
-  const entries = plan.data?.entries ?? [];
+  const groceryMissing = !grocery;
+  const entries = plan?.entries ?? [];
   const todayEntries = entries.filter((entry) => entry.localDate === today).sort((a, b) => {
     const order = new Map(["breakfast", "lunch", "dinner", "snack"].map((slot, index) => [slot, index]));
     return (order.get(a.mealSlot) ?? 99) - (order.get(b.mealSlot) ?? 99) || a.position - b.position;
@@ -122,22 +121,20 @@ export function HomePage() {
   const entriesByDate = new Map(days.map((date) => [date, entries.filter((entry) => entry.localDate === date)]));
   const plannedDates = new Set(entries.filter((entry) => days.includes(entry.localDate)).map((entry) => entry.localDate));
   const plannedRecipeIds = new Set(entries.flatMap((entry) => entry.recipeId ? [entry.recipeId] : []));
-  const matchesByRecipeId = new Map((pantryMatches.data ?? []).map((match) => [match.recipeId, match]));
+  const matchesByRecipeId = new Map((pantryMatches ?? []).map((match) => [match.recipeId, match]));
   const dinnerMatch = dinner?.recipeId ? matchesByRecipeId.get(dinner.recipeId) : undefined;
   const recommendations = [...readyRecipes]
     .filter((recipe) => recipe.id !== dinner?.recipeId)
     .sort((a, b) => recommendationRank(b, matchesByRecipeId.get(b.id), plannedRecipeIds) - recommendationRank(a, matchesByRecipeId.get(a.id), plannedRecipeIds) || new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())
     .slice(0, 3);
-  const useSoon = (pantry.data ?? [])
+  const useSoon = pantryItems
     .filter((item) => item.expiresOn && Date.parse(`${item.expiresOn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`) <= 7 * DAY_MS)
     .sort((a, b) => String(a.expiresOn).localeCompare(String(b.expiresOn)))
     .slice(0, 3);
-  const activeGroceryItems = grocery.data?.items.filter((item) => !item.checked) ?? [];
-  const purchasedCount = grocery.data?.items.filter((item) => item.checked).length ?? 0;
-  const groceryUnavailable = grocery.isError && !groceryMissing;
-  const groceryHeading = grocery.isPending || grocery.data?.status === "generating" ? "Updating your list…"
-    : groceryUnavailable ? "Your list is out of reach"
-    : groceryMissing || !grocery.data ? "Start your grocery list"
+  const activeGroceryItems = grocery?.items.filter((item) => !item.checked) ?? [];
+  const purchasedCount = grocery?.items.filter((item) => item.checked).length ?? 0;
+  const groceryHeading = grocery?.status === "generating" ? "Updating your list…"
+    : groceryMissing || !grocery ? "Start your grocery list"
     : activeGroceryItems.length ? `${activeGroceryItems.length} ${activeGroceryItems.length === 1 ? "thing" : "things"} to pick up`
     : "Nothing waiting to buy";
   const heroFacts = dinner ? [
@@ -151,7 +148,7 @@ export function HomePage() {
   return (
     <main className="page-shell home-page">
       <header className="home-intro">
-        <div><p className="eyebrow">Your kitchen · {weekday(today)}</p><h1>{greetingFor(preferences.data.timezone)}</h1><p>Here’s what matters in your kitchen today.</p></div>
+        <div><p className="eyebrow">Your kitchen · {weekday(today)}</p><h1>{greetingFor(preferences.timezone)}</h1><p>Here’s what matters in your kitchen today.</p></div>
         <button type="button" className="home-command-hint" onClick={() => window.dispatchEvent(new Event("cookfully:open-command"))} aria-label="Open quick search"><span>Search or jump to…</span><kbd>{commandShortcut}</kbd></button>
       </header>
 
@@ -160,11 +157,11 @@ export function HomePage() {
           <div className="home-tonight__art" aria-hidden="true">{dinnerRecipe ? <span className="home-tonight__photo"><RecipeMedia recipe={dinnerRecipe} loading="eager" /></span> : <span className="home-plate"><i className="home-plate__greens" /><i className="home-plate__main" /><i className="home-plate__sauce" /></span>}</div>
           <div className="home-tonight__copy">
             <p className="eyebrow" id="tonight-heading">{focusTimeLabel}</p>
-            {plan.isPending || recipes.isPending ? <><h2>Checking tonight’s plan…</h2><p>Opening this week.</p></> : plan.isError && !planMissing ? <><h2>Your plan is out of reach</h2><p>Recipes are still safe.</p><Button variant="secondary" onClick={() => void plan.refetch()}>Try again</Button></> : dinner ? <>
+            {dinner ? <>
               <h2>{dinner.recipeTitle}</h2>
               {heroFacts.length ? <ul className="home-tonight__facts">{heroFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : null}
               {dinnerMatch?.availability === "full" ? <p className="home-tonight__availability">Everything you need is already in the pantry.</p> : dinnerMatch?.missingIngredients.length ? <p className="home-tonight__availability">{dinnerMatch.missingIngredients.length} {dinnerMatch.missingIngredients.length === 1 ? "ingredient" : "ingredients"} still needed. <Link to="/app/grocery">Check groceries</Link></p> : null}
-              {dinner.recipeId ? <Button asChild><Link to={`/app/recipes/${dinner.recipeId}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : <Button asChild><Link to="/app/plan">Review dinner</Link></Button>}
+              {dinner.recipeId ? <Button asChild><Link to={`/app/recipes/${dinner.recipeId}/cook`} onMouseEnter={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onFocus={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onPointerDown={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : <Button asChild><Link to="/app/plan">Review dinner</Link></Button>}
             </> : readyRecipes.length ? <><h2>Plan today’s next meal</h2><p>Make one good decision now.</p><Button asChild><Link to={`/app/plan?date=${today}&slot=${focusSlot}`}><CalendarDays aria-hidden="true" />Plan {focusSlot === "dinner" ? "tonight" : focusSlot}</Link></Button></> : <><h2>Save your first recipe</h2><p>Start with a dish you already love.</p><Button asChild><Link to="/app/recipes/new">Add a recipe</Link></Button></>}
           </div>
         </article>
@@ -179,7 +176,7 @@ export function HomePage() {
       <div className="home-priorities">
         <section className="home-use-soon" aria-labelledby="home-use-soon-heading">
           <div className="home-section-heading"><div><p className="eyebrow">Pantry</p><h2 id="home-use-soon-heading">Use soon</h2></div><Link to="/app/pantry">Open pantry <ArrowRight aria-hidden="true" /></Link></div>
-          {pantry.isPending ? <Skeleton label="Checking pantry dates" lines={2} /> : pantry.isError ? <p className="muted">Pantry dates are out of reach right now.</p> : useSoon.length ? <ul className="home-use-soon__list">{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantry.data?.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
+          {useSoon.length ? <ul className="home-use-soon__list">{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantryItems.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
         </section>
 
         <nav className="home-quick-actions" aria-labelledby="home-quick-actions-heading">
@@ -192,18 +189,18 @@ export function HomePage() {
 
       <section className="home-for-you" aria-labelledby="home-for-you-heading">
         <div className="home-section-heading"><div><h2 id="home-for-you-heading">Cook next</h2></div><Link to="/app/recipes">Browse recipes <ArrowRight aria-hidden="true" /></Link></div>
-        {recipes.isPending ? <Skeleton label="Finding recipe ideas" lines={3} /> : recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title}><span className="home-recommendation__media"><RecipeMedia recipe={recipe} /></span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
+        {recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} onMouseEnter={() => prefetchRecipeIntent(queryClient, recipe.id)} onFocus={() => prefetchRecipeIntent(queryClient, recipe.id)} onPointerDown={() => prefetchRecipeIntent(queryClient, recipe.id)}><span className="home-recommendation__media"><RecipeMedia recipe={recipe} /></span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
       </section>
 
       <div className="home-lower-grid">
         <section className="home-recent" aria-labelledby="home-recent-heading">
           <div className="home-section-heading"><div><p className="eyebrow">Recipe box</p><h2 id="home-recent-heading">Recently saved</h2></div><Link to="/app/recipes">See all <ArrowRight aria-hidden="true" /></Link></div>
-          {recipes.isPending ? <Skeleton label="Loading recent recipes" lines={2} /> : recipes.isError ? <ErrorRecovery title="Recent recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition><span className="home-recent-recipe__media"><RecipeMedia recipe={recipe} /></span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles?.[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
+          {recentRecipes.length ? <div className="home-recent__grid">{recentRecipes.map((recipe) => <article className="home-recent-recipe" key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition onMouseEnter={() => prefetchRecipeIntent(queryClient, recipe.id)} onFocus={() => prefetchRecipeIntent(queryClient, recipe.id)} onPointerDown={() => prefetchRecipeIntent(queryClient, recipe.id)}><span className="home-recent-recipe__media"><RecipeMedia recipe={recipe} /></span><span><h3>{recipe.title}</h3><small>{recipe.mealRoles?.[0] ?? `Makes ${formatCookingNumber(recipe.yieldQuantity)}`}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <p className="home-recent__empty">Recipes you save will settle here. <Link to="/app/recipes/new">Add your first recipe</Link>.</p>}
         </section>
 
         <section className="home-grocery" aria-labelledby="home-grocery-heading">
           <div className="home-grocery__mark" aria-hidden="true"><PackageOpen /></div><p className="eyebrow">Grocery</p><h2 id="home-grocery-heading">{groceryHeading}</h2>
-          {grocery.isPending || grocery.data?.status === "generating" ? <p>Your latest plan is being turned into a shopping list.</p> : groceryUnavailable ? <p>Nothing was changed. Try opening the list again when the connection settles.</p> : groceryMissing || !grocery.data ? <p>Build a list from this week’s meals, or start with one thing you need.</p> : activeGroceryItems.length ? <><ul>{activeGroceryItems.slice(0, 3).map((item) => <li key={item.id}>{item.displayName}</li>)}{activeGroceryItems.length > 3 ? <li>+{activeGroceryItems.length - 3} more</li> : null}</ul><p>{purchasedCount ? `${purchasedCount} already in your basket.` : grocery.data.status === "dirty" ? "Your plan changed; refresh the list before shopping." : "Ready for your next shop."}</p></> : <p>{purchasedCount ? `${purchasedCount} picked up. Nice work.` : "Your current list is clear."}</p>}
+          {grocery?.status === "generating" ? <p>Your latest plan is being turned into a shopping list.</p> : groceryMissing || !grocery ? <p>Build a list from this week’s meals, or start with one thing you need.</p> : activeGroceryItems.length ? <><ul>{activeGroceryItems.slice(0, 3).map((item) => <li key={item.id}>{item.displayName}</li>)}{activeGroceryItems.length > 3 ? <li>+{activeGroceryItems.length - 3} more</li> : null}</ul><p>{purchasedCount ? `${purchasedCount} already in your basket.` : grocery.status === "dirty" ? "Your plan changed; refresh the list before shopping." : "Ready for your next shop."}</p></> : <p>{purchasedCount ? `${purchasedCount} picked up. Nice work.` : "Your current list is clear."}</p>}
           <Link to="/app/grocery">{groceryMissing ? "Start a grocery list" : "Open grocery list"} <ArrowRight aria-hidden="true" /></Link>
         </section>
       </div>

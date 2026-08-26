@@ -252,7 +252,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 recipe_query_service,
                 photos=app.state.recipe_photos,
             )
-            app.state.corrections = CorrectionService(sessions)
+            app.state.corrections = CorrectionService(sessions, jobs=job_service)
             app.state.idempotency = idempotency_service
             app.state.goals = goal_service
             app.state.meal_plans = meal_plan_service

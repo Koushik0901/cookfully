@@ -4,6 +4,7 @@ import { Barcode, ChevronDown, CircleHelp, ShieldCheck } from "lucide-react";
 import { Button, ConfirmDialog, EmptyState, ErrorRecovery, PageHeader, PageState, SearchField, SectionHeading, Skeleton } from "../../components";
 import { foodsApi } from "./api";
 import { CreateFoodDialog } from "./CreateFoodDialog";
+import { invalidateFoodChoiceQueries } from "./foodChoiceQueries";
 import { formatCookingNumber } from "../recipes/formatCooking";
 import type { OwnerFood } from "./types";
 
@@ -21,6 +22,7 @@ export function OwnerFoodsPage() {
       foodsApi.deleteUserFood(id, version),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["owner-foods"] });
+      void invalidateFoodChoiceQueries(queryClient);
     },
   });
 
@@ -125,7 +127,7 @@ function OwnerFoodRow({ food, onDeleted }: { food: OwnerFood; onDeleted: () => v
       <ConfirmDialog
         trigger={<Button variant="ghost" className="owner-food-row__remove">Remove</Button>}
         title={`Remove ${food.displayName}?`}
-        description="Future recipes that reference this food will need to be re-matched."
+        description="This removes the food from future matching. Existing recipes keep their saved choice until you change it."
         confirmLabel="Remove"
         onConfirm={onDeleted}
       />

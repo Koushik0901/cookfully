@@ -404,8 +404,8 @@ describe("recipe UI", () => {
     renderRoute(<RecipeEditorPage />, `/app/recipes/${recipe.id}/edit`);
 
     await screen.findByDisplayValue("Exact oats");
-    expect(screen.getByText("Improve nutrition matches")).toBeInTheDocument();
-    expect(screen.getByText(/provisional estimate from 2 foods/i)).toBeInTheDocument();
+    expect(screen.getByText("Review food matches")).toBeInTheDocument();
+    expect(screen.getByText(/Estimated from 2 possible foods/i)).toBeInTheDocument();
   });
 
   it("polls visible work after two seconds and recovers authoritative state after reload", async () => {

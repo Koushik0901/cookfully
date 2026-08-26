@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBrowserRouter, Link, Navigate, NavLink, Route, Routes, RouterProvider, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   BookOpenText,
@@ -19,6 +20,7 @@ import { BrandMark, Button, EmptyState, Skeleton } from "../components";
 import { useSignOut } from "../features/settings/useSignOut";
 import { CommandPalette } from "./CommandPalette";
 import { AppProviders, RequireAuthentication } from "./providers";
+import { configureRouteCodePreloaders, prefetchRouteIntent } from "./routeIntent";
 
 const loadHomePage = () => import("../features/home/HomePage").then((module) => ({ default: module.HomePage }));
 const loadCookModePage = () => import("../features/recipes/CookModePage").then((module) => ({ default: module.CookModePage }));
@@ -59,10 +61,7 @@ const ROUTE_PRELOADERS: Record<string, () => Promise<unknown>> = {
   "/app/settings": loadSettingsPage,
 };
 
-function preloadRoute(path: string) {
-  const loader = ROUTE_PRELOADERS[path];
-  if (loader) void loader();
-}
+configureRouteCodePreloaders({ ...ROUTE_PRELOADERS, "__recipe-detail": loadRecipeDetailPage });
 
 const WORKFLOW = [
   {
@@ -119,10 +118,11 @@ function LandingPage() {
           </div>
         </div>
         <figure className="landing__visual">
-          <img
-            src="/cookfully-hero-balanced-table.png"
-            alt="Roasted vegetables, grains, greens, and salmon served for a balanced meal"
-          />
+          <picture>
+            <source type="image/avif" srcSet="/cookfully-hero-balanced-table-960.avif 960w, /cookfully-hero-balanced-table-1440.avif 1440w" sizes="(max-width: 720px) 100vw, 48vw" />
+            <source type="image/webp" srcSet="/cookfully-hero-balanced-table-960.webp 960w, /cookfully-hero-balanced-table-1440.webp 1440w" sizes="(max-width: 720px) 100vw, 48vw" />
+            <img src="/cookfully-hero-balanced-table-960.webp" width="1536" height="1024" alt="Roasted vegetables, grains, greens, and salmon served for a balanced meal" />
+          </picture>
           <figcaption>
             <span>Dinner, understood</span>
             <strong>Herbed salmon grain bowl</strong>
@@ -152,6 +152,7 @@ function LandingPage() {
 }
 
 function PlannerShell() {
+  const queryClient = useQueryClient();
   const signOut = useSignOut();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -166,6 +167,7 @@ function PlannerShell() {
 
   const toggleMore = useCallback(() => setMoreOpen((value) => !value), []);
   const closeMore = useCallback(() => setMoreOpen(false), []);
+  const navigationIntent = useCallback((path: string) => prefetchRouteIntent(queryClient, path), [queryClient]);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -198,7 +200,7 @@ function PlannerShell() {
         </NavLink>
         <nav aria-label="Kitchen">
           {PRIMARY_NAVIGATION.map(({ to, label, Icon, ...item }) => (
-            <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+            <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} onMouseEnter={() => navigationIntent(to)} onFocus={() => navigationIntent(to)} onPointerDown={() => navigationIntent(to)} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
@@ -207,8 +209,9 @@ function PlannerShell() {
           <NavLink
             to="/app/settings"
             title="Settings"
-            onMouseEnter={() => preloadRoute("/app/settings")}
-            onFocus={() => preloadRoute("/app/settings")}
+            onMouseEnter={() => navigationIntent("/app/settings")}
+            onFocus={() => navigationIntent("/app/settings")}
+            onPointerDown={() => navigationIntent("/app/settings")}
             className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}
           >
             <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
@@ -221,7 +224,7 @@ function PlannerShell() {
       </div>
       <nav className="mobile-nav" aria-label="Primary navigation">
         {MOBILE_NAVIGATION.map(({ to, label, Icon, ...item }) => (
-          <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
+          <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} onMouseEnter={() => navigationIntent(to)} onFocus={() => navigationIntent(to)} onPointerDown={() => navigationIntent(to)} className={({ isActive }) => isActive ? "mobile-nav__link mobile-nav__link--active" : "mobile-nav__link"}>
             <Icon aria-hidden="true" /><span>{label}</span>
           </NavLink>
         ))}
@@ -238,16 +241,16 @@ function PlannerShell() {
           </button>
           {moreOpen ? (
             <div ref={moreMenuRef} className="mobile-nav__menu" role="menu" aria-label="More navigation">
-              <NavLink to="/app/pantry" role="menuitem" onMouseEnter={() => preloadRoute("/app/pantry")} onFocus={() => preloadRoute("/app/pantry")} onClick={closeMore}>
+              <NavLink to="/app/pantry" role="menuitem" onMouseEnter={() => navigationIntent("/app/pantry")} onFocus={() => navigationIntent("/app/pantry")} onPointerDown={() => navigationIntent("/app/pantry")} onClick={closeMore}>
                 <PackageOpen aria-hidden="true" /><span>Pantry</span>
               </NavLink>
               {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
-                <NavLink key={to} to={to} role="menuitem" onMouseEnter={() => preloadRoute(to)} onFocus={() => preloadRoute(to)} onClick={closeMore}>
+                <NavLink key={to} to={to} role="menuitem" onMouseEnter={() => navigationIntent(to)} onFocus={() => navigationIntent(to)} onPointerDown={() => navigationIntent(to)} onClick={closeMore}>
                   <Icon aria-hidden="true" /><span>{label}</span>
                 </NavLink>
               ))}
               <div className="mobile-nav__menu-divider" role="separator" />
-              <NavLink to="/app/settings" role="menuitem" onMouseEnter={() => preloadRoute("/app/settings")} onFocus={() => preloadRoute("/app/settings")} onClick={closeMore}>
+              <NavLink to="/app/settings" role="menuitem" onMouseEnter={() => navigationIntent("/app/settings")} onFocus={() => navigationIntent("/app/settings")} onPointerDown={() => navigationIntent("/app/settings")} onClick={closeMore}>
                 <SlidersHorizontal aria-hidden="true" /><span>Settings</span>
               </NavLink>
               <button type="button" role="menuitem" onClick={() => signOut.mutate()} disabled={signOut.isPending}>

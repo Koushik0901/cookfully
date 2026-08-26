@@ -76,6 +76,8 @@ def test_recipe_and_job_openapi_surface(isolated_database_url: str, tmp_path: Pa
         )
         assert "/api/v1/jobs/recipe-processing" in paths
         assert "/api/v1/jobs/{jobId}" in paths
+        assert "/api/v1/owner/home" in paths
+        assert "/api/v1/recipes/photo-stages" in paths
         current = paths["/api/v1/jobs/current"]["get"]
         assert [parameter["name"] for parameter in current["parameters"]] == [
             "aggregateType",
@@ -90,6 +92,24 @@ def test_recipe_and_job_openapi_surface(isolated_database_url: str, tmp_path: Pa
             "pollAfterSeconds",
             "recoveryActions",
         }.issubset(job_schema["properties"])
+
+
+def test_home_bootstrap_returns_empty_plan_and_grocery_as_data(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+
+        response = client.get("/api/v1/owner/home", headers=headers)
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["preferences"]["timezone"] == "UTC"
+        assert body["recipes"]["items"] == []
+        assert body["pantry"] == []
+        assert body["plan"] is None
+        assert body["grocery"] is None
+        assert body["pantryMatches"] == []
 
 
 def test_recipe_crud_correction_job_polling_and_decimal_contract(

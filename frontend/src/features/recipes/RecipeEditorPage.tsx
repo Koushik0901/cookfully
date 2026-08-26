@@ -150,6 +150,7 @@ const [title, setTitle] = useState("");
   const [mobileStep, setMobileStep] = useState<EditorStepId>(location.hash === "#nutrition" ? "nutrition" : "basics");
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [stagedPhotoId, setStagedPhotoId] = useState<string | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
@@ -178,6 +179,17 @@ const [title, setTitle] = useState("");
       setShowSourceImages(false);
     },
   });
+  const stagePhoto = useMutation({
+    mutationFn: recipesApi.stagePhoto,
+    onSuccess: (stage) => {
+      setStagedPhotoId(stage.id);
+      setPhotoError("");
+    },
+    onError: (error) => {
+      setStagedPhotoId(null);
+      setPhotoError(error instanceof Error ? `Photo could not be prepared: ${error.message}` : "Photo could not be prepared. Choose it again and try once more.");
+    },
+  });
 
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
@@ -191,6 +203,7 @@ const [title, setTitle] = useState("");
     setPrepMinutes(detail.data.prepMinutes == null ? "" : String(detail.data.prepMinutes));
     setCookMinutes(detail.data.cookMinutes == null ? "" : String(detail.data.cookMinutes));
     setBlocks(editorBlocksFromRecipe(detail.data));
+    setStagedPhotoId(null);
     setRemovePhoto(false);
     setThumbnailCrop(detail.data.thumbnailCrop ?? defaultThumbnailCrop());
     const values = emptyNutrition();
@@ -244,12 +257,11 @@ const [title, setTitle] = useState("");
   }, [dirty, location.hash, location.pathname, location.search]);
 
   const save = useMutation({
-    mutationFn: (value: RecipeWrite) => recipeId && detail.data ? recipesApi.update(recipeId, detail.data.version, value) : recipesApi.create(value),
+    mutationFn: (value: RecipeWrite & { stagedPhotoId?: string }) => recipeId && detail.data ? recipesApi.update(recipeId, detail.data.version, value) : recipesApi.create(value),
     onSuccess: async (saved) => {
       let finalRecipe = saved;
       try {
-        if (photo) finalRecipe = await recipesApi.uploadPhoto(saved.id, saved.version, photo, thumbnailCrop);
-        else if (recipeId && removePhoto && detail.data?.imageUrl) finalRecipe = await recipesApi.removePhoto(saved.id, saved.version);
+        if (recipeId && removePhoto && detail.data?.imageUrl) finalRecipe = await recipesApi.removePhoto(saved.id, saved.version);
         const activeCorrections = new Map(
           detail.data?.nutrition?.corrections
             .filter((item) => item.active && item.ingredientId == null)
@@ -364,7 +376,10 @@ const [title, setTitle] = useState("");
       chooseEditorStep(nextErrors.title || nextErrors.yieldQuantity || nextErrors.prepMinutes || nextErrors.cookMinutes ? "basics" : nextErrors.ingredients ? "ingredients" : hasNutritionError ? "nutrition" : "method");
       return;
     }
-    save.mutate(serializeRecipeBlocks(blocks, { title, description, sourceUrl, yieldQuantity, yieldUnit, prepMinutes, cookMinutes, thumbnailCrop }));
+    save.mutate({
+      ...serializeRecipeBlocks(blocks, { title, description, sourceUrl, yieldQuantity, yieldUnit, prepMinutes, cookMinutes, thumbnailCrop }),
+      ...(stagedPhotoId ? { stagedPhotoId } : {}),
+    });
   }
 
   if (recipeId && detail.isPending) return <PageState><Skeleton label="Loading recipe editor" lines={6} /></PageState>;
@@ -419,7 +434,7 @@ const [title, setTitle] = useState("");
 
         <section className="recipe-editor__nutrition-review" id="ingredient-matches" aria-labelledby="nutrition-review-heading" aria-busy={nutritionProcessing}>
           <header><div><p className="eyebrow">Nutrition</p><h2 id="nutrition-review-heading">Nutrition</h2></div></header>
-          {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Improve nutrition matches</summary><p className="muted">The recipe is usable as-is. Choose a reference only where you want a more complete nutrition estimate.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={handleFoodSelected} /></li>)}</ul></details> : null}
+          {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Review food matches</summary><p className="muted">Some ingredients are estimated or unresolved. Choose a food reference when you want a more specific nutrition estimate; the choice can update similar ingredients elsewhere.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `Estimated from ${item.candidateEvidence?.length ?? 0} possible foods` : item.matchStatus === "ambiguous" ? "Several possible foods" : "No food selected yet"}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={handleFoodSelected} /></li>)}</ul></details> : null}
           <details className={`recipe-editor__nutrition${nutritionProcessing ? " is-processing" : ""}`} id="nutrition" open={nutritionOpen || nutritionProcessing} onToggle={(event) => setNutritionOpen(event.currentTarget.open)} aria-busy={nutritionProcessing}>
             <summary><span><strong>Nutrition values</strong><small>Optional values from a label or trusted source</small></span></summary>
             <div className="recipe-editor__nutrition-content">
@@ -442,12 +457,12 @@ const [title, setTitle] = useState("");
         </section>
 
         <section className="recipe-editor__stage recipe-editor__stage--finish" id="recipe-finish" aria-label="Finish recipe">
-        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">Cover</p><h2 id="recipe-photo-heading">Choose the cover</h2></div><div className="recipe-editor__photo-body">{photoPreview || (detail.data?.imageUrl && !removePhoto) ? <ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setRemovePhoto(false); setPhotoError(""); }} /></label>{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? (detail.data?.imageUrl && !photoPreview ? <ConfirmDialog trigger={<Button type="button" variant="ghost">Remove photo</Button>} title="Remove this recipe photo?" description="The photo will be removed when you save these recipe changes. You can upload a replacement before saving." confirmLabel="Remove photo" onConfirm={() => { setPhoto(null); setRemovePhoto(true); }} /> : <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button>) : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div> : null}</div></section>
+        <section className="recipe-editor__photo" aria-labelledby="recipe-photo-heading"><div><p className="eyebrow">Cover</p><h2 id="recipe-photo-heading">Choose the cover</h2></div><div className="recipe-editor__photo-body">{photoPreview || (detail.data?.imageUrl && !removePhoto) ? <ThumbnailCropEditor imageUrl={photoPreview ?? detail.data!.imageUrl!} value={thumbnailCrop} onChange={setThumbnailCrop} /> : <div className="recipe-editor__photo-empty">No cover selected.</div>}<div className="recipe-editor__photo-actions"><label className="file-button"><span>{photo || (detail.data?.imageUrl && !removePhoto) ? "Upload replacement" : "Upload photo"}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const selected = event.currentTarget.files?.[0] ?? null; setPhoto(selected); setStagedPhotoId(null); setRemovePhoto(false); setPhotoError(""); if (selected) stagePhoto.mutate(selected); }} /></label>{photo ? <span className="muted" role="status">{stagePhoto.isPending ? "Preparing photo…" : stagedPhotoId ? "Photo ready to save" : "Photo needs attention"}</span> : null}{recipeId && detail.data?.sourceUrl ? <Button type="button" variant="secondary" onClick={() => setShowSourceImages((value) => !value)}>{showSourceImages ? "Hide source photos" : "Choose from source"}</Button> : null}{photo || (detail.data?.imageUrl && !removePhoto) ? (detail.data?.imageUrl && !photoPreview ? <ConfirmDialog trigger={<Button type="button" variant="ghost">Remove photo</Button>} title="Remove this recipe photo?" description="The photo will be removed when you save these recipe changes. You can upload a replacement before saving." confirmLabel="Remove photo" onConfirm={() => { setPhoto(null); setStagedPhotoId(null); setRemovePhoto(true); }} /> : <Button type="button" variant="ghost" onClick={() => { setPhoto(null); setStagedPhotoId(null); setRemovePhoto(Boolean(detail.data?.imageUrl)); }}>Remove photo</Button>) : null}</div>{showSourceImages ? <div className="source-image-picker" aria-label="Photos from the original recipe">{sourceImages.isPending ? <p>Finding photos on the source page…</p> : sourceImages.isError ? <p className="error-text">Source photos could not be loaded.</p> : sourceImages.data?.length ? sourceImages.data.map((item, index) => <button type="button" key={item.url} onClick={() => chooseSourcePhoto.mutate(item.url)} disabled={chooseSourcePhoto.isPending}><img src={item.url} alt={`Source photo option ${index + 1}`} /></button>) : <p>No usable source photos were found.</p>}{chooseSourcePhoto.error instanceof Error ? <p className="error-text" role="alert">{chooseSourcePhoto.error.message}</p> : null}</div> : null}</div></section>
         <EditorStepActions active="nutrition" onSelect={chooseEditorStep} />
         </section>
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
         {photoError ? <p className="error-text" role="alert">{photoError}{savedRecipeId ? <> <Link to={`/app/recipes/${savedRecipeId}`}>Open the saved recipe</Link></> : null}</p> : null}
-        <div className="recipe-editor__save"><Link className="recipe-editor__save-back" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}><ArrowLeft aria-hidden="true" />{recipeId ? "Back to recipe" : "All recipes"}</Link><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : "Save recipe"}</Button></div>
+        <div className="recipe-editor__save"><Link className="recipe-editor__save-back" to={recipeId ? `/app/recipes/${recipeId}` : "/app/recipes"}><ArrowLeft aria-hidden="true" />{recipeId ? "Back to recipe" : "All recipes"}</Link><p><strong>{recipeId ? "Ready to update it?" : "That’s enough to get started."}</strong><span>Nutrition is estimated after saving and can always be reviewed.</span></p><Button type="submit" disabled={save.isPending || stagePhoto.isPending || Boolean(photo && !stagedPhotoId) || Boolean(savedRecipeId)}>{save.isPending ? "Saving…" : stagePhoto.isPending ? "Preparing photo…" : "Save recipe"}</Button></div>
       </form>
       </main>
     </>

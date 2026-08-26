@@ -16,7 +16,11 @@ from cookfully.infrastructure.models.identity import (
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.intelligence import IntelligenceDraftRecord
 from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
-from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.media import (
+    MediaAsset,
+    RecipePhotoDerivative,
+    RecipePhotoStage,
+)
 from cookfully.infrastructure.models.nutrition import (
     IngredientMatch,
     NutritionCorrection,
@@ -85,6 +89,8 @@ __all__ = [
     "RecipeCollectionMembership",
     "RecipeInstruction",
     "RecipeMealRole",
+    "RecipePhotoDerivative",
+    "RecipePhotoStage",
     "ReferenceDataInstall",
     "ReferenceDataset",
     "RememberedGroceryPlacement",

@@ -44,6 +44,7 @@ from cookfully.api.schemas.recipes import (
     RecipeOrganizationWriteRequest,
     RecipePageResponse,
     RecipePhotoAttachRequest,
+    RecipePhotoStageResponse,
     RecipeResponse,
     RecipeSourceImageChoiceRequest,
     RecipeSourceImageResponse,
@@ -310,10 +311,19 @@ async def create_recipe(
     payload: RecipeWriteRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeResponse:
     repaired = await _maybe_repair_recipe_ingredients(payload)
-    mutation = recipes.create(repaired.to_write(), trace_id=correlation_id.get(), owner_id=owner.id)
+    write = repaired.to_write()
+    mutation = recipes.create(write, trace_id=correlation_id.get(), owner_id=owner.id)
+    if repaired.staged_photo_id is not None:
+        photos.claim_stage(
+            mutation.recipe.id,
+            repaired.staged_photo_id,
+            owner_id=owner.id,
+            expected_version=mutation.recipe.version,
+        )
     return RecipeResponse.from_read(queries.get(mutation.recipe.id))
 
 
@@ -550,17 +560,47 @@ async def update_recipe(
     version: Annotated[int, Depends(expected_version)],
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeDetailResponse:
     repaired = await _maybe_repair_recipe_ingredients(payload)
-    recipes.update(
+    mutation = recipes.update(
         recipe_id,
         repaired.to_write(),
         expected_version=version,
         trace_id=correlation_id.get(),
         owner_id=owner.id,
     )
+    if repaired.staged_photo_id is not None:
+        photos.claim_stage(
+            recipe_id,
+            repaired.staged_photo_id,
+            owner_id=owner.id,
+            expected_version=mutation.recipe.version,
+        )
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.post(
+    "/photo-stages",
+    response_model=RecipePhotoStageResponse,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+async def stage_recipe_photo(
+    photo: Annotated[UploadFile, File()],
+    photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> RecipePhotoStageResponse:
+    try:
+        stage = photos.stage(
+            owner_id=owner.id,
+            content=await photo.read(),
+            content_type=photo.content_type or "",
+        )
+    finally:
+        await photo.close()
+    return RecipePhotoStageResponse(id=stage.id, expires_at=stage.expires_at)
 
 
 @router.put("/{recipeId}/photo", response_model=RecipeDetailResponse, response_model_by_alias=True)
@@ -878,12 +918,12 @@ def select_owner_food(
     corrections: Annotated[CorrectionService, Depends(correction_service)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> None:
-    del payload  # The selected owner food is already a durable owner-scoped choice.
     corrections.activate_owner_food_match(
         recipe_id=recipe_id,
         ingredient_id=ingredient_id,
         owner_food_id=owner_food_id,
         owner_id=owner.id,
+        remember_match=payload.remember_match,
     )
 
 

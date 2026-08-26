@@ -273,8 +273,8 @@ export function RecipeDetailPage() {
         </div>
         {ingredientReviewCount ? (
           <section className="ingredient-evidence--inline" style={{ borderTop: 0 }}>
-            <div><strong>{ingredientReviewCount} nutrition match{ingredientReviewCount === 1 ? "" : "es"} could be improved</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these only if you want a more complete estimate.</small></div>
-             <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.resolutionKind === "provisional" ? `provisional estimate from ${item.candidateEvidence?.length ?? 0} foods` : item.matchStatus}</small></article>)}</div>
+            <div><strong>{ingredientReviewCount} food match{ingredientReviewCount === 1 ? "" : "es"} {ingredientReviewCount === 1 ? "needs" : "need"} review</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these when you want a more specific estimate.</small></div>
+             <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.resolutionKind === "provisional" ? `Estimated from ${item.candidateEvidence?.length ?? 0} possible foods` : item.matchStatus === "ambiguous" ? "Several possible foods" : "No food selected yet"}</small></article>)}</div>
             <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
           </section>
         ) : null}

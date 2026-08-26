@@ -17,7 +17,7 @@ from cookfully.api.schemas.foods import (
     OwnerFoodWriteRequest,
 )
 from cookfully.application.food_embedding_index import embedding_storage_key
-from cookfully.application.food_match_memories import remembered_food_reference
+from cookfully.application.food_match_memories import remembered_food_choice_for_name
 from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import DomainError
 from cookfully.domain.food_semantics import (
@@ -170,7 +170,7 @@ def _open_session(request: Request) -> Session:
     return cast(sessionmaker[Session], sessions)()
 
 
-def _candidate_from_owner(uf: OwnerFood) -> FoodCandidateResponse:
+def _candidate_from_owner(uf: OwnerFood, *, remembered: bool = False) -> FoodCandidateResponse:
     return FoodCandidateResponse(
         source="owner",
         id=uf.id,
@@ -178,6 +178,7 @@ def _candidate_from_owner(uf: OwnerFood) -> FoodCandidateResponse:
         brand_owner=uf.brand,
         serving_size_g=uf.typical_serving_g,
         serving_unit=uf.typical_serving_unit,
+        remembered=remembered,
     )
 
 
@@ -210,20 +211,40 @@ def _remembered_candidate(
     ingredient: Ingredient,
     query: str,
 ) -> FoodCandidateResponse | None:
-    remembered = remembered_food_reference(
+    food_name = ingredient.food_name or ingredient.original_text
+    return _remembered_candidate_for_name(session, owner_id, food_name, query=query)
+
+
+def _remembered_candidate_for_name(
+    session: Session,
+    owner_id: UUID,
+    food_name: str,
+    *,
+    query: str | None = None,
+) -> FoodCandidateResponse | None:
+    choice = remembered_food_choice_for_name(
         session,
         owner_id=owner_id,
-        ingredient=ingredient,
+        food_name=food_name,
         touch=False,
     )
-    if remembered is None:
+    if choice.food_reference is None and choice.owner_food is None:
+        return None
+    if choice.food_reference is not None:
+        description = choice.food_reference.description
+    elif choice.owner_food is not None:
+        description = choice.owner_food.display_name
+    else:
         return None
     compatibility = compare_compatibility(
-        profile_from_text(query), profile_from_text(remembered.description)
+        profile_from_text(query or food_name), profile_from_text(description)
     )
     if compatibility.compatibility is Compatibility.CONTRADICTORY:
         return None
-    return _candidate_from_usda(remembered, remembered=True)
+    if choice.owner_food is not None:
+        return _candidate_from_owner(choice.owner_food, remembered=True)
+    assert choice.food_reference is not None
+    return _candidate_from_usda(choice.food_reference, remembered=True)
 
 
 def _prioritize_remembered(
@@ -238,7 +259,7 @@ def _prioritize_remembered(
         (
             candidate
             for candidate in candidates
-            if candidate.source == "usda" and candidate.id == remembered.id
+            if candidate.source == remembered.source and candidate.id == remembered.id
         ),
         None,
     )
@@ -263,10 +284,14 @@ def search_foods(
     candidates: list[FoodCandidateResponse] = []
 
     session = _open_session(request)
+    remembered = _remembered_candidate_for_name(session, owner.id, q)
     indexed = _indexed_candidates(session, owner.id, q)
     if indexed:
         session.close()
-        return FoodSearchResponse(query=q, candidates=indexed)
+        return FoodSearchResponse(
+            query=q,
+            candidates=_prioritize_remembered(indexed, remembered),
+        )
     repo = UserFoodRepository(session)
     user_foods = repo.search(owner.id, query, limit=5)
     for uf in user_foods:
@@ -277,7 +302,10 @@ def search_foods(
         candidates.append(_candidate_from_usda(match.food, match))
     session.close()
 
-    return FoodSearchResponse(query=q, candidates=candidates[:5])
+    return FoodSearchResponse(
+        query=q,
+        candidates=_prioritize_remembered(candidates, remembered),
+    )
 
 
 @router.get(

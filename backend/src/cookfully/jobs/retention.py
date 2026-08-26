@@ -10,7 +10,8 @@ from cookfully.application.jobs import JobService
 from cookfully.domain.common import utc_now
 from cookfully.infrastructure.media_store import MediaStore
 from cookfully.infrastructure.models.identity import SessionRecord
-from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
+from cookfully.infrastructure.models.media import MediaAsset, RecipePhotoStage
 
 SESSION_SWEEP_GRACE_DAYS = 30
 
@@ -42,6 +43,8 @@ def sweep_retention(
 ) -> dict[str, int]:
     checked_at = now or utc_now()
     expired_media = 0
+    expired_photo_stages = 0
+    expired_import_previews = 0
     with session_factory.begin() as session:
         assets = session.scalars(
             select(MediaAsset)
@@ -52,6 +55,24 @@ def sweep_retention(
             media_store.delete(asset.storage_key)
             session.execute(delete(MediaAsset).where(MediaAsset.id == asset.id))
             expired_media += 1
+        # Stages can legitimately point at an already-persistent, deduplicated
+        # image.  Delete their ownership token even when no media row expired.
+        stages = session.scalars(
+            select(RecipePhotoStage)
+            .where(RecipePhotoStage.expires_at <= checked_at)
+            .with_for_update(skip_locked=True)
+        ).all()
+        for stage in stages:
+            session.delete(stage)
+            expired_photo_stages += 1
+        previews = session.scalars(
+            select(ImportPreviewRecord)
+            .where(ImportPreviewRecord.expires_at <= checked_at)
+            .with_for_update(skip_locked=True)
+        ).all()
+        for preview in previews:
+            session.delete(preview)
+            expired_import_previews += 1
     reduced = jobs.reduce_diagnostics(now=checked_at)
     deleted = jobs.delete_safe_metadata(now=checked_at)
     expired_idempotency = IdempotencyService(session_factory).delete_expired(now=checked_at)
@@ -59,6 +80,8 @@ def sweep_retention(
     expired_intelligence_drafts = IntelligenceDraftService(session_factory).expire(now=checked_at)
     return {
         "expired_media": expired_media,
+        "expired_photo_stages": expired_photo_stages,
+        "expired_import_previews": expired_import_previews,
         "reduced_jobs": len(reduced),
         "deleted_jobs": len(deleted),
         "expired_idempotency": expired_idempotency,

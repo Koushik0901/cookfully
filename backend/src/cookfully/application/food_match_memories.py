@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -13,6 +14,12 @@ from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.recipes import Ingredient
 from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.models.semantic_matching import FoodMatchMemory
+
+
+@dataclass(frozen=True, slots=True)
+class RememberedFoodChoice:
+    food_reference: FoodReference | None = None
+    owner_food: OwnerFood | None = None
 
 
 def concept_payload(concept: IngredientConcept) -> dict[str, Any]:
@@ -106,7 +113,37 @@ def remembered_food_reference(
     ingredient: Ingredient,
     touch: bool = True,
 ) -> FoodReference | None:
-    concept = profile_from_text(ingredient.food_name or ingredient.original_text)
+    return remembered_food_choice(
+        session,
+        owner_id=owner_id,
+        ingredient=ingredient,
+        touch=touch,
+    ).food_reference
+
+
+def remembered_food_choice(
+    session: Session,
+    *,
+    owner_id: UUID,
+    ingredient: Ingredient,
+    touch: bool = True,
+) -> RememberedFoodChoice:
+    return remembered_food_choice_for_name(
+        session,
+        owner_id=owner_id,
+        food_name=ingredient.food_name or ingredient.original_text,
+        touch=touch,
+    )
+
+
+def remembered_food_choice_for_name(
+    session: Session,
+    *,
+    owner_id: UUID,
+    food_name: str,
+    touch: bool = True,
+) -> RememberedFoodChoice:
+    concept = profile_from_text(food_name)
     memory = session.scalar(
         select(FoodMatchMemory).where(
             FoodMatchMemory.owner_id == owner_id,
@@ -114,15 +151,43 @@ def remembered_food_reference(
             FoodMatchMemory.active.is_(True),
         )
     )
-    if memory is None or memory.food_reference_id is None:
-        return None
-    food = session.get(FoodReference, memory.food_reference_id)
-    if food is None or food.dataset.status != "active":
-        return None
+    if memory is None:
+        return RememberedFoodChoice()
+    food_reference = (
+        session.get(FoodReference, memory.food_reference_id)
+        if memory.food_reference_id is not None
+        else None
+    )
+    owner_food = (
+        session.get(OwnerFood, memory.owner_food_id)
+        if memory.owner_food_id is not None
+        else None
+    )
+    if food_reference is not None and food_reference.dataset.status != "active":
+        food_reference = None
+    if owner_food is not None and not owner_food.is_active:
+        owner_food = None
+    if food_reference is None and owner_food is None:
+        return RememberedFoodChoice()
     if touch:
         memory.use_count += 1
         memory.last_used_at = datetime.now(UTC)
-    return food
+    return RememberedFoodChoice(food_reference=food_reference, owner_food=owner_food)
+
+
+def remembered_owner_food(
+    session: Session,
+    *,
+    owner_id: UUID,
+    ingredient: Ingredient,
+    touch: bool = True,
+) -> OwnerFood | None:
+    return remembered_food_choice(
+        session,
+        owner_id=owner_id,
+        ingredient=ingredient,
+        touch=touch,
+    ).owner_food
 
 
 def forget_food_reference(

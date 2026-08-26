@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.food_match_memories import remember_food_reference
+from cookfully.application.food_match_propagation import propagate_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
@@ -50,8 +52,9 @@ REFERENCE_FIELDS = frozenset({"food_reference"})
 
 
 class CorrectionService:
-    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+    def __init__(self, session_factory: sessionmaker[Session], jobs: Any | None = None) -> None:
         self._session_factory = session_factory
+        self._jobs = jobs
 
     def activate(
         self,
@@ -173,6 +176,13 @@ class CorrectionService:
                         ingredient=ingredient,
                         food=food,
                     )
+                    propagate_food_choice(
+                        session,
+                        owner_id=created_by,
+                        ingredient_name=ingredient.food_name or ingredient.original_text,
+                        food_reference_id=food.id,
+                        jobs=self._jobs,
+                    )
             recipe.version += 1
             return correction
 
@@ -183,6 +193,7 @@ class CorrectionService:
         ingredient_id: UUID,
         owner_food_id: UUID,
         owner_id: UUID,
+        remember_match: bool = True,
     ) -> None:
         """Apply a user-owned food directly to an ingredient.
 
@@ -243,6 +254,14 @@ class CorrectionService:
                     active=True,
                 )
             )
+            if remember_match:
+                propagate_food_choice(
+                    session,
+                    owner_id=owner_id,
+                    ingredient_name=ingredient.food_name or ingredient.original_text,
+                    owner_food_id=food.id,
+                    jobs=self._jobs,
+                )
             recipe.version += 1
 
     def reset(
