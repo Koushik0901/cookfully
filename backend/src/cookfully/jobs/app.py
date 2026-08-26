@@ -2,7 +2,7 @@ from contextlib import AbstractContextManager
 from typing import Any
 
 from celery import Celery, signals
-from kombu import Queue
+from kombu import Queue  # type: ignore[import-untyped]
 from sqlalchemy import Engine
 
 from cookfully.infrastructure.config import get_settings

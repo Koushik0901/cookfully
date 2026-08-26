@@ -25,6 +25,12 @@
   --color-error: oklch(0.505 0.186 28);
   --color-on-error: oklch(0.988 0.008 92);
 
+  /* Mask stops use neutral black because CSS image masks interpret luminance
+     as opacity. Keeping them here prevents one-off mask colors in features. */
+  --color-mask-opaque: rgb(0 0 0 / 100%);
+  --color-mask-soft: rgb(0 0 0 / 38%);
+  --color-mask-fade: rgb(0 0 0 / 46%);
+
   /* Deliberate dark kitchen contexts: navigation, cook mode, and evidence. */
   --color-herb-950: oklch(0.205 0.052 148);
   --color-herb-900: oklch(0.235 0.060 148);
@@ -44,6 +50,8 @@
   --color-on-dark-hover: oklch(1 0 0 / 8%);
   --color-image-scrim: oklch(0.180 0.050 148 / 45%);
   --color-overlay-scrim: oklch(0.160 0.025 148 / 58%);
+  --color-crop-line: oklch(0.988 0.008 92 / 95%);
+  --color-crop-scrim: oklch(0.220 0.055 148 / 28%);
 
   /* Interface state colors are separate from nutrient colors. */
   --status-success: oklch(0.470 0.110 148);
@@ -108,6 +116,7 @@
   --shadow-card-rest: 0 1px 3px oklch(0.218 0.038 148 / 10%);
   --shadow-card-hover: 0 10px 28px oklch(0.218 0.038 148 / 8%);
   --shadow-media-rest: 0 1px 8px oklch(0.218 0.038 148 / 12%);
+  --shadow-crop-handle: 0 1px 4px oklch(0.218 0.038 148 / 24%);
   --shadow-bottom-nav: 0 -10px 30px oklch(0.218 0.038 148 / 7%);
   --color-card-raised: oklch(0.992 0.006 92);
   --color-card-raised-border: oklch(0.872 0.025 100);

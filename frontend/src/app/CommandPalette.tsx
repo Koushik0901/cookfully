@@ -19,7 +19,7 @@ import {
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { RecipeFallbackArt } from "../components/cookfully/RecipeFallbackArt";
+import { RecipeMedia } from "../components";
 import { groceryApi } from "../features/grocery/api";
 import { intelligenceApi } from "../features/intelligence/api";
 import { pantryApi } from "../features/pantry/api";
@@ -287,7 +287,7 @@ export function CommandPalette() {
                 <h2>Recipes</h2>
                 {visibleRecipes.map((recipe) => (
                   <button data-command-item type="button" role="menuitem" key={recipe.id} onClick={() => closeAndNavigate(`/app/recipes/${recipe.id}`)}>
-                    <span className="command-recipe-media">{recipe.imageUrl ? <img src={recipe.imageUrl} alt="" /> : <RecipeFallbackArt title={recipe.title} />}</span>
+                    <span className="command-recipe-media"><RecipeMedia recipe={recipe} loading="lazy" sizes="64px" /></span>
                     <span>
                       <strong>{recipe.title}</strong>
                       <small>{recipe.favorite ? "Favorite recipe" : "Open recipe"}</small>

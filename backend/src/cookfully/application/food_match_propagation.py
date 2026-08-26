@@ -69,17 +69,21 @@ def propagate_food_choice(
         for ingredient, recipe in candidate_rows
         if _ingredient_signature(ingredient) == signature
     ]
-    active_matches = {
-        match.ingredient_id: match
-        for match in session.scalars(
-            select(IngredientMatch).where(
-                IngredientMatch.ingredient_id.in_(
-                    ingredient.id for ingredient, _recipe in candidate_ingredients
-                ),
-                IngredientMatch.active.is_(True),
+    active_matches = (
+        {
+            match.ingredient_id: match
+            for match in session.scalars(
+                select(IngredientMatch).where(
+                    IngredientMatch.ingredient_id.in_(
+                        ingredient.id for ingredient, _recipe in candidate_ingredients
+                    ),
+                    IngredientMatch.active.is_(True),
+                )
             )
-        )
-    } if candidate_ingredients else {}
+        }
+        if candidate_ingredients
+        else {}
+    )
     repository = NutritionRepository(session)
     changed_recipes: dict[UUID, Recipe] = {}
     for ingredient, recipe in candidate_ingredients:
@@ -104,9 +108,7 @@ def propagate_food_choice(
                     density_for(food_reference.description) if food_reference else None
                 ),
                 assumption_text=assumption,
-                source_release_id=(
-                    food_reference.dataset.release_id if food_reference else None
-                ),
+                source_release_id=(food_reference.dataset.release_id if food_reference else None),
                 input_hash=recipe.input_hash,
                 active=True,
             )

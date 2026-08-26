@@ -68,6 +68,32 @@ describe("App", () => {
     document.cookie = "cookfully_csrf=home-csrf; path=/";
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input), window.location.origin).pathname;
+      if (path === "/api/v1/owner/home") return json({
+        preferences: { displayName: "Owner", timezone: "America/Vancouver", weekStartsOn: 1, version: 1 },
+        recipes: { items: [{
+          id: "00000000-0000-4000-8000-000000000501",
+          title: "Lemony lentils",
+          sourceUrl: null,
+          imageUrl: null,
+          yieldQuantity: "4",
+          yieldUnit: "servings",
+          status: "ready",
+          archivedFromStatus: null,
+          nutritionState: "estimated",
+          nutrition: null,
+          version: 1,
+          updatedAt: "2026-08-20T12:00:00Z",
+          favorite: false,
+          collections: [],
+          mealRoles: ["dinner"],
+          thumbnailCrop: { x: "0", y: "0", width: "1", height: "1" },
+          originKind: "manual",
+        }], nextCursor: null },
+        pantry: [],
+        plan: null,
+        grocery: null,
+        pantryMatches: [],
+      });
       if (path === "/api/v1/owner/preferences") {
         return json({ displayName: "Owner", timezone: "America/Vancouver", weekStartsOn: 1, version: 1 });
       }

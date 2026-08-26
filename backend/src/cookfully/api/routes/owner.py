@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
@@ -57,7 +57,7 @@ class HomeBootstrap(BaseModel):
     pantry_matches: tuple[PantryRecipeMatchResponse, ...] = Field(alias="pantryMatches")
 
 
-def _current_week_start(owner: OwnerAccount):
+def _current_week_start(owner: OwnerAccount) -> date:
     local_today = utc_now().astimezone(ZoneInfo(owner.timezone)).date()
     return local_today.fromordinal(
         local_today.toordinal() - ((local_today.isoweekday() - owner.week_starts_on) % 7)

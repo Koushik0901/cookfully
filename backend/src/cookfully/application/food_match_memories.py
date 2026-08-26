@@ -159,9 +159,7 @@ def remembered_food_choice_for_name(
         else None
     )
     owner_food = (
-        session.get(OwnerFood, memory.owner_food_id)
-        if memory.owner_food_id is not None
-        else None
+        session.get(OwnerFood, memory.owner_food_id) if memory.owner_food_id is not None else None
     )
     if food_reference is not None and food_reference.dataset.status != "active":
         food_reference = None

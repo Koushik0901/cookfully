@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { CalendarDays, MoreHorizontal, PackageCheck, Plus, RefreshCw, ShoppingBasket, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -234,7 +234,7 @@ export function GroceryListPage() {
           <h2 id="grocery-hero-title">Ready when you are</h2>
           <p className="grocery-hero__description">Everything here came from this week’s meals. Check items as they land in your basket.</p>
           <div className="grocery-ready" role="status"><PackageCheck aria-hidden="true" /><span><strong>Ready to shop</strong><small>{activeItems.length} items left to pick up</small></span></div>
-          <div className="grocery-progress" aria-label={`${progress}% of this shopping pass complete`}><span style={{ width: `${progress}%` }} /></div>
+          <div className="grocery-progress" aria-label={`${progress}% of this shopping pass complete`}><span style={{ "--progress-scale": progress / 100 } as CSSProperties} /></div>
           <div className="grocery-progress__caption"><span>{progress}% complete</span><span>{purchasedItems.length} picked up</span></div>
         </div>
         <dl className="grocery-hero__stats">

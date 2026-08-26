@@ -14,8 +14,9 @@ from sqlalchemy import select
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.domain.common import DomainError, uuid7
 from cookfully.infrastructure.media_store import MediaStore
-from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.media import RecipePhotoDerivative, RecipePhotoStage
+from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.recipe_images import RecipeImageService
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
@@ -127,12 +128,15 @@ async def test_attach_url_rejects_stale_version(session_factory, tmp_path: Path)
 async def test_staged_photo_claims_responsive_variants_without_reprocessing_on_save(
     session_factory, tmp_path: Path
 ) -> None:
-    from cookfully.application.auth import AuthService
-
     service = _build_service(session_factory, tmp_path)
-    owner = AuthService(session_factory).bootstrap_owner(
-        "stage@example.com", "correct horse battery staple", "Stage owner"
+    owner = OwnerAccount(
+        email="stage@example.com",
+        display_name="Stage owner",
+        password_hash="not-used-by-this-test",
     )
+    with session_factory.begin() as session:
+        session.add(owner)
+        session.flush()
     recipe_id = _seed_recipe(session_factory, "Prepared photo")
 
     stage = service.stage(owner_id=owner.id, content=_png_bytes(), content_type="image/png")

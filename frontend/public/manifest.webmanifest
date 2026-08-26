@@ -5,8 +5,8 @@
   "start_url": "/app/recipes",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f8f2e5",
-  "theme_color": "#f8f2e5",
+  "background_color": "oklch(0.985 0.007 92)",
+  "theme_color": "oklch(0.985 0.007 92)",
   "icons": [
     {
       "src": "/brand/cookfully-icon-192.png",

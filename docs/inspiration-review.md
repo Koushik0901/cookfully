@@ -1056,3 +1056,37 @@ Adopt a single in-process **Ingredient & Nutrition Engine** boundary, not a depl
 Rejected: keeping per-surface matchers or extracting a network microservice in P1. Deferred: normalization consolidation (P2), quantity/owner-serving deduplication (P3), and nutrition-data lookup/computation consolidation (P4) per the spec's phasing.
 
 Evidence: `backend/src/cookfully/application/ingredient_engine.py`, the moved `domain/ingredient_nutrition` package, `backend/migrations/versions/0027_default_neural_matching.py`, `backend/tests/unit/test_ingredient_engine.py` + `test_ingredient_engine_boundary.py`, and the updated `backend/tests/unit/test_pantry.py` mapping the engine's decisions to pantry statuses.
+
+## Cold delivery, staged media, and job isolation — 2026-08-25
+
+### Problem being solved
+
+The kitchen interface should feel immediate on modest self-hosted hardware. The previous path could
+send a multi-megabyte hero/original image, fan out Home requests, and let bulk indexing contend with
+interactive imports and saves.
+
+### Sources inspected
+
+- [Immich system settings](https://docs.immich.app/administration/system-settings/) documents that
+  image variants trade CPU and storage for lower delivery cost, and that raising job concurrency does
+  not make an individual job faster and can reduce API responsiveness.
+- [Immich jobs and workers](https://docs.immich.app/administration/jobs-workers/) documents separating
+  worker responsibilities so background processing can be scheduled independently of the API.
+
+### Benefits and liabilities observed
+
+Pre-generated variants make common renders substantially cheaper, and distinct worker queues prevent a
+bulk backlog from blocking a small interactive action. Both patterns can become expensive if every
+original produces many sizes, if previews never expire, or if separation is implemented by simply
+adding more concurrent workers.
+
+### Local decision
+
+Adapt the bounded parts of the pattern: generate only a 480px card and 960px reading WebP for a newly
+selected photo, stage them for one hour while the user is editing, and delete expired photo stages and
+import previews in retention. Browser `srcset` selects the card variant where appropriate. Keep a total
+worker concurrency of four by splitting it into two interactive and two bulk slots rather than adding
+capacity; interactive jobs therefore retain priority without requiring a larger server. Reject a third
+image derivative, original-image delivery for normal screens, indefinite preview retention, and loading
+the semantic model into the interactive queue. Evidence: `recipe_images.py`, `recipe_photos.py`,
+`jobs/outbox_process.py`, and the compose worker definitions.

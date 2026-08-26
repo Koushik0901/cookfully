@@ -76,7 +76,7 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await expect(page.getByRole("heading", { name: "Nothing needs attention yet" })).toBeVisible();
   const brownRiceCard = page.getByRole("article", { name: "Brown rice" });
   await expect(brownRiceCard).toContainText("0.25 kg");
-  await expect(page.getByText("Needs a match", { exact: true })).toBeVisible();
+  await expect(brownRiceCard.getByRole("button", { name: "Choose a food match", exact: true })).toBeVisible();
   await brownRiceCard.click();
   await expect(page.getByLabel("Pantry name")).toBeVisible();
   await page.getByText("Edit pantry details", { exact: true }).click();

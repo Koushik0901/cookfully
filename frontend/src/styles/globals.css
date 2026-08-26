@@ -9,8 +9,6 @@
 @import "./features.css";
 @import "./redesign.css";
 
-@custom-variant dark (&:is(.dark *));
-
 *,
 *::before,
 *::after {

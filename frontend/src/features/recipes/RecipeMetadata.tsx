@@ -11,7 +11,7 @@ export function RecipeMetadata({ recipe, compact = false }: { recipe: RecipeSumm
 
   return (
     <div className={`recipe-meta${compact ? " recipe-meta--compact" : ""}`} aria-label={`${recipe.title} cooking time and nutrition`}>
-      <span className="recipe-meta__item recipe-meta__item--time" role="img" aria-label={recipeTimeMinutes(recipe) == null ? "Cooking time not set" : `${time} cooking time`} title={recipeTimeMinutes(recipe) == null ? "Cooking time not set" : `${time} cooking time`}>
+      <span className="recipe-meta__item recipe-meta__item--time" aria-label={recipeTimeMinutes(recipe) == null ? "Cooking time not set" : `${time} cooking time`} title={recipeTimeMinutes(recipe) == null ? "Cooking time not set" : `${time} cooking time`}>
         <Clock3 aria-hidden="true" />
         <span>{time}</span>
       </span>

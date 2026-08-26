@@ -85,6 +85,7 @@ async function mockApi(page: Page) {
       recipe = detail({
         ...body,
         id: recipeId,
+        imageUrl: body.stagedPhotoId ? "/api/v1/media/00000000-0000-4000-8000-000000000011" : null,
         version: 1,
         ingredients: body.ingredients.map((item: { originalText: string }, index: number) => ({
           ...detail().ingredients[0],
@@ -94,6 +95,9 @@ async function mockApi(page: Page) {
         })),
       });
       return json(recipe, 201);
+    }
+    if (path === "/api/v1/recipes/photo-stages" && method === "POST") {
+      return json({ id: "00000000-0000-4000-8000-000000000012", expiresAt: "2026-08-10T10:10:00Z" }, 201);
     }
     if (path === "/api/v1/recipes/import/preview" && method === "POST") {
       // Preview is best-effort: simulate a source that continues in the background
@@ -565,12 +569,12 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup lentils");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
-  await expect(page.getByAltText("Preview of the selected recipe photo")).toBeVisible();
+  await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
   await page.getByRole("link", { name: "Edit recipe" }).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
-  await expect(page.getByAltText("Current photo for Lemon lentils")).toBeVisible();
+  await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Save recipe" }).click();

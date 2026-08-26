@@ -6,7 +6,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 revision: str = "0028_staged_recipe_photo_variants"
 down_revision: str | None = "0027_default_neural_matching"
 branch_labels: str | Sequence[str] | None = None
@@ -38,8 +37,15 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["recipe_id"], ["recipes.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["asset_id"], ["media_assets.id"], ondelete="CASCADE"),
     )
-    op.create_index("ix_recipe_photo_derivatives_recipe_id", "recipe_photo_derivatives", ["recipe_id"])
-    op.create_index("uq_recipe_photo_derivative_role", "recipe_photo_derivatives", ["recipe_id", "role"], unique=True)
+    op.create_index(
+        "ix_recipe_photo_derivatives_recipe_id", "recipe_photo_derivatives", ["recipe_id"]
+    )
+    op.create_index(
+        "uq_recipe_photo_derivative_role",
+        "recipe_photo_derivatives",
+        ["recipe_id", "role"],
+        unique=True,
+    )
 
 
 def downgrade() -> None:

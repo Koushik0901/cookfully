@@ -89,6 +89,67 @@ async function mockFoodIconsApi(page: Page) {
       return json({ displayName: "Cook", timezone: "UTC", weekStartsOn: 1, version: 1, locale: "en-CA" });
     }
     if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/owner/home") {
+      const recipe = (id: string, title: string, updatedAt: string) => ({
+        id,
+        title,
+        sourceUrl: null,
+        imageUrl: null,
+        yieldQuantity: "4",
+        yieldUnit: "servings",
+        status: "ready",
+        archivedFromStatus: null,
+        nutritionState: "estimated",
+        favorite: true,
+        collections: [],
+        mealRoles: ["dinner"],
+        nutrition: { caloriesKcal: "540", proteinG: "28" },
+        version: 1,
+        updatedAt,
+        thumbnailCrop: { x: "0.5", y: "0.5", zoom: "1" },
+      });
+      return json({
+        preferences: { displayName: "Cook", timezone: "UTC", weekStartsOn: 1, version: 1, locale: "en-CA" },
+        recipes: {
+          items: [
+            recipe(recipeId, "Lemony lentils", `${today}T08:00:00Z`),
+            recipe("00000000-0000-4000-8000-000000000704", "Sesame tofu bowls", `${today}T15:00:00Z`),
+          ],
+          nextCursor: null,
+        },
+        pantry: pantryItems,
+        plan: {
+          id: "00000000-0000-4000-8000-000000000702",
+          weekStart,
+          timezone: "UTC",
+          entries: [{
+            id: "00000000-0000-4000-8000-000000000703",
+            localDate: today,
+            mealSlot: "dinner",
+            recipeId,
+            recipeTitle: "Lemony lentils",
+            servings: "2.000",
+            position: 0,
+            nutrition: { basisServings: "2", caloriesKcal: "620", proteinG: "31", carbohydrateG: "74", fatG: "18", status: "estimated", coverageRatio: "0.9", micronutrients: {} },
+            version: 1,
+          }],
+          dayTotals: {},
+          weekTotal: null,
+          groceryStatus: "dirty",
+          version: 1,
+        },
+        grocery: {
+          id: "00000000-0000-4000-8000-000000000713",
+          weekStart,
+          status: "current",
+          generatedAt: `${today}T09:00:00Z`,
+          completedAt: null,
+          items: groceryItems,
+          version: 1,
+        },
+        pantryMatches: [{ recipeId, recipeTitle: "Lemony lentils", availability: "partial", coverageRatio: "0.75", missingIngredients: ["lemon"] }],
+      });
+    }
     if (path === "/api/v1/pantry-items" && method === "GET") return json(pantryItems);
     if (path === "/api/v1/pantry/recipe-matches") {
       return json([

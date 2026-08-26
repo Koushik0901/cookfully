@@ -11,6 +11,60 @@ async function mockHome(page: Page) {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path === "/api/v1/owner/home") {
+      const recipe = (id: string, title: string, updatedAt: string, mealRole: string) => ({
+        id,
+        title,
+        sourceUrl: null,
+        imageUrl: null,
+        yieldQuantity: "4",
+        yieldUnit: "servings",
+        status: "ready",
+        archivedFromStatus: null,
+        nutritionState: "estimated",
+        favorite: true,
+        collections: [],
+        mealRoles: [mealRole],
+        nutrition: { caloriesKcal: "540", proteinG: "28" },
+        version: 1,
+        updatedAt,
+        thumbnailCrop: { x: "0.5", y: "0.5", zoom: "1" },
+      });
+      return route.fulfill({ json: {
+        preferences: { displayName: "Cook", timezone: "UTC", weekStartsOn: 1, version: 1 },
+        recipes: { items: [
+          recipe(recipeId, "Lemony lentils", `${today}T08:00:00Z`, "dinner"),
+          recipe("00000000-0000-4000-8000-000000000704", "Sesame tofu bowls", `${today}T15:00:00Z`, "dinner"),
+          recipe("00000000-0000-4000-8000-000000000705", "Roasted tomato pasta", `${today}T14:00:00Z`, "weeknight"),
+          recipe("00000000-0000-4000-8000-000000000706", "Ginger lentil soup", `${today}T13:00:00Z`, "batch cook"),
+        ], nextCursor: null },
+        pantry: [
+          { id: "00000000-0000-4000-8000-000000000711", displayName: "Spinach", normalizedFoodName: "spinach", quantity: "1", unit: "count", expiresOn: dateAfter(1), matchStatus: "matched", matchConfidence: "1", version: 1 },
+          { id: "00000000-0000-4000-8000-000000000712", displayName: "Heavy cream", normalizedFoodName: "heavy cream", quantity: "250", unit: "ml", expiresOn: dateAfter(3), matchStatus: "matched", matchConfidence: "1", version: 1 },
+        ],
+        plan: {
+          id: "00000000-0000-4000-8000-000000000702",
+          weekStart: today,
+          timezone: "UTC",
+          entries: [
+            { id: "00000000-0000-4000-8000-000000000703", localDate: today, mealSlot: "dinner", recipeId, recipeTitle: "Lemony lentils", servings: "2.000", position: 0, nutrition: { basisServings: "2", caloriesKcal: "620", proteinG: "31", carbohydrateG: "74", fatG: "18", status: "estimated", coverageRatio: "0.9", micronutrients: {} }, version: 1 },
+            { id: "00000000-0000-4000-8000-000000000707", localDate: today, mealSlot: "breakfast", recipeId, recipeTitle: "Lemony lentils", servings: "1.000", position: 0, nutrition: { basisServings: "1", caloriesKcal: "310", proteinG: "15.5", carbohydrateG: "37", fatG: "9", status: "estimated", coverageRatio: "0.9", micronutrients: {} }, version: 1 },
+          ],
+          dayTotals: {}, weekTotal: null, groceryStatus: "dirty", version: 1,
+        },
+        grocery: {
+          id: "00000000-0000-4000-8000-000000000713", weekStart: today, status: "dirty", generatedAt: `${today}T09:00:00Z`, completedAt: null,
+          items: [
+            { id: "00000000-0000-4000-8000-000000000714", displayName: "Lemon", quantity: "2", unit: "count", origin: "generated", checked: false, needsReview: false, position: 0, shoppingStop: null, sources: [], version: 1 },
+            { id: "00000000-0000-4000-8000-000000000715", displayName: "Cilantro", quantity: "1", unit: "count", origin: "generated", checked: false, needsReview: false, position: 1, shoppingStop: null, sources: [], version: 1 },
+          ], version: 1,
+        },
+        pantryMatches: [
+          { recipeId, recipeTitle: "Lemony lentils", availability: "partial", coverageRatio: "0.75", missingIngredients: ["lemon"] },
+          { recipeId: "00000000-0000-4000-8000-000000000704", recipeTitle: "Sesame tofu bowls", availability: "full", coverageRatio: "1", missingIngredients: [] },
+        ],
+      } });
+    }
     if (path === "/api/v1/owner/preferences") {
       return route.fulfill({ json: { displayName: "Cook", timezone: "UTC", weekStartsOn: 1, version: 1 } });
     }

@@ -190,8 +190,8 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await page.getByRole("button", { name: "Remove Reusable bags" }).click();
   await page.getByRole("button", { name: "Remove item" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);
-  await expect(page.getByText("Needs review")).toBeVisible();
-  await captureUi(page, testInfo, "grocery-edited", { focus: page.getByText("Needs review") });
+  await expect(page.getByText("Check item", { exact: true })).toBeVisible();
+  await captureUi(page, testInfo, "grocery-edited", { focus: page.getByText("Check item", { exact: true }) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
