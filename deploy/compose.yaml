@@ -1,6 +1,47 @@
 name: cookfully
 
 services:
+  storage-init:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        for directory in /host-data/postgres /host-data/redis /host-data/intelligence-models /host-data/media /host-data/semantic-models /host-data/exports /host-data/erasure-ledger /host-data/backups; do
+          mkdir -p "$$directory"
+          chown -R 999:999 "$$directory"
+        done
+    command: []
+    volumes:
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/postgres
+        target: /host-data/postgres
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/redis
+        target: /host-data/redis
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/intelligence-models
+        target: /host-data/intelligence-models
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/media
+        target: /host-data/media
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/semantic-models
+        target: /host-data/semantic-models
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/exports
+        target: /host-data/exports
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/erasure-ledger
+        target: /host-data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/backups
+        target: /host-data/backups
+    restart: "no"
+
   postgres:
     image: ghcr.io/tensorchord/vchord-postgres:pg18-v1.1.1
     environment:
@@ -9,8 +50,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     volumes:
-      - postgres-data:/var/lib/postgresql
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/postgres
+        target: /var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cookfully} -d ${POSTGRES_DB:-cookfully}"]
       interval: 5s
@@ -24,8 +70,13 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     volumes:
-      - redis-data:/data
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/redis
+        target: /data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -44,8 +95,13 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     volumes:
-      - intelligence-model-data:/models
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/intelligence-models
+        target: /models
     networks:
       - intelligence-net
     expose:
@@ -90,6 +146,7 @@ services:
       COOKFULLY_SEMANTIC_MATCHING_MODEL_DIR: /data/semantic-models
       COOKFULLY_EXPORT_ROOT: /data/exports
       COOKFULLY_ERASURE_LEDGER_ROOT: /data/erasure-ledger
+      COOKFULLY_BACKUP_ROOT: /data/backups
       COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
       COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS: ${COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS:-21600}
       COOKFULLY_BACKUP_RETENTION_DAYS: ${COOKFULLY_BACKUP_RETENTION_DAYS:-30}
@@ -105,10 +162,21 @@ services:
       - default
       - intelligence-net
     volumes:
-      - media-data:/data/media
-      - semantic-model-data:/data/semantic-models
-      - export-data:/data/exports
-      - erasure-ledger-data:/data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/media
+        target: /data/media
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/semantic-models
+        target: /data/semantic-models
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/exports
+        target: /data/exports
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/erasure-ledger
+        target: /data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/backups
+        target: /data/backups
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)"]
       interval: 10s
@@ -131,10 +199,18 @@ services:
       - default
       - intelligence-net
     volumes:
-      - media-data:/data/media
-      - semantic-model-data:/data/semantic-models
-      - export-data:/data/exports
-      - erasure-ledger-data:/data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/media
+        target: /data/media
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/semantic-models
+        target: /data/semantic-models
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/exports
+        target: /data/exports
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/erasure-ledger
+        target: /data/erasure-ledger
     restart: unless-stopped
     command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--queues=interactive", "--concurrency=${COOKFULLY_INTERACTIVE_WORKER_CONCURRENCY:-2}"]
 
@@ -154,7 +230,9 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - erasure-ledger-data:/data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/erasure-ledger
+        target: /data/erasure-ledger
     restart: unless-stopped
 
   retention:
@@ -169,11 +247,43 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - media-data:/data/media
-      - erasure-ledger-data:/data/erasure-ledger
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/media
+        target: /data/media
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/erasure-ledger
+        target: /data/erasure-ledger
     healthcheck:
       test: ["CMD", "python", "-c", "import os,pathlib,time; p=pathlib.Path('/tmp/cookfully-retention-heartbeat'); limit=2*int(os.environ['COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS']); raise SystemExit(0 if p.exists() and time.time()-int(p.read_text()) < limit else 1)"]
       interval: 5m
+      timeout: 5s
+      retries: 3
+      start_period: 1m
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backup.Dockerfile
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-cookfully}
+      PGUSER: ${POSTGRES_USER:-cookfully}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      COOKFULLY_BACKUP_ROOT: /data/backups
+      COOKFULLY_DATABASE_BACKUP_SCHEDULE: ${COOKFULLY_DATABASE_BACKUP_SCHEDULE:-02:00}
+      COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT: ${COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT:-14}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ${COOKFULLY_DATA_ROOT:-../data}/backups
+        target: /data/backups
+    healthcheck:
+      test: ["CMD", "cookfully-database-backup", "healthcheck"]
+      interval: 1m
       timeout: 5s
       retries: 3
       start_period: 1m
@@ -194,15 +304,6 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
-
-volumes:
-  postgres-data:
-  redis-data:
-  intelligence-model-data:
-  media-data:
-  semantic-model-data:
-  export-data:
-  erasure-ledger-data:
 
 networks:
   intelligence-net:

@@ -29,6 +29,9 @@ COOKFULLY_TRUSTED_PROXY_CIDRS=172.31.250.10/32
 COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED=false
 COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS=21600
 COOKFULLY_BACKUP_RETENTION_DAYS=30
+COOKFULLY_DATA_ROOT=/srv/cookfully-data
+COOKFULLY_DATABASE_BACKUP_SCHEDULE=02:00
+COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT=14
 POSTGRES_DB=cookfully
 POSTGRES_USER=cookfully
 POSTGRES_PASSWORD=replace-with-a-random-database-password
@@ -53,8 +56,9 @@ docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml ps
 PostgreSQL and Redis have no published production ports. The API is reachable only on the backend and
 proxy networks. The web gateway binds to `127.0.0.1:8080` by default, so TLS must terminate on the same
 host or reach it through an equivalently private tunnel. Do not add untrusted containers to the proxy
-network. All containers enable `no-new-privileges`; database, media, exports, Redis, and ledger use
-separate named volumes.
+network. All containers enable `no-new-privileges`; database, media, exports, Redis, ledger, model
+artifacts, and automatic dumps use separate folders beneath `COOKFULLY_DATA_ROOT`. They are normal
+host paths, not Docker named volumes.
 
 ## TLS and trusted headers
 
@@ -90,29 +94,32 @@ and disaster-recovery backups. Successful-import HTML and raw structured-provide
 retained. Prefer leaving diagnostics off; enable them only for a bounded investigation, then confirm a
 successful retention sweep.
 
-## Volumes, backup, and ledger replication
+## Host storage, backup, and ledger replication
 
-| Volume | Purpose | Backup treatment |
+| Host folder | Purpose | Backup treatment |
 | --- | --- | --- |
-| `postgres-data` | App records and imported nutrition references | Daily verified DR backup |
-| `media-data` | Recipe images and managed safe media | Same logical DR backup as PostgreSQL |
-| `export-data` | One-time portable-export scratch data | Rotate; not authoritative DR state |
-| `redis-data` | Delivery and short-lived coordination | Optional; rebuild from PostgreSQL/outbox |
-| `erasure-ledger-data` | Content-free append-only erasure chain | Replicate independently; never overwrite from backup |
+| `postgres/` | App records, sessions, jobs, and imported nutrition references | Automatic daily logical dump; never raw-copy while live |
+| `media/` | Recipe images and managed safe media | Copy to the same second-disk backup set |
+| `backups/database/` | Full PostgreSQL custom dumps | Automatic at 02:00; 14 retained by default |
+| `exports/` | One-time portable-export scratch data | Optional secondary copy; not authoritative DR state |
+| `redis/` | Delivery and short-lived coordination | Optional; rebuild from PostgreSQL/outbox |
+| `erasure-ledger/` | Content-free append-only erasure chain | Replicate independently; never overwrite from backup |
 
-Create and verify a backup daily and before every upgrade:
+The `backup` sidecar produces complete PostgreSQL dumps automatically. It uses atomic output,
+checksum manifests, and retention only after a successful dump. Request one manually through
+Settings → Backups or:
 
 ```bash
-docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml exec -T api \
-  cookfully backup create --output /data/exports --retention-days 30
-docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml exec -T api \
-  cookfully backup verify /data/exports/REPLACE_WITH_ARCHIVE.zip
+docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml exec -T backup \
+  cookfully-database-backup run
 ```
 
-Copy verified archives out of `export-data` to protected storage. An external scheduler must delete
-only expired archives that have a newer verified replacement. Keep at least one known-good archive and
-run a clean restore drill quarterly. Follow `docs/backup-restore.md`; archive creation is not proof of
-recoverability.
+Use a host-level backup program to copy `backups/`, `media/`, and the independent ledger to a second
+disk or approved off-site destination. The Windows Task Scheduler helper is
+`scripts/backup-cookfully-host.ps1`; on Linux use the same pattern with a scheduler/backup product
+that snapshots the logical dump and files, never PostgreSQL's live raw directory. Keep at least one
+known-good archive and run a clean restore drill quarterly. Follow `docs/backup-restore.md`; archive
+creation is not proof of recoverability.
 
 ## First kitchen and personal organization
 
@@ -127,7 +134,7 @@ a clear generated ingredient. It never learns an automatic placement from a manu
 or something marked “Needs review.” A completed shopping pass is preserved and cannot be regenerated
 until explicitly reopened in the app.
 
-Replicate `erasure-ledger-data` separately to append-preserving storage in another failure domain,
+Replicate `erasure-ledger/` separately to append-preserving storage in another failure domain,
 using credentials that the database/media backup job cannot use to rewrite history. Copy only after
 filesystem flush, verify the complete hash chain at the replica, monitor replication lag, and retain
 each record through the latest possibly containing backup expiry plus 30 days. A restore always mounts
@@ -159,7 +166,7 @@ provider payloads, private goals, or diagnostic HTML in ordinary logs.
 
 Roll back application images only when the database migration is explicitly backward compatible.
 Otherwise restore a verified archive into a clean target and require current-ledger replay before
-activation. Never restore over the live volumes.
+activation. Never restore over the live host folders.
 
 For offline full-owner erasure, stop `web`, `api`, `worker`, `outbox`, **and `retention`** while leaving
 PostgreSQL reachable, then follow `docs/owner-erasure.md` exactly.

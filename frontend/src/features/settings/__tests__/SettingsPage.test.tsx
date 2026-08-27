@@ -56,7 +56,7 @@ describe("settings page", () => {
     );
   }
 
-  it("renders Account, Security, Connections, Nutrition data, Intelligence, and Jobs tabs and edits account details", async () => {
+  it("renders Account, Security, Connections, Nutrition data, Intelligence, Backups, and Jobs tabs and edits account details", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input, init) => {
       const path = String(input);
@@ -77,6 +77,7 @@ describe("settings page", () => {
     expect(screen.getByRole("tab", { name: "Connections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Nutrition data" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Intelligence" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Backups" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Jobs" })).toBeVisible();
 
     expect(await screen.findByLabelText("Display name")).toHaveValue("Owner");
@@ -145,6 +146,51 @@ describe("settings page", () => {
     expect(screen.getByText(/This device/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Change password" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+  });
+
+  it("shows host-owned database restore points and queues a manual backup", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (path.includes("/database-backups/request") && init?.method === "POST") {
+        return json({ requestId: "a".repeat(32), status: "queued" }, 202);
+      }
+      if (path.includes("/database-backups")) {
+        return json({
+          storageMode: "host_bind_mount",
+          schedule: "02:00",
+          retentionCount: 14,
+          backups: [{
+            filename: "cookfully-postgres-20260827T090000Z.dump",
+            createdAt: "2026-08-27T09:00:00Z",
+            bytes: 262144,
+            sha256: "a".repeat(64),
+            reason: "schedule",
+          }],
+          latest: {
+            filename: "cookfully-postgres-20260827T090000Z.dump",
+            createdAt: "2026-08-27T09:00:00Z",
+            bytes: 262144,
+            sha256: "a".repeat(64),
+            reason: "schedule",
+          },
+          lastSuccessAt: "2026-08-27T09:00:00Z",
+          lastFailure: null,
+          pendingManualRequest: false,
+          serviceHeartbeatAt: "2026-08-27T09:00:00Z",
+        });
+      }
+      return json({}, 404);
+    });
+
+    renderPage();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Backups" }));
+
+    expect(await screen.findByText("Host-owned storage is active")).toBeVisible();
+    expect(screen.getByText("14 recent dumps")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Create backup now" }));
+    expect(await screen.findByText("Queued safely")).toBeVisible();
   });
 
   it("uses the shared settings-tabs structure without dead classes", () => {

@@ -25,6 +25,7 @@ tags:
   - name: Suggestions
   - name: Pantry
   - name: Reference Data
+  - name: Backups
 
 paths:
   /health:
@@ -38,6 +39,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+
+  /database-backups:
+    get:
+      tags: [Backups]
+      operationId: getDatabaseBackups
+      responses:
+        "200":
+          description: Host-owned database restore points and backup service status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseBackupStatus"
+
+  /database-backups/request:
+    post:
+      tags: [Backups]
+      operationId: requestDatabaseBackup
+      responses:
+        "202":
+          description: A full PostgreSQL backup has been queued for the local backup service.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatabaseBackupRequested"
+
+  /owner/home:
+    get:
+      tags: [Goals]
+      operationId: getHomeBootstrap
+      responses:
+        "200":
+          description: Bounded owner-specific Home projection.
 
   /auth/session:
     post:
@@ -280,6 +313,20 @@ paths:
           $ref: "#/components/responses/Conflict"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /recipes/photo-stages:
+    post:
+      tags: [Recipes]
+      operationId: stageRecipePhoto
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/RecipePhotoUpload"
+      responses:
+        "201":
+          description: A photo stage available while the recipe editor remains open.
 
   /recipes/bulk/archive:
     post:
@@ -931,6 +978,21 @@ paths:
                 $ref: "#/components/schemas/GroceryList"
         "409":
           $ref: "#/components/responses/Conflict"
+
+  /meal-plans/{weekStart}/grocery-list/empty:
+    post:
+      tags: [Grocery]
+      operationId: createEmptyGroceryList
+      parameters:
+        - $ref: "#/components/parameters/WeekStart"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: A manually managed empty grocery list for the week.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroceryList"
 
   /meal-plans/{weekStart}/grocery-list/complete:
     post:
@@ -1876,6 +1938,42 @@ components:
         database: { type: string, enum: [ok, unavailable] }
         broker: { type: string, enum: [ok, unavailable] }
         version: { type: string }
+    DatabaseBackupRecord:
+      type: object
+      required: [filename, createdAt, bytes, sha256, reason]
+      properties:
+        filename: { type: string }
+        createdAt: { type: string, format: date-time }
+        bytes: { type: integer, minimum: 0 }
+        sha256: { type: string, minLength: 64, maxLength: 64 }
+        reason: { type: string, enum: [schedule, manual, host-copy] }
+    DatabaseBackupFailure:
+      type: object
+      required: [occurredAt, message]
+      properties:
+        occurredAt: { type: string, format: date-time }
+        message: { type: string, minLength: 1, maxLength: 500 }
+    DatabaseBackupStatus:
+      type: object
+      required: [storageMode, schedule, retentionCount, backups, latest, lastSuccessAt, lastFailure, pendingManualRequest, serviceHeartbeatAt]
+      properties:
+        storageMode: { type: string, const: host_bind_mount }
+        schedule: { type: string, pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$" }
+        retentionCount: { type: integer, minimum: 1 }
+        backups:
+          type: array
+          items: { $ref: "#/components/schemas/DatabaseBackupRecord" }
+        latest: { anyOf: [{ $ref: "#/components/schemas/DatabaseBackupRecord" }, { type: "null" }] }
+        lastSuccessAt: { type: [string, "null"], format: date-time }
+        lastFailure: { anyOf: [{ $ref: "#/components/schemas/DatabaseBackupFailure" }, { type: "null" }] }
+        pendingManualRequest: { type: boolean }
+        serviceHeartbeatAt: { type: [string, "null"], format: date-time }
+    DatabaseBackupRequested:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId: { type: string, minLength: 32, maxLength: 32 }
+        status: { type: string, const: queued }
     LoginRequest:
       type: object
       additionalProperties: false

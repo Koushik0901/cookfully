@@ -45,6 +45,18 @@ change it. Everything else already has a working local default.
 
 ## 3. Build and start the stack
 
+Before starting, choose where Cookfully's durable data belongs. The default is `data/` beside the
+repository, but a dedicated local disk is safer for a kitchen you intend to keep:
+
+```dotenv
+# deploy/.env
+COOKFULLY_DATA_ROOT=D:/Cookfully
+```
+
+That folder contains PostgreSQL, recipe media, exports, the erasure ledger, model files, and
+database backups. They are bind-mounted from your computer; Cookfully does **not** use Docker named
+volumes for durable data.
+
 From the repository root:
 
 ```bash
@@ -52,9 +64,9 @@ docker compose -f deploy/compose.yaml up -d --build
 ```
 
 The first build takes a few minutes (it installs locked frontend dependencies and the Python
-environment). It starts seven services: `web`, `api`, `worker`, `outbox`, `retention`, `postgres`,
-and `redis`. The API runs database migrations automatically on first start and creates the owner
-account from `COOKFULLY_OWNER_*`.
+environment). It starts the web client, API, workers, PostgreSQL, Redis, retention worker, storage
+initializer, and automatic backup service. The API runs database migrations automatically on first
+start and creates the owner account from `COOKFULLY_OWNER_*`.
 
 Check that everything is healthy:
 
@@ -62,7 +74,7 @@ Check that everything is healthy:
 docker compose -f deploy/compose.yaml ps
 ```
 
-Wait until `api`, `postgres`, `redis`, `web`, and `retention` report `healthy`.
+Wait until `api`, `postgres`, `redis`, `web`, `retention`, and `backup` report `healthy`.
 
 ## 4. Open the app
 
@@ -111,15 +123,27 @@ To rebuild only the web client (fastest loop): `docker compose -f deploy/compose
 ## Stopping and removing
 
 ```bash
-# Stop everything (data is kept in named volumes)
+# Stop everything. Your data remains in COOKFULLY_DATA_ROOT.
 docker compose -f deploy/compose.yaml down
-
-# Stop and delete all data (recipes, plans, owner account, media)
-docker compose -f deploy/compose.yaml down -v
 ```
 
-`down -v` is destructive — there is no undo. Backups can be created and verified with the CLI, see
-[docs/backup-restore.md](backup-restore.md).
+Docker can remove containers without touching `COOKFULLY_DATA_ROOT`. Do not delete that folder to
+reset the app: it contains the kitchen itself. Automatic database dumps and a second-disk host backup
+task are described in [backup and restore](backup-restore.md).
+
+## Moving an older named-volume installation
+
+If Cookfully was first started before host storage was introduced, copy its old volumes before
+starting this version. The migration stops writers, copies each known volume to the selected host
+folder, and intentionally leaves the source volumes untouched as rollback assets:
+
+```powershell
+.\scripts\migrate-docker-storage.ps1 -DataRoot "D:\Cookfully"
+```
+
+Set the same `COOKFULLY_DATA_ROOT=D:/Cookfully` in `deploy/.env`, start the stack, and verify a
+recipe, photo, and backup status before considering the old volumes for removal. A volume that was
+already deleted cannot be recovered by this script; restore it only from a pre-existing backup.
 
 ## Troubleshooting
 
@@ -139,12 +163,14 @@ docker compose -f deploy/compose.yaml logs --tail 100 api
 ```
 
 Common causes: an old `cookfully-*` container set occupying the ports (remove it with
-`docker compose -p <old-project-name> down`), or a database volume created with different
-credentials (rare; `down -v` and restart if you are only evaluating).
+`docker compose -p <old-project-name> down`), or a database folder created with different
+credentials (rare; point `COOKFULLY_DATA_ROOT` to a new empty folder only if you are evaluating a
+fresh kitchen).
 
 **Login fails** — the owner account is created at the API's first startup with
 `COOKFULLY_OWNER_EMAIL` and `COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`. If you change these after the
-first start, the database keeps the original values; wipe the stack (`down -v`) to re-bootstrap.
+first start, the database keeps the original values; use a new empty `COOKFULLY_DATA_ROOT` only when
+you intentionally want a new kitchen.
 
 **Importing a recipe URL hangs or fails** — the site may block automated access. Cookfully shows a
 recovery path: paste the recipe text instead.

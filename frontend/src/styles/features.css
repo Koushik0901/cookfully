@@ -1110,6 +1110,34 @@
 .resource-estimate__warnings { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.1rem; color: var(--color-on-surface-variant); font-size: 0.8rem; }
 .settings-range { width: 100%; accent-color: var(--color-primary); }
 .settings-range-labels { display: flex; justify-content: space-between; color: var(--color-on-surface-variant); font-size: 0.75rem; }
+.backup-section { max-width: 58rem; }
+.backup-section__promise,
+.backup-section__note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.8rem; border-radius: var(--radius-lg); padding: 1rem; }
+.backup-section__promise { color: var(--color-on-primary-container); background: var(--color-primary-container); }
+.backup-section__note { color: var(--color-on-surface-variant); background: var(--color-surface-low); }
+.backup-section__promise > svg,
+.backup-section__note > svg { width: 1.35rem; color: var(--color-primary); }
+.backup-section__promise strong,
+.backup-section__note strong { color: var(--color-on-surface); }
+.backup-section__promise p,
+.backup-section__note p { margin: 0.2rem 0 0; font-size: 0.82rem; line-height: 1.45; }
+.backup-card { display: grid; gap: 1rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 1rem; background: var(--color-surface-low); }
+.backup-card--secondary { background: transparent; }
+.backup-card__heading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0.75rem; }
+.backup-card__heading h3 { font-family: var(--font-body); font-size: 1rem; font-weight: 650; letter-spacing: 0; }
+.backup-card__heading p { margin: 0.15rem 0 0; color: var(--color-on-surface-variant); font-size: 0.82rem; line-height: 1.4; }
+.backup-card__icon { display: grid; width: 2.4rem; height: 2.4rem; place-items: center; border-radius: var(--radius); color: var(--color-primary); background: var(--color-primary-container); }
+.backup-card__icon svg { width: 1.2rem; }
+.backup-card__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin: 0; }
+.backup-card__facts > div { display: grid; gap: 0.15rem; border-top: 1px solid var(--color-outline-variant); padding-top: 0.65rem; }
+.backup-card__facts dt { color: var(--color-on-surface-variant); font-size: 0.7rem; }
+.backup-card__facts dd { margin: 0; font-size: 0.82rem; font-weight: 620; font-variant-numeric: tabular-nums; }
+.backup-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
+.backup-card__list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.backup-card__list li { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; border-top: 1px solid var(--color-outline-variant); padding-block: 0.7rem; }
+.backup-card__list li > span { display: grid; min-width: 0; gap: 0.12rem; }
+.backup-card__list strong { font-size: 0.82rem; font-weight: 620; }
+.backup-card__list small { color: var(--color-on-surface-variant); font-size: 0.72rem; }
 .one-time-secret { display: grid; min-width: 0; gap: 0.75rem; overflow: hidden; border-radius: var(--radius-lg); padding: 1rem; color: var(--color-on-primary); background: var(--color-herb-800); }
 .one-time-secret h2,
 .one-time-secret .eyebrow { color: var(--color-on-primary); }
@@ -1175,6 +1203,8 @@
    .settings-tabs button small { display: none; }
    .resource-estimate__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
    .resource-estimate__heading { flex-direction: column; }
+   .backup-card__facts { grid-template-columns: 1fr; }
+   .backup-card__actions .cf-button { width: 100%; }
 }
 
 /* Grocery — compact, tactile and designed for one-handed checking. */

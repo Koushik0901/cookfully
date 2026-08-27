@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     media_root: Path = Path("media")
     export_root: Path = Path("exports")
     erasure_ledger_root: Path = Path("erasure-ledger")
+    backup_root: Path = Path("backups")
     failed_import_diagnostics_enabled: bool = False
     failed_import_diagnostic_ttl_seconds: Literal[86_400] = 86_400
     job_attempt_timeout_seconds: Literal[60] = 60
@@ -69,6 +70,10 @@ class Settings(BaseSettings):
     safe_job_metadata_retention_days: Literal[365] = 365
     retention_sweep_interval_seconds: Annotated[int, Field(ge=300, le=21_600)] = 21_600
     backup_retention_days: int = 30
+    database_backup_schedule: Annotated[
+        str, Field(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    ] = "02:00"
+    database_backup_retention_count: Annotated[int, Field(ge=1, le=365)] = 14
     cookie_secure: bool = False
     session_ttl_days: Annotated[int, Field(ge=1, le=400)] = 400
     semantic_matching_backend: Literal["hashing", "fastembed"] = "hashing"

@@ -20,6 +20,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/database-backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDatabaseBackups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/database-backups/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["requestDatabaseBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/owner/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getHomeBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -142,6 +190,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["mergeRecipeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/photo-stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stageRecipePhoto"];
         delete?: never;
         options?: never;
         head?: never;
@@ -562,6 +626,22 @@ export interface paths {
         get: operations["getGroceryList"];
         put?: never;
         post: operations["regenerateGroceryList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{weekStart}/grocery-list/empty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createEmptyGroceryList"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1179,6 +1259,39 @@ export interface components {
             /** @enum {string} */
             broker: "ok" | "unavailable";
             version?: string;
+        };
+        DatabaseBackupRecord: {
+            filename: string;
+            /** Format: date-time */
+            createdAt: string;
+            bytes: number;
+            sha256: string;
+            /** @enum {string} */
+            reason: "schedule" | "manual" | "host-copy";
+        };
+        DatabaseBackupFailure: {
+            /** Format: date-time */
+            occurredAt: string;
+            message: string;
+        };
+        DatabaseBackupStatus: {
+            /** @constant */
+            storageMode: "host_bind_mount";
+            schedule: string;
+            retentionCount: number;
+            backups: components["schemas"]["DatabaseBackupRecord"][];
+            latest: components["schemas"]["DatabaseBackupRecord"] | null;
+            /** Format: date-time */
+            lastSuccessAt: string | null;
+            lastFailure: components["schemas"]["DatabaseBackupFailure"] | null;
+            pendingManualRequest: boolean;
+            /** Format: date-time */
+            serviceHeartbeatAt: string | null;
+        };
+        DatabaseBackupRequested: {
+            requestId: string;
+            /** @constant */
+            status: "queued";
         };
         LoginRequest: {
             /** Format: email */
@@ -2100,6 +2213,64 @@ export interface operations {
             };
         };
     };
+    getDatabaseBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Host-owned database restore points and backup service status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseBackupStatus"];
+                };
+            };
+        };
+    };
+    requestDatabaseBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A full PostgreSQL backup has been queued for the local backup service. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseBackupRequested"];
+                };
+            };
+        };
+    };
+    getHomeBootstrap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bounded owner-specific Home projection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     createSession: {
         parameters: {
             query?: never;
@@ -2412,6 +2583,28 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             410: components["responses"]["Gone"];
+        };
+    };
+    stageRecipePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["RecipePhotoUpload"];
+            };
+        };
+        responses: {
+            /** @description A photo stage available while the recipe editor remains open. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     bulkArchiveRecipes: {
@@ -3326,6 +3519,30 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    createEmptyGroceryList: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                weekStart: components["parameters"]["WeekStart"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A manually managed empty grocery list for the week. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryList"];
+                };
+            };
         };
     };
     completeGroceryList: {

@@ -36,6 +36,7 @@ media/
 !frontend/public/media/grocery-icons/*.png
 !frontend/public/media/grocery-icons/manifest.json
 erasure-ledger/
+data/
 
 # Local review notes and TLS material
 problems.txt

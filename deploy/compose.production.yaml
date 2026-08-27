@@ -15,8 +15,10 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    volumes:
-      - intelligence-model-data:/models
+
+  backup:
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend]
 
   api:
     environment:

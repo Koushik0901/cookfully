@@ -60,3 +60,25 @@ export type NutritionIntelligenceEstimate = {
   warnings: string[];
   estimateHash: string;
 };
+
+export type DatabaseBackup = {
+  filename: string;
+  createdAt: string;
+  bytes: number;
+  sha256: string;
+  reason: "schedule" | "manual" | "host-copy";
+};
+
+export type DatabaseBackupStatus = {
+  storageMode: "host_bind_mount";
+  schedule: string;
+  retentionCount: number;
+  backups: DatabaseBackup[];
+  latest: DatabaseBackup | null;
+  lastSuccessAt: string | null;
+  lastFailure: { occurredAt: string; message: string } | null;
+  pendingManualRequest: boolean;
+  serviceHeartbeatAt: string | null;
+};
+
+export type DatabaseBackupRequested = { requestId: string; status: "queued" };

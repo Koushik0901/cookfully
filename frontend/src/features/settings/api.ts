@@ -1,5 +1,13 @@
 import { apiRequest } from "../recipes/api";
-import type { AccessToken, AccessTokenCreated, AccessTokenWrite, PasswordChange, SessionList } from "./types";
+import type {
+  AccessToken,
+  AccessTokenCreated,
+  AccessTokenWrite,
+  DatabaseBackupRequested,
+  DatabaseBackupStatus,
+  PasswordChange,
+  SessionList,
+} from "./types";
 import type {
   NutritionIntelligenceEstimate,
   NutritionIntelligenceEstimateRequest,
@@ -62,5 +70,16 @@ export const nutritionIntelligenceApi = {
       "/nutrition-intelligence/settings",
       { method: "PUT", body: JSON.stringify(value) },
     );
+  },
+};
+
+export const databaseBackupsApi = {
+  status() {
+    return apiRequest<DatabaseBackupStatus>("/database-backups");
+  },
+  request() {
+    return apiRequest<DatabaseBackupRequested>("/database-backups/request", {
+      method: "POST",
+    });
   },
 };

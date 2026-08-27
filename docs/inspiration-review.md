@@ -139,6 +139,44 @@ operator ceremony, and recovery states that smaller installations must understan
 future evidence shows the ledger cannot be operated reliably, but do not weaken zero-resurrection
 without changing the product's explicit privacy guarantee.
 
+## P9.1 host-owned storage and automatic restore points — 2026-08-26
+
+### Problem being solved
+
+Cookfully previously stored PostgreSQL, media, exports, Redis, model artifacts, and its erasure ledger
+in named Docker volumes. A volume removal could therefore erase a whole kitchen, even though the user
+reasonably expected recipes and nutrition history to belong to their own disk.
+
+### Sources inspected
+
+- [Immich backup and restore](https://docs.immich.app/administration/backup-and-restore/)
+- [Immich template backup script](https://docs.immich.app/guides/template-backup-script/)
+- [Immich upgrade guide](https://docs.immich.app/install/upgrading/)
+
+### Benefits and liabilities observed
+
+Immich separates host-selected upload/database paths from container lifecycle, creates automatic
+database backups with retention, and makes manual backup/restore status visible. Its documentation is
+also explicit that automatic database dumps do not back up the media filesystem: operators still need
+a versioned external copy that captures both the dump and files. Bind mounts make ownership and host
+backup tools straightforward, but expose users to host-path permissions, while a raw live PostgreSQL
+directory remains unsafe to copy as a substitute for a logical dump.
+
+### Local decision
+
+Adopt the durable-storage and restore-point parts of the pattern: `COOKFULLY_DATA_ROOT` is now a
+host-owned root for every persistent service folder; a `backup` sidecar writes atomic, checksummed,
+full PostgreSQL dumps at 02:00 with 14 retained by default; Settings exposes status and a manual
+request; and a Windows Task Scheduler helper copies dumps plus media/ledger/model files to a second
+disk without raw-copying the running database. The migration script copies old named volumes only into
+empty destinations and leaves source volumes as rollback assets.
+
+Adapt rather than copy Immich's live in-app restore: Cookfully keeps the existing staged restore gate
+because its independent erasure ledger must replay later deletions before activation. A one-click
+overwrite of the live database could resurrect erased recipe data. This retains more operator ceremony
+than Immich but fits the narrower single-owner privacy contract. Redis remains non-authoritative;
+exports are durable host files but not the recovery authority.
+
 ## P10 reference performance — 2026-08-10
 
 ### Sources inspected

@@ -14,6 +14,8 @@ def test_safe_job_policy_defaults_are_fixed() -> None:
     assert settings.job_max_attempts == 5
     assert settings.job_terminal_deadline_seconds == 900
     assert settings.retention_sweep_interval_seconds == 21_600
+    assert settings.database_backup_schedule == "02:00"
+    assert settings.database_backup_retention_count == 14
 
 
 def test_comma_separated_values_parse_from_environment_source(
@@ -88,3 +90,8 @@ def test_production_requires_https_secure_cookies_and_valid_trusted_proxy_cidrs(
         api_base_url="https://recipes.example.com",
     )
     assert settings.trusted_proxy_cidrs == ("172.31.250.10/32",)
+
+
+def test_database_backup_schedule_requires_24_hour_time() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, database_backup_schedule="2am")

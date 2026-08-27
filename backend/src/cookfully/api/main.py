@@ -14,6 +14,7 @@ from cookfully.api.problems import install_problem_handlers
 from cookfully.api.routes import (
     access_tokens,
     auth,
+    database_backups,
     exports,
     foods,
     goals,
@@ -55,6 +56,7 @@ from cookfully.application.reference_data import ReferenceDataInstallService
 from cookfully.application.suggestions import SuggestionService
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
+from cookfully.infrastructure.database_backups import DatabaseBackupStore
 from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.instance_lease import runtime_service_lease
 from cookfully.infrastructure.media_store import MediaStore
@@ -79,11 +81,15 @@ _OPERATION_IDS = {
     "health": "getHealth",
     "create_session": "createSession",
     "delete_session": "deleteSession",
+    "get_database_backups": "getDatabaseBackups",
+    "request_database_backup": "requestDatabaseBackup",
+    "get_home_bootstrap": "getHomeBootstrap",
     "get_preferences": "getOwnerPreferences",
     "update_preferences": "putOwnerPreferences",
     "get_onboarding": "getOwnerOnboarding",
     "resolve_onboarding": "putOwnerOnboarding",
     "get_current_job": "getCurrentJob",
+    "create_empty_grocery_list": "createEmptyGroceryList",
     "get_job": "getJob",
     "get_food_embedding_summary": "getFoodEmbeddingSummary",
     "run_food_embeddings": "runFoodEmbeddingIndex",
@@ -106,6 +112,7 @@ _OPERATION_IDS = {
     "replace_recipe_photo_from_source": "replaceRecipePhotoFromSource",
     "attach_recipe_photo": "attachRecipePhoto",
     "merge_recipe_import": "mergeRecipeImport",
+    "stage_recipe_photo": "stageRecipePhoto",
     "archive_recipe": "archiveRecipe",
     "restore_recipe": "restoreRecipe",
     "permanently_delete_recipe": "permanentlyDeleteRecipe",
@@ -295,6 +302,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.engine = engine
     app.state.redis = redis_client
+    app.state.settings = resolved
+    app.state.database_backups = DatabaseBackupStore(resolved.backup_root)
     # Recipe, pantry, and plan payloads are often large enough that response
     # compression improves real-world latency without affecting small health
     # or mutation responses.
@@ -307,6 +316,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     versioned.include_router(health.router)
     versioned.include_router(auth.router)
+    versioned.include_router(database_backups.router)
     versioned.include_router(owner.router)
     versioned.include_router(access_tokens.router)
     versioned.include_router(jobs.router)
