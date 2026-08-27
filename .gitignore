@@ -57,3 +57,9 @@ Thumbs.db
 .pnpm-store
 .agents
 .uv-*
+
+# Local agent tool state and generated review evidence
+.playwright-mcp/
+.superpowers/
+frontend/public/media/grocery-icons/_verification-sheet.png
+pantry-card-redesign.png
