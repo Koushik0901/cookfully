@@ -295,13 +295,27 @@ class ImportConfirmComponent(ApiModel):
 class ImportConfirmRequest(ApiModel):
     parse_id: str = Field(alias="parseId", max_length=64)
     title: str | None = Field(default=None, min_length=1, max_length=240)
-    image_source: str | None = Field(alias="imageSource", default=None, max_length=2048)
+    # A web image URL is short, but PDF previews are selected as data URIs. Keep
+    # the request bounded at the same limit as the dedicated photo-attach route
+    # so a real PDF thumbnail can reach the best-effort attachment step.
+    image_source: str | None = Field(alias="imageSource", default=None, max_length=20_000_000)
     image_source_kind: Literal["url", "pdf_thumbnail"] | None = Field(
         alias="imageSourceKind", default=None
     )
     yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
     components: tuple[ImportConfirmComponent, ...] = ()
     thumbnail_crop: ThumbnailCropRequest | None = Field(alias="thumbnailCrop", default=None)
+
+    @model_validator(mode="after")
+    def validate_image_source_kind(self) -> ImportConfirmRequest:
+        if self.image_source_kind == "pdf_thumbnail":
+            if not self.image_source or not self.image_source.startswith("data:image/"):
+                raise ValueError("A PDF thumbnail must be an image data URI.")
+        elif (
+            self.image_source_kind == "url" and self.image_source and len(self.image_source) > 2048
+        ):
+            raise ValueError("An image URL must be at most 2048 characters.")
+        return self
 
 
 class ImportMergeRequest(ApiModel):

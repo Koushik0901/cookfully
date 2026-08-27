@@ -107,11 +107,14 @@ For a local disposable target:
 
 ```powershell
 docker compose -p cookfully-restore-check -f deploy/compose.restore-test.yaml up -d
-$targetUrl = 'postgresql+psycopg://cookfully:restore-check-only@localhost:55432/cookfully_restore'
+$targetUrl = 'postgresql+psycopg://cookfully:restore-check-only@localhost:15432/cookfully_restore'
 uv run --directory backend alembic -c backend/alembic.ini upgrade head
 uv run --directory backend cookfully backup restore --target-database-url $targetUrl --target-media-root ../artifacts/restore-media --erasure-ledger ../deploy/erasure-ledger --staging-root ../artifacts/restore-stage ../artifacts/backups/<archive>.zip
 uv run --directory backend cookfully backup compare --target-database-url $targetUrl --erasure-ledger ../deploy/erasure-ledger ../artifacts/backups/<archive>.zip
 ```
+
+If port 15432 is unavailable on the host, set `COOKFULLY_RESTORE_TEST_PORT` and use the
+same port in `$targetUrl`; the disposable database still remains isolated from the live instance.
 
 Set `COOKFULLY_DATABASE_URL=$targetUrl` for the Alembic command if the environment does not already
 point at the disposable database. Never point `--target-database-url` or `--target-media-root` at the

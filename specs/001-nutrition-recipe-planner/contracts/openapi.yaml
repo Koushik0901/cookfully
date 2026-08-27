@@ -2595,7 +2595,7 @@ components:
       properties:
         parseId: { type: string }
         title: { type: [string, "null"] }
-        imageSource: { type: [string, "null"] }
+        imageSource: { type: [string, "null"], maxLength: 20000000 }
         imageSourceKind: { type: [string, "null"], enum: [url, pdf_thumbnail] }
         yieldQuantity: { type: [string, "null"] }
         components:

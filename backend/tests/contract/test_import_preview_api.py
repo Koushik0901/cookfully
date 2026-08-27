@@ -251,10 +251,11 @@ def test_import_confirm_pdf_thumbnail_flows_to_coordinator(
     with client_for(isolated_database_url, tmp_path) as client:
         client.app.state.import_previews = StubCoordinator(confirm=confirm)
         headers = authenticate(client)
+        thumbnail = "data:image/jpeg;base64," + ("c2FtcGxl" * 600)
         payload = {
             "parseId": "abcd1234",
             "title": "Spiced Oats",
-            "imageSource": "data:image/jpeg;base64,c2FtcGxl",
+            "imageSource": thumbnail,
             "imageSourceKind": "pdf_thumbnail",
             "yieldQuantity": "3",
         }
@@ -265,4 +266,4 @@ def test_import_confirm_pdf_thumbnail_flows_to_coordinator(
         )
         assert response.status_code == 202
         assert captured[-1]["imageSourceKind"] == "pdf_thumbnail"
-        assert captured[-1]["imageSource"] == "data:image/jpeg;base64,c2FtcGxl"
+        assert captured[-1]["imageSource"] == thumbnail

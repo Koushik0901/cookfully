@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: cookfully
       POSTGRES_PASSWORD: restore-check-only
     ports:
-      - "55432:5432"
+      - "${COOKFULLY_RESTORE_TEST_PORT:-15432}:5432"
     volumes:
       - ${COOKFULLY_RESTORE_TEST_ROOT:-../data/restore-check}/postgres:/var/lib/postgresql
     healthcheck:
