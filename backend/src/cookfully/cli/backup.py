@@ -354,11 +354,33 @@ class BackupManager:
             for row in rows.get("grocery_item_sources", []):
                 if str(row.get("ingredient_id")) in ingredient_ids:
                     row["ingredient_id"] = None
+            for row in rows.get("suggestion_items", []):
+                if str(row.get("recipe_id")) == recipe_id:
+                    row["recipe_id"] = None
             media_rows = rows.get("media_assets", [])
+            erased_media_ids = {
+                str(row["id"]) for row in media_rows if str(row.get("recipe_id")) == recipe_id
+            }
             removed_media.update(
-                str(row["storage_key"]) for row in media_rows if row.get("recipe_id") == recipe_id
+                str(row["storage_key"])
+                for row in media_rows
+                if str(row.get("recipe_id")) == recipe_id
             )
             rows["media_assets"] = [row for row in media_rows if row.get("recipe_id") != recipe_id]
+            rows["recipe_photo_derivatives"] = [
+                row
+                for row in rows.get("recipe_photo_derivatives", [])
+                if row.get("recipe_id") != recipe_id
+                and str(row.get("asset_id")) not in erased_media_ids
+            ]
+            for table_name in (
+                "recipe_collection_memberships",
+                "recipe_meal_roles",
+                "recipe_sections",
+            ):
+                rows[table_name] = [
+                    row for row in rows.get(table_name, []) if row.get("recipe_id") != recipe_id
+                ]
             for table_name, field in (
                 ("recipe_instructions", "recipe_id"),
                 ("nutrition_estimates", "recipe_id"),

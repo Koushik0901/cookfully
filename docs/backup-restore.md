@@ -3,8 +3,10 @@
 Cookfully uses three deliberately different recovery artifacts:
 
 - A **portable export** is an owner-readable ZIP/NDJSON file for migration or personal custody. It
-  excludes authentication secrets, sessions, transient jobs, encrypted diagnostics, and erased
-  recipe-owned data.
+  includes structured recipes and covers, organization/onboarding state, plans and completed
+  grocery lists, owner foods, pantry stock/deductions, and remembered food matches. It excludes
+  authentication secrets, sessions, transient jobs, encrypted diagnostics, and erased recipe-owned
+  data.
 - An **application disaster-recovery archive** captures authoritative PostgreSQL entities plus safe
   managed media. Its erasure-ledger cursor/hash anchor supports the existing fail-closed replay gate.
   It intentionally excludes sessions, idempotency records, processing jobs, outbox events, expired

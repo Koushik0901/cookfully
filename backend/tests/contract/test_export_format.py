@@ -17,24 +17,47 @@ from cookfully.application.exports import (
 )
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.media_store import MediaStore
-from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource, GroceryList
-from cookfully.infrastructure.models.identity import OwnerAccount
-from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.grocery import (
+    GroceryItem,
+    GroceryItemSource,
+    GroceryList,
+    GroceryShoppingStop,
+    RememberedGroceryPlacement,
+)
+from cookfully.infrastructure.models.identity import OwnerAccount, OwnerOnboardingState
+from cookfully.infrastructure.models.media import MediaAsset, RecipePhotoDerivative
 from cookfully.infrastructure.models.nutrition import NutritionCorrection
+from cookfully.infrastructure.models.owner_foods import OwnerFood
+from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import (
     MealNutritionSnapshot,
     MealPlan,
     MealPlanEntry,
     UserGoal,
 )
-from cookfully.infrastructure.models.recipes import Ingredient, Recipe
+from cookfully.infrastructure.models.recipes import (
+    Ingredient,
+    Recipe,
+    RecipeCollection,
+    RecipeCollectionMembership,
+    RecipeInstruction,
+    RecipeMealRole,
+    RecipeSection,
+)
+from cookfully.infrastructure.models.semantic_matching import FoodMatchMemory
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
 ACTIVE_RECIPE_ID = UUID("00000000-0000-7000-8000-000000000010")
+COLLECTION_ID = UUID("00000000-0000-7000-8000-000000000020")
+SHOPPING_STOP_ID = UUID("00000000-0000-7000-8000-000000000021")
+OWNER_FOOD_ID = UUID("00000000-0000-7000-8000-000000000022")
+PANTRY_ITEM_ID = UUID("00000000-0000-7000-8000-000000000023")
+SECTION_ID = UUID("00000000-0000-7000-8000-000000000024")
 
 
 def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None:
     stored = media.put(b"safe-image-bytes", "image/png", kind="recipe_image")
+    now = datetime(2026, 3, 10, tzinfo=UTC)
     with factory.begin() as session:
         owner = OwnerAccount(
             id=OWNER_ID,
@@ -52,13 +75,83 @@ def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None
             status="ready",
             nutrition_state="manual",
             input_hash="sha256:active",
+            is_favorite=True,
         )
         session.add_all([owner, recipe])
         session.flush()
+        session.add_all(
+            [
+                OwnerOnboardingState(
+                    owner_id=OWNER_ID,
+                    state="completed",
+                    first_action="create_recipe",
+                    reference_data_choice="later",
+                    resolved_at=now,
+                    version=1,
+                ),
+                RecipeCollection(
+                    id=COLLECTION_ID,
+                    owner_id=OWNER_ID,
+                    name="Weeknight favourites",
+                    position=0,
+                    version=1,
+                ),
+                RecipeCollectionMembership(collection_id=COLLECTION_ID, recipe_id=ACTIVE_RECIPE_ID),
+                RecipeMealRole(recipe_id=ACTIVE_RECIPE_ID, role="dinner"),
+                GroceryShoppingStop(
+                    id=SHOPPING_STOP_ID,
+                    owner_id=OWNER_ID,
+                    name="Market",
+                    position=0,
+                    version=1,
+                ),
+                RememberedGroceryPlacement(
+                    owner_id=OWNER_ID,
+                    normalized_food_name="tofu",
+                    shopping_stop_id=SHOPPING_STOP_ID,
+                ),
+                OwnerFood(
+                    id=OWNER_FOOD_ID,
+                    owner_id=OWNER_ID,
+                    display_name="House protein blend",
+                    normalized_name="house protein blend",
+                    brand="Cookfully Pantry",
+                    calories_kcal=Decimal("400.000000"),
+                    protein_g=Decimal("75.000000"),
+                    carbohydrate_g=Decimal("10.000000"),
+                    fat_g=Decimal("8.000000"),
+                    basis_grams=Decimal("100.000000"),
+                    typical_serving_g=Decimal("30.000000"),
+                    typical_serving_unit="scoop",
+                    is_active=True,
+                    version=1,
+                    created_at=now,
+                    updated_at=now,
+                ),
+                FoodMatchMemory(
+                    owner_id=OWNER_ID,
+                    signature_hash="f" * 64,
+                    signature={"food": "house protein blend"},
+                    owner_food_id=OWNER_FOOD_ID,
+                    food_reference_id=None,
+                    source_release_id=None,
+                    active=True,
+                    use_count=3,
+                    last_used_at=now,
+                ),
+                RecipeSection(
+                    id=SECTION_ID,
+                    recipe_id=ACTIVE_RECIPE_ID,
+                    position=0,
+                    title="Lentils",
+                ),
+            ]
+        )
         ingredient = Ingredient(
             recipe_id=recipe.id,
             position=0,
             original_text="200 g tofu",
+            section_id=SECTION_ID,
             quantity_min=Decimal("200.000000"),
             quantity_max=Decimal("200.000000"),
             unit_code="g",
@@ -70,6 +163,14 @@ def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None
         )
         session.add(ingredient)
         session.flush()
+        session.add(
+            RecipeInstruction(
+                recipe_id=recipe.id,
+                position=0,
+                text="Simmer the lentils until tender.",
+                section_id=SECTION_ID,
+            )
+        )
         session.add(
             NutritionCorrection(
                 recipe_id=recipe.id,
@@ -93,6 +194,7 @@ def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None
         session.add(asset)
         session.flush()
         recipe.image_asset_id = asset.id
+        session.add(RecipePhotoDerivative(recipe_id=recipe.id, asset_id=asset.id, role="card"))
         goal = UserGoal(
             owner_id=owner.id,
             mode="maintain",
@@ -142,9 +244,10 @@ def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None
         session.flush()
         grocery_list = GroceryList(
             meal_plan_id=plan.id,
-            status="current",
+            status="completed",
             source_plan_version=plan.version,
-            generated_at=datetime(2026, 3, 10, tzinfo=UTC),
+            generated_at=now,
+            completed_at=now,
             version=1,
         )
         session.add(grocery_list)
@@ -164,17 +267,47 @@ def seed_export_graph(factory: sessionmaker[Session], media: MediaStore) -> None
             needs_review=False,
             position=0,
             version=1,
+            shopping_stop_id=SHOPPING_STOP_ID,
         )
         session.add(item)
         session.flush()
-        session.add(
-            GroceryItemSource(
-                grocery_item_id=item.id,
-                meal_plan_entry_id=entry.id,
-                ingredient_id=None,
-                quantity_contribution=Decimal("150.000000"),
-                original_text="200 g tofu from deleted recipe",
-            )
+        session.add_all(
+            [
+                GroceryItemSource(
+                    grocery_item_id=item.id,
+                    meal_plan_entry_id=entry.id,
+                    ingredient_id=None,
+                    quantity_contribution=Decimal("150.000000"),
+                    original_text="200 g tofu from deleted recipe",
+                ),
+                PantryItem(
+                    id=PANTRY_ITEM_ID,
+                    owner_id=OWNER_ID,
+                    display_name="House protein blend",
+                    normalized_food_name="house protein blend",
+                    quantity=Decimal("450.000000"),
+                    unit_code="g",
+                    owner_food_id=OWNER_FOOD_ID,
+                    food_reference_id=None,
+                    match_status="manual",
+                    match_confidence=Decimal("1.000000"),
+                    version=1,
+                ),
+                PantryDeduction(
+                    pantry_item_id=PANTRY_ITEM_ID,
+                    grocery_item_id=item.id,
+                    pantry_quantity=Decimal("50.000000"),
+                    pantry_unit="g",
+                    grocery_quantity=Decimal("50.000000"),
+                    grocery_unit="g",
+                    assumption="Cookfully used the owner-confirmed gram equivalent.",
+                    status="applied",
+                    pantry_version_after=1,
+                    grocery_version_after=1,
+                    applied_at=now,
+                    version=1,
+                ),
+            ]
         )
 
 

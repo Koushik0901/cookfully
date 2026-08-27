@@ -157,7 +157,7 @@
 
 - [X] T058 Update the OpenAPI artifact and generated frontend schema after all endpoint work, and verify no generated drift remains in `backend/openapi.json` and `frontend/src/app/api/generated/schema.ts`
 - [X] T059 [P] Add end-to-end cross-story coverage for first recipe → photo → organization → plan → grocery stop → finish shop in `frontend/e2e/first-kitchen-journey.spec.ts`
-- [ ] T060 [P] Add export/restore and full-erasure fixtures that prove the complete new owner-owned data graph and photo media are respectively portable and removed in `backend/tests/integration/test_exports.py` and `backend/tests/integration/test_owner_erasure.py`
+- [X] T060 [P] Add export/restore and full-erasure fixtures that prove the complete new owner-owned data graph and photo media are respectively portable and removed in `backend/tests/integration/test_exports.py` and `backend/tests/integration/test_owner_erasure.py`
 - [X] T061 [P] Update the visible owner data/export and self-hosting guidance for recipe photos, first-run state, recipe organization, shopping stops, and completed lists in `README.md`, `docs/self-hosting.md`, and `docs/owner-erasure.md`
 - [X] T062 [P] Record the final adopt/adapt/reject implementation outcome and any observed limitations in `docs/inspiration-review.md`
 - [ ] T063 Verify every changed screen has loading, empty, partial, estimated/manual nutrition, stale, failed, completed, and conflict recovery states plus meaningful image alternatives in `frontend/src/features/onboarding/`, `frontend/src/features/recipes/`, and `frontend/src/features/grocery/`

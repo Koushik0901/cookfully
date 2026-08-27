@@ -26,12 +26,14 @@ from cookfully.infrastructure.models.grocery import (
 )
 from cookfully.infrastructure.models.identity import OwnerOnboardingState
 from cookfully.infrastructure.models.jobs import ProcessingJob
-from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.media import MediaAsset, RecipePhotoDerivative
 from cookfully.infrastructure.models.nutrition import (
     IngredientMatch,
     NutritionCorrection,
     NutritionEstimate,
 )
+from cookfully.infrastructure.models.owner_foods import OwnerFood
+from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import (
     MealNutritionSnapshot,
     MealPlan,
@@ -46,30 +48,35 @@ from cookfully.infrastructure.models.recipes import (
     RecipeCollectionMembership,
     RecipeInstruction,
     RecipeMealRole,
+    RecipeSection,
 )
 from cookfully.infrastructure.models.reference_foods import (
     FoodNutrient,
     FoodReference,
     ReferenceDataset,
 )
+from cookfully.infrastructure.models.semantic_matching import FoodMatchMemory
 from cookfully.infrastructure.models.suggestions import SuggestionItem, SuggestionRun
 
 EXPORT_TABLES: tuple[Table, ...] = tuple(
     cast(Table, table)
     for table in (
         Recipe.__table__,
+        RecipeSection.__table__,
         RecipeInstruction.__table__,
         Ingredient.__table__,
         RecipeCollection.__table__,
         RecipeCollectionMembership.__table__,
         RecipeMealRole.__table__,
         OwnerOnboardingState.__table__,
+        OwnerFood.__table__,
         ReferenceDataset.__table__,
         FoodReference.__table__,
         FoodNutrient.__table__,
         IngredientMatch.__table__,
         NutritionEstimate.__table__,
         NutritionCorrection.__table__,
+        FoodMatchMemory.__table__,
         UserGoal.__table__,
         MealTarget.__table__,
         MealPlan.__table__,
@@ -80,10 +87,27 @@ EXPORT_TABLES: tuple[Table, ...] = tuple(
         GroceryItemSource.__table__,
         GroceryShoppingStop.__table__,
         RememberedGroceryPlacement.__table__,
+        PantryItem.__table__,
+        PantryDeduction.__table__,
         SuggestionRun.__table__,
         SuggestionItem.__table__,
         MediaAsset.__table__,
+        RecipePhotoDerivative.__table__,
     )
+)
+
+OWNER_SCOPED_TABLES = frozenset(
+    {
+        OwnerOnboardingState.__table__,
+        OwnerFood.__table__,
+        FoodMatchMemory.__table__,
+        UserGoal.__table__,
+        MealPlan.__table__,
+        RecipeCollection.__table__,
+        GroceryShoppingStop.__table__,
+        RememberedGroceryPlacement.__table__,
+        PantryItem.__table__,
+    }
 )
 
 
@@ -205,15 +229,14 @@ class PortableExportService:
         result: dict[str, list[dict[str, object]]] = {}
         for table in EXPORT_TABLES:
             statement: Select[Any] = select(table)
-            if table in {
-                UserGoal.__table__,
-                MealPlan.__table__,
-                OwnerOnboardingState.__table__,
-                RecipeCollection.__table__,
-                GroceryShoppingStop.__table__,
-                RememberedGroceryPlacement.__table__,
-            }:
+            if table in OWNER_SCOPED_TABLES:
                 statement = statement.where(table.c.owner_id == owner_id)
+            elif table is PantryDeduction.__table__:
+                statement = statement.where(
+                    table.c.pantry_item_id.in_(
+                        select(PantryItem.id).where(PantryItem.owner_id == owner_id)
+                    )
+                )
             elif table is NutritionCorrection.__table__:
                 statement = statement.where(table.c.created_by == owner_id)
             elif table is MediaAsset.__table__:

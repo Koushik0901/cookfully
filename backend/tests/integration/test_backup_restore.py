@@ -14,7 +14,11 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 from tests.contract.test_export_format import (
     ACTIVE_RECIPE_ID,
+    COLLECTION_ID,
+    OWNER_FOOD_ID,
     OWNER_ID,
+    PANTRY_ITEM_ID,
+    SHOPPING_STOP_ID,
     rows,
     seed_export_graph,
 )
@@ -25,12 +29,27 @@ from cookfully.domain.common import DomainError
 from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.media_store import MediaStore
 from cookfully.infrastructure.models import Base
-from cookfully.infrastructure.models.grocery import GroceryItem, GroceryItemSource
-from cookfully.infrastructure.models.identity import OwnerAccount
-from cookfully.infrastructure.models.media import MediaAsset
+from cookfully.infrastructure.models.grocery import (
+    GroceryItem,
+    GroceryItemSource,
+    GroceryShoppingStop,
+    RememberedGroceryPlacement,
+)
+from cookfully.infrastructure.models.identity import OwnerAccount, OwnerOnboardingState
+from cookfully.infrastructure.models.media import MediaAsset, RecipePhotoDerivative
 from cookfully.infrastructure.models.nutrition import NutritionCorrection
+from cookfully.infrastructure.models.owner_foods import OwnerFood
+from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import MealNutritionSnapshot, MealPlanEntry, UserGoal
-from cookfully.infrastructure.models.recipes import Recipe
+from cookfully.infrastructure.models.recipes import (
+    Recipe,
+    RecipeCollection,
+    RecipeCollectionMembership,
+    RecipeInstruction,
+    RecipeMealRole,
+    RecipeSection,
+)
+from cookfully.infrastructure.models.semantic_matching import FoodMatchMemory
 
 
 @contextmanager
@@ -152,6 +171,7 @@ def test_clean_instance_backup_export_restore_preserves_exact_safe_state(
             entry = session.scalar(select(MealPlanEntry))
             source = session.scalar(select(GroceryItemSource))
             assert recipe is not None and str(recipe.yield_quantity) == "2.000"
+            assert recipe.is_favorite is True
             assert correction is not None and str(correction.decimal_value) == "210.000000"
             assert goal is not None and str(goal.target_kcal) == "2200.000000"
             assert snapshot is not None and str(snapshot.basis_servings) == "1.500"
@@ -160,6 +180,32 @@ def test_clean_instance_backup_export_restore_preserves_exact_safe_state(
             assert entry.recipe_title_snapshot == "Deleted protein bowl"
             assert source is not None and source.ingredient_id is None
             assert source.original_text == "200 g tofu from deleted recipe"
+            onboarding = session.get(OwnerOnboardingState, OWNER_ID)
+            collection = session.get(RecipeCollection, COLLECTION_ID)
+            membership = session.scalar(select(RecipeCollectionMembership))
+            meal_role = session.scalar(select(RecipeMealRole))
+            section = session.scalar(select(RecipeSection))
+            instruction = session.scalar(select(RecipeInstruction))
+            photo_derivative = session.scalar(select(RecipePhotoDerivative))
+            stop = session.get(GroceryShoppingStop, SHOPPING_STOP_ID)
+            placement = session.scalar(select(RememberedGroceryPlacement))
+            owner_food = session.get(OwnerFood, OWNER_FOOD_ID)
+            match_memory = session.scalar(select(FoodMatchMemory))
+            pantry_item = session.get(PantryItem, PANTRY_ITEM_ID)
+            deduction = session.scalar(select(PantryDeduction))
+            assert onboarding is not None and onboarding.state == "completed"
+            assert collection is not None and collection.name == "Weeknight favourites"
+            assert membership is not None and membership.recipe_id == ACTIVE_RECIPE_ID
+            assert meal_role is not None and meal_role.role == "dinner"
+            assert section is not None and section.title == "Lentils"
+            assert instruction is not None and instruction.section_id == section.id
+            assert photo_derivative is not None and photo_derivative.recipe_id == ACTIVE_RECIPE_ID
+            assert stop is not None and stop.name == "Market"
+            assert placement is not None and placement.shopping_stop_id == SHOPPING_STOP_ID
+            assert owner_food is not None and owner_food.display_name == "House protein blend"
+            assert match_memory is not None and match_memory.owner_food_id == OWNER_FOOD_ID
+            assert pantry_item is not None and pantry_item.owner_food_id == OWNER_FOOD_ID
+            assert deduction is not None and deduction.pantry_item_id == PANTRY_ITEM_ID
 
     print(
         "RESTORE_EVIDENCE="

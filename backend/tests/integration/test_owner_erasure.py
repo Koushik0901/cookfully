@@ -215,6 +215,8 @@ def test_post_ledger_failure_resumes_once_and_removes_every_owner_controlled_rec
     assert records[0].scope == "owner_owned"
     assert not first.maintenance_state_path.exists()
     _assert_bootstrap_state(session_factory)
+    for root in (tmp_path / "media", tmp_path / "exports"):
+        assert not any(path.is_file() for path in root.rglob("*"))
 
 
 def test_older_backup_replays_owner_erasure_to_zero_resurrection(
