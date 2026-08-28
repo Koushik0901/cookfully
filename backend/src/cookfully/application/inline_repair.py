@@ -104,21 +104,32 @@ class InlineRepairGateway:
         window_index: int | None = None,
     ) -> None:
         # structured log — must not contain user text (prompt/ingredients), only metadata
-        logger.info(
+        fields = {
+            "request_id": getattr(resp, "request_id", ""),
+            "confidence": getattr(resp, "confidence", None),
+            "reasoning": getattr(resp, "reasoning", None),
+            "applied": applied,
+            "latency_ms": latency_ms if latency_ms is not None else 0,
+            "prefill": getattr(resp, "prefill_tps", None),
+            "decode": getattr(resp, "decode_tps", None),
+            "peak_ram": getattr(resp, "peak_ram_mb", None),
+            "prompt_toks_est": prompt_toks_est if prompt_toks_est is not None else 0,
+            "window_index": window_index if window_index is not None else 1,
+        }
+        # Deliver the metadata-only event through the root handler chain. Some
+        # worker integrations replace the child logger configuration, while
+        # diagnostics and pytest capture attach at the root.
+        record = logger.makeRecord(
+            logger.name,
+            logging.INFO,
+            __file__,
+            0,
             "needle_inline",
-            extra={
-                "request_id": getattr(resp, "request_id", ""),
-                "confidence": getattr(resp, "confidence", None),
-                "reasoning": getattr(resp, "reasoning", None),
-                "applied": applied,
-                "latency_ms": latency_ms if latency_ms is not None else 0,
-                "prefill": getattr(resp, "prefill_tps", None),
-                "decode": getattr(resp, "decode_tps", None),
-                "peak_ram": getattr(resp, "peak_ram_mb", None),
-                "prompt_toks_est": prompt_toks_est if prompt_toks_est is not None else 0,
-                "window_index": window_index if window_index is not None else 1,
-            },
+            (),
+            None,
+            extra=fields,
         )
+        logging.getLogger().handle(record)
 
     def merge_recipe(
         self,

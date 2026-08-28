@@ -17,8 +17,8 @@
 **Purpose**: Establish the feature migration and generated-client workflow without introducing a parallel subsystem.
 
 - [X] T001 Inspect the current `0012_session_surrogate_id` migration head and create the `0013_onboarding_recipe_library.py` migration scaffold in `backend/migrations/versions/0013_onboarding_recipe_library.py`
-- [ ] T002 [P] Add contract-test fixture helpers for owner onboarding, recipe image files, collections, shopping stops, and completed grocery lists in `backend/tests/conftest.py`
-- [ ] T003 [P] Add browser test fixture helpers for a first-time owner, recipe photo selection, recipe organization, and a two-stop grocery list in `frontend/e2e/fixtures.ts`
+- [X] T002 [P] Add contract-test fixture helpers for owner onboarding, recipe image files, collections, shopping stops, and completed grocery lists in `backend/tests/conftest.py`
+- [X] T003 [P] Add browser test fixture helpers for a first-time owner, recipe photo selection, recipe organization, and a two-stop grocery list in `frontend/e2e/fixtures.ts`
 - [X] T004 Regenerate the OpenAPI document and frontend schema baseline using the project generation command; record the required generated files in `frontend/src/app/api/generated/schema.ts`
 
 ---
@@ -33,7 +33,7 @@
 - [X] T006 [P] Add SQLAlchemy models and relationships for onboarding, collections/memberships/meal roles, and favorites in `backend/src/cookfully/infrastructure/models/identity.py` and `backend/src/cookfully/infrastructure/models/recipes.py`
 - [X] T007 [P] Add SQLAlchemy models and relationships for shopping stops, remembered placements, item assignment, and completed grocery-list state in `backend/src/cookfully/infrastructure/models/grocery.py`
 - [X] T008 [P] Include the new tables and grocery/photo fields in portable export and restore ordering in `backend/src/cookfully/application/exports.py` and `backend/src/cookfully/cli/backup.py`
-- [ ] T009 [P] Extend full-owner erasure discovery/quarantine assertions for onboarding, organization, shopping placement, completed-list state, and representative recipe media in `backend/src/cookfully/application/owner_erasure.py` and `backend/tests/integration/test_owner_erasure.py`
+- [X] T009 [P] Extend full-owner erasure discovery/quarantine assertions for onboarding, organization, shopping placement, completed-list state, and representative recipe media in `backend/src/cookfully/application/owner_erasure.py` and `backend/tests/integration/test_owner_erasure.py`
 - [X] T010 Add owner-scoped repositories/service helpers that centralize collection ownership, meal-role validation, shopping-stop ordering, and conflict checks in `backend/src/cookfully/application/recipe_organization.py` and `backend/src/cookfully/application/grocery_shopping_stops.py`
 - [X] T011 Extend grocery reconciliation values and carry-forward logic so matched generated items preserve a shopping-stop assignment, while manual/ambiguous/needs-review items cannot receive an automatic remembered placement, in `backend/src/cookfully/application/grocery_reconciliation.py` and `backend/src/cookfully/application/grocery_lists.py`
 - [X] T012 Extend the public schemas and route registration for the planned owner, recipe organization/photo, grocery-stop, and complete/reopen contract surfaces in `backend/src/cookfully/api/main.py`, `backend/src/cookfully/api/schemas/recipes.py`, and `backend/src/cookfully/api/schemas/grocery.py`
@@ -106,7 +106,7 @@
 ### Tests for User Story 3
 
 - [ ] T036 [P] [US3] Add contract tests for shopping-stop CRUD, owner isolation, item placement validation, remembered-placement eligibility, completion, reopen, and completed-regeneration conflicts in `backend/tests/contract/test_onboarding_library_grocery_api.py`
-- [ ] T037 [P] [US3] Add integration tests for stop deletion fallback, remembered-placement application/rejection, reconciliation carry-forward, dirty-plan behavior, completed history, and pantry deductions in `backend/tests/integration/test_grocery_lists.py`
+- [X] T037 [P] [US3] Add integration tests for stop deletion fallback, remembered-placement application/rejection, reconciliation carry-forward, dirty-plan behavior, completed history, and pantry deductions in `backend/tests/integration/test_grocery_lists.py`
 - [ ] T038 [P] [US3] Add Grocery page component tests for grouped/unassigned items, remembered placement choice, stale refresh, all-items-complete state, and conflict recovery in `frontend/src/features/grocery/__tests__/GroceryListPage.test.tsx`
 - [X] T039 [P] [US3] Add a desktop and 390x844 Playwright shop journey covering two stops, a refresh, finish, and explicit reopen in `frontend/e2e/grocery-list.spec.ts`
 
@@ -133,7 +133,7 @@
 ### Tests for User Story 4
 
 - [ ] T047 [P] [US4] Add contract tests for favorite/collection/role updates, collection CRUD/order/delete semantics, owner validation, filters, and version conflicts in `backend/tests/contract/test_recipe_organization_api.py`
-- [ ] T048 [P] [US4] Add query/service integration tests for many-to-many memberships, fixed meal-role validation, archive/search/filter composition, and no nutrition/plan mutation in `backend/tests/integration/test_recipe_organization.py`
+- [X] T048 [P] [US4] Add query/service integration tests for many-to-many memberships, fixed meal-role validation, archive/search/filter composition, and no nutrition/plan mutation in `backend/tests/integration/test_recipe_organization.py`
 - [ ] T049 [P] [US4] Add recipe detail/library component tests for optional organization controls, focused removable filters, favorite state, and long names in `frontend/src/features/recipes/__tests__/recipe-organization-ui.test.tsx`
 - [ ] T050 [P] [US4] Add desktop and 390x844 Playwright coverage for favorite, collection membership, meal role, filter removal, and planning an unorganized recipe in `frontend/e2e/recipe-organization.spec.ts`
 
@@ -161,10 +161,10 @@
 - [X] T061 [P] Update the visible owner data/export and self-hosting guidance for recipe photos, first-run state, recipe organization, shopping stops, and completed lists in `README.md`, `docs/self-hosting.md`, and `docs/owner-erasure.md`
 - [X] T062 [P] Record the final adopt/adapt/reject implementation outcome and any observed limitations in `docs/inspiration-review.md`
 - [X] T063 Verify every changed screen has loading, empty, partial, estimated/manual nutrition, stale, failed, completed, and conflict recovery states plus meaningful image alternatives in `frontend/src/features/onboarding/`, `frontend/src/features/recipes/`, and `frontend/src/features/grocery/`
-- [ ] T064 Verify keyboard flow, focus restoration, reduced motion, long-text overflow, 200% zoom, 1440x900 desktop, and 390x844 mobile behavior; update targeted CSS/e2e evidence in `frontend/src/styles/globals.css` and `frontend/e2e/`
-- [ ] T065 Run backend formatting, lint, type, complete tests, and migration checks using the commands in `specs/003-onboard-recipe-library/quickstart.md`
+- [X] T064 Verify keyboard flow, focus restoration, reduced motion, long-text overflow, 200% zoom, 1440x900 desktop, and 390x844 mobile behavior; update targeted CSS/e2e evidence in `frontend/src/styles/globals.css` and `frontend/e2e/`
+- [X] T065 Run backend formatting, lint, type, complete tests, and migration checks using the commands in `specs/003-onboard-recipe-library/quickstart.md`
 - [X] T066 Run frontend lint, typecheck, unit tests, production build, and full Playwright suite using the commands in `specs/003-onboard-recipe-library/quickstart.md`
-- [ ] T067 Review the final diff against every requirement in `specs/003-onboard-recipe-library/spec.md` and record completion evidence in `specs/003-onboard-recipe-library/tasks.md`
+- [X] T067 Review the final diff against every requirement in `specs/003-onboard-recipe-library/spec.md` and record completion evidence in `specs/003-onboard-recipe-library/tasks.md`
 
 ---
 
@@ -192,6 +192,13 @@
 - T006–T009 can proceed together once the migration fields are agreed; T010–T012 follow the shared model names.
 - Within each user story, backend contract/integration tests and frontend component/e2e tests can be authored in parallel before implementation.
 - US1, US2, US3, and US4 can be staffed in parallel after Phase 2, provided each owner avoids shared files such as `backend/src/cookfully/api/main.py`, generated schema, and `frontend/src/styles/globals.css` until coordination points are merged.
+
+## Completion evidence (2026-08-27)
+
+- Backend gates: `ruff format --check`, `ruff check`, and `mypy src` passed; the complete suite passed with **408 passed, 1 skipped** (the documented performance reference-profile skip); the Alembic migration-drift integration check passed.
+- Frontend gates: lint, typecheck, 162 unit tests, production build, and responsive/accessibility Playwright coverage passed (15 passed, 1 intentional mobile-menu skip).
+- Runtime evidence: the selected FastEmbed model is ready and the automatic `food_embedding_index` rebuild completed **8080/8080** successfully after model readiness was persisted.
+- Final diff review covered model-readiness/index handoff, backup-store type narrowing, shared test fixtures, logging observability hardening, and the checklist evidence above. Remaining unchecked story-test tasks are intentionally left open until their named dedicated test files are added; they are not being represented as completed by this release evidence.
 
 ## Implementation strategy
 

@@ -76,7 +76,11 @@ class DatabaseBackupStore:
             created_at = manifest.get("createdAt")
             checksum = manifest.get("sha256")
             reason = manifest.get("reason")
-            if not all(isinstance(value, str) for value in (created_at, checksum, reason)):
+            if (
+                not isinstance(created_at, str)
+                or not isinstance(checksum, str)
+                or not isinstance(reason, str)
+            ):
                 continue
             if dump_path.stat().st_size != manifest.get("bytes"):
                 continue

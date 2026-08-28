@@ -1,7 +1,9 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from io import BytesIO
 from uuid import uuid4
 
 import pytest
+from PIL import Image
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
@@ -44,3 +46,33 @@ def session_factory(isolated_database_url: str) -> Iterator[sessionmaker[Session
         yield factory
     finally:
         engine.dispose()
+
+
+@pytest.fixture
+def onboarding_payload() -> dict[str, object]:
+    return {"state": "pending", "version": 1}
+
+
+@pytest.fixture
+def recipe_image_bytes() -> Callable[[tuple[int, int]], bytes]:
+    def build(size: tuple[int, int] = (2, 2)) -> bytes:
+        buffer = BytesIO()
+        Image.new("RGB", size, (62, 116, 74)).save(buffer, format="PNG")
+        return buffer.getvalue()
+
+    return build
+
+
+@pytest.fixture
+def collection_payload() -> dict[str, object]:
+    return {"name": "Weeknight favourites", "position": 0, "version": 1}
+
+
+@pytest.fixture
+def shopping_stop_payload() -> dict[str, object]:
+    return {"name": "Market", "position": 0, "version": 1}
+
+
+@pytest.fixture
+def completed_grocery_list_payload() -> dict[str, object]:
+    return {"status": "completed", "version": 2, "items": []}

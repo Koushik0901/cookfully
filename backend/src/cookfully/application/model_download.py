@@ -133,6 +133,12 @@ def run_model_download_job(session_factory: sessionmaker[Session], job_id: UUID)
                 return
             settings.last_ready_at = utc_now()
         jobs.update_progress(job_id, 1, 1)
+        # A new model identity invalidates every previous semantic vector. Queue
+        # the rebuild only after readiness is durable so the worker cannot start
+        # indexing against a model that has not finished downloading.
+        from cookfully.application.food_embedding_index import accept_food_embedding_job
+
+        accept_food_embedding_job(session_factory, scope="all", trace_id=f"model-ready-{job_id}")
         jobs.succeed(job_id)
     except Exception:
         logger.exception("semantic model download failed", extra={"job_id": str(job_id)})
