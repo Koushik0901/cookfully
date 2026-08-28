@@ -1067,6 +1067,41 @@
 .suggestion-success__evidence { border-left: 1px solid color-mix(in oklch, var(--status-success) 25%, transparent); padding-left: 1.25rem; font-size: 0.8rem; }
 
 /* Settings — quiet utility with a stable index. */
+.runtime-banner {
+  position: fixed;
+  z-index: 120;
+  top: max(0.65rem, env(safe-area-inset-top));
+  left: 50%;
+  display: flex;
+  width: min(calc(100% - 2rem), 44rem);
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-full);
+  padding: 0.55rem 0.85rem;
+  color: var(--color-on-surface);
+  background: var(--color-surface-bright);
+  box-shadow: var(--shadow-level-2);
+  font-size: 0.82rem;
+  line-height: 1.25;
+  transform: translateX(-50%);
+  animation: runtime-banner-in var(--motion-state) var(--ease-out-expo) both;
+}
+.runtime-banner svg { width: 1rem; flex: 0 0 auto; }
+.runtime-banner--offline { color: var(--color-on-error); border-color: var(--color-error); background: var(--color-error); }
+.runtime-banner--online { color: var(--color-on-primary-container); border-color: var(--status-success-container); background: var(--status-success-container); }
+.runtime-banner--update { color: var(--color-on-primary-container); border-color: var(--color-primary-container); background: var(--color-primary-container); }
+.runtime-banner .cf-button { min-height: 2.75rem; }
+.runtime-banner--update .cf-button { margin-left: 0.25rem; }
+.pwa-install-card { margin-top: 1.5rem; }
+.pwa-install-card__heading { display: flex; align-items: flex-start; gap: 0.75rem; }
+.pwa-install-card__heading > svg { width: 1.35rem; height: 1.35rem; margin-top: 0.15rem; color: var(--color-primary); }
+.pwa-install-card h2 { margin: 0; font-size: 1.15rem; }
+.pwa-install-card p { margin: 0; color: var(--color-on-surface-variant); }
+.pwa-install-card .cf-button { width: fit-content; }
+@keyframes runtime-banner-in { from { opacity: 0; transform: translate(-50%, -0.5rem); } to { opacity: 1; transform: translate(-50%, 0); } }
 .settings-workspace { display: grid; grid-template-columns: 15rem minmax(0, 1fr); align-items: start; gap: clamp(2rem, 5vw, 5rem); }
 .settings-tabs { position: sticky; top: 2rem; display: grid; width: 100%; gap: 0.25rem; overflow: visible; background: transparent; }
 .settings-tabs button { display: grid; grid-template-columns: auto minmax(0, 1fr); width: 100%; min-height: 4rem; align-items: center; gap: 0.75rem; padding-inline: 0.75rem; text-align: left; }
@@ -1159,6 +1194,7 @@
 }
 
 @media (max-width: 47.99rem) {
+  .runtime-banner { top: calc(3.85rem + env(safe-area-inset-top)); width: calc(100% - 1.25rem); border-radius: var(--radius-lg); }
   .goal-form { gap: 2.75rem; }
   .goal-section-heading { grid-template-columns: 1fr; gap: 0.75rem; }
   .direction-options,

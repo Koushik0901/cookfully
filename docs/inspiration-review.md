@@ -202,6 +202,44 @@ reconciliation, and solver execution independently. Keep raw three-run results a
 the measurement boundary, and rerun before raising scale or concurrency. Evidence and limitations are
 in `docs/performance.md` and `artifacts/performance-report.json`.
 
+## P11 mobile PWA transport and installability — 2026-08-28
+
+### Sources inspected
+
+- [MDN PWA installability guidance](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)
+- [Tailscale MagicDNS](https://tailscale.com/docs/features/magicdns)
+- [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve) and its
+  [CLI reference](https://tailscale.com/docs/reference/tailscale-cli/serve)
+
+### Objective comparison
+
+The web platform's manifest, icons, secure origin, and optional service worker provide a portable
+install surface without introducing a native client release. The liability is that install prompts
+and offline APIs vary by browser, especially on iOS, so a prompt-only flow would strand users whose
+browser does not expose `beforeinstallprompt`.
+
+MagicDNS gives a stable device name while Tailscale Serve terminates HTTPS and keeps the service
+inside the tailnet. That is a useful optional transport for a phone leaving the home Wi-Fi, but it
+adds tailnet administration and can become public if an operator chooses Funnel or overly broad ACLs.
+Neither mechanism should expose PostgreSQL or Redis directly, and neither changes the server's
+single source of truth.
+
+### Local decision
+
+Adapt the platform and transport patterns:
+
+- ship one manifest, platform icons, a revalidating service worker, and an explicit iOS Share → Add
+  to Home Screen fallback alongside the Android install prompt;
+- keep JSON reads in a bounded, session-cleared IndexedDB cache and show stale/offline states;
+- keep writes connected and retryable rather than silently queueing version-guarded mutations;
+- bind production data services to the host and the web gateway to loopback, then let an operator
+  opt into Tailscale Serve over an HTTPS MagicDNS name with household-only ACLs;
+- make the LAN path equally supported so Tailscale is an escape hatch, not a required account or
+  dependency.
+
+Evidence: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/src/app/pwa.ts`,
+`frontend/src/app/offlineCache.ts`, `docs/mobile-pwa.md`, and the production Compose override.
+
 ## First-run presentation: landing and sign-in — 2026-08-11
 
 ### Sources inspected

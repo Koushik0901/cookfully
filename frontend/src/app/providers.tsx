@@ -2,18 +2,37 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { type ReactNode, useState } from "react";
 
 import { BrandMark, ErrorRecovery, Skeleton } from "../components";
+import { clearOfflineResponses } from "./offlineCache";
+import { ForegroundRefresh, NetworkStatusBanner, PwaUpdateBanner } from "./MobileRuntime";
 import { GlobalErrorBoundary } from "./GlobalErrorBoundary";
 import { LoginForm } from "./LoginForm";
+import { hasKnownSession, markSessionKnown, notifyServerRestored, notifyServerUnavailable } from "./pwa";
 import { setSessionQueryClient } from "./sessionStore";
 
 async function verifySession(): Promise<boolean> {
-  const response = await fetch("/api/v1/owner/preferences", {
-    credentials: "same-origin",
-    headers: { accept: "application/json" },
-  });
-  if (response.status === 401) return false;
-  if (!response.ok) throw new Error("Unable to verify your session.");
-  return true;
+  try {
+    const response = await fetch("/api/v1/owner/preferences", {
+      credentials: "same-origin",
+      headers: { accept: "application/json" },
+    });
+    if (response.status === 401) {
+      markSessionKnown(false);
+      void clearOfflineResponses();
+      return false;
+    }
+    if (!response.ok) throw new Error("Unable to verify your session.");
+    markSessionKnown(true);
+    notifyServerRestored();
+    return true;
+  } catch (error) {
+    notifyServerUnavailable();
+    // A non-401 response means the server could not verify the session, not
+    // that it was revoked. Keep the last known owner shell available so
+    // cached reads remain useful while the host recovers; a real 401 above
+    // still clears the marker and cache immediately.
+    if (hasKnownSession()) return true;
+    throw error;
+  }
 }
 
 export function RequireAuthentication({ children }: { children: ReactNode }) {
@@ -63,6 +82,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             staleTime: 30_000,
             gcTime: 5 * 60_000,
             retry: 1,
+            networkMode: "offlineFirst",
             refetchOnWindowFocus: false,
             refetchOnReconnect: true,
           },
@@ -74,8 +94,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
       <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <NetworkStatusBanner />
+        <PwaUpdateBanner />
+        <ForegroundRefresh />
         {children}
       </QueryClientProvider>
-    </GlobalErrorBoundary>
+      </GlobalErrorBoundary>
   );
 }

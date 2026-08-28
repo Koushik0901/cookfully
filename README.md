@@ -86,6 +86,7 @@ deployment, start with [self-hosting](docs/self-hosting.md).
 
 - [Nutrition methodology](docs/nutrition-methodology.md)
 - [Backup and restore](docs/backup-restore.md)
+- [Mobile and PWA deployment](docs/mobile-pwa.md)
 - [Owner erasure](docs/owner-erasure.md)
 - [Operations runbook](docs/operations-runbook.md)
 - [Inspiration review log](docs/inspiration-review.md)

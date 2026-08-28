@@ -86,6 +86,13 @@ Visit <http://localhost:8080> and sign in with:
 The API health endpoint is at <http://localhost:8080/api/v1/health>; the OpenAPI document is at
 <http://localhost:8080/api/openapi.json>.
 
+### Open it from a phone
+
+`localhost` works only on the computer running Docker. For a trusted-LAN test, open
+`http://<server-lan-ip>:8080` on the phone while both devices share Wi-Fi. For a durable deployment,
+use the production HTTPS profile and follow [Mobile and PWA deployment](mobile-pwa.md), including
+the optional Tailscale MagicDNS path.
+
 ## What you can try
 
 - Write a recipe from memory or import one from a public recipe URL

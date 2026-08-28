@@ -171,6 +171,16 @@ activation. Never restore over the live host folders.
 For offline full-owner erasure, stop `web`, `api`, `worker`, `outbox`, **and `retention`** while leaving
 PostgreSQL reachable, then follow `docs/owner-erasure.md` exactly.
 
+## Mobile clients and optional Tailscale
+
+The server is the source of truth; phones use the web gateway as clients and may install the PWA from
+Safari or Chrome. Do not give a phone `localhost`: use the host's LAN hostname/IP or the HTTPS
+hostname described in [mobile-pwa.md](mobile-pwa.md). Tailscale is optional. When it is enabled on
+the host and phone, point both base URL settings at the host's HTTPS MagicDNS name and keep
+`COOKFULLY_COOKIE_SECURE=true`. The production web gateway remains on `127.0.0.1:8080`, so a
+host-level Tailscale Serve rule or reverse proxy can provide access without publishing the database
+or Redis. Restrict the tailnet with ACLs and do not enable public Funnel access by accident.
+
 ## Comparative operations note
 
 `docs/inspiration-review.md` compares this lifecycle with Mealie, Tandoor Recipes, and Immich. Their
