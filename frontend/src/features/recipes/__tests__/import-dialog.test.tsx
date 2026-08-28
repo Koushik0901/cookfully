@@ -153,4 +153,62 @@ await screen.findByText(/It looks like you already have/);
 
     expect(screen.getAllByRole("button", { name: "Merge into existing" })).toHaveLength(2);
   });
+
+  it("adds every recipe returned from a cookbook preview", async () => {
+    const cookbook = [1, 2, 3].map((index) => ({
+      ...preview,
+      parseId: `parse-${index}`,
+      title: `Cookbook recipe ${index}`,
+      duplicates: [],
+    }));
+    const confirms: string[] = [];
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({ ...preview, title: cookbook[0].title, duplicates: [], recipes: cookbook });
+      }
+      if (path.endsWith("/import/confirm") && init?.method === "POST") {
+        confirms.push((JSON.parse(String(init.body)) as { parseId: string }).parseId);
+        return response({ jobId: `job-${confirms.length}`, resourceId: `00000000-0000-4000-8000-00000000000${confirms.length}`, status: "queued" }, 202);
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+    expect(await screen.findByRole("heading", { name: "Cookbook found" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Add all 3 new recipes" }));
+    await waitFor(() => expect(confirms).toEqual(["parse-1", "parse-2", "parse-3"]));
+  });
+
+  it("skips cookbook recipes that already exist during bulk add", async () => {
+    const cookbook = [1, 2, 3].map((index) => ({
+      ...preview,
+      parseId: `parse-${index}`,
+      title: `Cookbook recipe ${index}`,
+      duplicates: index === 1 ? [{ id: "existing", title: "Cookbook recipe 1", version: 1 }] : [],
+    }));
+    const confirms: string[] = [];
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({ ...preview, title: cookbook[0].title, duplicates: cookbook[0].duplicates, recipes: cookbook });
+      }
+      if (path.endsWith("/import/confirm") && init?.method === "POST") {
+        confirms.push((JSON.parse(String(init.body)) as { parseId: string }).parseId);
+        return response({ jobId: `job-${confirms.length}`, resourceId: `resource-${confirms.length}`, status: "queued" }, 202);
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+    expect(await screen.findByText(/1 existing match will be skipped/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Add all 2 new recipes" }));
+    await waitFor(() => expect(confirms).toEqual(["parse-2", "parse-3"]));
+  });
 });

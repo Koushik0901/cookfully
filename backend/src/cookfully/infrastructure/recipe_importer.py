@@ -270,7 +270,7 @@ class RecipeImporter:
                 if position + 1 < len(ingredient_pages)
                 else len(pages)
             )
-            segment = "\n".join(pages[page_index:next_index])
+            segment = cls._clean_pdf_text("\n".join(pages[page_index:next_index]))
             before, _, ingredient_tail = segment.partition("Ingredients:")
             ingredient_text, marker, direction_text = ingredient_tail.partition("Directions:")
             if not marker:
@@ -298,6 +298,16 @@ class RecipeImporter:
                 )
             )
         return tuple(recipes)
+
+    @staticmethod
+    def _clean_pdf_text(value: str) -> str:
+        """Repair common embedded-font replacement characters without hiding data."""
+
+        # Some cookbook PDFs encode apostrophes and en dashes through glyphs that
+        # pypdf exposes as U+FFFD. Letter-adjacent glyphs are contractions; the
+        # remaining form is a range separator.
+        value = re.sub(r"(?<=\w)�(?=\w)", "'", value)
+        return value.replace("�", "-")
 
     @staticmethod
     def _pdf_title(value: str) -> str:

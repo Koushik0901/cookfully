@@ -7,11 +7,12 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
+from cookfully.application.nutrition_recovery import NutritionRecovery, recover_stale_nutrition
 from cookfully.domain.common import (
     DomainError,
     require_version,
@@ -215,15 +216,6 @@ def _section_at(
         return sections[section_index]
     except IndexError:
         return None
-
-
-@dataclass(frozen=True, slots=True)
-class NutritionRecovery:
-    recipe_id: UUID
-    title: str
-    nutrition_state: str
-    job_id: UUID | None = None
-    skipped_reason: str | None = None
 
 
 class RecipeService:
@@ -528,89 +520,12 @@ class RecipeService:
 
         The nutrition match step fails with ``reference_data_unavailable`` when the
         Foundation or SR Legacy datasets are not active yet. Recipes whose latest
-        match job failed that way stay in a partial/failed state even after the
+        match job failed that way stay in a pending/partial/failed state even after the
         reference data is installed. This sweep re-accepts a ``nutrition_match`` job
         with the recipe's current input hash (idempotent) so the pipeline can finish.
         """
 
-        recoveries: list[NutritionRecovery] = []
-        with self._session_factory.begin() as session:
-            active_types = {
-                item.dataset_type for item in NutritionRepository(session).active_datasets()
-            }
-            reference_ready = {"foundation", "sr_legacy"}.issubset(active_types)
-            in_flight = set(
-                session.scalars(
-                    select(ProcessingJob.aggregate_id).where(
-                        ProcessingJob.kind == "nutrition_match",
-                        ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
-                    )
-                )
-            )
-            candidates = session.scalars(
-                select(Recipe).where(
-                    Recipe.status != "archived",
-                    Recipe.nutrition_state.in_(("partial", "failed")),
-                )
-            ).all()
-            for recipe in candidates:
-                if recipe.id in in_flight:
-                    continue
-                latest = session.scalar(
-                    select(ProcessingJob)
-                    .where(
-                        ProcessingJob.kind == "nutrition_match",
-                        ProcessingJob.aggregate_id == recipe.id,
-                    )
-                    .order_by(ProcessingJob.accepted_at.desc(), ProcessingJob.id.desc())
-                    .limit(1)
-                )
-                if (
-                    latest is None
-                    or latest.status != "failed"
-                    or latest.failure_code != "reference_data_unavailable"
-                ):
-                    continue
-                if not reference_ready:
-                    recoveries.append(
-                        NutritionRecovery(
-                            recipe.id,
-                            recipe.title,
-                            recipe.nutrition_state,
-                            skipped_reason="reference_data_unavailable",
-                        )
-                    )
-                    continue
-                if dry_run:
-                    recoveries.append(
-                        NutritionRecovery(
-                            recipe.id,
-                            recipe.title,
-                            recipe.nutrition_state,
-                            skipped_reason="dry_run",
-                        )
-                    )
-                    continue
-                recipe.status = "processing"
-                recipe.nutrition_state = "stale"
-                recipe.version += 1
-                job = self._jobs.accept_in_session(
-                    session,
-                    kind="nutrition_match",
-                    aggregate_type="recipe",
-                    aggregate_id=recipe.id,
-                    input_hash=recipe.input_hash,
-                    trace_id=f"recover-{uuid7()}",
-                )
-                recoveries.append(
-                    NutritionRecovery(
-                        recipe.id,
-                        recipe.title,
-                        recipe.nutrition_state,
-                        job_id=job.id,
-                    )
-                )
-        return recoveries
+        return recover_stale_nutrition(self._session_factory, dry_run=dry_run)
 
     @staticmethod
     def _supersede_jobs(session: Session, recipe_id: UUID) -> None:

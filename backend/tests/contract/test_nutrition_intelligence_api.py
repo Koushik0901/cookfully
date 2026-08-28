@@ -19,6 +19,7 @@ def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
                 media_root=tmp_path / "media",
                 export_root=tmp_path / "exports",
                 erasure_ledger_root=tmp_path / "ledger",
+                semantic_matching_backend="hashing",
             )
         )
     )
@@ -40,7 +41,7 @@ def test_settings_estimate_and_update_require_reviewed_estimate(
         headers = authenticate(client)
         current = client.get("/api/v1/nutrition-intelligence/settings", headers=headers)
         assert current.status_code == 200
-        assert current.json()["backend"] == "hashing"
+        assert current.json()["backend"] == "fastembed"
 
         estimate = client.post(
             "/api/v1/nutrition-intelligence/estimate",

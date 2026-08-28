@@ -61,8 +61,7 @@ def _client_for(isolated_database_url: str, tmp_path: Path, inline_enabled: bool
     )
     # need to ensure get_settings returns our custom settings inside coordinator
     # patch get_settings in import_preview module
-    app = create_app(settings)
-    return app
+    return TestClient(create_app(settings))
 
 
 def _authenticate(client: TestClient) -> dict[str, str]:

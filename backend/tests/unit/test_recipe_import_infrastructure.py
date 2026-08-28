@@ -111,6 +111,21 @@ def test_cookbook_pdf_pages_become_separate_structured_recipes() -> None:
     assert recipes[1].ingredient_sections == (0, 1)
 
 
+def test_cookbook_pdf_replacement_glyphs_keep_recipe_text_readable() -> None:
+    pages = (
+        "TOFU FRIED CHICK�N\nIngredients:\n1 Batch Tofu Grilled Chick�N\n"
+        "Directions:\n1. Bake at 400 � 20 minutes.\n",
+    )
+
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "https://example.com/book.pdf", "https://example.com/book.pdf"
+    )
+
+    assert recipes[0].title == "Tofu Fried Chick'N"
+    assert recipes[0].ingredients == ("1 Batch Tofu Grilled Chick'N",)
+    assert recipes[0].instructions == ("Bake at 400 - 20 minutes.",)
+
+
 def test_grouped_html_ingredients_become_sections_in_source_order() -> None:
     scraper = SimpleNamespace(
         ingredients=lambda: ["1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth"],
@@ -220,7 +235,7 @@ async def test_recipe_image_is_validated_transformed_and_stored_without_metadata
     stored = store.read(result.storage_key)
     with Image.open(BytesIO(stored)) as transformed:
         assert transformed.format == "WEBP"
-        assert transformed.size == (1600, 800)
+        assert transformed.size == (960, 480)
         assert transformed.getexif().get(0x010E) is None
 
 
@@ -307,7 +322,7 @@ def test_manual_recipe_photo_reuses_safe_normalization(tmp_path: Path) -> None:
     assert result.byte_size > 0
     with Image.open(BytesIO(store.read(result.storage_key))) as transformed:
         assert transformed.format == "WEBP"
-        assert transformed.size == (1600, 800)
+        assert transformed.size == (960, 480)
 
     with pytest.raises(DomainError, match="JPEG, PNG, or WebP"):
         images.capture_bytes(b"not an image", "image/gif")

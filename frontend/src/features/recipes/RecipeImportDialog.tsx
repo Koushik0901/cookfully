@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Button, Field } from "../../components";
 import { ApiProblem, recipesApi } from "./api";
 import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
-import type { ImportConfirmComponent, ImportPreview, ThumbnailCropWrite } from "./types";
+import type { ImportConfirmComponent, ImportPreview, ImportRecipePreview, ThumbnailCropWrite } from "./types";
 
 type Step = "url" | "preview" | "confirm";
 
@@ -31,6 +31,14 @@ function componentsPayload(components: EditableComponent[]): ImportConfirmCompon
       remove: false,
     })),
     instructions: component.instructions.map((text) => ({ text, remove: false })),
+  }));
+}
+
+function editableComponents(preview: ImportRecipePreview): EditableComponent[] {
+  return preview.sections.map((section) => ({
+    title: section.title ?? "",
+    ingredients: section.ingredients.map((ingredient) => ({ originalText: ingredient.originalText })),
+    instructions: [...section.instructions],
   }));
 }
 
@@ -60,21 +68,17 @@ export function RecipeImportDialog({
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
   const [components, setComponents] = useState<EditableComponent[]>([]);
+  const [cookbookRecipes, setCookbookRecipes] = useState<ImportRecipePreview[]>([]);
 
   const previewMutation = useMutation({
     mutationFn: recipesApi.preview,
     onSuccess: (result) => {
       setPreview(result);
+      setCookbookRecipes(result.recipes?.length ? result.recipes : [result]);
       setTitle(result.title);
       setImageSource(result.imageSources[0] ?? null);
       setThumbnailCrop(defaultThumbnailCrop());
-      setComponents(
-        result.sections.map((section) => ({
-          title: section.title ?? "",
-          ingredients: section.ingredients.map((ingredient) => ({ originalText: ingredient.originalText })),
-          instructions: [...section.instructions],
-        })),
-      );
+      setComponents(editableComponents(result));
       setStep("preview");
     },
     onError: async (error) => {
@@ -147,6 +151,33 @@ export function RecipeImportDialog({
     },
   });
 
+  const cookbookConfirmMutation = useMutation({
+    mutationFn: async (entries: ImportRecipePreview[]) => {
+      const accepted = [];
+      for (const entry of entries) {
+        accepted.push(await recipesApi.confirmImport({
+          parseId: entry.parseId,
+          title: entry.title,
+          imageSource: entry.imageSources[0],
+          imageSourceKind: entry.imageSources[0]?.startsWith("data:image/") ? "pdf_thumbnail" : entry.imageSources[0] ? "url" : undefined,
+          thumbnailCrop: defaultThumbnailCrop(),
+          components: componentsPayload(editableComponents(entry)),
+        }));
+      }
+      return accepted;
+    },
+    onSuccess: async () => {
+      try {
+        await onImported?.();
+      } catch {
+        // The recipes already exist; onboarding persistence is optional.
+      } finally {
+        setOpen(false);
+        navigate("/app/recipes");
+      }
+    },
+  });
+
   function submitUrl(event: FormEvent) {
     event.preventDefault();
     try {
@@ -202,7 +233,9 @@ export function RecipeImportDialog({
     setComponents((current) => current.filter((_, i) => i !== componentIndex));
   }
 
-  const busy = previewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending;
+  const busy = previewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending || cookbookConfirmMutation.isPending;
+  const cookbookAddable = cookbookRecipes.filter((entry) => entry.duplicates.length === 0);
+  const cookbookSkipped = cookbookRecipes.length - cookbookAddable.length;
 
   return (
     <Dialog.Root
@@ -212,6 +245,7 @@ export function RecipeImportDialog({
         if (!next) {
           setStep("url");
           setPreview(null);
+          setCookbookRecipes([]);
           setValidation("");
         }
       }}
@@ -240,6 +274,25 @@ export function RecipeImportDialog({
             <>
               <Dialog.Title>Review the recipe</Dialog.Title>
               <Dialog.Description id="import-description">Make any changes before adding it to your collection. Nutrition is calculated after saving.</Dialog.Description>
+
+              {cookbookRecipes.length > 1 ? (
+                <section className="import-wizard__cookbook" aria-labelledby="cookbook-import-title">
+                  <h3 id="cookbook-import-title">Cookbook found</h3>
+                  <p>
+                    {cookbookAddable.length > 0
+                      ? `${cookbookAddable.length} new recipes are ready to add.`
+                      : "Every recipe in this cookbook is already in your collection."}{" "}
+                    {cookbookSkipped > 0 ? `${cookbookSkipped} existing match${cookbookSkipped === 1 ? "" : "es"} will be skipped.` : null}
+                  </p>
+                  <ol>
+                    {cookbookRecipes.map((entry) => <li key={entry.parseId}>{entry.title}</li>)}
+                  </ol>
+                  <Button type="button" onClick={() => cookbookConfirmMutation.mutate(cookbookAddable)} disabled={busy || cookbookAddable.length === 0}>
+                    {cookbookConfirmMutation.isPending ? `Adding ${cookbookAddable.length} recipes…` : cookbookAddable.length > 0 ? `Add all ${cookbookAddable.length} new recipes` : "All recipes already added"}
+                  </Button>
+                  {cookbookConfirmMutation.error instanceof Error ? <p className="error-text" role="alert">{cookbookConfirmMutation.error.message} The import stopped at the failed recipe; try again to continue.</p> : null}
+                </section>
+              ) : null}
 
               {preview.duplicates.length > 0 ? (
                 <section className="import-wizard__duplicate" role="alert">

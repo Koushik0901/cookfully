@@ -136,7 +136,13 @@ export function GroceryListPage() {
     setManualOpen(true);
     window.requestAnimationFrame(() => manualItemRef.current?.focus());
   }, [searchParams]);
-  const list = useQuery({ queryKey: ["grocery-list", weekStart], queryFn: () => groceryApi.get(weekStart), enabled: Boolean(weekStart), retry: false });
+  const list = useQuery({
+    queryKey: ["grocery-list", weekStart],
+    queryFn: () => groceryApi.get(weekStart),
+    enabled: Boolean(weekStart),
+    retry: false,
+    refetchInterval: (query) => query.state.data?.status === "generating" ? 2_000 : false,
+  });
   // The plan is only contextual metadata for source links; load it alongside
   // the grocery list instead of making it wait for the list response.
   const plan = useQuery({ queryKey: ["meal-plan", weekStart], queryFn: () => planningApi.plan(weekStart), enabled: Boolean(weekStart), retry: false });

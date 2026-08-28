@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import zipfile
+from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
 
@@ -9,11 +10,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application import reference_data as app_reference_data
+from cookfully.application.jobs import JobService
+from cookfully.application.recipes import IngredientWrite, RecipeService, RecipeWrite
 from cookfully.application.reference_data import ReferenceDataInstallService
 from cookfully.cli import reference_data as cli_reference_data
+from cookfully.domain.common import utc_now, uuid7
 from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.erasure_ledger import ErasureLedger
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.jobs import ProcessingJob
+from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
 
 OWNER = UUID("0198b100-1111-7111-8111-111111111111")
@@ -123,6 +129,78 @@ def test_run_skips_already_installed_releases_and_cleans_temp_files(
         job = session.get(ProcessingJob, second.job_id)
         assert job is not None and job.status == "succeeded"
         assert job.progress_current == 2
+
+
+def test_run_requeues_recipes_blocked_by_missing_reference_data(
+    isolated_database_url: str,
+    session_factory: sessionmaker[Session],
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    create_owner(session_factory)
+    monkeypatch.setattr(
+        cli_reference_data,
+        "get_settings",
+        lambda: Settings(database_url=isolated_database_url, environment="test"),
+    )
+    fixture = tmp_path / "foundation.zip"
+    write_fixture_zip(fixture, 1001, "Chicken breast")
+
+    def fake_download(url: str, destination: Path) -> None:
+        destination.write_bytes(fixture.read_bytes())
+
+    monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
+    recipes = RecipeService(
+        session_factory,
+        ErasureLedger(tmp_path / "ledger"),
+        source_instance_id=uuid7(),
+    )
+    mutation = recipes.create(
+        RecipeWrite(
+            title="Blocked recipe",
+            yield_quantity=Decimal("1"),
+            ingredients=(IngredientWrite(original_text="1 cup flour"),),
+            instructions=("Mix.",),
+        ),
+        trace_id="trace-blocked",
+        owner_id=OWNER,
+    )
+    assert mutation.job is not None
+    match = JobService(session_factory).accept(
+        kind="nutrition_match",
+        aggregate_type="recipe",
+        aggregate_id=mutation.recipe.id,
+        input_hash=mutation.recipe.input_hash,
+        trace_id="trace-match",
+    )
+    with session_factory.begin() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        job = session.get(ProcessingJob, match.id)
+        assert recipe is not None and job is not None
+        recipe.status = "processing"
+        recipe.nutrition_state = "pending"
+        job.status = "failed"
+        job.failure_code = "reference_data_unavailable"
+        job.finished_at = utc_now()
+
+    service = ReferenceDataInstallService(session_factory)
+    accepted = service.request(OWNER, ("foundation_sr_legacy",), trace_id="trace-install")
+    service.run(accepted.job_id)
+
+    with session_factory() as session:
+        recipe = session.get(Recipe, mutation.recipe.id)
+        recovered = session.get(ProcessingJob, match.id)
+        assert recipe is not None and recovered is not None
+        assert recipe.status == "processing"
+        assert recipe.nutrition_state == "stale"
+        active = session.scalar(
+            select(ProcessingJob).where(
+                ProcessingJob.kind == "nutrition_match",
+                ProcessingJob.aggregate_id == recipe.id,
+                ProcessingJob.status.in_(("queued", "running", "retry_wait")),
+            )
+        )
+        assert active is not None and active.input_hash == recipe.input_hash
 
 
 def test_run_fails_safely_on_download_error_leaving_zero_rows(

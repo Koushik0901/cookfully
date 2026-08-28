@@ -135,6 +135,32 @@ def test_import_preview_returns_structured_unsaved_preview(
         assert body["sections"][0]["instructions"] == ["Mix.", "Cook and serve."]
 
 
+def test_import_preview_exposes_all_cookbook_recipes(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    second = dict(PREVIEW_BODY)
+    second["parse_id"] = "efgh5678"
+    second["title"] = "Training Tofu"
+    second["duplicates"] = []
+    cookbook = dict(PREVIEW_BODY)
+    cookbook["recipes"] = [PREVIEW_BODY, second]
+
+    async def cookbook_preview(*args, **kwargs):
+        return cookbook
+
+    with client_for(isolated_database_url, tmp_path) as client:
+        client.app.state.import_previews = StubCoordinator(preview=cookbook_preview)
+        headers = authenticate(client)
+        response = client.post(
+            "/api/v1/recipes/import/preview",
+            json={"url": "https://example.com/cookbook.pdf"},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert [item["title"] for item in body["recipes"]] == ["Training Oats", "Training Tofu"]
+
+
 def test_import_preview_parse_failure_maps_to_422(
     isolated_database_url: str, tmp_path: Path
 ) -> None:

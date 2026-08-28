@@ -324,34 +324,49 @@ class ImportPreviewCoordinator:
             except Exception:
                 logger.exception("inline repair merge failed, returning legacy preview")
 
-        first = imported.recipes[0] if isinstance(imported, ImportedCookbook) else imported
-        sections = self._build_sections(first)
         origin_kind = "cookbook_import" if isinstance(imported, ImportedCookbook) else "web_import"
-        duplicates = self._detect_duplicates(owner_id, first.title)
-        parse_id = secrets.token_hex(16)
         now = utc_now()
-        record = ImportPreviewRecord(
-            owner_id=owner_id,
-            parse_id=parse_id,
-            payload=self._payload(first, sections, origin_kind=origin_kind),
-            created_at=now,
-            expires_at=now + self._ttl,
-        )
+        recipes = imported.recipes if isinstance(imported, ImportedCookbook) else (imported,)
+        preview_entries: list[dict[str, Any]] = []
         with self._session_factory.begin() as session:
-            session.add(record)
+            for recipe in recipes:
+                sections = self._build_sections(recipe)
+                parse_id = secrets.token_hex(16)
+                session.add(
+                    ImportPreviewRecord(
+                        owner_id=owner_id,
+                        parse_id=parse_id,
+                        payload=self._payload(recipe, sections, origin_kind=origin_kind),
+                        created_at=now,
+                        expires_at=now + self._ttl,
+                    )
+                )
+                preview_entries.append(
+                    {
+                        "parse_id": parse_id,
+                        "title": recipe.title,
+                        "yield_quantity": (
+                            str(recipe.yield_quantity)
+                            if recipe.yield_quantity is not None
+                            else None
+                        ),
+                        "yield_text": recipe.yield_text,
+                        "image_sources": list(recipe.image_candidates),
+                        "duplicates": self._detect_duplicates(owner_id, recipe.title),
+                        "sections": sections,
+                    }
+                )
+        first_entry = preview_entries[0]
         return {
-            "parse_id": parse_id,
-            "title": first.title,
-            "yield_quantity": (
-                str(first.yield_quantity)
-                if getattr(first, "yield_quantity", None) is not None
-                else None
-            ),
-            "yield_text": first.yield_text,
-            "image_sources": list(first.image_candidates),
+            "parse_id": first_entry["parse_id"],
+            "title": first_entry["title"],
+            "yield_quantity": first_entry["yield_quantity"],
+            "yield_text": first_entry["yield_text"],
+            "image_sources": first_entry["image_sources"],
             "origin_kind": origin_kind,
-            "duplicates": duplicates,
-            "sections": sections,
+            "duplicates": first_entry["duplicates"],
+            "sections": first_entry["sections"],
+            "recipes": preview_entries,
         }
 
     async def confirm(

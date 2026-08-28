@@ -263,6 +263,16 @@ class DuplicateSummary(ApiModel):
     version: int = Field(ge=1)
 
 
+class ImportRecipePreview(ApiModel):
+    parse_id: str = Field(alias="parseId")
+    title: str = Field(max_length=240)
+    yield_quantity: str | None = Field(alias="yieldQuantity", default=None)
+    yield_text: str | None = Field(alias="yieldText", default=None)
+    image_sources: tuple[str, ...] = Field(alias="imageSources")
+    duplicates: tuple[DuplicateSummary, ...] = ()
+    sections: tuple[ImportPreviewSection, ...] = ()
+
+
 class ImportPreviewResponse(ApiModel):
     parse_id: str = Field(alias="parseId")
     title: str = Field(max_length=240)
@@ -272,6 +282,7 @@ class ImportPreviewResponse(ApiModel):
     duplicates: tuple[DuplicateSummary, ...] = ()
     sections: tuple[ImportPreviewSection, ...] = ()
     origin_kind: RecipeOrigin = Field(alias="originKind", default="web_import")
+    recipes: tuple[ImportRecipePreview, ...] = ()
 
 
 class ImportConfirmIngredient(ApiModel):

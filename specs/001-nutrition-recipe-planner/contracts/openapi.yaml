@@ -2588,6 +2588,46 @@ components:
                 type: array
                 items: { type: string }
         originKind: { $ref: "#/components/schemas/RecipeOrigin" }
+        recipes:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRecipePreview" }
+    ImportRecipePreview:
+      type: object
+      additionalProperties: false
+      required: [parseId, title, imageSources, duplicates, sections]
+      properties:
+        parseId: { type: string }
+        title: { type: string }
+        yieldQuantity: { type: [string, "null"] }
+        yieldText: { type: [string, "null"] }
+        imageSources: { type: array, items: { type: string } }
+        duplicates:
+          type: array
+          items:
+            type: object
+            required: [id, title, version]
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+              version: { type: integer, minimum: 1 }
+        sections:
+          type: array
+          items:
+            type: object
+            required: [ingredients, instructions]
+            properties:
+              title: { type: [string, "null"] }
+              ingredients:
+                type: array
+                items:
+                  type: object
+                  required: [originalText, needsQuantity]
+                  properties:
+                    originalText: { type: string }
+                    needsQuantity: { type: boolean }
+              instructions:
+                type: array
+                items: { type: string }
     ImportConfirm:
       type: object
       additionalProperties: false

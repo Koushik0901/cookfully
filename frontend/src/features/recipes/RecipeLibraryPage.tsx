@@ -151,7 +151,7 @@ export function RecipeLibraryPage() {
   const groupedRecipes = groupBy === "readiness"
     ? [
         { title: "Ready to plan", items: displayedRecipes.filter(isRecipeReadyToPlan) },
-        { title: "Needs a nutrition check", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && ["pending", "failed", "stale"].includes(recipe.nutritionState)) },
+        { title: "Needs a nutrition check", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && ["pending", "partial", "failed", "stale"].includes(recipe.nutritionState)) },
         { title: "Archived", items: displayedRecipes.filter((recipe) => recipe.status === "archived") },
       ].filter((group) => group.items.length)
     : [{ title: "", items: displayedRecipes }];
@@ -253,6 +253,7 @@ export function RecipeLibraryPage() {
        {bulkMessage ? <p className={bulkArchive.isError || bulkMessage.includes("could not") ? "error-text" : "success-text"} role={bulkArchive.isError || bulkMessage.includes("could not") ? "alert" : "status"}>{bulkMessage}</p> : null}
        {recipes.isPending ? <Skeleton label="Loading recipe library" lines={6} /> : null}
        {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
+       {collections.isError ? <p className="notice recipe-notice" role="alert">Collections could not be loaded. Your recipes are still safe. <Button variant="ghost" onClick={() => void collections.refetch()}>Retry collections</Button></p> : null}
        {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <><Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button><Button variant="ghost" asChild><Link to="/app/suggestions">Get ideas</Link></Button></> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
        {selectionMode && selectedIds.length ? <BulkRecipeActions selectedCount={selectedIds.length} pending={bulkArchive.isPending} onArchive={archiveSelected} onClear={() => setSelectedIds([])} /> : null}
        {recipes.data && displayedRecipes.length ? <SectionHeading className="recipe-results-heading" eyebrow="Recipe box" title={hasDiscoveryFilter ? "Matching recipes" : "Saved recipes"} meta={`${displayedRecipes.length} ${displayedRecipes.length === 1 ? "recipe" : "recipes"}`} /> : null}

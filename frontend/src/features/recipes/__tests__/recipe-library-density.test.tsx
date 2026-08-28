@@ -121,4 +121,21 @@ describe("recipe library density", () => {
     await waitFor(() => expect(screen.getByText("2 recipes archived.")).toBeVisible());
     expect(screen.queryByRole("checkbox", { name: "Select Roasted salmon bowl" })).not.toBeInTheDocument();
   });
+
+  it("shows partial nutrition recipes in the attention grouping", async () => {
+    vi.stubGlobal("fetch", vi.fn((input) => {
+      const path = String(input);
+      if (path.includes("/owner-onboarding")) return json({ state: "completed", version: 1 });
+      if (path.endsWith("/recipes/collections")) return json([]);
+      if (path.includes("/recipes")) {
+        return json({ ...page, items: [{ ...page.items[0], nutritionState: "partial" }] });
+      }
+      return json({}, 404);
+    }));
+    renderPage();
+    await screen.findByRole("heading", { name: "What would you like to cook?" });
+    await userEvent.selectOptions(screen.getByLabelText("Group results"), "readiness");
+    expect(await screen.findByRole("heading", { name: "Needs a nutrition check" })).toBeVisible();
+    expect(screen.getAllByText("Roasted salmon bowl")).toHaveLength(2);
+  });
 });

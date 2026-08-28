@@ -1762,6 +1762,28 @@ export interface components {
                 instructions: string[];
             }[];
             originKind?: components["schemas"]["RecipeOrigin"];
+            recipes?: components["schemas"]["ImportRecipePreview"][];
+        };
+        ImportRecipePreview: {
+            parseId: string;
+            title: string;
+            yieldQuantity?: string | null;
+            yieldText?: string | null;
+            imageSources: string[];
+            duplicates: {
+                /** Format: uuid */
+                id: string;
+                title: string;
+                version: number;
+            }[];
+            sections: {
+                title?: string | null;
+                ingredients: {
+                    originalText: string;
+                    needsQuantity: boolean;
+                }[];
+                instructions: string[];
+            }[];
         };
         ImportConfirm: {
             parseId: string;

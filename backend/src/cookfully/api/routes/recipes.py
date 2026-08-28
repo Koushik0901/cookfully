@@ -31,6 +31,7 @@ from cookfully.api.schemas.recipes import (
     ImportPreviewRequest,
     ImportPreviewResponse,
     ImportPreviewSection,
+    ImportRecipePreview,
     ImportRecipeRequest,
     NutritionCorrectionWriteRequest,
     PermanentDeleteRequest,
@@ -417,28 +418,43 @@ async def preview_recipe_import(
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"ready": False}
         )
+
+    def recipe_preview(value: dict[str, Any]) -> ImportRecipePreview:
+        return ImportRecipePreview(
+            parse_id=value["parse_id"],
+            title=value["title"],
+            yield_quantity=value["yield_quantity"],
+            yield_text=value["yield_text"],
+            image_sources=tuple(value["image_sources"]),
+            duplicates=tuple(DuplicateSummary(**item) for item in value.get("duplicates", [])),
+            sections=tuple(
+                ImportPreviewSection(
+                    title=section["title"],
+                    ingredients=tuple(
+                        ImportPreviewIngredient(
+                            original_text=ingredient["original_text"],
+                            needs_quantity=ingredient["needs_quantity"],
+                        )
+                        for ingredient in section["ingredients"]
+                    ),
+                    instructions=tuple(section["instructions"]),
+                )
+                for section in value["sections"]
+            ),
+        )
+
+    previews = tuple(recipe_preview(value) for value in data.get("recipes", ()))
+    first = recipe_preview(data)
     return ImportPreviewResponse(
-        parse_id=data["parse_id"],
-        title=data["title"],
-        yield_quantity=data["yield_quantity"],
-        yield_text=data["yield_text"],
-        image_sources=tuple(data["image_sources"]),
-        duplicates=tuple(DuplicateSummary(**item) for item in data.get("duplicates", [])),
-        sections=tuple(
-            ImportPreviewSection(
-                title=section["title"],
-                ingredients=tuple(
-                    ImportPreviewIngredient(
-                        original_text=ingredient["original_text"],
-                        needs_quantity=ingredient["needs_quantity"],
-                    )
-                    for ingredient in section["ingredients"]
-                ),
-                instructions=tuple(section["instructions"]),
-            )
-            for section in data["sections"]
-        ),
+        parse_id=first.parse_id,
+        title=first.title,
+        yield_quantity=first.yield_quantity,
+        yield_text=first.yield_text,
+        image_sources=first.image_sources,
+        duplicates=first.duplicates,
+        sections=first.sections,
         origin_kind=data.get("origin_kind", "web_import"),
+        recipes=previews,
     )
 
 

@@ -16,6 +16,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.jobs import JobProgress, JobService
+from cookfully.application.nutrition_recovery import recover_stale_nutrition
 from cookfully.cli.reference_data import activate_release, import_release, release_status
 from cookfully.domain.common import DomainError, utc_now, uuid7
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
@@ -193,6 +194,12 @@ class ReferenceDataInstallService:
         heartbeat.start()
         try:
             self._install_units(job_id, units)
+            if "foundation_sr_legacy" in units:
+                recovered = recover_stale_nutrition(self._session_factory)
+                logger.info(
+                    "requeued recipes after reference data install",
+                    extra={"job_id": str(job_id), "recipe_count": len(recovered)},
+                )
             self._jobs.succeed(job_id)
         except DomainError as exc:
             self._jobs.fail_attempt(

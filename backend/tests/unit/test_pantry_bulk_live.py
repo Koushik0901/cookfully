@@ -38,6 +38,7 @@ class _FakeRead:
         self.unit = unit
         self.expires_on = None
         self.food_reference_id = None
+        self.owner_food_id = None
         self.match_status = "unmatched"
         self.match_confidence = None
         self.version = 1
@@ -48,14 +49,30 @@ class _FakePantryService:
         self.created = []
 
     def _create_single(
-        self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None
+        self,
+        owner_id,
+        *,
+        display_name,
+        quantity,
+        unit,
+        expires_on=None,
+        food_reference_id=None,
+        owner_food_id=None,
     ):
         r = _FakeRead(display_name, quantity, unit)
         self.created.append(r)
         return r
 
     def create(
-        self, owner_id, *, display_name, quantity, unit, expires_on=None, food_reference_id=None
+        self,
+        owner_id,
+        *,
+        display_name,
+        quantity,
+        unit,
+        expires_on=None,
+        food_reference_id=None,
+        owner_food_id=None,
     ):
         # fallback single path
         return self._create_single(
@@ -65,6 +82,7 @@ class _FakePantryService:
             unit=unit,
             expires_on=expires_on,
             food_reference_id=food_reference_id,
+            owner_food_id=owner_food_id,
         )
 
 

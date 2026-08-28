@@ -19,10 +19,13 @@ const KEYWORDS: Array<[FallbackKind, RegExp]> = [
 ];
 
 function recipeFallbackKind(title: string): FallbackKind {
-  const match = KEYWORDS.find(([, pattern]) => pattern.test(title));
-  if (match) return match[0];
-  const hash = [...title].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
   const kinds = Object.keys(FALLBACKS) as FallbackKind[];
+  const match = KEYWORDS.find(([, pattern]) => pattern.test(title));
+  // Keep the more specific food cues, but spread generic savory recipes across
+  // the whole fallback set so a cookbook import does not become one repeated
+  // image in the library grid.
+  if (match && match[0] !== "savory") return match[0];
+  const hash = [...title].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
   return kinds[hash % kinds.length];
 }
 

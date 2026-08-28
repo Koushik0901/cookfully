@@ -15,6 +15,7 @@ export type NutritionState = components["schemas"]["NutritionState"];
 export type RecipeCollection = components["schemas"]["RecipeCollection"];
 export type RecipeOrganizationWrite = components["schemas"]["RecipeOrganizationWrite"];
 export type ImportPreview = components["schemas"]["ImportPreview"];
+export type ImportRecipePreview = NonNullable<ImportPreview["recipes"]>[number];
 export type ImportConfirmWrite = components["schemas"]["ImportConfirm"];
 export type ImportConfirmComponent = NonNullable<ImportConfirmWrite["components"]>[number];
 export type ImportConfirmIngredient = NonNullable<ImportConfirmComponent["ingredients"]>[number];
