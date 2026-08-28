@@ -64,7 +64,7 @@ describe("Grocery expiry", () => {
         />,
       ),
     );
-    expect(screen.getByText(/Expir/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Expires 2026-08-29/)).toBeInTheDocument();
     expect(document.querySelector(".expiry-badge")).toBeInTheDocument();
   });
 

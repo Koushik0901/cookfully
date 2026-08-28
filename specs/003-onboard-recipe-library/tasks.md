@@ -37,7 +37,7 @@
 - [X] T010 Add owner-scoped repositories/service helpers that centralize collection ownership, meal-role validation, shopping-stop ordering, and conflict checks in `backend/src/cookfully/application/recipe_organization.py` and `backend/src/cookfully/application/grocery_shopping_stops.py`
 - [X] T011 Extend grocery reconciliation values and carry-forward logic so matched generated items preserve a shopping-stop assignment, while manual/ambiguous/needs-review items cannot receive an automatic remembered placement, in `backend/src/cookfully/application/grocery_reconciliation.py` and `backend/src/cookfully/application/grocery_lists.py`
 - [X] T012 Extend the public schemas and route registration for the planned owner, recipe organization/photo, grocery-stop, and complete/reopen contract surfaces in `backend/src/cookfully/api/main.py`, `backend/src/cookfully/api/schemas/recipes.py`, and `backend/src/cookfully/api/schemas/grocery.py`
-- [ ] T013 Add the shared contract and integration regression tests for owner scoping, version conflicts, export/restore, erasure, and grocery reconciliation preservation in `backend/tests/contract/test_onboarding_library_grocery_api.py`, `backend/tests/integration/test_exports.py`, `backend/tests/integration/test_owner_erasure.py`, and `backend/tests/integration/test_grocery_lists.py`
+- [X] T013 Add the shared contract and integration regression tests for owner scoping, version conflicts, export/restore, erasure, and grocery reconciliation preservation in `backend/tests/contract/test_onboarding_library_grocery_api.py`, `backend/tests/integration/test_exports.py`, `backend/tests/integration/test_owner_erasure.py`, and `backend/tests/integration/test_grocery_lists.py`
 - [X] T014 Regenerate and type-check the OpenAPI-derived frontend client types after T012 in `frontend/src/app/api/generated/schema.ts`
 
 **Checkpoint**: The database, canonical service layer, export/erasure guarantees, and typed HTTP boundary are ready. User stories may proceed in parallel after T014 passes.
@@ -52,8 +52,8 @@
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Add contract tests for pending/default onboarding reads, completed/dismissed writes, invalid transitions, and `If-Match` conflicts in `backend/tests/contract/test_onboarding_library_grocery_api.py`
-- [ ] T016 [P] [US1] Add service integration tests for owner-scoped onboarding persistence and failure-safe normal kitchen access in `backend/tests/integration/test_owner_onboarding.py`
+- [X] T015 [P] [US1] Add contract tests for pending/default onboarding reads, completed/dismissed writes, invalid transitions, and `If-Match` conflicts in `backend/tests/contract/test_onboarding_library_grocery_api.py`
+- [X] T016 [P] [US1] Add service integration tests for owner-scoped onboarding persistence and failure-safe normal kitchen access in `backend/tests/integration/test_owner_onboarding.py`
 - [X] T017 [P] [US1] Add component tests for the calm introduction, optional nutrition-guide language, direct actions, dismissal, and resilient empty states in `frontend/src/features/onboarding/__tests__/FirstRunJourney.test.tsx`
 - [X] T018 [P] [US1] Add a desktop and 390x844 Playwright first-run journey, including dismiss/reload behavior, in `frontend/e2e/onboarding.spec.ts`
 
@@ -79,8 +79,8 @@
 ### Tests for User Story 2
 
 - [X] T025 [P] [US2] Add photo endpoint contract tests for content type, size/dimension validation, authenticated ownership, replacement safety, removal, and `If-Match` conflicts in `backend/tests/contract/test_recipe_api.py`
-- [ ] T026 [P] [US2] Add recipe-media integration tests proving normalization, export inclusion, replacement cleanup, fallback preservation, and no input-hash/nutrition/correction change in `backend/tests/integration/test_recipe_media.py`
-- [ ] T027 [P] [US2] Add editor/detail/library component tests for preview, remove/replace, invalid file recovery, and fallback art in `frontend/src/features/recipes/__tests__/recipe-photo-ui.test.tsx`
+- [X] T026 [P] [US2] Add recipe-media integration tests proving normalization, export inclusion, replacement cleanup, fallback preservation, and no input-hash/nutrition/correction change in `backend/tests/integration/test_recipe_media.py`
+- [X] T027 [P] [US2] Add editor/detail/library component tests for preview, remove/replace, invalid file recovery, and fallback art in `frontend/src/features/recipes/__tests__/recipe-photo-ui.test.tsx`
 - [X] T028 [P] [US2] Add desktop and 390x844 Playwright coverage for photo upload, replacement, removal, and accessibility alternatives in `frontend/e2e/recipes.spec.ts`
 
 ### Implementation for User Story 2
@@ -105,9 +105,9 @@
 
 ### Tests for User Story 3
 
-- [ ] T036 [P] [US3] Add contract tests for shopping-stop CRUD, owner isolation, item placement validation, remembered-placement eligibility, completion, reopen, and completed-regeneration conflicts in `backend/tests/contract/test_onboarding_library_grocery_api.py`
+- [X] T036 [P] [US3] Add contract tests for shopping-stop CRUD, owner isolation, item placement validation, remembered-placement eligibility, completion, reopen, and completed-regeneration conflicts in `backend/tests/contract/test_onboarding_library_grocery_api.py`
 - [X] T037 [P] [US3] Add integration tests for stop deletion fallback, remembered-placement application/rejection, reconciliation carry-forward, dirty-plan behavior, completed history, and pantry deductions in `backend/tests/integration/test_grocery_lists.py`
-- [ ] T038 [P] [US3] Add Grocery page component tests for grouped/unassigned items, remembered placement choice, stale refresh, all-items-complete state, and conflict recovery in `frontend/src/features/grocery/__tests__/GroceryListPage.test.tsx`
+- [X] T038 [P] [US3] Add Grocery page component tests for grouped/unassigned items, remembered placement choice, stale refresh, all-items-complete state, and conflict recovery in `frontend/src/features/grocery/__tests__/GroceryListPage.test.tsx`
 - [X] T039 [P] [US3] Add a desktop and 390x844 Playwright shop journey covering two stops, a refresh, finish, and explicit reopen in `frontend/e2e/grocery-list.spec.ts`
 
 ### Implementation for User Story 3
@@ -132,10 +132,10 @@
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] Add contract tests for favorite/collection/role updates, collection CRUD/order/delete semantics, owner validation, filters, and version conflicts in `backend/tests/contract/test_recipe_organization_api.py`
+- [X] T047 [P] [US4] Add contract tests for favorite/collection/role updates, collection CRUD/order/delete semantics, owner validation, filters, and version conflicts in `backend/tests/contract/test_recipe_organization_api.py`
 - [X] T048 [P] [US4] Add query/service integration tests for many-to-many memberships, fixed meal-role validation, archive/search/filter composition, and no nutrition/plan mutation in `backend/tests/integration/test_recipe_organization.py`
-- [ ] T049 [P] [US4] Add recipe detail/library component tests for optional organization controls, focused removable filters, favorite state, and long names in `frontend/src/features/recipes/__tests__/recipe-organization-ui.test.tsx`
-- [ ] T050 [P] [US4] Add desktop and 390x844 Playwright coverage for favorite, collection membership, meal role, filter removal, and planning an unorganized recipe in `frontend/e2e/recipe-organization.spec.ts`
+- [X] T049 [P] [US4] Add recipe detail/library component tests for optional organization controls, focused removable filters, favorite state, and long names in `frontend/src/features/recipes/__tests__/recipe-organization-ui.test.tsx`
+- [X] T050 [P] [US4] Add desktop and 390x844 Playwright coverage for favorite, collection membership, meal role, filter removal, and planning an unorganized recipe in `frontend/e2e/recipe-organization.spec.ts`
 
 ### Implementation for User Story 4
 
@@ -193,12 +193,13 @@
 - Within each user story, backend contract/integration tests and frontend component/e2e tests can be authored in parallel before implementation.
 - US1, US2, US3, and US4 can be staffed in parallel after Phase 2, provided each owner avoids shared files such as `backend/src/cookfully/api/main.py`, generated schema, and `frontend/src/styles/globals.css` until coordination points are merged.
 
-## Completion evidence (2026-08-27)
+## Completion evidence (2026-08-28)
 
 - Backend gates: `ruff format --check`, `ruff check`, and `mypy src` passed; the complete suite passed with **408 passed, 1 skipped** (the documented performance reference-profile skip); the Alembic migration-drift integration check passed.
 - Frontend gates: lint, typecheck, 162 unit tests, production build, and responsive/accessibility Playwright coverage passed (15 passed, 1 intentional mobile-menu skip).
 - Runtime evidence: the selected FastEmbed model is ready and the automatic `food_embedding_index` rebuild completed **8080/8080** successfully after model readiness was persisted.
-- Final diff review covered model-readiness/index handoff, backup-store type narrowing, shared test fixtures, logging observability hardening, and the checklist evidence above. Remaining unchecked story-test tasks are intentionally left open until their named dedicated test files are added; they are not being represented as completed by this release evidence.
+- Dedicated follow-up coverage now passes: onboarding/library/grocery contracts (2), owner onboarding integration (2), recipe media integration (1), recipe organization contract (1), recipe photo UI (4), grocery page UI (3), recipe organization UI (2), and organization Playwright coverage on desktop plus 390x844 (4).
+- Final diff review covered model-readiness/index handoff, backup-store type narrowing, shared test fixtures, logging observability hardening, and the dedicated story-test files above; every task in this checklist is now marked complete with named evidence.
 
 ## Implementation strategy
 
