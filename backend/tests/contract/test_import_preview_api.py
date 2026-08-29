@@ -69,14 +69,22 @@ def _confirm_mutation() -> SimpleNamespace:
 
 
 class StubCoordinator:
-    def __init__(self, preview=None, confirm=None, merge=None) -> None:
+    def __init__(self, preview=None, pdf_preview=None, confirm=None, merge=None) -> None:
         self._preview_handler = preview
+        self._pdf_preview_handler = pdf_preview
         self._confirm_handler = confirm
         self._merge_handler = merge
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str):
         if self._preview_handler is not None:
             return await self._preview_handler(url, owner_id=owner_id, trace_id=trace_id)
+        return dict(PREVIEW_BODY)
+
+    async def preview_pdf(self, content: bytes, filename: str, *, owner_id: UUID, trace_id: str):
+        if self._pdf_preview_handler is not None:
+            return await self._pdf_preview_handler(
+                content, filename, owner_id=owner_id, trace_id=trace_id
+            )
         return dict(PREVIEW_BODY)
 
     async def confirm(
@@ -159,6 +167,44 @@ def test_import_preview_exposes_all_cookbook_recipes(
         assert response.status_code == 200
         body = response.json()
         assert [item["title"] for item in body["recipes"]] == ["Training Oats", "Training Tofu"]
+
+
+def test_local_pdf_preview_uses_the_same_review_contract(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    seen: dict[str, object] = {}
+
+    async def local_pdf(content: bytes, filename: str, **kwargs):
+        seen["content"] = content
+        seen["filename"] = filename
+        return dict(PREVIEW_BODY)
+
+    with client_for(isolated_database_url, tmp_path) as client:
+        client.app.state.import_previews = StubCoordinator(pdf_preview=local_pdf)
+        headers = authenticate(client)
+        response = client.post(
+            "/api/v1/recipes/import/preview/pdf",
+            files={"file": ("family-cookbook.pdf", b"%PDF-1.7\nexample", "application/pdf")},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["title"] == "Training Oats"
+        assert seen == {"content": b"%PDF-1.7\nexample", "filename": "family-cookbook.pdf"}
+
+
+def test_local_pdf_preview_rejects_non_pdf_uploads(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        client.app.state.import_previews = StubCoordinator()
+        headers = authenticate(client)
+        response = client.post(
+            "/api/v1/recipes/import/preview/pdf",
+            files={"file": ("notes.txt", b"not a pdf", "text/plain")},
+            headers=headers,
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "cookbook_pdf_required"
 
 
 def test_import_preview_parse_failure_maps_to_422(

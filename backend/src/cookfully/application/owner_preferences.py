@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -18,6 +19,7 @@ class OwnerPreferenceService:
         display_name: str,
         timezone: str,
         week_starts_on: int,
+        health_profile: dict[str, Any],
         expected_version: int,
     ) -> OwnerAccount:
         normalized_name = display_name.strip()
@@ -41,6 +43,7 @@ class OwnerPreferenceService:
             owner.display_name = normalized_name
             owner.timezone = timezone
             owner.week_starts_on = week_starts_on
+            owner.health_profile = health_profile
             owner.version += 1
             session.flush()
             return owner

@@ -126,6 +126,38 @@ def test_cookbook_pdf_replacement_glyphs_keep_recipe_text_readable() -> None:
     assert recipes[0].instructions == ("Bake at 400 - 20 minutes.",)
 
 
+def test_two_column_cookbook_pdf_with_uppercase_headings_is_structured() -> None:
+    pages = (
+        "PANEER TIKKA                                                INSTRUCTIONS\n"
+        "MASALA RECIPE                                               Mix the marinade.\n"
+        "A dinner for four.                                         Chill for 20 minutes.\n"
+        "Course | Main                                               1. Grill the paneer.\n"
+        "\n"
+        "INGREDIENTS\n"
+        "For the marinade                 For the gravy\n"
+        "300 g Paneer                     2 tbsp Oil\n"
+        "1 tsp Chilli powder              1 cup Tomato\n",
+    )
+
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "https://example.com/book.pdf", "https://example.com/book.pdf"
+    )
+
+    assert [item.title for item in recipes] == ["Paneer Tikka Masala Recipe"]
+    assert recipes[0].ingredients == (
+        "300 g Paneer",
+        "2 tbsp Oil",
+        "1 tsp Chilli powder",
+        "1 cup Tomato",
+    )
+    assert recipes[0].sections == ()
+    assert recipes[0].ingredient_sections == (None, None, None, None)
+    assert recipes[0].instructions == (
+        "Mix the marinade. Chill for 20 minutes.",
+        "Grill the paneer.",
+    )
+
+
 def test_grouped_html_ingredients_become_sections_in_source_order() -> None:
     scraper = SimpleNamespace(
         ingredients=lambda: ["1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth"],

@@ -3,11 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from cookfully.api.main import create_app
 from cookfully.cli import reference_data
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.jobs import ProcessingJob
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 
 
 def client_for(isolated_database_url: str, tmp_path: Path) -> TestClient:
@@ -74,6 +76,12 @@ def test_reference_data_status_and_install_surface(
             assert job is not None
             assert job.kind == "reference_data_install"
             assert job.status == "queued"
+            settings = session.get(NutritionIntelligenceSettings, 1)
+            model_job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.kind == "semantic_model_download")
+            )
+            assert settings is not None
+            assert model_job is not None and model_job.status == "queued"
 
         running = client.get("/api/v1/reference-data/status", headers=headers)
         assert running.json()["job"]["status"] == "queued"

@@ -64,7 +64,7 @@ export function DecimalInput({ onValueChange, ...props }: Omit<InputHTMLAttribut
   );
 }
 
-export function ConfirmDialog({ trigger, open, onOpenChange, title, description, confirmLabel, onConfirm }: { trigger?: ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void; title: string; description: string; confirmLabel: string; onConfirm: () => void }) {
+export function ConfirmDialog({ trigger, open, onOpenChange, title, description, confirmLabel, onConfirm, pending = false }: { trigger?: ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void; title: string; description: string; confirmLabel: string; onConfirm: () => void; pending?: boolean }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
@@ -75,7 +75,7 @@ export function ConfirmDialog({ trigger, open, onOpenChange, title, description,
           <Dialog.Description id="confirm-description">{description}</Dialog.Description>
           <div className="actions">
             <Dialog.Close asChild><Button variant="secondary">Cancel</Button></Dialog.Close>
-            <Dialog.Close asChild><Button variant="destructive" onClick={onConfirm}>{confirmLabel}</Button></Dialog.Close>
+            <Dialog.Close asChild><Button variant="destructive" disabled={pending} onClick={onConfirm}>{confirmLabel}</Button></Dialog.Close>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

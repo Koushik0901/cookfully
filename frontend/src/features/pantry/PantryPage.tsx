@@ -149,7 +149,6 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
       foodReferenceId: referenceId.trim() || null,
       ownerFoodId: ownerFoodId.trim() || null,
     });
-    setEditOpen(false);
   }
 
   const candidates = foodCandidates.data?.candidates ?? [];
@@ -364,17 +363,25 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
   });
   const create = useMutation({
     mutationFn: () => pantryApi.create(draft),
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      queryClient.setQueryData<PantryItem[]>(["pantry-items"], (current) => {
+        const items = current ?? [];
+        return [saved, ...items.filter((item) => item.id !== saved.id)];
+      });
       setOpen(false);
       setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
       void invalidateFoodChoiceQueries(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["pantry-items"] });
     },
   });
 
   return (
     <Dialog.Root open={open} onOpenChange={(value) => {
       setOpen(value);
-      if (!value) setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
+      if (!value) {
+        create.reset();
+        setDraft({ displayName: prefillName, quantity: "", unit: "g", expiresOn: null, foodReferenceId: null, ownerFoodId: null });
+      }
     }}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       <Dialog.Portal>

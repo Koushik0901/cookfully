@@ -217,6 +217,14 @@ export const recipesApi = {
       body: JSON.stringify({ url }),
     });
   },
+  previewPdf(file: File) {
+    const body = new FormData();
+    body.set("file", file);
+    return apiRequest<ImportPreview>("/recipes/import/preview/pdf", {
+      method: "POST",
+      body,
+    });
+  },
   confirmImport(write: ImportConfirmWrite) {
     return apiRequest<JobAccepted>("/recipes/import/confirm", {
       method: "POST",

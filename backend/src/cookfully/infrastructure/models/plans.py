@@ -34,8 +34,10 @@ class UserGoal(TimestampMixin, Base):
         CheckConstraint("mode IN ('cut', 'maintain', 'bulk')", name="valid_mode"),
         CheckConstraint("maintenance_kcal > 0 AND target_kcal > 0", name="positive_calories"),
         CheckConstraint(
-            "protein_g >= 0 AND carbohydrate_g >= 0 AND fat_g >= 0",
-            name="nonnegative_macros",
+            "protein_g >= 0 AND carbohydrate_g >= 0 AND fat_g >= 0 "
+            "AND (dietary_fiber_g IS NULL OR dietary_fiber_g >= 0) "
+            "AND (sodium_mg IS NULL OR sodium_mg >= 0)",
+            name="nonnegative_goal_nutrients",
         ),
         CheckConstraint(
             "protein_g > 0 OR carbohydrate_g > 0 OR fat_g > 0", name="some_positive_macro"
@@ -65,6 +67,8 @@ class UserGoal(TimestampMixin, Base):
     protein_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     carbohydrate_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
     fat_g: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
+    dietary_fiber_g: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
+    sodium_mg: Mapped[Decimal | None] = mapped_column(Numeric(20, 6))
     effective_from: Mapped[date] = mapped_column(Date, nullable=False)
     effective_to: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)

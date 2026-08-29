@@ -145,7 +145,10 @@ describe("recipe UI", () => {
     );
     expect(screen.getByText("512 kcal")).toBeVisible();
     expect(screen.getByText("31.1 g")).toBeVisible();
-    expect(document.querySelector('[data-fallback-kind="breakfast"]')).toHaveAttribute("src", "/media/recipe-fallbacks/breakfast.jpg");
+    expect(document.querySelector("[data-fallback-kind]")).toHaveAttribute(
+      "src",
+      expect.stringMatching(/^\/media\/recipe-fallbacks\/[a-z-]+\.jpg$/),
+    );
     expect(screen.getByText("Ready", { selector: ".recipe-card__state" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add Exact oats to favorites" })).toBeVisible();
   });

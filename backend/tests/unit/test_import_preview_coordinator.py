@@ -163,6 +163,53 @@ async def test_confirm_applies_title_yield_and_quantity_overrides_and_persists(
     assert len(write.instructions) == 2
 
 
+async def test_confirm_preserves_edited_and_new_method_steps(
+    owned_coordinator, owner_id: UUID
+) -> None:
+    parse_id = (
+        await owned_coordinator.preview("https://example.com/oats", owner_id=owner_id, trace_id="t")
+    )["parse_id"]
+    await owned_coordinator.confirm(
+        parse_id,
+        {
+            "components": [
+                {
+                    "instructions": [
+                        {"text": "Stir the oats with the spices."},
+                        {"text": "Cook until creamy."},
+                        {"text": "Serve warm."},
+                    ]
+                }
+            ]
+        },
+        owner_id=owner_id,
+        trace_id="t",
+    )
+    write, *_rest = owned_coordinator.created[-1]
+    assert [item.text for item in write.instructions] == [
+        "Stir the oats with the spices.",
+        "Cook until creamy.",
+        "Serve warm.",
+    ]
+
+
+async def test_confirm_rejects_import_without_method_steps(
+    owned_coordinator, owner_id: UUID
+) -> None:
+    parse_id = (
+        await owned_coordinator.preview("https://example.com/oats", owner_id=owner_id, trace_id="t")
+    )["parse_id"]
+    with pytest.raises(DomainError) as error:
+        await owned_coordinator.confirm(
+            parse_id,
+            {"components": [{"instructions": [{"remove": True}, {"remove": True}]}]},
+            owner_id=owner_id,
+            trace_id="t",
+        )
+    assert error.value.code == "import_instructions_required"
+    assert not owned_coordinator.created
+
+
 async def test_confirm_attaches_pdf_thumbnail_best_effort(
     owned_coordinator, owner_id: UUID
 ) -> None:

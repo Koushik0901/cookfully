@@ -23,13 +23,69 @@ from cookfully.infrastructure.models.identity import OwnerAccount
 router = APIRouter(prefix="/owner", tags=["Owner"])
 
 
+class HealthProfile(BaseModel):
+    """Optional planning context, never a medical recommendation or prescription."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    age_years: int | None = Field(alias="ageYears", default=None, ge=13, le=130)
+    height_cm: float | None = Field(alias="heightCm", default=None, ge=80, le=260)
+    current_weight_kg: float | None = Field(alias="currentWeightKg", default=None, ge=20, le=500)
+    target_weight_kg: float | None = Field(alias="targetWeightKg", default=None, ge=20, le=500)
+    dietary_pattern: Literal[
+        "no_preference",
+        "vegetarian",
+        "vegan",
+        "pescatarian",
+        "halal",
+        "kosher",
+        "gluten_free",
+        "low_sodium",
+    ] = Field(alias="dietaryPattern", default="no_preference")
+    avoid_ingredients: tuple[str, ...] = Field(alias="avoidIngredients", default=(), max_length=24)
+
+    @staticmethod
+    def _clean_avoid(values: tuple[str, ...]) -> tuple[str, ...]:
+        return tuple(item.strip() for item in values if item.strip())
+
+    @property
+    def normalized_avoid_ingredients(self) -> tuple[str, ...]:
+        values = self._clean_avoid(self.avoid_ingredients)
+        if any(len(item) > 80 for item in values):
+            raise DomainError(
+                "avoid_ingredient_too_long",
+                "Avoided ingredients must be 80 characters or fewer.",
+                422,
+            )
+        if len(values) > 24:
+            raise DomainError(
+                "too_many_avoided_ingredients", "Choose up to 24 avoided ingredients.", 422
+            )
+        return values
+
+
 class OwnerPreferences(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     display_name: str = Field(alias="displayName", min_length=1, max_length=80)
     timezone: str
     week_starts_on: int = Field(alias="weekStartsOn", ge=1, le=7)
+    health_profile: HealthProfile = Field(alias="healthProfile", default_factory=HealthProfile)
     version: int = Field(ge=1)
+
+
+def _preferences(owner: OwnerAccount) -> OwnerPreferences:
+    profile = HealthProfile.model_validate(owner.health_profile or {})
+    # Access the normalized variant once so malformed historical JSON cannot
+    # escape through the API after a migration or manual database edit.
+    avoided = profile.normalized_avoid_ingredients
+    return OwnerPreferences(
+        display_name=owner.display_name,
+        timezone=owner.timezone,
+        week_starts_on=owner.week_starts_on,
+        health_profile=profile.model_copy(update={"avoid_ingredients": avoided}),
+        version=owner.version,
+    )
 
 
 class OwnerOnboarding(BaseModel):
@@ -68,12 +124,7 @@ def _current_week_start(owner: OwnerAccount) -> date:
 def get_preferences(
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> OwnerPreferences:
-    return OwnerPreferences(
-        display_name=owner.display_name,
-        timezone=owner.timezone,
-        week_starts_on=owner.week_starts_on,
-        version=owner.version,
-    )
+    return _preferences(owner)
 
 
 @router.get("/home", response_model=HomeBootstrap, response_model_by_alias=True)
@@ -116,12 +167,7 @@ def get_home_bootstrap(
         else ()
     )
     return HomeBootstrap(
-        preferences=OwnerPreferences(
-            display_name=owner.display_name,
-            timezone=owner.timezone,
-            week_starts_on=owner.week_starts_on,
-            version=owner.version,
-        ),
+        preferences=_preferences(owner),
         recipes=RecipePageResponse.from_read(recipe_page),
         pantry=tuple(PantryItemResponse.from_read(item) for item in pantry_items),
         plan=plan,
@@ -187,11 +233,9 @@ def update_preferences(
         display_name=payload.display_name,
         timezone=payload.timezone,
         week_starts_on=payload.week_starts_on,
+        health_profile=payload.health_profile.model_copy(
+            update={"avoid_ingredients": payload.health_profile.normalized_avoid_ingredients}
+        ).model_dump(mode="json", by_alias=True),
         expected_version=payload.version,
     )
-    return OwnerPreferences(
-        display_name=updated.display_name,
-        timezone=updated.timezone,
-        week_starts_on=updated.week_starts_on,
-        version=updated.version,
-    )
+    return _preferences(updated)

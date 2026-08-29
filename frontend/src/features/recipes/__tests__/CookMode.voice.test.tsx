@@ -49,7 +49,7 @@ describe("CookMode voice-ready handler", () => {
     } as never);
     renderCook(mockRecipe, 0);
     fireEvent.click(screen.getByText(/timer 5/i));
-    expect(await screen.findByText(/Timer 5 min/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("status", { name: "Timer 5 min" })).toBeInTheDocument());
     // prompt shape verification
     expect(intelligenceApi.infer).toHaveBeenCalledWith("cook", expect.stringContaining("Step: Chop garlic finely"));
     expect(intelligenceApi.infer).toHaveBeenCalledWith("cook", expect.stringContaining("Ingredients: 2 cloves garlic"));
@@ -89,7 +89,7 @@ describe("CookMode voice-ready handler", () => {
     expect(screen.getByText("Chop garlic finely")).toBeInTheDocument();
   });
 
-  it("timer not shown below 0.80 confidence (fail-quiet)", async () => {
+  it("manual timer starts even when optional voice interpretation is low confidence", async () => {
     vi.mocked(intelligenceApi.infer).mockResolvedValue({
       status: "ok",
       confidence: 0.6,
@@ -101,7 +101,7 @@ describe("CookMode voice-ready handler", () => {
     renderCook(mockRecipe, 0);
     fireEvent.click(screen.getByText(/timer 5/i));
     await waitFor(() => expect(intelligenceApi.infer).toHaveBeenCalled());
-    expect(screen.queryByText(/Timer 5 min/)).not.toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Timer 5 min" })).toBeInTheDocument();
   });
 
   it("next advances step when confident", async () => {

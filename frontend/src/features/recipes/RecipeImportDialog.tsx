@@ -1,7 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button, Field } from "../../components";
 import { ApiProblem, recipesApi } from "./api";
@@ -42,6 +42,14 @@ function editableComponents(preview: ImportRecipePreview): EditableComponent[] {
   }));
 }
 
+function hasInstructions(components: EditableComponent[]): boolean {
+  return components.some((component) => component.instructions.some((instruction) => instruction.trim().length > 0));
+}
+
+function previewHasInstructions(preview: ImportRecipePreview): boolean {
+  return preview.sections.some((section) => section.instructions.some((instruction) => instruction.trim().length > 0));
+}
+
 export function RecipeImportDialog({
   trigger,
   onImported,
@@ -62,6 +70,7 @@ export function RecipeImportDialog({
   };
   const [step, setStep] = useState<Step>("url");
   const [url, setUrl] = useState("");
+  const [sourceLabel, setSourceLabel] = useState("");
   const [validation, setValidation] = useState("");
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [title, setTitle] = useState("");
@@ -70,39 +79,41 @@ export function RecipeImportDialog({
   const [components, setComponents] = useState<EditableComponent[]>([]);
   const [cookbookRecipes, setCookbookRecipes] = useState<ImportRecipePreview[]>([]);
 
+  function applyPreview(result: ImportPreview) {
+    setPreview(result);
+    setCookbookRecipes(result.recipes?.length ? result.recipes : [result]);
+    setTitle(result.title);
+    setImageSource(result.imageSources[0] ?? null);
+    setThumbnailCrop(defaultThumbnailCrop());
+    setComponents(editableComponents(result));
+    setStep("preview");
+  }
+
   const previewMutation = useMutation({
     mutationFn: recipesApi.preview,
-    onSuccess: (result) => {
-      setPreview(result);
-      setCookbookRecipes(result.recipes?.length ? result.recipes : [result]);
-      setTitle(result.title);
-      setImageSource(result.imageSources[0] ?? null);
-      setThumbnailCrop(defaultThumbnailCrop());
-      setComponents(editableComponents(result));
-      setStep("preview");
-    },
+    onSuccess: applyPreview,
     onError: async (error) => {
       // Preview is best-effort. When the synchronous parse can't complete (timeout
       // or an unsupported source), fall back to the legacy background import.
       const fallback = error instanceof ApiProblem && error.status === 503;
-      try {
-        await onImported?.();
-      } catch {
-        // The recipe already exists; optional onboarding persistence must not turn
-        // that into a failure.
-      }
       if (fallback) {
         try {
           const accepted = await recipesApi.import(url);
+          try {
+            await onImported?.();
+          } catch {
+            // The import is already accepted; onboarding persistence is best-effort.
+          }
           setOpen(false);
-          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url, coverStatus: accepted.coverStatus } });
+          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
         } catch {
           setValidation("That page could not be imported. Check the address and try again.");
           setStep("url");
         }
         return;
       }
-      setValidation("That page could not be read for a preview. Try the address again.");
+      const detail = error instanceof ApiProblem ? error.message : "That page could not be read for a preview.";
+      setValidation(`${detail} Try a different address, or write the recipe manually.`);
       setStep("url");
     },
   });
@@ -124,7 +135,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url, coverStatus: accepted.coverStatus } });
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
       }
     },
   });
@@ -146,7 +157,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: url } });
+        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url } });
       }
     },
   });
@@ -178,12 +189,22 @@ export function RecipeImportDialog({
     },
   });
 
+  const pdfPreviewMutation = useMutation({
+    mutationFn: recipesApi.previewPdf,
+    onSuccess: applyPreview,
+    onError: () => {
+      setValidation("That cookbook could not be read. Choose a text-based PDF with recipe ingredients and directions.");
+      setStep("url");
+    },
+  });
+
   function submitUrl(event: FormEvent) {
     event.preventDefault();
     try {
       const parsed = new URL(url);
       if (!new Set(["http:", "https:"]).has(parsed.protocol)) throw new Error();
       setValidation("");
+      setSourceLabel(parsed.toString());
       previewMutation.mutate(url);
     } catch {
       setValidation("Enter a complete http or https recipe URL.");
@@ -229,13 +250,20 @@ export function RecipeImportDialog({
     );
   }
 
+  function addInstruction(componentIndex: number) {
+    setComponents((current) => current.map((component, index) => (
+      index === componentIndex ? { ...component, instructions: [...component.instructions, ""] } : component
+    )));
+  }
+
   function removeComponent(componentIndex: number) {
     setComponents((current) => current.filter((_, i) => i !== componentIndex));
   }
 
-  const busy = previewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending || cookbookConfirmMutation.isPending;
-  const cookbookAddable = cookbookRecipes.filter((entry) => entry.duplicates.length === 0);
-  const cookbookSkipped = cookbookRecipes.length - cookbookAddable.length;
+  const busy = previewMutation.isPending || pdfPreviewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending || cookbookConfirmMutation.isPending;
+  const cookbookAddable = cookbookRecipes.filter((entry) => entry.duplicates.length === 0 && previewHasInstructions(entry));
+  const cookbookDuplicateSkipped = cookbookRecipes.filter((entry) => entry.duplicates.length > 0).length;
+  const cookbookNoMethod = cookbookRecipes.filter((entry) => entry.duplicates.length === 0 && !previewHasInstructions(entry)).length;
 
   return (
     <Dialog.Root
@@ -247,6 +275,7 @@ export function RecipeImportDialog({
           setPreview(null);
           setCookbookRecipes([]);
           setValidation("");
+          setSourceLabel("");
         }
       }}
     >
@@ -257,17 +286,38 @@ export function RecipeImportDialog({
           {step === "url" ? (
             <>
               <Dialog.Title>Import recipes</Dialog.Title>
-              <Dialog.Description id="import-description">Paste a public recipe page or a structured cookbook PDF. You can review and edit what we find before it is saved.</Dialog.Description>
+              <Dialog.Description id="import-description">Paste a public recipe page or a structured cookbook PDF. You can also choose a PDF saved on this device. You can review and edit what we find before it is saved.</Dialog.Description>
               <form className="stack" onSubmit={submitUrl}>
                 <Field label="Recipe or cookbook URL" error={validation || (previewMutation.error instanceof Error ? previewMutation.error.message : undefined)}>
                   <input className="input" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/recipe-or-cookbook.pdf" required />
+                </Field>
+                <Field label="Cookbook PDF from this device" hint="Text-based PDFs up to 25 MB are supported; the file is only used to build this preview.">
+                  <input
+                    className="input"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      if (!file) return;
+                      if (file.size > 25 * 1024 * 1024) {
+                        setValidation("Cookbook PDFs must be 25 MB or smaller.");
+                        return;
+                      }
+                      setValidation("");
+                      setSourceLabel(`Uploaded cookbook: ${file.name}`);
+                      pdfPreviewMutation.mutate(file);
+                    }}
+                  />
                 </Field>
                 <div className="actions">
                   <Dialog.Close asChild>
                     <Button type="button" variant="secondary">Cancel</Button>
                   </Dialog.Close>
-                  <Button type="submit" disabled={busy}>{previewMutation.isPending ? "Reading page…" : "Start import"}</Button>
+                  <Button type="submit" disabled={busy}>{previewMutation.isPending || pdfPreviewMutation.isPending ? "Reading cookbook…" : "Start import"}</Button>
                 </div>
+                {previewMutation.error && !(previewMutation.error instanceof ApiProblem && previewMutation.error.status === 503) ? (
+                  <p className="muted">Some sites block automated imports. <Link to="/app/recipes/new" onClick={() => setOpen(false)}>Write this recipe manually</Link> instead.</p>
+                ) : null}
               </form>
             </>
           ) : step === "preview" && preview ? (
@@ -282,7 +332,8 @@ export function RecipeImportDialog({
                     {cookbookAddable.length > 0
                       ? `${cookbookAddable.length} new recipes are ready to add.`
                       : "Every recipe in this cookbook is already in your collection."}{" "}
-                    {cookbookSkipped > 0 ? `${cookbookSkipped} existing match${cookbookSkipped === 1 ? "" : "es"} will be skipped.` : null}
+                    {cookbookDuplicateSkipped > 0 ? `${cookbookDuplicateSkipped} existing match${cookbookDuplicateSkipped === 1 ? "" : "es"} will be skipped.` : null}
+                    {cookbookNoMethod > 0 ? ` ${cookbookNoMethod} recipe${cookbookNoMethod === 1 ? "" : "s"} without cooking steps will be skipped.` : null}
                   </p>
                   <ol>
                     {cookbookRecipes.map((entry) => <li key={entry.parseId}>{entry.title}</li>)}
@@ -386,6 +437,7 @@ export function RecipeImportDialog({
                             onChange={(event) => updateInstruction(componentIndex, instructionIndex, event.target.value)}
                           />
                         ))}
+                        <Button type="button" variant="ghost" onClick={() => addInstruction(componentIndex)}>Add a step</Button>
                       </div>
                     </article>
                   ))}
@@ -393,8 +445,9 @@ export function RecipeImportDialog({
 
                 <div className="actions">
                   <Button type="button" variant="secondary" onClick={() => setStep("url")}>Back</Button>
-                  <Button type="submit">Continue</Button>
+                  <Button type="submit" disabled={!hasInstructions(components)}>Continue</Button>
                 </div>
+                {!hasInstructions(components) ? <p className="error-text" role="alert">Add at least one cooking step before continuing.</p> : null}
               </form>
             </>
           ) : preview ? (
@@ -407,9 +460,10 @@ export function RecipeImportDialog({
                 </p>
               ) : null}
               <form className="stack" onSubmit={(event) => { event.preventDefault(); confirm(); }}>
+                {confirmMutation.error instanceof Error ? <p className="error-text" role="alert">{confirmMutation.error.message}</p> : null}
                 <div className="actions">
                   <Button type="button" variant="secondary" onClick={() => setStep("preview")}>Back</Button>
-                  <Button type="submit" disabled={busy}>{confirmMutation.isPending ? "Adding…" : "Add to collection"}</Button>
+                  <Button type="submit" disabled={busy || !hasInstructions(components)}>{confirmMutation.isPending ? "Adding…" : "Add to collection"}</Button>
                 </div>
               </form>
             </>

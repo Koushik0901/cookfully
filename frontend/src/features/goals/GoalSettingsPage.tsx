@@ -7,13 +7,21 @@ import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeade
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "../plans/api";
 import { addDays, longDate, todayInTimezone, weekStartFor } from "../plans/dates";
-import type { MealTarget, UserGoalWrite } from "../plans/types";
+import type { MealTarget, OwnerPreferences, UserGoalWrite } from "../plans/types";
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 
 const MEAL_SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
 const decimal = /^(0|[1-9][0-9]*)(\.[0-9]{1,6})?$/;
 
 type TargetFields = Record<string, { caloriesKcal: string; proteinG: string; carbohydrateG: string; fatG: string }>;
+type HealthProfileForm = {
+  ageYears: string;
+  heightCm: string;
+  currentWeightKg: string;
+  targetWeightKg: string;
+  dietaryPattern: NonNullable<OwnerPreferences["healthProfile"]>["dietaryPattern"];
+  avoidIngredients: string;
+};
 
 const DIRECTIONS = [
   { value: "cut", title: "Eat a little lighter", description: "Create a measured energy deficit while keeping meals satisfying.", Icon: TrendingDown },
@@ -23,6 +31,33 @@ const DIRECTIONS = [
 
 function emptyTargets(): TargetFields {
   return Object.fromEntries(MEAL_SLOTS.map((slot) => [slot, { caloriesKcal: "", proteinG: "", carbohydrateG: "", fatG: "" }]));
+}
+
+function emptyHealthProfile(): HealthProfileForm {
+  return {
+    ageYears: "",
+    heightCm: "",
+    currentWeightKg: "",
+    targetWeightKg: "",
+    dietaryPattern: "no_preference",
+    avoidIngredients: "",
+  };
+}
+
+function profileForm(value: OwnerPreferences["healthProfile"]): HealthProfileForm {
+  return {
+    ageYears: value?.ageYears == null ? "" : String(value.ageYears),
+    heightCm: value?.heightCm == null ? "" : String(value.heightCm),
+    currentWeightKg: value?.currentWeightKg == null ? "" : String(value.currentWeightKg),
+    targetWeightKg: value?.targetWeightKg == null ? "" : String(value.targetWeightKg),
+    dietaryPattern: value?.dietaryPattern ?? "no_preference",
+    avoidIngredients: value?.avoidIngredients?.join(", ") ?? "",
+  };
+}
+
+function optionalNumber(value: string): number | null {
+  const normalized = value.trim();
+  return normalized ? Number(normalized) : null;
 }
 
 export function GoalSettingsPage() {
@@ -35,6 +70,8 @@ export function GoalSettingsPage() {
   const [proteinG, setProteinG] = useState("");
   const [carbohydrateG, setCarbohydrateG] = useState("");
   const [fatG, setFatG] = useState("");
+  const [dietaryFiberG, setDietaryFiberG] = useState("");
+  const [sodiumMg, setSodiumMg] = useState("");
   const [effectiveFrom, setEffectiveFrom] = useState("");
   const [effectiveTo, setEffectiveTo] = useState("");
   const [mealTargets, setMealTargets] = useState<TargetFields>(emptyTargets);
@@ -42,6 +79,8 @@ export function GoalSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [editingTargets, setEditingTargets] = useState(false);
   const [changed, setChanged] = useState(false);
+  const [healthProfile, setHealthProfile] = useState<HealthProfileForm>(emptyHealthProfile);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   useEffect(() => {
     if (!currentGoal.data) return;
@@ -52,6 +91,8 @@ export function GoalSettingsPage() {
     setProteinG(formatCookingInput(value.proteinG));
     setCarbohydrateG(formatCookingInput(value.carbohydrateG));
     setFatG(formatCookingInput(value.fatG));
+    setDietaryFiberG(formatCookingInput(value.dietaryFiberG));
+    setSodiumMg(formatCookingInput(value.sodiumMg));
     setEffectiveFrom(value.effectiveFrom);
     setEffectiveTo(value.effectiveTo ?? "");
     const targets = emptyTargets();
@@ -66,6 +107,10 @@ export function GoalSettingsPage() {
     setMealTargets(targets);
     setChanged(false);
   }, [currentGoal.data]);
+
+  useEffect(() => {
+    if (preferences.data) setHealthProfile(profileForm(preferences.data.healthProfile));
+  }, [preferences.data]);
 
   useEffect(() => {
     if (currentGoal.data || effectiveFrom || !preferences.data) return;
@@ -83,9 +128,38 @@ export function GoalSettingsPage() {
     },
   });
 
+  const saveProfile = useMutation({
+    mutationFn: () => {
+      if (!preferences.data) throw new Error("Preferences are still loading.");
+      return planningApi.updatePreferences({
+        ...preferences.data,
+        healthProfile: {
+          ageYears: optionalNumber(healthProfile.ageYears),
+          heightCm: optionalNumber(healthProfile.heightCm),
+          currentWeightKg: optionalNumber(healthProfile.currentWeightKg),
+          targetWeightKg: optionalNumber(healthProfile.targetWeightKg),
+          dietaryPattern: healthProfile.dietaryPattern,
+          avoidIngredients: healthProfile.avoidIngredients.split(",").map((value) => value.trim()).filter(Boolean),
+        },
+      });
+    },
+    onSuccess: (value) => {
+      queryClient.setQueryData(["owner-preferences"], value);
+      setProfileSaved(true);
+    },
+  });
+
   function markChanged() {
     setSaved(false);
     setChanged(true);
+  }
+
+  function updateHealthProfile<Field extends keyof HealthProfileForm>(
+    field: Field,
+    value: HealthProfileForm[Field],
+  ) {
+    setProfileSaved(false);
+    setHealthProfile((current) => ({ ...current, [field]: value }));
   }
 
   function mealValue(slot: string, field: keyof TargetFields[string], value: string) {
@@ -109,6 +183,9 @@ export function GoalSettingsPage() {
       if (!value) next[field] = `${labels[field]} is required.`;
       else if (!decimal.test(value) || (field === "maintenanceKcal" || field === "caloriesKcal") && Number(value) <= 0) next[field] = `${labels[field]} must be a valid positive decimal.`;
     }
+    for (const [field, label, value] of [["dietaryFiberG", "Daily fiber", dietaryFiberG], ["sodiumMg", "Daily sodium", sodiumMg]] as const) {
+      if (value && (!decimal.test(value) || Number(value) < 0)) next[field] = `${label} must be a valid non-negative decimal.`;
+    }
     if (!effectiveFrom) next.effectiveFrom = "Effective from is required.";
     if (effectiveTo && effectiveTo < effectiveFrom) next.effectiveTo = "Effective to cannot precede effective from.";
     setErrors(next);
@@ -119,7 +196,7 @@ export function GoalSettingsPage() {
         ? [{ mealSlot: slot, caloriesKcal: item.caloriesKcal || null, proteinG: item.proteinG || null, carbohydrateG: item.carbohydrateG || null, fatG: item.fatG || null }]
         : [];
     });
-    save.mutate({ mode, maintenanceKcal, caloriesKcal, proteinG, carbohydrateG, fatG, effectiveFrom, effectiveTo: effectiveTo || null, mealTargets: targets });
+    save.mutate({ mode, maintenanceKcal, caloriesKcal, proteinG, carbohydrateG, fatG, dietaryFiberG: dietaryFiberG || null, sodiumMg: sodiumMg || null, effectiveFrom, effectiveTo: effectiveTo || null, mealTargets: targets });
   }
 
   const goalMissing = currentGoal.error instanceof ApiProblem && currentGoal.error.status === 404;
@@ -160,11 +237,15 @@ export function GoalSettingsPage() {
             <div className="target-field target-field--protein"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily protein" error={errors.proteinG}><DecimalInput value={proteinG} onInput={(event) => { markChanged(); setProteinG(event.currentTarget.value); }} /></Field><span className="target-field__unit">grams</span></div>
             <div className="target-field target-field--carbs"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily carbohydrate" error={errors.carbohydrateG}><DecimalInput value={carbohydrateG} onInput={(event) => { markChanged(); setCarbohydrateG(event.currentTarget.value); }} /></Field><span className="target-field__unit">grams</span></div>
             <div className="target-field target-field--fat"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily fat" error={errors.fatG}><DecimalInput value={fatG} onInput={(event) => { markChanged(); setFatG(event.currentTarget.value); }} /></Field><span className="target-field__unit">grams</span></div>
+            <div className="target-field"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily fiber (optional)" error={errors.dietaryFiberG}><DecimalInput value={dietaryFiberG} onInput={(event) => { markChanged(); setDietaryFiberG(event.currentTarget.value); }} /></Field><span className="target-field__unit">grams</span></div>
+            <div className="target-field"><span className="target-field__dot" aria-hidden="true" /><Field label="Daily sodium (optional)" error={errors.sodiumMg}><DecimalInput value={sodiumMg} onInput={(event) => { markChanged(); setSodiumMg(event.currentTarget.value); }} /></Field><span className="target-field__unit">mg</span></div>
           </div> : <dl className="goal-guide-summary" aria-label="Current daily nutrition guide">
             <div><dt>Energy</dt><dd>{formatCookingNumber(caloriesKcal, 0)} <small>kcal</small></dd></div>
             <div><dt><i className="nutrient-dot nutrient-dot--protein" aria-hidden="true" />Protein</dt><dd>{formatCookingNumber(proteinG, 1)} <small>g</small></dd></div>
             <div><dt><i className="nutrient-dot nutrient-dot--carbohydrate" aria-hidden="true" />Carbohydrate</dt><dd>{formatCookingNumber(carbohydrateG, 1)} <small>g</small></dd></div>
             <div><dt><i className="nutrient-dot nutrient-dot--fat" aria-hidden="true" />Fat</dt><dd>{formatCookingNumber(fatG, 1)} <small>g</small></dd></div>
+            {dietaryFiberG ? <div><dt>Fiber</dt><dd>{formatCookingNumber(dietaryFiberG, 1)} <small>g</small></dd></div> : null}
+            {sodiumMg ? <div><dt>Sodium</dt><dd>{formatCookingNumber(sodiumMg, 0)} <small>mg</small></dd></div> : null}
           </dl>}
           {difference != null ? <div className="goal-balance-note"><Sprout aria-hidden="true" /><p>{Math.abs(difference) < 1 ? <>Your macro guide closely matches your daily energy target.</> : <>This guide adds up to about <strong>{formatCookingNumber(Math.abs(difference), 1)} kcal {difference < 0 ? "below" : "above"}</strong> daily energy. That can be intentional; adjust either value if you want them closer.</>}</p></div> : null}
         </section>
@@ -172,6 +253,7 @@ export function GoalSettingsPage() {
         <section className="goal-advanced" aria-label="Advanced goal settings">
           <details className="goal-disclosure"><summary><span><Gauge aria-hidden="true" /><span><strong>Energy baseline and dates</strong><small>Maintenance estimate and when this guide applies</small></span></span></summary><div className="form-grid goal-disclosure__content"><Field label="Maintenance calories" error={errors.maintenanceKcal}><DecimalInput value={maintenanceKcal} onInput={(event) => { markChanged(); setMaintenanceKcal(event.currentTarget.value); }} /></Field><Field label="Effective from" error={errors.effectiveFrom}><input className="input" type="date" value={effectiveFrom} onChange={(event) => { markChanged(); setEffectiveFrom(event.target.value); }} /></Field><Field label="Effective to (optional)" error={errors.effectiveTo}><input className="input" type="date" value={effectiveTo} onChange={(event) => { markChanged(); setEffectiveTo(event.target.value); }} /></Field></div></details>
           <details className="goal-disclosure"><summary><span><Sprout aria-hidden="true" /><span><strong>Meal-by-meal targets</strong><small>Optional guidance for breakfast, lunch, dinner, or snacks</small></span></span></summary><div className="meal-targets goal-disclosure__content">{MEAL_SLOTS.map((slot) => <fieldset key={slot}><legend>{slot}</legend><div className="form-grid"><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} calories (optional)`}><DecimalInput value={mealTargets[slot].caloriesKcal} onInput={(event) => mealValue(slot, "caloriesKcal", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} protein (optional)`}><DecimalInput value={mealTargets[slot].proteinG} onInput={(event) => mealValue(slot, "proteinG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} carbohydrate (optional)`}><DecimalInput value={mealTargets[slot].carbohydrateG} onInput={(event) => mealValue(slot, "carbohydrateG", event.currentTarget.value)} /></Field><Field label={`${slot[0].toUpperCase()}${slot.slice(1)} fat (optional)`}><DecimalInput value={mealTargets[slot].fatG} onInput={(event) => mealValue(slot, "fatG", event.currentTarget.value)} /></Field></div></fieldset>)}</div></details>
+          <details className="goal-disclosure"><summary><span><Leaf aria-hidden="true" /><span><strong>Personal food context</strong><small>Optional context for your own planning—not a medical recommendation</small></span></span></summary><div className="goal-disclosure__content stack"><p className="notice">Cookfully stores this on your server to remember your preferences. It does not calculate a prescription or diagnose health conditions.</p><div className="form-grid"><Field label="Age (optional)"><input className="input" type="number" min="13" max="130" value={healthProfile.ageYears} onChange={(event) => updateHealthProfile("ageYears", event.currentTarget.value)} /></Field><Field label="Height in cm (optional)"><input className="input" type="number" min="80" max="260" value={healthProfile.heightCm} onChange={(event) => updateHealthProfile("heightCm", event.currentTarget.value)} /></Field><Field label="Current weight in kg (optional)"><input className="input" type="number" min="20" max="500" value={healthProfile.currentWeightKg} onChange={(event) => updateHealthProfile("currentWeightKg", event.currentTarget.value)} /></Field><Field label="Target weight in kg (optional)"><input className="input" type="number" min="20" max="500" value={healthProfile.targetWeightKg} onChange={(event) => updateHealthProfile("targetWeightKg", event.currentTarget.value)} /></Field><Field label="Food pattern"><select className="input" value={healthProfile.dietaryPattern} onChange={(event) => updateHealthProfile("dietaryPattern", event.currentTarget.value as HealthProfileForm["dietaryPattern"])}><option value="no_preference">No specific pattern</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="pescatarian">Pescatarian</option><option value="halal">Halal</option><option value="kosher">Kosher</option><option value="gluten_free">Gluten-free</option><option value="low_sodium">Lower sodium</option></select></Field><Field label="Avoid ingredients" hint="Separate ingredients with commas."><input className="input" value={healthProfile.avoidIngredients} onChange={(event) => updateHealthProfile("avoidIngredients", event.currentTarget.value)} placeholder="e.g. shellfish, peanuts" /></Field></div>{saveProfile.error instanceof Error ? <p className="error-text" role="alert">{saveProfile.error.message}</p> : null}{profileSaved ? <p className="success-text" role="status">Personal food context saved.</p> : null}<div className="actions"><Button type="button" variant="secondary" disabled={saveProfile.isPending} onClick={() => saveProfile.mutate()}>{saveProfile.isPending ? "Saving…" : "Save personal context"}</Button></div></div></details>
         </section>
         {guideMissesCurrentWeek ? <p className="notice goal-date-warning" role="status">This guide does not cover the current planning week ({longDate(currentWeekStart)}–{longDate(currentWeekEnd)}), so it will not change the meals you are viewing right now.</p> : null}
         {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}

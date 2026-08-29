@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import re
 from collections.abc import Callable, Mapping
@@ -132,6 +133,17 @@ class RecipeImporter:
             buffer[:] = b"\0" * len(buffer)
             buffer.clear()
 
+    async def import_pdf(self, content: bytes, filename: str) -> ImportedCookbook:
+        """Parse an owner-selected cookbook without routing it through the network.
+
+        The preview record retains the file's display name as provenance, but the
+        upload itself is deliberately not persisted.  Selected PDF thumbnails still
+        flow through the existing staged-media path on confirmation.
+        """
+        safe_name = re.sub(r"[^A-Za-z0-9._ -]", "_", filename).strip(" .") or "cookbook.pdf"
+        source_url = f"cookfully-upload://{safe_name}"
+        return await asyncio.to_thread(self._import_pdf, bytes(content), source_url, source_url)
+
     @staticmethod
     def _optional(method: Callable[[], object]) -> object | None:
         try:
@@ -262,7 +274,9 @@ class RecipeImporter:
         source_url: str,
         canonical_url: str,
     ) -> tuple[ImportedRecipe, ...]:
-        ingredient_pages = [index for index, text in enumerate(pages) if "Ingredients:" in text]
+        ingredient_pages = [
+            index for index, text in enumerate(pages) if cls._pdf_heading(text, "ingredients")
+        ]
         recipes: list[ImportedRecipe] = []
         for position, page_index in enumerate(ingredient_pages):
             next_index = (
@@ -271,11 +285,10 @@ class RecipeImporter:
                 else len(pages)
             )
             segment = cls._clean_pdf_text("\n".join(pages[page_index:next_index]))
-            before, _, ingredient_tail = segment.partition("Ingredients:")
-            ingredient_text, marker, direction_text = ingredient_tail.partition("Directions:")
-            if not marker:
+            parsed = cls._pdf_recipe_parts(segment)
+            if parsed is None:
                 continue
-            title = cls._pdf_title(before)
+            title, ingredient_text, direction_text = parsed
             ingredients, ingredient_sections, sections = cls._pdf_ingredients(ingredient_text)
             instructions = cls._pdf_directions(direction_text)
             if not title or not ingredients or not instructions:
@@ -300,6 +313,91 @@ class RecipeImporter:
         return tuple(recipes)
 
     @staticmethod
+    def _pdf_heading(value: str, heading: str) -> re.Match[str] | None:
+        """Find a cookbook heading whether or not the publisher used a colon.
+
+        Cookbook generators routinely use uppercase, colon-less labels such as
+        ``INGREDIENTS`` and ``INSTRUCTIONS``.  The previous parser recognised
+        only the web-style ``Ingredients:`` / ``Directions:`` pair.
+        """
+
+        return re.search(rf"(?i)\b{re.escape(heading)}\b\s*:?", value)
+
+    @classmethod
+    def _pdf_recipe_parts(cls, value: str) -> tuple[str, str, str] | None:
+        ingredients = cls._pdf_heading(value, "ingredients")
+        if ingredients is None:
+            return None
+        directions = cls._pdf_heading(value[ingredients.end() :], "directions")
+        instructions = cls._pdf_heading(value[ingredients.end() :], "instructions")
+        markers = [marker for marker in (directions, instructions) if marker is not None]
+        if markers:
+            marker = min(markers, key=lambda item: item.start())
+            direction_start = ingredients.end() + marker.start()
+            direction_end = ingredients.end() + marker.end()
+            return (
+                cls._pdf_title(value[: ingredients.start()]),
+                value[ingredients.end() : direction_start],
+                value[direction_end:],
+            )
+        return cls._pdf_two_column_recipe_parts(value)
+
+    @classmethod
+    def _pdf_two_column_recipe_parts(cls, value: str) -> tuple[str, str, str] | None:
+        """Read layout-preserving PDFs with ingredients and instructions side by side."""
+
+        lines = value.splitlines()
+        instruction_columns = [
+            match.start()
+            for line in lines
+            if (match := re.search(r"(?i)\b(?:directions|instructions)\b\s*:?", line))
+            and match.start() >= 20
+        ]
+        if not instruction_columns:
+            return None
+        column_start = min(instruction_columns)
+        # Layout extraction preserves the wide separator but not necessarily an
+        # identical x-coordinate for every right-column line.  Split on its own
+        # wide gap instead of slicing at the heading's exact character offset.
+        split_threshold = max(20, column_start - 12)
+        left_lines: list[str] = []
+        right_lines: list[str] = []
+        for line in lines:
+            split = next(
+                (gap for gap in re.finditer(r"\s{3,}", line) if gap.end() >= split_threshold),
+                None,
+            )
+            if split is None:
+                left_lines.append(line.rstrip())
+                right_lines.append("")
+            else:
+                left_lines.append(line[: split.start()].rstrip())
+                right_lines.append(line[split.end() :].rstrip())
+        ingredient_line = next(
+            (
+                index
+                for index, line in enumerate(left_lines)
+                if cls._pdf_heading(line, "ingredients")
+            ),
+            None,
+        )
+        instruction_line = next(
+            (
+                index
+                for index, line in enumerate(right_lines)
+                if cls._pdf_heading(line, "directions") or cls._pdf_heading(line, "instructions")
+            ),
+            None,
+        )
+        if ingredient_line is None or instruction_line is None:
+            return None
+        return (
+            cls._pdf_title("\n".join(left_lines[:ingredient_line])),
+            "\n".join(left_lines[ingredient_line + 1 :]),
+            "\n".join(right_lines[instruction_line + 1 :]),
+        )
+
+    @staticmethod
     def _clean_pdf_text(value: str) -> str:
         """Repair common embedded-font replacement characters without hiding data."""
 
@@ -314,7 +412,14 @@ class RecipeImporter:
         candidates = [line.strip() for line in value.splitlines() if line.strip()]
         if not candidates:
             return ""
-        raw = candidates[0]
+        title_lines = [candidates[0]]
+        if len(candidates) > 1:
+            next_line = candidates[1]
+            # Some designs deliberately wrap a short recipe title across two
+            # display lines (for example, "PANEER TIKKA" / "MASALA RECIPE").
+            if len(next_line.split()) <= 5 and not re.search(r"[.!?]$", next_line):
+                title_lines.append(next_line)
+        raw = " ".join(title_lines)
         words = []
         for group in re.split(r"\s{2,}", raw):
             letters = group.split()
@@ -333,50 +438,85 @@ class RecipeImporter:
         titles: list[str] = []
         by_title: dict[str, int] = {}
         group: str | None = None
+        multi_column = any(
+            len([column for column in re.split(r"\s{3,}", line) if column.strip()]) > 1
+            for line in lines
+        )
         for index, line in enumerate(lines):
-            stripped = line.strip(" \t•-\N{EN DASH}")
-            if not stripped:
-                continue
-            next_line = next((item for item in lines[index + 1 :] if item.strip()), "")
-            is_group = (
-                len(line) == len(line.lstrip())
-                and bool(next_line[:1].isspace())
-                and re.match(r"^(?:\d|[¼½¾⅓⅔⅛⅜⅝⅞])", stripped) is None
-            )
-            if is_group:
-                group = stripped.rstrip(":")
-                if group and group not in by_title:
-                    by_title[group] = len(titles)
-                    titles.append(group)
-                continue
-            normalized = re.sub(r"\s{2,}", " ", stripped)
-            result.append(normalized)
-            sections.append(by_title.get(group) if group else None)
+            # A number of professionally typeset cookbooks use two ingredient
+            # columns.  Keep both entries as distinct ingredients instead of
+            # combining them into a single malformed line.
+            columns = re.split(r"\s{3,}", line)
+            for column in columns:
+                stripped = column.strip(" \t•-\N{EN DASH}")
+                if not stripped:
+                    continue
+                if stripped.lower() == "notes" or re.match(
+                    r"^author\s*(?:\||i\b)", stripped, flags=re.IGNORECASE
+                ):
+                    return tuple(result), tuple(sections), tuple(titles)
+                next_line = next((item for item in lines[index + 1 :] if item.strip()), "")
+                looks_like_group = bool(
+                    re.match(r"^(?:for\b|to\s+\w+)", stripped, flags=re.IGNORECASE)
+                )
+                if multi_column and looks_like_group:
+                    continue
+                is_group = not multi_column and (
+                    looks_like_group
+                    or (
+                        len(line) == len(line.lstrip())
+                        and bool(next_line[:1].isspace())
+                        and re.match(r"^(?:\d|[¼½¾⅓⅔⅛⅜⅝⅞])", stripped) is None
+                    )
+                )
+                if is_group:
+                    group = stripped.rstrip(":")
+                    if group and group not in by_title:
+                        by_title[group] = len(titles)
+                        titles.append(group)
+                    continue
+                normalized = re.sub(r"\s{2,}", " ", stripped)
+                result.append(normalized)
+                sections.append(by_title.get(group) if group else None)
         return tuple(result), tuple(sections), tuple(titles)
 
     @staticmethod
     def _pdf_directions(value: str) -> tuple[str, ...]:
         body = re.split(r"^\s*Notes?\s*$", value, maxsplit=1, flags=re.MULTILINE)[0]
+        # A few layout engines relocate the first step number to the end of the
+        # preceding rendered line.  Removing that duplicate lets the remaining
+        # ordered steps stay readable in the review editor.
+        body = re.sub(r"(?<=[.!?])\s*1\s+(?=2\s+[A-Z])", " ", body)
+        body = re.sub(r"\b([A-Z])\s+([a-z]{2,}\b)", r"\1\2", body)
         matches = list(re.finditer(r"(?m)^\s*\d+[.)]\s*", body))
+        if len(matches) < 2:
+            # Layout extraction often leaves numbered instructions in a right
+            # column without their original line breaks ("For the sauce 1 Heat").
+            # Recognise those labels without mistaking quantities or temperatures
+            # for a cooking step.
+            matches = list(re.finditer(r"(?<!\w)\d{1,2}[.)]?\s+(?=[A-Z])", body))
         if not matches:
-            steps: list[str] = []
+            fallback_steps: list[str] = []
             current = ""
             for line in (item.rstrip() for item in body.splitlines() if item.strip()):
                 stripped = line.strip()
                 if len(line) == len(line.lstrip()) and len(stripped.split()) <= 5:
                     if current:
-                        steps.append(re.sub(r"\s+", " ", current).strip())
+                        fallback_steps.append(re.sub(r"\s+", " ", current).strip())
                         current = ""
                     continue
                 if current and re.search(r"[.!?][\"']?$", current):
-                    steps.append(re.sub(r"\s+", " ", current).strip())
+                    fallback_steps.append(re.sub(r"\s+", " ", current).strip())
                     current = stripped
                 else:
                     current = f"{current} {stripped}".strip()
             if current:
-                steps.append(re.sub(r"\s+", " ", current).strip())
-            return tuple(steps)
-        steps = []
+                fallback_steps.append(re.sub(r"\s+", " ", current).strip())
+            return tuple(fallback_steps)
+        steps: list[str] = []
+        preface = re.sub(r"\s+", " ", body[: matches[0].start()]).strip()
+        if preface:
+            steps.append(preface)
         for index, match in enumerate(matches):
             end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
             step = re.sub(r"\s+", " ", body[match.end() : end]).strip()
@@ -404,10 +544,16 @@ class RecipeImporter:
                     continue
                 if source is None or source.width < 96 or source.height < 96:
                     continue
+                # A preview only needs a small, deliberate cover choice.  Do not
+                # serialise every image in a long cookbook into the API response.
+                source = source.copy()
+                source.thumbnail((1_600, 1_600))
                 buffer = BytesIO()
-                source.convert("RGB").save(buffer, format="JPEG", quality=80)
+                source.convert("RGB").save(buffer, format="JPEG", quality=80, optimize=True)
                 encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
                 urls.append(f"data:image/jpeg;base64,{encoded}")
+                if len(urls) == 8:
+                    return tuple(urls)
         return tuple(urls)
 
     @staticmethod

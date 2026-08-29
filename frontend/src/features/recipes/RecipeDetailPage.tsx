@@ -13,7 +13,7 @@ import { RecipeNutritionSummary } from "./RecipeNutritionSummary";
 import { recipeTimeLabel } from "./recipeMetadataUtils";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
-import type { Job, RecipeDetail } from "./types";
+import type { Job, RecipeDetail, RecipePage } from "./types";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -115,7 +115,22 @@ export function RecipeDetailPage() {
   });
   const permanentDelete = useMutation({
     mutationFn: () => recipesApi.permanentDelete(recipeId!, detail.data!.version),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["recipes"] }); navigate("/app/recipes"); },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["recipes"] });
+      const snapshots = queryClient.getQueriesData<RecipePage>({ queryKey: ["recipes"] });
+      snapshots.forEach(([key, value]) => {
+        if (value) queryClient.setQueryData<RecipePage>(key, { ...value, items: value.items.filter((item) => item.id !== recipeId) });
+      });
+      return { snapshots };
+    },
+    onError: (_error, _variables, context) => {
+      context?.snapshots.forEach(([key, value]) => queryClient.setQueryData(key, value));
+    },
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ["recipe", recipeId], exact: true });
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      navigate("/app/recipes", { replace: true });
+    },
   });
 
   const [scale, setScale] = useState(1);
@@ -282,7 +297,7 @@ export function RecipeDetailPage() {
       </details>
 
       <details className="danger-zone"><summary><span><strong>More recipe options</strong><small>Archive, restore, or permanently remove this recipe</small></span></summary><div className="danger-zone__body">
-        {recipe.status === "archived" ? <><p>Restore this recipe for active planning, or permanently remove its recipe content.</p><div className="actions"><Button onClick={() => restore.mutate()}>Restore recipe</Button><ConfirmDialog trigger={<Button variant="destructive">Permanently delete recipe</Button>} title="Permanently delete this recipe?" description="Recipe content and media will be erased after the bounded recovery window. Historical plan and grocery records remain detached so their past facts stay accurate." confirmLabel="Delete permanently" onConfirm={() => permanentDelete.mutate()} /></div></> : <><p>Archiving hides the recipe from active planning without deleting it.</p><ConfirmDialog trigger={<Button variant="secondary">Archive recipe</Button>} title="Archive this recipe?" description="You can restore it later from the archived recipe view." confirmLabel="Archive" onConfirm={() => archive.mutate()} /></>}
+        {recipe.status === "archived" ? <><p>Restore this recipe for active planning, or permanently remove its recipe content.</p><div className="actions"><Button onClick={() => restore.mutate()} disabled={permanentDelete.isPending}>Restore recipe</Button><ConfirmDialog trigger={<Button variant="destructive" disabled={permanentDelete.isPending}>Permanently delete recipe</Button>} title="Permanently delete this recipe?" description="Recipe content and media will be erased after the bounded recovery window. Historical plan and grocery records remain detached so their past facts stay accurate." confirmLabel={permanentDelete.isPending ? "Deleting…" : "Delete permanently"} pending={permanentDelete.isPending} onConfirm={() => permanentDelete.mutate()} /></div></> : <><p>Archiving hides the recipe from active planning without deleting it.</p><ConfirmDialog trigger={<Button variant="secondary">Archive recipe</Button>} title="Archive this recipe?" description="You can restore it later from the archived recipe view." confirmLabel="Archive" onConfirm={() => archive.mutate()} /></>}
       </div></details>
     </main>
   );

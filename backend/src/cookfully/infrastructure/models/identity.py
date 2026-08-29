@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, CITEXT
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text, text
+from sqlalchemy.dialects.postgresql import ARRAY, CITEXT, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,6 +30,12 @@ class OwnerAccount(TimestampMixin, Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     timezone: Mapped[str] = mapped_column(String(100), nullable=False, default="UTC")
     week_starts_on: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    health_profile: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=dict,
+        server_default=text("'{}'::jsonb"),
+    )
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 

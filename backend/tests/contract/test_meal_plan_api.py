@@ -45,6 +45,8 @@ def goal_payload() -> dict[str, object]:
         "proteinG": "180.000000",
         "carbohydrateG": "220.000000",
         "fatG": "65.000000",
+        "dietaryFiberG": "30.000000",
+        "sodiumMg": "2000.000000",
         "effectiveFrom": "2026-03-01",
         "effectiveTo": None,
         "mealTargets": [
@@ -120,6 +122,14 @@ def test_required_goal_optional_meal_targets_preferences_and_canonical_decimals(
             "displayName": "Owner",
             "timezone": "UTC",
             "weekStartsOn": 1,
+            "healthProfile": {
+                "ageYears": None,
+                "heightCm": None,
+                "currentWeightKg": None,
+                "targetWeightKg": None,
+                "dietaryPattern": "no_preference",
+                "avoidIngredients": [],
+            },
             "version": 1,
         }
         changed = client.put(
@@ -128,12 +138,26 @@ def test_required_goal_optional_meal_targets_preferences_and_canonical_decimals(
                 "displayName": "Owner",
                 "timezone": "America/Vancouver",
                 "weekStartsOn": 7,
+                "healthProfile": {
+                    "currentWeightKg": 74.5,
+                    "targetWeightKg": 70,
+                    "dietaryPattern": "vegetarian",
+                    "avoidIngredients": [" shellfish ", "peanuts"],
+                },
                 "version": 1,
             },
             headers=headers,
         )
         assert changed.status_code == 200
         assert changed.json()["weekStartsOn"] == 7
+        assert changed.json()["healthProfile"] == {
+            "ageYears": None,
+            "heightCm": None,
+            "currentWeightKg": 74.5,
+            "targetWeightKg": 70,
+            "dietaryPattern": "vegetarian",
+            "avoidIngredients": ["shellfish", "peanuts"],
+        }
         stale_preferences = client.put(
             "/api/v1/owner/preferences",
             json={"displayName": "Owner", "timezone": "UTC", "weekStartsOn": 1, "version": 1},
@@ -152,6 +176,8 @@ def test_required_goal_optional_meal_targets_preferences_and_canonical_decimals(
         assert body["caloriesKcal"] == "2200"
         assert body["maintenanceKcal"] == "2500"
         assert body["proteinG"] == "180"
+        assert body["dietaryFiberG"] == "30"
+        assert body["sodiumMg"] == "2000"
         assert body["macroCalorieDifference"] == "-15"
         assert body["mealTargets"][0]["proteinG"] is None
         assert body["mealTargets"][0]["fatG"] is None

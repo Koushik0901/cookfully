@@ -9,23 +9,14 @@ const FALLBACKS = {
 
 type FallbackKind = keyof typeof FALLBACKS;
 
-const KEYWORDS: Array<[FallbackKind, RegExp]> = [
-  ["paneer", /\b(paneer|cottage cheese)\b/i],
-  ["curry", /\b(curry|masala|tikka|korma|vindaloo|rogan josh|dal|daal)\b/i],
-  ["breakfast", /\b(oat|oats|yogurt|yoghurt|breakfast|porridge|granola|cereal|smoothie|pancake|waffle|toast|berry|berries|banana bread|muffin)\b/i],
-  ["grain", /\b(rice|grain|bowl|quinoa|couscous|lentil|chickpea|bean|farro|barley|pilaf|burrito|risotto)\b/i],
-  ["fresh", /\b(salad|greens?|vegetable|veggie|tomato|cucumber|radish|citrus|slaw|salsa|guacamole|coleslaw|pico)\b/i],
-  ["savory", /\b(stir|fry|skillet|stew|pasta|noodle|soup|chicken|beef|pork|fish|salmon|tofu|dinner|burger|patty|seitan|steak|roast|meatball|lasagna|mac|cheese|bbq|taco|wrap|sandwich|bacon|wing|meatloaf|stroganoff|piccata|cutlet)\b/i],
-];
-
 function recipeFallbackKind(title: string): FallbackKind {
   const kinds = Object.keys(FALLBACKS) as FallbackKind[];
-  const match = KEYWORDS.find(([, pattern]) => pattern.test(title));
-  // Keep the more specific food cues, but spread generic savory recipes across
-  // the whole fallback set so a cookbook import does not become one repeated
-  // image in the library grid.
-  if (match && match[0] !== "savory") return match[0];
-  const hash = [...title].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
+  // Every title gets a stable, well-distributed slot.  Keyword forcing made a
+  // cookbook full of curries, paneer, or grain dishes collapse to one image.
+  let hash = 0x811c9dc5;
+  for (const character of title.toLocaleLowerCase()) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193);
+  }
   return kinds[hash % kinds.length];
 }
 

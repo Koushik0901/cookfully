@@ -61,6 +61,8 @@ class GoalWrite:
     effective_from: date
     effective_to: date | None
     meal_targets: tuple[MealTargetWrite, ...] = ()
+    dietary_fiber_g: Decimal | None = None
+    sodium_mg: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +77,8 @@ class GoalRead:
     effective_from: date
     effective_to: date | None
     meal_targets: tuple[MealTargetWrite, ...]
+    dietary_fiber_g: Decimal | None
+    sodium_mg: Decimal | None
     macro_calorie_difference: Decimal | None
     version: int
 
@@ -211,6 +215,8 @@ class GoalService:
                 )
                 for item in value.meal_targets
             ),
+            dietary_fiber_g=value.dietary_fiber_g,
+            sodium_mg=value.sodium_mg,
         )
 
     @staticmethod
@@ -221,6 +227,8 @@ class GoalService:
         goal.protein_g = value.protein_g
         goal.carbohydrate_g = value.carbohydrate_g
         goal.fat_g = value.fat_g
+        goal.dietary_fiber_g = value.dietary_fiber_g
+        goal.sodium_mg = value.sodium_mg
         goal.effective_from = value.effective_from
         goal.effective_to = value.effective_to
 
@@ -247,6 +255,8 @@ class GoalService:
             goal.effective_from,
             goal.effective_to,
             targets,
+            goal.dietary_fiber_g,
+            goal.sodium_mg,
             reportable_macro_calorie_difference(
                 target_kcal=goal.target_kcal,
                 protein_g=goal.protein_g,

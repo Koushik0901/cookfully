@@ -48,6 +48,8 @@ logger = logging.getLogger(__name__)
 class ImportFetcher(Protocol):
     async def import_url(self, url: str) -> ImportedRecipe | ImportedCookbook: ...
 
+    async def import_pdf(self, content: bytes, filename: str) -> ImportedCookbook: ...
+
 
 class ImportPreviewCoordinator:
     """Capture a recipe import preview and turn it into a persisted recipe on confirm."""
@@ -324,6 +326,19 @@ class ImportPreviewCoordinator:
             except Exception:
                 logger.exception("inline repair merge failed, returning legacy preview")
 
+        return self._persist_preview(imported, owner_id=owner_id)
+
+    async def preview_pdf(
+        self, content: bytes, filename: str, *, owner_id: UUID, trace_id: str
+    ) -> dict[str, Any]:
+        """Create a reviewable preview from a user-selected local cookbook PDF."""
+        del trace_id  # Kept in the public contract for the same audit surface as URL imports.
+        imported = await self._importer.import_pdf(content, filename)
+        return self._persist_preview(imported, owner_id=owner_id)
+
+    def _persist_preview(
+        self, imported: ImportedRecipe | ImportedCookbook, *, owner_id: UUID
+    ) -> dict[str, Any]:
         origin_kind = "cookbook_import" if isinstance(imported, ImportedCookbook) else "web_import"
         now = utc_now()
         recipes = imported.recipes if isinstance(imported, ImportedCookbook) else (imported,)
@@ -555,13 +570,23 @@ class ImportPreviewCoordinator:
                         section_index=index,
                     )
                 )
-            for position, text in enumerate(base.get("instructions", [])):
-                editable = component.get("instructions") or []
+            editable = component.get("instructions") or []
+            base_instructions = base.get("instructions", [])
+            for position in range(max(len(base_instructions), len(editable))):
+                text = base_instructions[position] if position < len(base_instructions) else ""
                 edit = editable[position] if position < len(editable) else {}
                 edit = edit or {}
                 if edit.get("remove"):
                     continue
-                instructions.append(InstructionWrite(text=text, section_index=index))
+                text = str(edit.get("text") or text).strip()
+                if text:
+                    instructions.append(InstructionWrite(text=text, section_index=index))
+        if not instructions:
+            raise DomainError(
+                "import_instructions_required",
+                "Add at least one cooking step before saving this import.",
+                422,
+            )
         stored_origin = stored.get("originKind")
         origin_kind: RecipeOrigin | None = (
             cast(RecipeOrigin, stored_origin)

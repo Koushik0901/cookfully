@@ -16,10 +16,12 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.jobs import JobProgress, JobService
+from cookfully.application.model_download import accept_model_download_job_in_session
 from cookfully.application.nutrition_recovery import recover_stale_nutrition
 from cookfully.cli.reference_data import activate_release, import_release, release_status
 from cookfully.domain.common import DomainError, utc_now, uuid7
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.reference_data_installs import ReferenceDataInstall
 from cookfully.infrastructure.models.reference_foods import ReferenceDataset
 
@@ -178,6 +180,23 @@ class ReferenceDataInstallService:
             )
             job.terminal_deadline_at = now + INSTALL_JOB_DEADLINE
             install.job_id = job.id
+            # A fresh installation otherwise leaves the default semantic model
+            # merely configured. Queue its one-time download alongside the USDA
+            # install so the nutrition system becomes ready without a second,
+            # easy-to-miss Settings action.
+            intelligence = session.get(NutritionIntelligenceSettings, 1)
+            if intelligence is None:
+                intelligence = NutritionIntelligenceSettings(id=1)
+                session.add(intelligence)
+                session.flush()
+            if intelligence.backend == "fastembed" and intelligence.last_ready_at is None:
+                accept_model_download_job_in_session(
+                    session,
+                    self._jobs,
+                    model_name=intelligence.model_name,
+                    model_revision=intelligence.model_revision,
+                    trace_id=f"{trace_id}-semantic-model",
+                )
             return InstallAccepted(job.id, job.status)
 
     def run(self, job_id: UUID) -> None:

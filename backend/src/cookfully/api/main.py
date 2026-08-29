@@ -103,6 +103,7 @@ _OPERATION_IDS = {
     "bulk_archive_recipes": "bulkArchiveRecipes",
     "import_recipe": "importRecipe",
     "preview_recipe_import": "previewRecipeImport",
+    "preview_uploaded_cookbook": "previewCookbookPdfImport",
     "confirm_recipe_import": "confirmRecipeImport",
     "get_recipe": "getRecipe",
     "update_recipe": "updateRecipe",

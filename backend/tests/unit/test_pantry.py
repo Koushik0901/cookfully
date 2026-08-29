@@ -90,6 +90,29 @@ def test_resolve_match_unmatched_has_no_reference_or_confidence(monkeypatch) -> 
     assert (reference_id, owner_food_id, status, confidence) == (None, None, "unmatched", None)
 
 
+def test_resolve_match_never_loads_a_model_for_an_automatic_pantry_add(monkeypatch) -> None:
+    from unittest.mock import MagicMock
+
+    from cookfully.application import pantry
+
+    session = MagicMock()
+    monkeypatch.setattr(
+        pantry,
+        "engine",
+        type(
+            "E",
+            (),
+            {"match_ingredient": lambda *_args, **_kwargs: pytest.fail("must not load model")},
+        )(),
+    )
+    assert pantry.PantryService._resolve_match(session, None, "rice", None, None) == (
+        None,
+        None,
+        "unmatched",
+        None,
+    )
+
+
 def test_resolve_match_manual_selection_pins_confidence(monkeypatch) -> None:
     from unittest.mock import MagicMock
 

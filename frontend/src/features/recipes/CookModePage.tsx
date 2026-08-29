@@ -44,11 +44,8 @@ function TimerChip({ minutes }: { minutes: number }) {
   }, [clamped]);
   const displayMin = Math.floor(remaining / 60);
   const displaySec = remaining % 60;
-  return (
-    <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>
-      Timer {clamped} min{displayMin !== clamped || displaySec !== 0 ? ` — ${displayMin}:${String(displaySec).padStart(2, "0")} remaining` : ""}
-    </div>
-  );
+  const remainingLabel = `${displayMin}:${String(displaySec).padStart(2, "0")}`;
+  return <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>{remaining ? `Timer set for ${clamped} min — ${remainingLabel} remaining` : "Timer finished"}</div>;
 }
 
 function AnswerChip({ children }: { children: string }) {
@@ -73,6 +70,7 @@ export function CookModePage() {
     () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 60rem)").matches,
   );
   const [screenAwake, setScreenAwake] = useState(false);
+  const [timer, setTimer] = useState<{ minutes: number; run: number } | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const currentStepRef = useRef(currentStep);
 
@@ -104,6 +102,9 @@ export function CookModePage() {
       } else if (action === "previous") {
         setComplete(false);
         setCurrentStep((s) => Math.max(s - 1, 0));
+      } else if (action === "timer") {
+        const minutes = Number(call.arguments.minutes);
+        if (Number.isFinite(minutes)) setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
       }
     },
   });
@@ -116,6 +117,10 @@ export function CookModePage() {
     },
     [recipe.data, utteranceMut],
   );
+
+  const startTimer = useCallback((minutes: number) => {
+    setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
+  }, []);
 
   useEffect(() => {
     let released = false;
@@ -209,21 +214,10 @@ export function CookModePage() {
 
   // Voice derived chips
   const call = utteranceMut.data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
-  const confidence = utteranceMut.data?.confidence ?? 0;
-  const isOk = utteranceMut.data?.status === "ok" && confidence >= 0.80;
   const query = (call?.arguments.query as string | undefined)?.trim();
   const ingredientTexts = currentRecipe.ingredients.map((i) => i.originalText);
   const hasEvidence = Boolean(query && ingredientTexts.join(",").toLowerCase().includes(query.toLowerCase()));
   const matchedIngredient = query ? ingredientTexts.find((i) => i.toLowerCase().includes(query.toLowerCase())) : undefined;
-  const rawMinutes = call?.arguments.minutes as number | undefined;
-  const clampedMinutes = typeof rawMinutes === "number" ? Math.min(120, Math.max(1, Math.floor(rawMinutes))) : undefined;
-  const showTimer =
-    isOk &&
-    call?.name === "cooking_action" &&
-    (call.arguments.action as string) === "timer" &&
-    typeof clampedMinutes === "number" &&
-    clampedMinutes >= 1 &&
-    clampedMinutes <= 120;
   const showAnswerChip = Boolean(hasEvidence && matchedIngredient);
 
   return (
@@ -348,7 +342,7 @@ export function CookModePage() {
             {/* Voice entry — STT transcript=prompt hook */}
             <div className="cook-mode-voice" aria-label="Voice commands" style={{ marginTop: "1rem" }}>
               <div>
-                <button type="button" aria-label="Set timer 5 minutes" onClick={() => onUtterance("timer 5")}>
+                <button type="button" aria-label="Set timer 5 minutes" onClick={() => { startTimer(5); onUtterance("timer 5"); }}>
                   timer 5
                 </button>
                 <button type="button" aria-label="Ask how much garlic" onClick={() => onUtterance("how much garlic")}>
@@ -364,7 +358,7 @@ export function CookModePage() {
                   repeat
                 </button>
               </div>
-              {showTimer && <TimerChip minutes={clampedMinutes!} />}
+              {timer && <TimerChip key={timer.run} minutes={timer.minutes} />}
               {showAnswerChip && <AnswerChip>{matchedIngredient!}</AnswerChip>}
             </div>
           </main>

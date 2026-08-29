@@ -419,6 +419,38 @@ async def preview_recipe_import(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"ready": False}
         )
 
+    return _preview_response(data)
+
+
+@router.post(
+    "/import/preview/pdf",
+    response_model=ImportPreviewResponse,
+    response_model_by_alias=True,
+)
+async def preview_uploaded_cookbook(
+    file: Annotated[UploadFile, File(description="A text-based cookbook PDF, up to 25 MB.")],
+    coordinator: Annotated[ImportPreviewCoordinator, Depends(import_preview_coordinator)],
+    owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> ImportPreviewResponse:
+    filename = file.filename or "cookbook.pdf"
+    if not filename.lower().endswith(".pdf"):
+        raise DomainError("cookbook_pdf_required", "Choose a PDF cookbook file.", 422)
+    content = await file.read(25 * 1024 * 1024 + 1)
+    if len(content) > 25 * 1024 * 1024:
+        raise DomainError("cookbook_pdf_too_large", "Cookbook PDFs must be 25 MB or smaller.", 422)
+    if not content.startswith(b"%PDF"):
+        raise DomainError("cookbook_pdf_required", "Choose a valid PDF cookbook file.", 422)
+    try:
+        data = await coordinator.preview_pdf(
+            content, filename, owner_id=owner.id, trace_id=correlation_id.get()
+        )
+    finally:
+        content = b""
+        await file.close()
+    return _preview_response(data)
+
+
+def _preview_response(data: dict[str, Any]) -> ImportPreviewResponse:
     def recipe_preview(value: dict[str, Any]) -> ImportRecipePreview:
         return ImportRecipePreview(
             parse_id=value["parse_id"],

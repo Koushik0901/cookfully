@@ -51,6 +51,8 @@ class DailyGoal:
     effective_from: date
     effective_to: date | None = None
     meal_targets: tuple[MealTarget, ...] = ()
+    dietary_fiber_g: Decimal | None = None
+    sodium_mg: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.mode not in {"cut", "maintain", "bulk"}:
@@ -75,6 +77,10 @@ class DailyGoal:
             raise DomainError(
                 "goal_macros_empty", "At least one daily macro must be greater than zero.", 422
             )
+        for field, label in (("dietary_fiber_g", "Daily fiber"), ("sodium_mg", "Daily sodium")):
+            value = getattr(self, field)
+            if value is not None:
+                object.__setattr__(self, field, _required_decimal(label, value))
         if self.effective_to is not None and self.effective_to < self.effective_from:
             raise DomainError(
                 "goal_period_invalid",

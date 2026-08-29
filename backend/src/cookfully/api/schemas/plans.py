@@ -47,21 +47,25 @@ class UserGoalWriteRequest(ApiModel):
     protein_g: Decimal6 = Field(alias="proteinG")
     carbohydrate_g: Decimal6 = Field(alias="carbohydrateG")
     fat_g: Decimal6 = Field(alias="fatG")
+    dietary_fiber_g: Decimal6 | None = Field(alias="dietaryFiberG", default=None)
+    sodium_mg: Decimal6 | None = Field(alias="sodiumMg", default=None)
     effective_from: date = Field(alias="effectiveFrom")
     effective_to: date | None = Field(alias="effectiveTo", default=None)
     meal_targets: tuple[MealTargetRequest, ...] = Field(alias="mealTargets", default=())
 
     def to_write(self) -> GoalWrite:
         return GoalWrite(
-            self.mode,
-            self.maintenance_kcal,
-            self.calories_kcal,
-            self.protein_g,
-            self.carbohydrate_g,
-            self.fat_g,
-            self.effective_from,
-            self.effective_to,
-            tuple(item.to_write() for item in self.meal_targets),
+            mode=self.mode,
+            maintenance_kcal=self.maintenance_kcal,
+            target_kcal=self.calories_kcal,
+            protein_g=self.protein_g,
+            carbohydrate_g=self.carbohydrate_g,
+            fat_g=self.fat_g,
+            effective_from=self.effective_from,
+            effective_to=self.effective_to,
+            meal_targets=tuple(item.to_write() for item in self.meal_targets),
+            dietary_fiber_g=self.dietary_fiber_g,
+            sodium_mg=self.sodium_mg,
         )
 
 
@@ -85,6 +89,8 @@ class UserGoalResponse(ApiModel):
     protein_g: Decimal6 = Field(alias="proteinG")
     carbohydrate_g: Decimal6 = Field(alias="carbohydrateG")
     fat_g: Decimal6 = Field(alias="fatG")
+    dietary_fiber_g: Decimal6 | None = Field(alias="dietaryFiberG", default=None)
+    sodium_mg: Decimal6 | None = Field(alias="sodiumMg", default=None)
     effective_from: date = Field(alias="effectiveFrom")
     effective_to: date | None = Field(alias="effectiveTo", default=None)
     meal_targets: tuple[MealTargetResponse, ...] = Field(alias="mealTargets", default=())
@@ -105,6 +111,8 @@ class UserGoalResponse(ApiModel):
             protein_g=value.protein_g,
             carbohydrate_g=value.carbohydrate_g,
             fat_g=value.fat_g,
+            dietary_fiber_g=value.dietary_fiber_g,
+            sodium_mg=value.sodium_mg,
             effective_from=value.effective_from,
             effective_to=value.effective_to,
             meal_targets=tuple(MealTargetResponse.from_read(item) for item in value.meal_targets),

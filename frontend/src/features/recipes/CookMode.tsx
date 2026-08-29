@@ -47,11 +47,8 @@ function TimerChip({ minutes }: { minutes: number }) {
   }, [clamped]);
   const displayMin = Math.floor(remaining / 60);
   const displaySec = remaining % 60;
-  return (
-    <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>
-      Timer {clamped} min{displayMin !== clamped || displaySec !== 0 ? ` — ${displayMin}:${String(displaySec).padStart(2, "0")} remaining` : ""}
-    </div>
-  );
+  const remainingLabel = `${displayMin}:${String(displaySec).padStart(2, "0")}`;
+  return <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>{remaining ? `Timer set for ${clamped} min — ${remainingLabel} remaining` : "Timer finished"}</div>;
 }
 
 function AnswerChip({ children }: { children: string }) {
@@ -66,6 +63,7 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
   const ingredients = toIngredientTexts(recipe.ingredients);
   const steps = toStepTexts(recipe.instructions);
   const [internalStep, setInternalStep] = useState(initialStep);
+  const [timer, setTimer] = useState<{ minutes: number; run: number } | null>(null);
   const internalStepRef = useRef(internalStep);
   const stepsRef = useRef(steps);
   const ingredientsRef = useRef(ingredients);
@@ -103,6 +101,9 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
         setInternalStep((s) => Math.min(s + 1, Math.max(stepsRef.current.length - 1, 0)));
       } else if (action === "previous") {
         setInternalStep((s) => Math.max(s - 1, 0));
+      } else if (action === "timer") {
+        const minutes = Number(call.arguments.minutes);
+        if (Number.isFinite(minutes)) setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
       }
     },
   });
@@ -116,22 +117,10 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
   );
 
   const call = utteranceMut.data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
-  const confidence = utteranceMut.data?.confidence ?? 0;
-  const isOk = utteranceMut.data?.status === "ok" && confidence >= 0.80;
 
   const query = (call?.arguments.query as string | undefined)?.trim();
   const hasEvidence = Boolean(query && ingredients.join(",").toLowerCase().includes(query.toLowerCase()));
   const matchedIngredient = query ? ingredients.find((i) => i.toLowerCase().includes(query.toLowerCase())) : undefined;
-
-  const rawMinutes = call?.arguments.minutes as number | undefined;
-  const clampedMinutes = typeof rawMinutes === "number" ? Math.min(120, Math.max(1, Math.floor(rawMinutes))) : undefined;
-  const showTimer =
-    isOk &&
-    call?.name === "cooking_action" &&
-    (call.arguments.action as string) === "timer" &&
-    typeof clampedMinutes === "number" &&
-    clampedMinutes >= 1 &&
-    clampedMinutes <= 120;
 
   const showAnswerChip = Boolean(hasEvidence && matchedIngredient);
 
@@ -177,7 +166,7 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
 
       {/* Voice entry — STT transcript=prompt hook (doc-only, voice button wires transcript to onUtterance) */}
       <div aria-label="Voice commands">
-        <button type="button" aria-label="Set timer 5 minutes" onClick={() => onUtterance("timer 5")}>
+        <button type="button" aria-label="Set timer 5 minutes" onClick={() => { setTimer({ minutes: 5, run: Date.now() }); onUtterance("timer 5"); }}>
           timer 5
         </button>
         <button type="button" aria-label="Ask how much garlic" onClick={() => onUtterance("how much garlic")}>
@@ -195,7 +184,7 @@ export function CookMode({ recipe, currentStep: initialStep = 0 }: CookModeProps
       </div>
 
       {/* Timer chip — only when 0.80 gate + cooking_action timer + clamped 1..120 */}
-      {showTimer && <TimerChip minutes={clampedMinutes!} />}
+      {timer && <TimerChip key={timer.run} minutes={timer.minutes} />}
 
       {/* Query answer chip only when evidenced; fallback is repeat step text (already visible) */}
       {showAnswerChip && <AnswerChip>{matchedIngredient!}</AnswerChip>}

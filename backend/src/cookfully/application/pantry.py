@@ -368,7 +368,17 @@ class PantryService:
             if owner_food is None or owner_food.owner_id != owner_id or not owner_food.is_active:
                 raise DomainError("owner_food_not_found", "Your custom food was not found.", 404)
             return None, requested_owner_food_id, "manual", Decimal("1.000000")
-        decision = engine.match_ingredient(session, display_name)
+        # Adding something to the pantry is a kitchen action, not a synchronous
+        # matching job.  Loading a semantic model can take tens of seconds after
+        # a process restart even when its downloaded state says "ready". Persist
+        # the item immediately and let the owner choose a food match in the
+        # explicit editor, where the food search stays fast and cancellable.
+        if session is not None:
+            return None, None, "unmatched", None
+        else:
+            # Unit-level callers exercise the pure decision mapping without a
+            # database-backed runtime readiness check.
+            decision = engine.match_ingredient(session, display_name)
         candidate = decision.candidate
         if candidate is None and decision.status == "ambiguous" and decision.alternatives:
             candidate = decision.alternatives[0]

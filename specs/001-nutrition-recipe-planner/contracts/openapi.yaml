@@ -264,6 +264,32 @@ paths:
                 properties:
                   ready: { type: boolean, const: false }
 
+  /recipes/import/preview/pdf:
+    post:
+      tags: [Recipes]
+      operationId: previewCookbookPdfImport
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: A text-based cookbook PDF, up to 25 MB.
+      responses:
+        "200":
+          description: Synchronous cookbook preview with short-lived parse IDs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreview"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /recipes/import/confirm:
     post:
       tags: [Recipes, Jobs]
@@ -2086,7 +2112,24 @@ components:
         displayName: { type: string, minLength: 1, maxLength: 80 }
         timezone: { type: string, minLength: 1, maxLength: 100 }
         weekStartsOn: { type: integer, minimum: 1, maximum: 7 }
+        healthProfile: { $ref: "#/components/schemas/HealthProfile" }
         version: { type: integer, minimum: 1 }
+    HealthProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        ageYears: { type: [integer, "null"], minimum: 13, maximum: 130 }
+        heightCm: { type: [number, "null"], minimum: 80, maximum: 260 }
+        currentWeightKg: { type: [number, "null"], minimum: 20, maximum: 500 }
+        targetWeightKg: { type: [number, "null"], minimum: 20, maximum: 500 }
+        dietaryPattern:
+          type: string
+          enum: [no_preference, vegetarian, vegan, pescatarian, halal, kosher, gluten_free, low_sodium]
+          default: no_preference
+        avoidIngredients:
+          type: array
+          maxItems: 24
+          items: { type: string, minLength: 1, maxLength: 80 }
     NutritionIntelligenceSettings:
       type: object
       additionalProperties: false
@@ -2738,6 +2781,8 @@ components:
           properties:
             mode: { type: string, enum: [cut, maintain, bulk] }
             maintenanceKcal: { $ref: "#/components/schemas/Decimal6" }
+            dietaryFiberG: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+            sodiumMg: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
             effectiveFrom: { type: string, format: date }
             effectiveTo: { type: [string, "null"], format: date }
             mealTargets: { type: array, items: { $ref: "#/components/schemas/MealTarget" } }
