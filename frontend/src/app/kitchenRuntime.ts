@@ -58,7 +58,9 @@ export async function kitchenRequest<T>(path: string, options: KitchenRequestOpt
     if (response.status === 204) return undefined as T;
     const value = await response.json() as T;
     notifyServerRestored();
-    if (method === "GET" && shouldCacheOffline(path)) void writeOfflineResponse(requestUrl, value);
+    // Keep offline readiness truthful by persisting the successful GET before returning it.
+    // Cache failures remain non-fatal inside writeOfflineResponse.
+    if (method === "GET" && shouldCacheOffline(path)) await writeOfflineResponse(requestUrl, value);
     return value;
   } catch (error) {
     if (!(error instanceof KitchenRequestProblem) && isNetworkFailure(error)) {

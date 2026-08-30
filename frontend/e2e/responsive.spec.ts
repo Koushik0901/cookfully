@@ -242,6 +242,7 @@ test("cook mode takes over the viewport and adapts its ingredient checklist", as
   const cookMode = page.locator(".cook-mode");
   await expect(cookMode).toBeVisible();
   await expect(page.getByText("Cook and portion.")).toBeVisible();
+  await expect(page.getByText("Available offline")).toBeVisible();
   const viewport = page.viewportSize();
   const box = await cookMode.boundingBox();
   expect(viewport).not.toBeNull();

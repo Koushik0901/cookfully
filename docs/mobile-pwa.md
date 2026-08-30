@@ -46,9 +46,10 @@ HTTPS reverse proxy remains a supported path.
 4. Open the new Cookfully icon. The app keeps the cooking shell, safe-area navigation, and Cook Mode
    available as a standalone web app.
 
-Cookfully caches the application shell and recently viewed JSON reads. If the connection drops, the
-phone shows an offline banner and can continue reading cached recipes and Cook Mode content. Writes
-remain explicitly connected operations and expose a retry path; the server remains authoritative.
+Cookfully caches the application shell and recently viewed JSON reads. Cook Mode shows **Available
+offline** only after its recipe has been persisted on the device. If the connection drops, the phone
+shows an offline banner and can continue reading cached recipes and Cook Mode content. Writes remain
+explicitly connected operations and expose a retry path; the server remains authoritative.
 When the application shell changes, bump the cache version in `frontend/public/sw.js`; the deployment
 revalidates that worker and rolls the shell cache so installed phones can pick up the new build without
 clearing browser storage.

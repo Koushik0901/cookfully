@@ -839,6 +839,7 @@
 .cook-mode__step-number { color: var(--color-accent); font-family: var(--font-display); font-size: clamp(3rem, 7vw, 6rem); font-weight: 680; line-height: 0.85; }
 .cook-mode__step-text { max-width: 24ch; color: var(--color-on-primary); font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3.75rem); font-weight: 580; letter-spacing: -0.025em; line-height: 1.1; text-wrap: balance; }
 .cook-mode__progress { background: var(--color-on-dark-line); }
+.cook-mode__offline-ready { color: var(--color-on-herb-muted); }
 .cook-mode__progress::-webkit-progress-bar { background: var(--color-on-dark-line); }
 .cook-mode__progress::-webkit-progress-value { background: var(--color-accent); transition: transform var(--motion-state) var(--ease-out-expo); }
 .cook-mode__quick-timer { display: none; }
@@ -940,6 +941,7 @@
   .cook-mode__steps { min-height: calc(100dvh - 14rem); padding: 1.25rem 1rem; }
   .cook-mode__stage { gap: 1.25rem; }
   .cook-mode__stage-heading > span { display: none; }
+  .cook-mode__stage-heading > .cook-mode__offline-ready { display: inline; }
   .cook-mode__step { grid-template-columns: 1fr; gap: 0.75rem; }
   .cook-mode__step-number { font-size: 2.5rem; }
   .cook-mode__step-text { font-size: clamp(1.75rem, 8vw, 2.6rem); }

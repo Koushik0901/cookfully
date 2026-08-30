@@ -6,6 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { unavailableMicronutrients } from "../../../test/fixtures";
 
+const offlineCache = vi.hoisted(() => ({
+  clearOfflineResponses: vi.fn(),
+  readOfflineResponse: vi.fn(),
+  writeOfflineResponse: vi.fn(),
+}));
+
+vi.mock("../../../app/offlineCache", () => offlineCache);
+
 import type { Job, Recipe, RecipeDetail } from "../types";
 import { CookModePage } from "../CookModePage";
 import { RecipeCard } from "../RecipeCard";
@@ -110,6 +118,8 @@ describe("recipe UI", () => {
   beforeEach(() => {
     document.cookie = "cookfully_csrf=test-csrf-token; path=/";
     vi.stubGlobal("fetch", vi.fn(() => response(recipe)));
+    offlineCache.readOfflineResponse.mockResolvedValue(undefined);
+    offlineCache.writeOfflineResponse.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -317,6 +327,14 @@ describe("recipe UI", () => {
     expect(screen.getByText("8.5 g")).toBeVisible();
     expect(screen.getByText(/level tablespoon/i)).toBeVisible();
     expect(screen.getByText(/package label/i)).toBeVisible();
+  });
+
+  it("only labels Cook Mode as available offline after the saved recipe can be read back", async () => {
+    offlineCache.readOfflineResponse.mockResolvedValue(recipe);
+    renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
+
+    expect(await screen.findByText(/Available offline/)).toBeVisible();
+    expect(offlineCache.readOfflineResponse).toHaveBeenCalledWith(`/api/v1/recipes/${recipe.id}`);
   });
 
   it("keeps the phone recipe sections focused while making nutrition reachable", async () => {

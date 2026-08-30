@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { Button, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
+import { readOfflineResponse } from "../../app/offlineCache";
 import { Checkbox } from "@/components/ui/checkbox";
 import { intelligenceApi } from "../intelligence/api";
 import { recipesApi } from "./api";
@@ -73,6 +74,7 @@ export function CookModePage() {
     () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia(COMPACT_COOK_MODE_QUERY).matches,
   );
   const [screenAwake, setScreenAwake] = useState(false);
+  const [offlineRecipeReady, setOfflineRecipeReady] = useState(false);
   const [timer, setTimer] = useState<{ minutes: number; run: number } | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const currentStepRef = useRef(currentStep);
@@ -81,6 +83,18 @@ export function CookModePage() {
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setOfflineRecipeReady(false);
+    if (!recipeId || !recipe.data?.id) return;
+    void readOfflineResponse(`/api/v1/recipes/${recipeId}`).then((cachedRecipe) => {
+      if (!cancelled) setOfflineRecipeReady(cachedRecipe !== undefined);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe.data?.id, recipeId]);
 
   // Voice-ready handler: Step+Ingredients+User prompt via same gateway
   const utteranceMut = useMutation({
@@ -340,7 +354,9 @@ export function CookModePage() {
                 <p className="eyebrow">
                   Step {currentStep + 1} of {total}
                 </p>
-                <span>Use ← → to move between steps</span>
+                <span className={offlineRecipeReady ? "cook-mode__offline-ready" : undefined}>
+                  {offlineRecipeReady ? "Available offline · Use ← → to move between steps" : "Use ← → to move between steps"}
+                </span>
               </div>
               <div className="cook-mode__step">
                 <span className="cook-mode__step-number data-value" aria-hidden="true">
