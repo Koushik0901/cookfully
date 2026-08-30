@@ -806,10 +806,24 @@
 .cook-mode__ingredient .cf-checkbox { border-color: var(--color-on-herb-subtle); background: transparent; }
 .cook-mode__ingredient .cf-checkbox[data-state="checked"] { border-color: var(--color-accent); color: var(--color-herb-950); background: var(--color-accent); }
 .cook-mode__checked { color: var(--color-on-herb-faint); text-decoration: line-through; }
-.cook-mode__all-checked { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; color: var(--color-accent); font-size: 0.8rem; }
+.cook-mode__all-checked { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; color: var(--color-accent); font-size: 0.8rem; animation: cook-ingredients-ready var(--motion-disclosure) var(--ease-out-quart) both; }
 .cook-mode__all-checked svg { width: 1rem; }
+@keyframes cook-ingredients-ready {
+  from { opacity: 0; transform: translateY(0.35rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .cook-mode__steps { display: grid; min-width: 0; grid-template-rows: minmax(0, 1fr) auto; padding: clamp(1.5rem, 4vw, 4rem); }
 .cook-mode__stage { display: grid; align-content: center; gap: 2rem; }
+.cook-mode__stage--forward { animation: cook-step-arrive var(--motion-entrance) var(--ease-out-expo) both; }
+.cook-mode__stage--backward { animation: cook-step-return var(--motion-entrance) var(--ease-out-expo) both; }
+@keyframes cook-step-arrive {
+  from { opacity: 0; transform: translateX(1rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes cook-step-return {
+  from { opacity: 0; transform: translateX(-1rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
 .cook-mode__stage-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .cook-mode__stage-heading .eyebrow { color: var(--color-accent); }
 .cook-mode__stage-heading span { color: var(--color-on-herb-subtle); font-size: 0.72rem; }
@@ -1420,6 +1434,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .cook-mode__stage--forward,
+  .cook-mode__stage--backward,
+  .cook-mode__all-checked,
   .expiry-badge,
   .expiry-chip,
   .expiry-sheet {

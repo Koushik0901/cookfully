@@ -64,6 +64,7 @@ export function CookModePage() {
     enabled: Boolean(recipeId),
   });
   const [currentStep, setCurrentStep] = useState(() => loadCookSession(recipeId)?.currentStep ?? 0);
+  const [stepDirection, setStepDirection] = useState<"forward" | "backward">("forward");
   const [complete, setComplete] = useState(() => loadCookSession(recipeId)?.complete ?? false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => new Set(loadCookSession(recipeId)?.checkedIngredients ?? []));
   const [ingredientsOpen, setIngredientsOpen] = useState(
@@ -91,6 +92,7 @@ export function CookModePage() {
       if (!isOk || call?.name !== "cooking_action") return;
       const action = call.arguments.action as string | undefined;
       if (action === "next") {
+        setStepDirection("forward");
         setCurrentStep((s) => {
           const stepsLen = recipe.data?.instructions.length ?? 0;
           if (s < stepsLen - 1) return s + 1;
@@ -101,6 +103,7 @@ export function CookModePage() {
         void variables;
       } else if (action === "previous") {
         setComplete(false);
+        setStepDirection("backward");
         setCurrentStep((s) => Math.max(s - 1, 0));
       } else if (action === "timer") {
         const minutes = Number(call.arguments.minutes);
@@ -170,11 +173,15 @@ export function CookModePage() {
 
   const total = recipe.data?.instructions.length ?? 0;
   const nextStep = useCallback(() => {
-    if (currentStep < total - 1) setCurrentStep((step) => step + 1);
+    if (currentStep < total - 1) {
+      setStepDirection("forward");
+      setCurrentStep((step) => step + 1);
+    }
     else if (total) setComplete(true);
   }, [currentStep, total]);
   const prevStep = useCallback(() => {
     setComplete(false);
+    setStepDirection("backward");
     setCurrentStep((step) => Math.max(step - 1, 0));
   }, []);
 
@@ -313,7 +320,7 @@ export function CookModePage() {
           </aside>
 
           <main className="cook-mode__steps" aria-label="Cooking steps">
-            <div className="cook-mode__stage">
+            <div key={currentStep} className={`cook-mode__stage cook-mode__stage--${stepDirection}`}>
               <div className="cook-mode__stage-heading">
                 <p className="eyebrow">
                   Step {currentStep + 1} of {total}

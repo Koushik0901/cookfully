@@ -490,8 +490,13 @@
 .status--queued,
 .status--running,
 .status--retry_wait { color: var(--status-info); background: var(--status-info-container); }
-.status--succeeded { color: var(--status-success); background: var(--status-success-container); }
+.status--succeeded { color: var(--status-success); background: var(--status-success-container); animation: status-success-settle var(--motion-disclosure) var(--ease-out-quart) both; }
 .status--failed { color: var(--color-error); background: var(--status-error-container); }
+
+@keyframes status-success-settle {
+  from { opacity: 0; transform: translateY(0.2rem) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .check-label,
 .choice-check {
@@ -604,6 +609,7 @@
   .dialog,
   .dialog-overlay,
   .recipe-picker-overlay,
+  .status--succeeded,
   .skeleton > span {
     animation: none !important;
     transition-duration: 0.01ms !important;
