@@ -660,6 +660,11 @@
 .recipe-editor__photo { grid-template-columns: minmax(14rem, 0.58fr) minmax(0, 1.42fr); gap: clamp(2rem, 5vw, 5rem); }
 .recipe-editor__save { position: sticky; z-index: 12; bottom: 1.25rem; width: min(100%, 52rem); border: 0; border-radius: var(--radius-xl); padding: 0.8rem 0.8rem 0.8rem 1.25rem; background: color-mix(in oklch, var(--color-primary-container) 86%, var(--color-surface)); box-shadow: var(--shadow-level-2); backdrop-filter: blur(14px); }
 
+@keyframes recipe-editor-stage-arrive {
+  from { opacity: 0; transform: translateY(0.4rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 63.99rem) {
   .recipe-editor__hero { grid-template-columns: 1fr; gap: 1.5rem; }
   .recipe-editor__hero-media { max-width: 42rem; }
@@ -700,6 +705,11 @@
   .recipe-editor--step-nutrition .recipe-editor__workbench { display: none; }
   .recipe-editor--step-nutrition .recipe-editor__extras { display: block; }
   .recipe-editor--step-nutrition .recipe-editor__photo { display: grid; }
+  .recipe-editor--step-basics .recipe-editor__hero,
+  .recipe-editor--step-ingredients .recipe-editor__stage--ingredients,
+  .recipe-editor--step-method .recipe-editor__stage--method,
+  .recipe-editor--step-nutrition .recipe-editor__nutrition-review,
+  .recipe-editor--step-nutrition .recipe-editor__stage--finish { animation: recipe-editor-stage-arrive var(--motion-disclosure) var(--ease-out-quart) both; }
   .structured-workbench { gap: 1.25rem; }
   .structured-workbench__heading h2 { font-size: 1.75rem; }
   .structured-components { gap: 2rem; }
@@ -719,6 +729,9 @@
   ::view-transition-old(root),
   ::view-transition-new(root),
   ::view-transition-group(*) { animation: none !important; }
+  .recipe-editor__hero,
+  .recipe-editor__stage,
+  .recipe-editor__nutrition-review { animation: none !important; }
 }
 
 /* Recipe editor follow-through: actions should feel like part of the page,
