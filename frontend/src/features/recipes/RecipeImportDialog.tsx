@@ -78,10 +78,19 @@ export function RecipeImportDialog({
   const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
   const [components, setComponents] = useState<EditableComponent[]>([]);
   const [cookbookRecipes, setCookbookRecipes] = useState<ImportRecipePreview[]>([]);
+  const [selectedCookbookParseIds, setSelectedCookbookParseIds] = useState<Set<string>>(new Set());
 
   function applyPreview(result: ImportPreview) {
+    const recipes = result.recipes?.length ? result.recipes : [result];
     setPreview(result);
-    setCookbookRecipes(result.recipes?.length ? result.recipes : [result]);
+    setCookbookRecipes(recipes);
+    setSelectedCookbookParseIds(
+      new Set(
+        recipes
+          .filter((entry) => entry.duplicates.length === 0 && previewHasInstructions(entry))
+          .map((entry) => entry.parseId),
+      ),
+    );
     setTitle(result.title);
     setImageSource(result.imageSources[0] ?? null);
     setThumbnailCrop(defaultThumbnailCrop());
@@ -260,8 +269,18 @@ export function RecipeImportDialog({
     setComponents((current) => current.filter((_, i) => i !== componentIndex));
   }
 
+  function toggleCookbookRecipe(parseId: string) {
+    setSelectedCookbookParseIds((current) => {
+      const next = new Set(current);
+      if (next.has(parseId)) next.delete(parseId);
+      else next.add(parseId);
+      return next;
+    });
+  }
+
   const busy = previewMutation.isPending || pdfPreviewMutation.isPending || confirmMutation.isPending || mergeMutation.isPending || cookbookConfirmMutation.isPending;
-  const cookbookAddable = cookbookRecipes.filter((entry) => entry.duplicates.length === 0 && previewHasInstructions(entry));
+  const cookbookEligible = cookbookRecipes.filter((entry) => entry.duplicates.length === 0 && previewHasInstructions(entry));
+  const cookbookAddable = cookbookEligible.filter((entry) => selectedCookbookParseIds.has(entry.parseId));
   const cookbookDuplicateSkipped = cookbookRecipes.filter((entry) => entry.duplicates.length > 0).length;
   const cookbookNoMethod = cookbookRecipes.filter((entry) => entry.duplicates.length === 0 && !previewHasInstructions(entry)).length;
 
@@ -274,6 +293,7 @@ export function RecipeImportDialog({
           setStep("url");
           setPreview(null);
           setCookbookRecipes([]);
+          setSelectedCookbookParseIds(new Set());
           setValidation("");
           setSourceLabel("");
         }
@@ -329,17 +349,38 @@ export function RecipeImportDialog({
                 <section className="import-wizard__cookbook" aria-labelledby="cookbook-import-title">
                   <h3 id="cookbook-import-title">Cookbook found</h3>
                   <p>
-                    {cookbookAddable.length > 0
-                      ? `${cookbookAddable.length} new recipes are ready to add.`
+                    {cookbookEligible.length > 0
+                      ? `${cookbookAddable.length} of ${cookbookEligible.length} new recipes selected.`
                       : "Every recipe in this cookbook is already in your collection."}{" "}
                     {cookbookDuplicateSkipped > 0 ? `${cookbookDuplicateSkipped} existing match${cookbookDuplicateSkipped === 1 ? "" : "es"} will be skipped.` : null}
                     {cookbookNoMethod > 0 ? ` ${cookbookNoMethod} recipe${cookbookNoMethod === 1 ? "" : "s"} without cooking steps will be skipped.` : null}
                   </p>
-                  <ol>
-                    {cookbookRecipes.map((entry) => <li key={entry.parseId}>{entry.title}</li>)}
+                  <ol className="import-wizard__cookbook-list">
+                    {cookbookRecipes.map((entry) => {
+                      const eligible = entry.duplicates.length === 0 && previewHasInstructions(entry);
+                      const reason = entry.duplicates.length > 0
+                        ? "Already in your collection"
+                        : !previewHasInstructions(entry)
+                          ? "Needs a cooking step"
+                          : null;
+                      return (
+                        <li key={entry.parseId}>
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={eligible && selectedCookbookParseIds.has(entry.parseId)}
+                              disabled={!eligible || busy}
+                              onChange={() => toggleCookbookRecipe(entry.parseId)}
+                            />
+                            <span>{entry.title}</span>
+                          </label>
+                          {reason ? <span className="muted">{reason}</span> : null}
+                        </li>
+                      );
+                    })}
                   </ol>
                   <Button type="button" onClick={() => cookbookConfirmMutation.mutate(cookbookAddable)} disabled={busy || cookbookAddable.length === 0}>
-                    {cookbookConfirmMutation.isPending ? `Adding ${cookbookAddable.length} recipes…` : cookbookAddable.length > 0 ? `Add all ${cookbookAddable.length} new recipes` : "All recipes already added"}
+                    {cookbookConfirmMutation.isPending ? `Adding ${cookbookAddable.length} recipes…` : cookbookAddable.length > 0 ? `Add ${cookbookAddable.length} selected recipe${cookbookAddable.length === 1 ? "" : "s"}` : "Choose recipes to add"}
                   </Button>
                   {cookbookConfirmMutation.error instanceof Error ? <p className="error-text" role="alert">{cookbookConfirmMutation.error.message} The import stopped at the failed recipe; try again to continue.</p> : null}
                 </section>

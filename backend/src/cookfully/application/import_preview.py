@@ -23,6 +23,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.import_enrichment import InlineImportEnrichment
+from cookfully.application.import_reviews import ImportReviewStore
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import (
@@ -39,8 +41,7 @@ from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
-from cookfully.infrastructure.recipe_importer import ImportedCookbook, ImportedRecipe
-from cookfully.infrastructure.repositories.recipes import RecipeRepository
+from cookfully.infrastructure.recipe_importer_types import ImportedCookbook, ImportedRecipe
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ class ImportPreviewCoordinator:
         self._query_service = query_service
         self._photos = photos
         self._ttl = ttl
+        self._reviews = ImportReviewStore(session_factory)
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str) -> dict[str, Any]:
         """Fetch+parse a URL, persist a short-lived preview, and return its shape.
@@ -80,28 +82,16 @@ class ImportPreviewCoordinator:
         a 600 ms gate; it never overwrites existing ingredients/steps.
         """
         legacy_task = asyncio.create_task(self._importer.import_url(url))
-        # Determine inline gate from Settings (Task 1 fields)
-        settings = None
-        inline_enabled = False
-        try:
-            from cookfully.infrastructure.config import get_settings
-
-            settings = get_settings()
-            inline_enabled = bool(settings.intelligence_inline_enabled)
-        except Exception:
-            inline_enabled = False
-
         needle_future: asyncio.Task[Any] | None = None
         gw = None
-        if inline_enabled and settings is not None:
+        enrichment = InlineImportEnrichment.enabled_from_settings()
+        if enrichment is not None:
             try:
                 from cookfully.application.inline_repair import (
-                    InlineRepairGateway,
                     RecipeExtractSchema,
                     _window,
                 )
                 from cookfully.infrastructure.observability import correlation_id
-                from cookfully.intelligence.client import IntelligenceClient
                 from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
 
                 system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
@@ -114,17 +104,7 @@ class ImportPreviewCoordinator:
                         parameters=RecipeExtractSchema.model_json_schema(),
                     ),
                 )
-                client = IntelligenceClient(
-                    settings.intelligence_url,
-                    settings.intelligence_service_key.get_secret_value(),
-                    enabled=settings.intelligence_enabled,
-                    timeout_seconds=settings.intelligence_timeout_seconds,
-                )
-                gw = InlineRepairGateway(
-                    client,
-                    threshold=settings.intelligence_inline_threshold,
-                    timeout_ms=settings.intelligence_inline_timeout_ms,
-                )
+                gw = enrichment.gateway
 
                 async def _needle_infer() -> Any:
                     import time as _time
@@ -249,7 +229,7 @@ class ImportPreviewCoordinator:
                 needle_future.cancel()
                 try:
                     await needle_future
-                except Exception:
+                except asyncio.CancelledError:
                     pass
             raise
 
@@ -263,7 +243,7 @@ class ImportPreviewCoordinator:
                 needle_resp = None
 
         # Gap-only merge when gated
-        if gw is not None and needle_resp is not None and gw._gate(needle_resp):
+        if enrichment is not None and needle_resp is not None and enrichment.accepts(needle_resp):
             try:
                 if isinstance(imported, ImportedCookbook):
                     first = imported.recipes[0] if imported.recipes else None
@@ -272,7 +252,7 @@ class ImportPreviewCoordinator:
                             "ingredients": list(first.ingredients),
                             "steps": list(first.instructions),
                         }
-                        merged = gw.merge_recipe(
+                        merged = enrichment.gateway.merge_recipe(
                             legacy_dict,
                             needle_resp,
                             prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
@@ -302,7 +282,7 @@ class ImportPreviewCoordinator:
                         "ingredients": list(imported.ingredients),
                         "steps": list(imported.instructions),
                     }
-                    merged = gw.merge_recipe(
+                    merged = enrichment.gateway.merge_recipe(
                         legacy_dict,
                         needle_resp,
                         prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
@@ -393,20 +373,7 @@ class ImportPreviewCoordinator:
         trace_id: str,
     ) -> RecipeMutation:
         """Apply user edits over the stored preview and persist the recipe."""
-        with self._session_factory() as session:
-            record = session.scalar(
-                select(ImportPreviewRecord).where(
-                    ImportPreviewRecord.owner_id == owner_id,
-                    ImportPreviewRecord.parse_id == parse_id,
-                )
-            )
-            if record is None or record.expires_at < utc_now():
-                raise DomainError(
-                    "import_preview_expired",
-                    "This import preview has expired. Try the import again.",
-                    410,
-                )
-            stored = record.payload
+        stored = self._reviews.load(parse_id, owner_id=owner_id)
         write = self._build_write(stored, payload)
         mutation = self._recipes.create(write, trace_id=trace_id, owner_id=owner_id)
         # PDF thumbnails are base64 data-URIs that cannot be fetched again after the
@@ -459,23 +426,9 @@ class ImportPreviewCoordinator:
         Only the reviewed content (title, yield, ingredients, method) is replaced,
         and nutrition is recalculated via the existing stale→reprocess path.
         """
-        with self._session_factory() as session:
-            record = session.scalar(
-                select(ImportPreviewRecord).where(
-                    ImportPreviewRecord.owner_id == owner_id,
-                    ImportPreviewRecord.parse_id == parse_id,
-                )
-            )
-            if record is None or record.expires_at < utc_now():
-                raise DomainError(
-                    "import_preview_expired",
-                    "This import preview has expired. Try the import again.",
-                    410,
-                )
-            stored = record.payload
-            existing = RecipeRepository(session).get(recipe_id)
-            existing_description = existing.description
-            existing_source_url = existing.source_url
+        stored, existing = self._reviews.load_for_replace(parse_id, recipe_id, owner_id=owner_id)
+        existing_description = existing.description
+        existing_source_url = existing.source_url
         write = self._build_write(stored, payload)
         write = _with_identity(
             write,

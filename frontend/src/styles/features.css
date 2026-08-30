@@ -1832,6 +1832,13 @@
 
 /* Import wizard */
 .import-wizard { width: min(46rem, calc(100% - 2rem)); }
+.import-wizard__cookbook { display: grid; gap: 0.65rem; margin-bottom: 1.25rem; }
+.import-wizard__cookbook h3,
+.import-wizard__cookbook p { margin: 0; }
+.import-wizard__cookbook-list { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.import-wizard__cookbook-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.6rem; }
+.import-wizard__cookbook-list label { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.import-wizard__cookbook-list label span { overflow-wrap: anywhere; }
 .import-wizard__duplicate { display: grid; gap: 0.5rem; padding: 0.9rem 1rem; border: 1px solid var(--color-warning); border-radius: var(--radius-lg); background: var(--color-warning-soft); }
 .import-wizard__duplicate p { margin: 0; }
 .import-wizard__images { display: grid; gap: 0.6rem; border: 0; padding: 0; margin: 0; }

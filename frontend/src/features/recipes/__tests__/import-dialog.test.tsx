@@ -179,7 +179,7 @@ await screen.findByText(/It looks like you already have/);
     await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
     await user.click(screen.getByRole("button", { name: "Start import" }));
     expect(await screen.findByRole("heading", { name: "Cookbook found" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Add all 3 new recipes" }));
+    await user.click(screen.getByRole("button", { name: "Add 3 selected recipes" }));
     await waitFor(() => expect(confirms).toEqual(["parse-1", "parse-2", "parse-3"]));
   });
 
@@ -208,7 +208,35 @@ await screen.findByText(/It looks like you already have/);
     await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
     await user.click(screen.getByRole("button", { name: "Start import" }));
     expect(await screen.findByText(/1 existing match will be skipped/)).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Add all 2 new recipes" }));
+    await user.click(screen.getByRole("button", { name: "Add 2 selected recipes" }));
     await waitFor(() => expect(confirms).toEqual(["parse-2", "parse-3"]));
+  });
+
+  it("lets the cook exclude an eligible cookbook recipe before batch add", async () => {
+    const cookbook = [1, 2].map((index) => ({
+      ...preview,
+      parseId: `parse-${index}`,
+      title: `Cookbook recipe ${index}`,
+      duplicates: [],
+    }));
+    const confirms: string[] = [];
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") return response({ ...preview, title: cookbook[0].title, duplicates: [], recipes: cookbook });
+      if (path.endsWith("/import/confirm") && init?.method === "POST") {
+        confirms.push((JSON.parse(String(init.body)) as { parseId: string }).parseId);
+        return response({ jobId: `job-${confirms.length}`, resourceId: `resource-${confirms.length}`, status: "queued" }, 202);
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/cookbook.pdf");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+    await screen.findByRole("heading", { name: "Cookbook found" });
+    await user.click(screen.getByRole("checkbox", { name: "Cookbook recipe 1" }));
+    await user.click(screen.getByRole("button", { name: "Add 1 selected recipe" }));
+    await waitFor(() => expect(confirms).toEqual(["parse-2"]));
   });
 });

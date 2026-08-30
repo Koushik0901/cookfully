@@ -4,7 +4,7 @@ import asyncio
 import base64
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from decimal import Decimal
 from io import BytesIO
 from urllib.parse import urljoin
@@ -14,34 +14,10 @@ from pypdf import PdfReader
 from recipe_scrapers import AbstractScraper, scrape_html
 
 from cookfully.domain.common import DomainError, quantize_decimal
+from cookfully.infrastructure.cookbook_pdf_decoder import CookbookPdfDecoder
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
+from cookfully.infrastructure.recipe_importer_types import ImportedCookbook, ImportedRecipe
 from cookfully.infrastructure.safe_fetch import SafeFetcher
-
-
-@dataclass(frozen=True, slots=True)
-class ImportedRecipe:
-    title: str
-    source_url: str
-    canonical_url: str
-    image_url: str | None
-    yield_quantity: Decimal | None
-    yield_text: str | None
-    ingredients: tuple[str, ...]
-    ingredient_sections: tuple[int | None, ...]
-    sections: tuple[str, ...]
-    instructions: tuple[str, ...]
-    source_nutrition: dict[str, str]
-    prep_minutes: int | None = None
-    cook_minutes: int | None = None
-    image_candidates: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class ImportedCookbook:
-    title: str
-    source_url: str
-    canonical_url: str
-    recipes: tuple[ImportedRecipe, ...]
 
 
 class RecipeImportError(DomainError):
@@ -66,6 +42,7 @@ class RecipeImporter:
         self._fetcher = fetcher
         self._media_store = media_store
         self._diagnostics_enabled = diagnostics_enabled
+        self._pdf_decoder = CookbookPdfDecoder(self._import_pdf)
 
     async def import_url(self, url: str) -> ImportedRecipe | ImportedCookbook:
         resource = await self._fetcher.fetch(
@@ -78,7 +55,9 @@ class RecipeImporter:
         buffer = bytearray(resource.content)
         try:
             if resource.content_type == "application/pdf":
-                return self._import_pdf(bytes(buffer), url, resource.final_url)
+                return self._pdf_decoder.decode(
+                    bytes(buffer), source_url=url, canonical_url=resource.final_url
+                )
             html = buffer.decode("utf-8", errors="replace")
             scraper = scrape_html(html, resource.final_url, supported_only=False)
             candidates = self.image_candidates(html, resource.final_url)
@@ -142,7 +121,12 @@ class RecipeImporter:
         """
         safe_name = re.sub(r"[^A-Za-z0-9._ -]", "_", filename).strip(" .") or "cookbook.pdf"
         source_url = f"cookfully-upload://{safe_name}"
-        return await asyncio.to_thread(self._import_pdf, bytes(content), source_url, source_url)
+        return await asyncio.to_thread(
+            self._pdf_decoder.decode,
+            bytes(content),
+            source_url=source_url,
+            canonical_url=source_url,
+        )
 
     @staticmethod
     def _optional(method: Callable[[], object]) -> object | None:

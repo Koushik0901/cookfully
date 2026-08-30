@@ -97,7 +97,8 @@ export function RecipePickerSheet({
               <div className="recipe-picker__empty">
                 <CookingPot aria-hidden="true" />
                 <strong>{query ? "No recipes match that search" : unavailableRecipeCount ? "No recipes are ready to plan" : "Your recipe shelf is empty"}</strong>
-                <p>{query ? "Try a shorter dish name or clear the search." : unavailableRecipeCount ? "Finish or refresh the nutrition estimate on a recipe, then it can join the plan." : "Save a recipe first, then come back to place it in your week."}</p>
+                <p>{query ? "Try a shorter dish name or clear the search." : unavailableRecipeCount ? "Finish or refresh the nutrition estimate on a recipe, then it can join the plan. In a new kitchen, install nutrition data first." : "Save a recipe first, then come back to place it in your week."}</p>
+                {!query && unavailableRecipeCount ? <Dialog.Close asChild><Link to="/app/settings?tab=data">Set up nutrition data</Link></Dialog.Close> : null}
               </div>
             )}
           </div>

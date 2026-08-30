@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Archive, Cpu, Database, KeyRound, ListTodo, ShieldCheck, UserRound } from "lucide-react";
 
 import { PageHeader, TabList } from "../../components";
@@ -21,7 +21,21 @@ const TABS = [
 ] as const;
 
 export function SettingsPage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("account");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const tab = TABS.some(({ id }) => id === requestedTab)
+    ? requestedTab as (typeof TABS)[number]["id"]
+    : "account";
+
+  function selectTab(nextTab: (typeof TABS)[number]["id"]) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (nextTab === "account") next.delete("tab");
+      else next.set("tab", nextTab);
+      return next;
+    }, { replace: true });
+  }
+
   return (
     <main className="page-shell settings-page">
       <PageHeader
@@ -42,7 +56,7 @@ export function SettingsPage() {
             tabIndex={tab === id ? 0 : -1}
             aria-controls={`settings-panel-${id}`}
             className="settings-tab"
-            onClick={() => setTab(id)}
+            onClick={() => selectTab(id)}
           >
             <Icon aria-hidden="true" /><span><strong>{label}</strong><small>{description}</small></span>
           </button>

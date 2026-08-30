@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsPage } from "../SettingsPage";
@@ -45,13 +46,15 @@ describe("settings page", () => {
     vi.unstubAllGlobals();
   });
 
-  function renderPage() {
+  function renderPage(path = "/app/settings") {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: 0 }, mutations: { retry: false } },
     });
     return render(
       <QueryClientProvider client={client}>
-        <SettingsPage />
+        <MemoryRouter initialEntries={[path]}>
+          <SettingsPage />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
   }
@@ -198,5 +201,12 @@ describe("settings page", () => {
     const account = screen.getByRole("tab", { name: "Account" });
     expect(account).toHaveAttribute("aria-selected", "true");
     expect(account.className).not.toContain("settings-tab--active");
+  });
+
+  it("opens Nutrition data from a direct recovery link", async () => {
+    renderPage("/app/settings?tab=data");
+
+    expect(screen.getByRole("tab", { name: "Nutrition data" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("heading", { name: "Nutrition reference data" })).toBeVisible();
   });
 });

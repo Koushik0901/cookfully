@@ -109,6 +109,9 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByText((_, element) => element?.tagName === "P" && /guide adds up to about.*15 kcal below/i.test(element.textContent ?? ""))).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Adjust daily guide" }));
     expect(await screen.findByDisplayValue("2200")).toBeVisible();
+    expect(screen.getByText(/calories, protein, carbohydrate, and fat are required/i)).toBeVisible();
+    expect(screen.getByText("Daily calories (required)")).toBeVisible();
+    expect(screen.getByText("Daily protein (required)")).toBeVisible();
     await user.click(screen.getByText("Meal-by-meal targets", { selector: "strong" }));
     await user.clear(screen.getByLabelText("Daily calories"));
     await user.type(screen.getByLabelText("Daily calories"), "2300.000000");
@@ -325,5 +328,25 @@ describe("goal and weekly planning UI", () => {
     await user.click(await screen.findByRole("button", { name: "Add a recipe to Lunch" }));
     expect(screen.getByRole("button", { name: "Add Protein oats to Lunch" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add Changed recipe to Lunch" })).not.toBeInTheDocument();
+  });
+
+  it("links a fresh kitchen with unresolved recipes to nutrition-data setup", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [{ ...entry, status: "processing", nutritionState: "pending" }], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("tab", { name: "Day" }));
+    await user.click(screen.getByRole("button", { name: "Add a recipe to Lunch" }));
+
+    expect(await screen.findByText("No recipes are ready to plan")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Set up nutrition data" })).toHaveAttribute("href", "/app/settings?tab=data");
   });
 });
