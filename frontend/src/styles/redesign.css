@@ -781,9 +781,8 @@
   .recipe-editor__context { gap: 0.5rem; }
   .recipe-editor__nutrition-review { border-radius: var(--radius-xl) 2.5rem var(--radius-xl) var(--radius-xl); padding: 1rem; }
   .recipe-editor--step-basics .recipe-editor__nutrition-review,
-  .recipe-editor--step-method .recipe-editor__nutrition-review { display: none; }
   .recipe-editor--step-ingredients .recipe-editor__nutrition-review,
-  .recipe-editor--step-nutrition .recipe-editor__nutrition-review { display: grid; }
+  .recipe-editor--step-method .recipe-editor__nutrition-review { display: none; }
   .ingredient-row__body { grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
   .ingredient-row__inline-fields { display: grid; grid-template-columns: minmax(5rem, 0.7fr) minmax(7rem, 1fr); gap: 0.45rem; }
   .ingredient-row__details { grid-column: 1; }

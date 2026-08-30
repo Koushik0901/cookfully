@@ -689,7 +689,7 @@
 .recipe-makes > span { color: var(--color-on-surface-variant); font-size: 0.85rem; }
 .recipe-editor__identity-details { display: grid; gap: 0.85rem; }
 .recipe-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
-.recipe-editor__mobile-steps { display: none; }
+.recipe-editor__journey { display: none; }
 .recipe-editor__workbench { display: grid; gap: 1.5rem; }
 .recipe-editor__blocks { display: grid; gap: 1.5rem; }
 .recipe-editor__section--block { display: grid; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-xl); background: var(--color-surface-low); }
@@ -865,26 +865,32 @@
 @media (max-width: 47.99rem) {
   .recipe-editor__identity { gap: 1rem; }
   .recipe-makes { grid-template-columns: auto 1fr 1fr; }
-  .recipe-editor__mobile-steps { position: sticky; z-index: 18; top: 3.75rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-inline: -1rem; border-block: 1px solid var(--color-outline-variant); padding: 0.5rem 1rem; background: color-mix(in oklch, var(--color-surface) 94%, transparent); backdrop-filter: blur(14px); }
-  .recipe-editor__mobile-steps button,
-  .recipe-editor__mobile-future { display: grid; min-height: 3rem; place-items: center; align-content: center; gap: 0.1rem; border: 0; border-radius: var(--radius); color: var(--color-on-surface-variant); background: transparent; font-size: 0.68rem; }
-  .recipe-editor__mobile-steps button > span,
-  .recipe-editor__mobile-future > span { display: grid; width: 1.25rem; height: 1.25rem; place-items: center; border-radius: 50%; background: var(--color-surface-high); font-size: 0.65rem; }
-  .recipe-editor__mobile-steps button[aria-current="step"] { color: var(--color-on-primary-container); background: var(--color-primary-container); }
-  .recipe-editor__mobile-steps button[aria-current="step"] > span { color: var(--color-on-primary); background: var(--color-primary); }
-  .recipe-editor__mobile-future small { font-size: 0.55rem; }
+  .recipe-editor__journey { position: sticky; z-index: 18; top: 3.75rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-inline: -1rem; border-block: 1px solid var(--color-outline-variant); padding: 0.5rem 1rem; background: color-mix(in oklch, var(--color-surface) 94%, transparent); backdrop-filter: blur(14px); }
+  .recipe-editor__journey button { display: grid; min-height: 3rem; place-items: center; align-content: center; gap: 0.1rem; border: 0; border-radius: var(--radius); color: var(--color-on-surface-variant); background: transparent; font: inherit; font-size: 0.68rem; }
+  .recipe-editor__journey button > span:last-child { display: grid; gap: 0.05rem; }
+  .recipe-editor__journey button small { font-size: 0.55rem; }
+  .recipe-editor__journey-index { display: grid; width: 1.25rem; height: 1.25rem; place-items: center; border-radius: 50%; background: var(--color-surface-high); font-size: 0.65rem; }
+  .recipe-editor__journey-index svg { width: 0.8rem; }
+  .recipe-editor__journey button[aria-current="step"] { color: var(--color-on-primary-container); background: var(--color-primary-container); }
+  .recipe-editor__journey button[aria-current="step"] .recipe-editor__journey-index { color: var(--color-on-primary); background: var(--color-primary); }
+  .recipe-editor > .recipe-editor__step-actions { display: none; }
+  .recipe-editor--step-basics > .recipe-editor__step-actions,
+  .recipe-editor__stage--ingredients .recipe-editor__step-actions,
+  .recipe-editor__stage--method .recipe-editor__step-actions,
+  .recipe-editor__stage--finish .recipe-editor__step-actions { display: flex; }
   .recipe-editor--step-basics .recipe-editor__workbench,
-  .recipe-editor--step-basics .recipe-editor__nutrition,
-  .recipe-editor--step-ingredients .recipe-editor__extras,
-  .recipe-editor--step-ingredients .recipe-editor__photo,
-  .recipe-editor--step-ingredients .recipe-editor__nutrition,
-  .recipe-editor--step-method .recipe-editor__extras,
-  .recipe-editor--step-method .recipe-editor__photo,
-  .recipe-editor--step-method .recipe-editor__nutrition,
-  .recipe-editor--step-nutrition .recipe-editor__workbench,
-  .recipe-editor--step-nutrition .recipe-editor__extras,
-  .recipe-editor--step-nutrition .recipe-editor__photo { display: none; }
-  .recipe-editor__extras-content,
+  .recipe-editor--step-basics .recipe-editor__nutrition-review,
+  .recipe-editor--step-basics .recipe-editor__stage--finish,
+  .recipe-editor--step-ingredients .recipe-editor__hero,
+  .recipe-editor--step-ingredients .recipe-editor__stage--method,
+  .recipe-editor--step-ingredients .recipe-editor__nutrition-review,
+  .recipe-editor--step-ingredients .recipe-editor__stage--finish,
+  .recipe-editor--step-method .recipe-editor__hero,
+  .recipe-editor--step-method .recipe-editor__stage--ingredients,
+  .recipe-editor--step-method .recipe-editor__nutrition-review,
+  .recipe-editor--step-method .recipe-editor__stage--finish,
+  .recipe-editor--step-nutrition .recipe-editor__hero,
+  .recipe-editor--step-nutrition .recipe-editor__workbench { display: none; }
   .recipe-editor__photo { grid-template-columns: 1fr; }
   .recipe-editor__block-fields { grid-template-columns: 1fr; }
   .recipe-editor__photo-body { grid-template-columns: 1fr; }

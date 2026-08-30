@@ -43,10 +43,10 @@ const emptyNutrition = () => Object.fromEntries(NUTRITION_FIELDS.map(([field]) =
 const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ x: "0", y: "0", width: "1", height: "1" });
 
 const EDITOR_STEPS = [
-  { id: "basics", label: "Recipe", hint: "Name and timing" },
+  { id: "basics", label: "Basics", hint: "Name and timing" },
   { id: "ingredients", label: "Ingredients", hint: "What you need" },
   { id: "method", label: "Method", hint: "How it comes together" },
-  { id: "nutrition", label: "Finish", hint: "Details and cover" },
+  { id: "nutrition", label: "Nutrition", hint: "Details and cover" },
 ] as const;
 
 type EditorStepId = typeof EDITOR_STEPS[number]["id"];
