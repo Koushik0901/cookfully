@@ -22,8 +22,21 @@ import { useExpiringPantry } from "./useExpiringPantry";
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
 
+function useMobileLayout() {
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767.98px)").matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 767.98px)");
+    const update = () => setMobile(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return mobile;
+}
+
 export function WeeklyPlannerPage() {
   const queryClient = useQueryClient();
+  const isMobile = useMobileLayout();
   const [searchParams] = useSearchParams();
   const preferences = useQuery({ queryKey: ["owner-preferences"], queryFn: planningApi.preferences });
   const [weekStart, setWeekStart] = useState("");
@@ -31,9 +44,13 @@ export function WeeklyPlannerPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSlot, setPickerSlot] = useState(searchParams.get("slot") ?? "dinner");
   const [addMessage, setAddMessage] = useState("");
-  const [view, setView] = useState<PlannerView>("week");
+  const [view, setView] = useState<PlannerView>(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767.98px)").matches ? "day" : "week");
   const [shortcutHandled, setShortcutHandled] = useState(false);
   const goal = useQuery({ queryKey: ["current-goal", weekStart], queryFn: () => planningApi.goal(weekStart), enabled: Boolean(weekStart), retry: false });
+
+  useEffect(() => {
+    if (isMobile) setView("day");
+  }, [isMobile]);
 
   useEffect(() => {
     if (!preferences.data || weekStart) return;
@@ -187,10 +204,16 @@ export function WeeklyPlannerPage() {
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
   const plannedDays = new Set(entries.map((entry) => entry.localDate)).size;
   const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
+  const selectAdjacentDay = (days: number) => {
+    const candidate = addDays(selectedDate, days);
+    if (dates.includes(candidate)) setSelectedDate(candidate);
+    else changeWeek(days < 0 ? -7 : 7);
+    setAddMessage("");
+  };
 
   return (
     <main className="page-shell planner-page">
-      <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />
+      {isMobile ? <header className="planner-mobile-top"><div><p className="eyebrow">This week</p><h1>{longDate(selectedDate)}</h1><p>{selectedEntries.length ? `${selectedEntries.length} meals planned` : "A clear day, ready to plan."}</p></div><div className="planner-mobile-top__actions"><button type="button" aria-label="Previous day" onClick={() => selectAdjacentDay(-1)}><ChevronLeft aria-hidden="true" /></button><button type="button" aria-label="Next day" onClick={() => selectAdjacentDay(1)}><ChevronRight aria-hidden="true" /></button><button type="button" aria-label="Plan dinner" onClick={() => { setPickerSlot("dinner"); setPickerOpen(true); }}><Plus aria-hidden="true" /></button></div></header> : <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />}
       <div className="planner-toolbar">
         <TabList className="planner-views" label="Planning views">
            <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>

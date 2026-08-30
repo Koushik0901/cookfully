@@ -6,6 +6,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}",
   use: {
     baseURL: "http://127.0.0.1:5173",
     trace: "on-first-retry",
@@ -21,6 +22,11 @@ export default defineConfig({
         hasTouch: true,
         isMobile: true,
       },
+    },
+    {
+      name: "webkit-native-select",
+      testMatch: "**/native-select.spec.ts",
+      use: { ...devices["Desktop Safari"] },
     },
   ],
   webServer: {

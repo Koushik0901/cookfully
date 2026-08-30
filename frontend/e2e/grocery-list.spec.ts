@@ -149,6 +149,7 @@ test("keeps a missing grocery list focused on one useful choice", async ({ page 
 });
 
 test("does not call an empty grocery list ready to shop", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page, { empty: true });
   await page.goto("/app/grocery");
   await expect(page.getByRole("heading", { name: "Nothing to pick up yet" })).toBeVisible();
@@ -156,38 +157,51 @@ test("does not call an empty grocery list ready to shop", async ({ page }, testI
   await expect(page.getByText("Shop by stop", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Back to meal plan" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Use pantry stock" })).toHaveCount(0);
+  if (mobile) {
+    await page.getByLabel("More grocery actions").click();
+    await expect(page.getByRole("dialog", { name: "List actions" })).toBeVisible();
+  }
   await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(1);
+  if (mobile) await page.getByLabel("Close grocery actions").click();
   await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
-  await expect(page.getByText("Add something else", { exact: true })).toBeVisible();
+  if (mobile) await expect(page.getByLabel("Add grocery item")).toBeVisible();
+  else await expect(page.getByText("Add something else", { exact: true })).toBeVisible();
   await captureUi(page, testInfo, "grocery-empty");
 });
 
 test("regenerates, traces, edits, checks, adds, and removes grocery items", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: "Everything you need this week" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? "2 left to pick up" : "Everything you need this week" })).toBeVisible();
   await captureUi(page, testInfo, "grocery-active");
   await expect(page.getByText(/meal plan changed.*refresh/i)).toBeVisible();
+  if (mobile) await page.getByLabel("More grocery actions").click();
   await page.getByRole("button", { name: "Refresh from plan" }).click();
-  await expect(page.getByText("Ready to shop")).toBeVisible();
+  if (!mobile) await expect(page.getByText("Ready to shop")).toBeVisible();
 
   await expect(page.getByText("Sheet-pan tofu bowls")).toBeVisible();
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeChecked();
 
   await page.getByLabel("Edit Red onion").click();
-  await page.getByLabel("Red onion name").fill("My red onions");
-  await page.getByLabel("Red onion quantity").fill("800.000000");
+  const editor = mobile ? page.getByRole("dialog", { name: "Red onion" }) : page;
+  await (mobile ? editor.getByRole("textbox", { name: "Item" }) : editor.getByLabel("Red onion name")).fill("My red onions");
+  await (mobile ? editor.getByRole("textbox", { name: "Quantity" }) : editor.getByLabel("Red onion quantity")).fill("800.000000");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("heading", { name: "My red onions" })).toBeVisible();
 
-  await page.getByText("Add something else", { exact: true }).click();
-  await page.getByLabel("Item", { exact: true }).fill("Reusable bags");
-  await page.getByLabel("Quantity", { exact: true }).fill("2.000000");
-  await page.getByLabel("Unit", { exact: true }).fill("bags");
+  if (mobile) await page.getByLabel("Add grocery item").click();
+  else await page.getByText("Add something else", { exact: true }).click();
+  const addItem = mobile ? page.getByRole("dialog", { name: "Add an item" }) : page;
+  await addItem.getByLabel("Item", { exact: true }).fill("Reusable bags");
+  await addItem.getByLabel("Quantity", { exact: true }).fill("2.000000");
+  await addItem.getByLabel("Unit", { exact: true }).fill("bags");
   await page.getByRole("button", { name: "Add to list" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toBeVisible();
-  await page.getByRole("button", { name: "Remove Reusable bags" }).click();
+  if (mobile) await page.getByLabel("Edit Reusable bags").click();
+  else await page.getByRole("button", { name: "Remove Reusable bags" }).click();
+  if (mobile) await page.getByRole("button", { name: "Remove from list" }).click();
   await page.getByRole("button", { name: "Remove item" }).click();
   await expect(page.getByRole("heading", { name: "Reusable bags" })).toHaveCount(0);
   await expect(page.getByText("Check item", { exact: true })).toBeVisible();
@@ -196,17 +210,23 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
 });
 
 test("groups a shopping pass by personal stops, then finishes and reopens it", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
-  await page.getByText("Shop by stop", { exact: true }).click();
+  if (mobile) {
+    await page.getByLabel("More grocery actions").click();
+    await page.locator(".grocery-mobile-actions .shopping-stops > summary").click();
+  }
+  else await page.getByText("Shop by stop", { exact: true }).click();
   await page.getByLabel("New stop").fill("Market");
   await page.getByRole("button", { name: "Add stop" }).click();
   await page.getByLabel("New stop").fill("Corner shop");
   await page.getByRole("button", { name: "Add stop" }).click();
   await expect(page.getByLabel("Market stop name")).toBeVisible();
   await captureUi(page, testInfo, "grocery-stops", { focus: page.getByLabel("Market stop name") });
+  if (mobile) await page.getByLabel("Close grocery actions").click();
   await page.getByLabel("Edit Red onion").click();
-  await page.getByLabel("Shopping stop for Red onion").selectOption({ label: "Market" });
+  await page.getByLabel(mobile ? "Shopping stop" : "Shopping stop for Red onion").selectOption({ label: "Market" });
   await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
   await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
   await page.getByRole("checkbox", { name: "Salt to taste purchased" }).check();
@@ -220,6 +240,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(0);
   await page.getByRole("button", { name: "Reopen list" }).click();
-  await expect(page.getByText("Ready to shop")).toBeVisible();
+  if (!mobile) await expect(page.getByText("Ready to shop")).toBeVisible();
+  else await expect(page.getByRole("heading", { name: "Shopping complete" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

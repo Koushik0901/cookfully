@@ -332,7 +332,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
     await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeHidden();
     await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
     await expect(page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true })).toBeVisible();
-    await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Recipe", exact: true }).click();
+    await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Basics", exact: true }).click();
   }
   await page.getByLabel("Recipe title").fill("Protein oats");
   await page.getByLabel("Yield quantity").fill("2.000");
@@ -355,14 +355,21 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   else await page.getByText("Nutrition values").click();
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label");
+  const correctionResponse = page.waitForResponse((response) => response.request().method() === "POST" && response.url().endsWith(`/recipes/${recipeId}/nutrition/corrections`));
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await page.getByText("Nutrition details and evidence").click();
-  await expect(page.getByText("Package label")).toBeVisible();
-  await captureUi(page, testInfo, "recipe-nutrition-correction", { focus: page.getByText("Package label") });
+  await expect((await correctionResponse).json()).resolves.toMatchObject({ corrections: [{ reason: "Package label" }] });
+  await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
+  const packageLabel = page.locator(".recipe-nutrition-drawer .corrections").getByText(/Package label/);
+  await expect(packageLabel).toBeVisible();
+  await captureUi(page, testInfo, "recipe-nutrition-correction", { focus: packageLabel });
 
   await openRecipeOptions(page);
   await page.getByRole("button", { name: "Archive recipe" }).click();
@@ -396,7 +403,8 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   api.releaseImport();
   await page.reload();
   await expect(page.getByText(/nutrition will retry automatically/i)).toBeVisible({ timeout: 5_000 });
-  await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText(/attempt 2 of 3/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/next retry/i)).toBeVisible();
   await expect(page.getByText(/deadline/i)).toBeVisible();
@@ -534,13 +542,14 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("keeps recipe nutrition metrics in one evidence layer", async ({ page }) => {
+test("keeps recipe nutrition metrics in one evidence layer", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto(`/app/recipes/${recipeId}`);
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   await expect(page.locator(".recipe-nutrition-summary__metrics")).toHaveCount(1);
   await expect(page.locator(".recipe-nutrition-overview")).toHaveCount(0);
-  await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Ingredient coverage", { exact: true })).toBeVisible();
 });
 
@@ -567,13 +576,13 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await page.getByLabel("Yield quantity").fill("2.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup lentils");
-  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "lentils.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9JbM8AAAAASUVORK5CYII=", "base64") });
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
   await page.getByRole("link", { name: "Edit recipe" }).click();
-  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true }).click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Remove photo" }).click();
   await page.getByRole("button", { name: "Remove photo" }).click();

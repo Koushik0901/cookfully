@@ -12,6 +12,8 @@ import { formatCookingText, servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
 
 type CookSession = { currentStep: number; complete: boolean; checkedIngredients: number[] };
+const COMPACT_COOK_MODE_QUERY = "(max-width: 63.99rem)";
+
 function loadCookSession(recipeId?: string): CookSession | null {
   if (!recipeId || typeof window === "undefined") return null;
   try {
@@ -68,12 +70,13 @@ export function CookModePage() {
   const [complete, setComplete] = useState(() => loadCookSession(recipeId)?.complete ?? false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => new Set(loadCookSession(recipeId)?.checkedIngredients ?? []));
   const [ingredientsOpen, setIngredientsOpen] = useState(
-    () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia("(max-width: 60rem)").matches,
+    () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia(COMPACT_COOK_MODE_QUERY).matches,
   );
   const [screenAwake, setScreenAwake] = useState(false);
   const [timer, setTimer] = useState<{ minutes: number; run: number } | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const currentStepRef = useRef(currentStep);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     currentStepRef.current = currentStep;
@@ -319,7 +322,19 @@ export function CookModePage() {
             </details>
           </aside>
 
-          <main className="cook-mode__steps" aria-label="Cooking steps">
+          <main
+            className="cook-mode__steps"
+            aria-label="Cooking steps"
+            onPointerDown={(event) => { if (event.pointerType === "touch") touchStartX.current = event.clientX; }}
+            onPointerUp={(event) => {
+              if (touchStartX.current == null) return;
+              const distance = event.clientX - touchStartX.current;
+              touchStartX.current = null;
+              if (Math.abs(distance) < 56) return;
+              if (distance < 0) nextStep();
+              else prevStep();
+            }}
+          >
             <div key={currentStep} className={`cook-mode__stage cook-mode__stage--${stepDirection}`}>
               <div className="cook-mode__stage-heading">
                 <p className="eyebrow">
@@ -334,6 +349,7 @@ export function CookModePage() {
                 <p className="cook-mode__step-text">{steps[currentStep]?.text}</p>
               </div>
               <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
+              <button type="button" className="cook-mode__quick-timer" onClick={() => startTimer(15)}>Start 15 min timer</button>
             </div>
             <div className="cook-mode__step-controls">
               <Button variant="secondary" disabled={currentStep === 0} onClick={prevStep}>

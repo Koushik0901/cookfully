@@ -128,6 +128,7 @@ describe("GroceryListPage", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("groups assigned and unassigned items and offers remembered placement", async () => {
@@ -155,6 +156,27 @@ describe("GroceryListPage", () => {
     const before = mocks.get.mock.calls.length;
     await user.click(screen.getByRole("button", { name: "Reload list" }));
     await waitFor(() => expect(mocks.get.mock.calls.length).toBeGreaterThan(before));
+  });
+
+  it("uses a shopping-first phone composition with sheets for secondary actions", async () => {
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "2 left to pick up" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Everything you need this week" })).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText("Edit Apples"));
+    expect(await screen.findByRole("dialog", { name: "Apples" })).toBeVisible();
+    expect(screen.getByLabelText("Shopping stop")).toHaveValue(stop.id);
+
+    await user.click(screen.getByLabelText("Close item editor"));
+    await user.click(screen.getByLabelText("More grocery actions"));
+    expect(await screen.findByRole("dialog", { name: "List actions" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Refresh from plan" })).toBeVisible();
   });
 
   it("shows all-items-complete state, finishes the pass, and supports reopen", async () => {

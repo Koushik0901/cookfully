@@ -239,6 +239,9 @@ describe("recipe UI", () => {
     expect(screen.getByText("Step 1 of 2")).toBeVisible();
     expect(screen.getByText("Mix the oats.")).toBeVisible();
     expect(screen.getByRole("link", { name: "Leave" })).toHaveAttribute("href", `/app/recipes/${recipe.id}`);
+    expect(screen.getByRole("button", { name: "Start 15 min timer" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Start 15 min timer" }));
+    expect(screen.getByRole("status", { name: "Timer 15 min" })).toBeVisible();
 
     await user.click(screen.getByRole("checkbox"));
     expect(screen.getByText("Everything’s ready to cook.")).toBeVisible();
@@ -314,6 +317,17 @@ describe("recipe UI", () => {
     expect(screen.getByText("8.5 g")).toBeVisible();
     expect(screen.getByText(/level tablespoon/i)).toBeVisible();
     expect(screen.getByText(/package label/i)).toBeVisible();
+  });
+
+  it("keeps the phone recipe sections focused while making nutrition reachable", async () => {
+    renderRoute(<RecipeDetailPage />);
+    expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
+    const nutritionTab = screen.getByRole("button", { name: "Nutrition" });
+    expect(nutritionTab).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(nutritionTab);
+    expect(nutritionTab).toHaveAttribute("aria-pressed", "true");
+    expect(document.querySelector<HTMLDetailsElement>(".recipe-nutrition-drawer")?.open).toBe(true);
+    expect(screen.getAllByRole("link", { name: "Start cooking" })).toHaveLength(1);
   });
 
   it("confirms a saved recipe with the one-shot companion moment", async () => {

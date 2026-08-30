@@ -24,6 +24,12 @@ test("desktop and 390x844 layouts contain long content without document overflow
   await expect(page.getByText(/deliberately-long-unbroken-preparation-token/)).toBeVisible();
   await captureUi(page, testInfo, "recipe-evidence", { focus: page.getByText(/deliberately-long-unbroken-preparation-token/) });
 
+  if (testInfo.project.name === "narrow-mobile") {
+    await page.getByRole("button", { name: "Nutrition" }).click();
+    await expect(page.locator(".recipe-nutrition-drawer")).toHaveAttribute("open", "");
+    await expect(page.getByRole("link", { name: "Start cooking" })).toHaveCount(1);
+  }
+
   const dimensions = await page.evaluate(() => ({
     documentWidth: document.documentElement.scrollWidth,
     viewportWidth: window.innerWidth,
@@ -83,6 +89,30 @@ test("destructive dialog remains fully contained at every configured viewport", 
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
+});
+
+test("320px layouts have no width floor or masked horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await mockAccessibleRecipeApi(page);
+  await page.goto(`/app/recipes/${accessibleRecipeId}`);
+
+  await expect(page.getByText(/deliberately-long-unbroken-preparation-token/)).toBeVisible();
+
+  const dimensions = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+    htmlMinWidth: getComputedStyle(document.documentElement).minWidth,
+    bodyMinWidth: getComputedStyle(document.body).minWidth,
+    bodyOverflowX: getComputedStyle(document.body).overflowX,
+  }));
+
+  expect(dimensions).toMatchObject({
+    viewportWidth: 320,
+    htmlMinWidth: "0px",
+    bodyMinWidth: "0px",
+    bodyOverflowX: "visible",
+  });
+  expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth);
 });
 
 test("tablet keeps a compact kitchen rail instead of inheriting phone navigation", async ({ page }) => {
@@ -239,4 +269,24 @@ test("cook mode takes over the viewport and adapts its ingredient checklist", as
   await page.getByRole("button", { name: "Cook again" }).click();
   await expect(page.getByText("Cook and portion.")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("cook mode keeps its compact layout and ingredient disclosure on one breakpoint contract", async ({ page }) => {
+  await mockAccessibleRecipeApi(page);
+
+  for (const [width, compact] of [[960, true], [980, true], [1023, true], [1024, false]] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/app/recipes/${accessibleRecipeId}/cook`);
+
+    const state = await page.locator(".cook-mode__ingredients details").evaluate((ingredients) => {
+      const body = document.querySelector<HTMLElement>(".cook-mode__body");
+      return {
+        ingredientsOpen: (ingredients as HTMLDetailsElement).open,
+        columnCount: body ? getComputedStyle(body).gridTemplateColumns.split(" ").length : 0,
+      };
+    });
+
+    expect(state.columnCount).toBe(compact ? 1 : 2);
+    expect(state.ingredientsOpen).toBe(!compact);
+  }
 });

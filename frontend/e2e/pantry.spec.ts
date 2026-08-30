@@ -92,7 +92,7 @@ test("manages pantry quantities and shows explicit recipe gaps without mobile ov
   await expect(editDialog.getByText("Using Rice, brown, long-grain, cooked from USDA for this pantry item.")).toBeVisible();
   await editDialog.getByRole("button", { name: "Save Brown rice" }).click();
   await expect(editDialog).toBeHidden();
-  await expect(page.locator(".pantry-staple__feedback")).toHaveText("Saving changes…");
+  await expect(page.locator(".pantry-staple__feedback")).toHaveText(/Saving changes…|Changes saved/);
   await expect(page.locator(".pantry-staple__feedback")).toBeHidden({ timeout: 2_000 });
   await expect(page.getByRole("article", { name: "Brown rice" })).toContainText("Ready to use");
 

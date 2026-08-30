@@ -18,17 +18,35 @@ import type { Job, RecipeDetail, RecipePage } from "./types";
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
 
+function useMobileLayout() {
+  const query = "(max-width: 47.99rem)";
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia?.(query).matches);
+
+  useEffect(() => {
+    const media = window.matchMedia?.(query);
+    if (!media) return;
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
+}
+
 export function RecipeDetailPage() {
   const { recipeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useMobileLayout();
   const routeState = location.state as { jobId?: string; recipeSaved?: boolean; importUrl?: string; coverStatus?: "attached" | "not_selected" | "failed" } | null;
   const routeJobId = routeState?.jobId;
   const coverStatus = routeState?.coverStatus;
   const [savedRecipeId] = useState(() => routeState?.recipeSaved ? recipeId : undefined);
   const [jobId, setJobId] = useState<string | undefined>(routeJobId);
-  const [mobilePanel, setMobilePanel] = useState<"ingredients" | "method">("ingredients");
+  const [mobilePanel, setMobilePanel] = useState<"ingredients" | "method" | "nutrition">("ingredients");
+  const [nutritionDetailsOpen, setNutritionDetailsOpen] = useState(false);
   const detail = useQuery({
     queryKey: ["recipe", recipeId],
     queryFn: () => recipesApi.get(recipeId!),
@@ -208,7 +226,7 @@ export function RecipeDetailPage() {
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
           <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
           <div className="recipe-hero__actions">
-            {recipe.instructions.length > 0 ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
+            {recipe.instructions.length > 0 && !isMobile ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
             <Button asChild variant="secondary"><Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" />Edit recipe</Link></Button>
           </div>
           <label className="portion-scale__label">
@@ -228,6 +246,7 @@ export function RecipeDetailPage() {
       <nav className="recipe-reading-tabs" aria-label="Recipe sections">
         <button type="button" aria-pressed={mobilePanel === "ingredients"} onClick={() => setMobilePanel("ingredients")}>Ingredients <span>{recipe.ingredients.length}</span></button>
         <button type="button" aria-pressed={mobilePanel === "method"} onClick={() => setMobilePanel("method")}>Method <span>{recipe.instructions.length}</span></button>
+        <button type="button" aria-pressed={mobilePanel === "nutrition"} onClick={() => { setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}>Nutrition</button>
       </nav>
 
       <section className="recipe-reading-grid">
@@ -280,7 +299,7 @@ export function RecipeDetailPage() {
         </section>
       </section>
 
-      <details className="recipe-nutrition-drawer" id="nutrition-details">
+      <details className={`recipe-nutrition-drawer${mobilePanel === "nutrition" ? " is-mobile-active" : ""}`} id="nutrition-details" open={nutritionDetailsOpen} onToggle={(event) => setNutritionDetailsOpen(event.currentTarget.open)}>
         <summary><span><strong>Nutrition details and evidence</strong><small>Micronutrients, sources, assumptions, and processing status</small></span></summary>
         <div className="recipe-nutrition-evidence-summary">
           <div><span>Estimate</span><strong>{nutritionStatePresentation.label}</strong><small>{nutritionStatePresentation.description}</small></div>
@@ -299,6 +318,7 @@ export function RecipeDetailPage() {
       <details className="danger-zone"><summary><span><strong>More recipe options</strong><small>Archive, restore, or permanently remove this recipe</small></span></summary><div className="danger-zone__body">
         {recipe.status === "archived" ? <><p>Restore this recipe for active planning, or permanently remove its recipe content.</p><div className="actions"><Button onClick={() => restore.mutate()} disabled={permanentDelete.isPending}>Restore recipe</Button><ConfirmDialog trigger={<Button variant="destructive" disabled={permanentDelete.isPending}>Permanently delete recipe</Button>} title="Permanently delete this recipe?" description="Recipe content and media will be erased after the bounded recovery window. Historical plan and grocery records remain detached so their past facts stay accurate." confirmLabel={permanentDelete.isPending ? "Deleting…" : "Delete permanently"} pending={permanentDelete.isPending} onConfirm={() => permanentDelete.mutate()} /></div></> : <><p>Archiving hides the recipe from active planning without deleting it.</p><ConfirmDialog trigger={<Button variant="secondary">Archive recipe</Button>} title="Archive this recipe?" description="You can restore it later from the archived recipe view." confirmLabel="Archive" onConfirm={() => archive.mutate()} /></>}
       </div></details>
+      {recipe.instructions.length > 0 && isMobile ? <div className="recipe-mobile-cook-action"><Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button></div> : null}
     </main>
   );
 }

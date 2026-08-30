@@ -143,10 +143,10 @@ test("organizes a recipe and removes focused filters on desktop and mobile", asy
   await expect(page.getByRole("button", { name: /Meal: dinner.*remove filter/i })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
-test("plans an unorganized recipe without requiring metadata", async ({ page }) => {
+test("plans an unorganized recipe without requiring metadata", async ({ page }, testInfo) => {
   await mockOrganizationApi(page);
   await page.goto("/app/plan");
-  await page.getByRole("tab", { name: "Day" }).click();
+  if (testInfo.project.name !== "narrow-mobile") await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Lemon lentils to Dinner" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();

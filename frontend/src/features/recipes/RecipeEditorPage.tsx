@@ -9,7 +9,7 @@ import { formatCookingInput } from "./formatCooking";
 import { FoodPicker } from "../foods/FoodPicker";
 import { RecipeDraftPreview } from "./RecipeDraftPreview";
 import { ThumbnailCropEditor } from "./ThumbnailCropEditor";
-import type { JobAccepted, RecipeDetail, RecipeWrite, ThumbnailCropWrite } from "./types";
+import type { JobAccepted, RecipeDetail, RecipeWrite, ResolvedNutrition, ThumbnailCropWrite } from "./types";
 import {
   type EditorBlock,
   editorBlocksFromRecipe,
@@ -290,6 +290,10 @@ const [title, setTitle] = useState("");
         if (failures.length) {
           const message = failures[0] instanceof Error ? failures[0].message : "Nutrition corrections failed.";
           throw new Error(message);
+        }
+        if (correctionPromises.length) {
+          const correctedNutrition = results.filter((result): result is PromiseFulfilledResult<ResolvedNutrition> => result.status === "fulfilled").at(-1)?.value;
+          if (correctedNutrition && "ingredients" in finalRecipe) finalRecipe = { ...finalRecipe, nutrition: correctedNutrition };
         }
       } catch (error) {
         setSavedRecipeId(saved.id);

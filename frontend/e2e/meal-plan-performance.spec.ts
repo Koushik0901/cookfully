@@ -69,9 +69,10 @@ async function mockFiftyEntryPlan(page: Page) {
 }
 
 test("50-entry exact total updates remain visibly under two seconds at p95", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "narrow-mobile", "This benchmark measures the desktop nutrition balance panel, which is intentionally deferred on phone day views.");
   await mockFiftyEntryPlan(page);
   await page.goto("/app/plan");
-  await page.getByRole("tab", { name: "Day" }).click();
+  if (testInfo.project.name !== "narrow-mobile") await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("tab", { name: /monday.*march 9/i }).click();
   await expect(page.getByLabel("Nutrition balance").getByText(/^25100 \/ 2200\.000000 kcal$/)).toBeVisible();
 

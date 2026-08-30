@@ -78,15 +78,16 @@ async function mockPlanningApi(page: Page) {
 }
 
 test("starts food-first planning before a nutrition guide exists", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "narrow-mobile";
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? /march 11/i : /week of march 9/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
   await captureUi(page, testInfo, "planner-week-empty");
 
-  await page.getByRole("tab", { name: "Day" }).click();
+  if (!mobile) await page.getByRole("tab", { name: "Day" }).click();
   await expect(page.getByRole("link", { name: "Guide my ideas" })).toHaveCount(0);
   await expect(page.locator(".plan-nutrition")).toHaveCount(0);
   await captureUi(page, testInfo, "planner-day-top");
@@ -94,45 +95,32 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
 
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
   await expect(page.getByText("Meal added to your plan.")).toBeVisible();
   await captureUi(page, testInfo, "planner-day", { focus: page.getByRole("heading", { name: "Protein oats" }) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("reflows the mobile week into a readable vertical agenda", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "narrow-mobile", "The vertical agenda assertion is mobile-only.");
+test("starts mobile planning on a single, touch-ready day", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "narrow-mobile", "The day-first assertion is mobile-only.");
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  const board = page.locator(".week-board");
-  await expect(board).toBeVisible();
-  const layout = await board.evaluate((element) => {
-    const days = Array.from(element.querySelectorAll<HTMLElement>(".week-day")).slice(0, 2).map((day) => day.getBoundingClientRect());
-    const style = getComputedStyle(element);
-    return {
-      clientWidth: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-      overflowX: style.overflowX,
-      firstDayWidth: days[0]?.width ?? 0,
-      firstDayHeight: days[0]?.height ?? 0,
-      stacked: days.length === 2 && days[1].y > days[0].bottom,
-    };
-  });
-  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
-  expect(layout.overflowX).toBe("visible");
-  expect(layout.firstDayWidth).toBeGreaterThan(340);
-  expect(layout.firstDayHeight).toBeLessThan(100);
-  expect(layout.stacked).toBe(true);
+  await expect(page.getByRole("heading", { name: "March 11" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Plan dinner" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /wednesday.*march 11/i })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".week-board")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("keeps dates before today visible but read-only", async ({ page }) => {
+test("keeps dates before today visible but read-only", async ({ page }, testInfo) => {
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  await expect(page.locator(".week-day--past")).toHaveCount(2);
-  await page.getByRole("tab", { name: "Day" }).click();
+  if (testInfo.project.name !== "narrow-mobile") {
+    await expect(page.locator(".week-day--past")).toHaveCount(2);
+    await page.getByRole("tab", { name: "Day", exact: true }).click();
+  }
   await page.getByRole("tab", { name: /monday.*march 9.*past/i }).click();
   await expect(page.getByText("Past day", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a recipe to Breakfast" })).toHaveCount(0);
@@ -141,11 +129,12 @@ test("keeps dates before today visible but read-only", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Add a recipe to Snack" })).toHaveCount(0);
 });
 
-test("moves a meal with the whole card drag surface", async ({ page }) => {
+test("moves a meal with the whole card drag surface", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "narrow-mobile", "Phone planning is intentionally day-first; meal editing remains available in the selected day.");
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
@@ -253,8 +242,12 @@ test("creates a goal, fills the remaining days, adjusts, copies, moves, and refr
   await captureUi(page, testInfo, "goals-saved", { focus: page.getByLabel("Current daily nutrition guide") });
 
   await page.getByRole("main").getByRole("link", { name: "Back to meal plan" }).click();
-  await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
-  await page.getByRole("tab", { name: "Day" }).click();
+  if (testInfo.project.name === "narrow-mobile") {
+    await expect(page.getByRole("heading", { name: "March 11" })).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    await page.getByRole("tab", { name: "Day" }).click();
+  }
   const dayTabs = page.getByRole("tablist", { name: "Days in planning week" }).getByRole("tab");
   await expect(dayTabs).toHaveCount(7);
   for (let index = 2; index < 7; index += 1) {
@@ -285,6 +278,12 @@ test("creates a goal, fills the remaining days, adjusts, copies, moves, and refr
   await expect(movedEntry.getByRole("button", { name: "Refresh nutrition" })).toBeVisible();
   await movedEntry.getByRole("button", { name: "Refresh nutrition" }).click();
   await expect(page.getByText(/snapshot refreshed/i)).toBeVisible();
+
+  if (testInfo.project.name === "narrow-mobile") {
+    await captureUi(page, testInfo, "planner-day-guided");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    return;
+  }
 
   await page.getByRole("tab", { name: "Week" }).click();
   await expect(page.getByRole("heading", { name: "Your week at a glance" })).toBeVisible();

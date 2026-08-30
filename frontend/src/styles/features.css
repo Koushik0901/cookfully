@@ -362,6 +362,7 @@
 .recipe-reading-panel .instruction-list li { font-size: 1rem; }
 
 .recipe-nutrition-drawer { border-block: 1px solid var(--color-outline-variant); }
+.recipe-mobile-cook-action { display: none; }
 .recipe-nutrition-drawer > summary { display: flex; min-height: 4rem; align-items: center; justify-content: space-between; gap: 1rem; }
 .recipe-nutrition-drawer > summary > span { display: grid; gap: 0.1rem; }
 .recipe-nutrition-drawer > summary small { color: var(--color-on-surface-variant); font-weight: 430; }
@@ -656,19 +657,26 @@
    .recipe-view-tabs button { min-width: 0; justify-content: center; text-align: center; }
   .recipe-filter-fields { grid-template-columns: 1fr; }
 
+  .recipe-detail-page { padding-bottom: calc(9rem + env(safe-area-inset-bottom)); }
   .recipe-detail__topline { margin-top: -0.35rem; }
   .recipe-hero { gap: 1.5rem; }
   .recipe-hero__media { aspect-ratio: 1 / 0.82; border-radius: 1.5rem 4.5rem 1.5rem 1.5rem; }
   .recipe-hero h1 { font-size: 2.75rem; }
-  .recipe-hero__actions .cf-button--primary { flex: 1; }
+  .recipe-hero__actions .cf-button--primary { display: none; }
   .portion-scale__label { flex-wrap: wrap; }
   .recipe-nutrition-summary__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 0; }
    .recipe-nutrition-summary__metrics > div:nth-child(3) { border-left: 0; padding-left: 0; }
    .recipe-nutrition-evidence-summary { grid-template-columns: 1fr; gap: 0.75rem; }
-   .recipe-reading-tabs { display: flex; }
+  .recipe-reading-tabs { display: flex; }
+  .recipe-reading-tabs button { gap: 0.25rem; font-size: 0.82rem; }
   .recipe-reading-grid { grid-template-columns: 1fr; gap: 0; }
   .recipe-reading-panel { display: none; }
   .recipe-reading-panel.is-mobile-active { display: block; }
+  .recipe-nutrition-drawer { display: none; }
+  .recipe-nutrition-drawer.is-mobile-active { display: block; }
+  .recipe-mobile-cook-action { position: fixed; z-index: 25; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom)); left: 1rem; display: block; pointer-events: none; }
+  .recipe-mobile-cook-action::before { position: absolute; z-index: -1; right: -1rem; bottom: -1rem; left: -1rem; height: 5.5rem; background: linear-gradient(to top, var(--color-surface) 62%, color-mix(in oklch, var(--color-surface) 0%, transparent)); content: ""; }
+  .recipe-mobile-cook-action .cf-button { width: 100%; min-height: 3.25rem; pointer-events: auto; box-shadow: var(--shadow-level-2); }
   .import-recovery { grid-template-columns: 1fr; }
   .recipe-content { gap: 2.75rem; }
   .instruction-list li { padding-left: 3.25rem; font-size: 1rem; }
@@ -833,6 +841,7 @@
 .cook-mode__progress { background: var(--color-on-dark-line); }
 .cook-mode__progress::-webkit-progress-bar { background: var(--color-on-dark-line); }
 .cook-mode__progress::-webkit-progress-value { background: var(--color-accent); transition: transform var(--motion-state) var(--ease-out-expo); }
+.cook-mode__quick-timer { display: none; }
 .cook-mode__step-controls { display: flex; justify-content: space-between; gap: 1rem; padding-top: 2rem; }
 .cook-mode__complete { display: grid; min-height: calc(100dvh - 5rem); grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); padding: clamp(1.5rem, 5vw, 5rem); }
 .cook-mode__complete-media { height: min(68vh, 44rem); overflow: hidden; border-radius: 2rem 8rem 2rem 2rem; }
@@ -934,7 +943,8 @@
   .cook-mode__step { grid-template-columns: 1fr; gap: 0.75rem; }
   .cook-mode__step-number { font-size: 2.5rem; }
   .cook-mode__step-text { font-size: clamp(1.75rem, 8vw, 2.6rem); }
-  .cook-mode__step-controls { position: sticky; bottom: 0; }
+  .cook-mode__quick-timer { display: inline-flex; width: fit-content; min-height: 2.75rem; align-items: center; border: 1px solid var(--color-on-dark-line); border-radius: var(--radius-full); padding-inline: 0.9rem; color: var(--color-accent); background: var(--color-on-dark-hover); font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+  .cook-mode__step-controls { position: sticky; z-index: 2; bottom: 0; padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--color-herb-950) 76%, transparent); }
   .cook-mode__step-controls .cf-button { flex: 1; }
   .cook-mode__complete,
   .cook-mode__empty { grid-template-columns: 1fr; min-height: calc(100dvh - 4.5rem); padding: 1rem; }

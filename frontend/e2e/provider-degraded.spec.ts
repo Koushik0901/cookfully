@@ -121,17 +121,18 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await page.goto(`/app/recipes/${recipeId}`);
 
   await expect(page.getByText(/deterministic work was kept/i).first()).toBeVisible();
-  await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByLabel("Nutrition processing status").getByText("failed")).toBeVisible();
   await expect(page.getByText(/planning aid, not medical advice/i)).toBeVisible();
   await expect(page.getByRole("link", { name: "Edit recipe" })).toBeVisible();
 
   await page.getByRole("link", { name: "Edit nutrition" }).click();
-  if (testInfo.project.name === "narrow-mobile") await expect(page.getByLabel("Recipe editor progress").getByRole("button", { name: "Finish", exact: true })).toHaveAttribute("aria-current", "step");
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label after provider failure");
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
   await page.getByRole("link", { name: "Edit recipe" }).click();

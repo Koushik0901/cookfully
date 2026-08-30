@@ -66,11 +66,12 @@ test("keyboard focus, contrast, landmarks, and reduced motion meet the release b
 
 test("polling announcements and destructive confirmation preserve screen-reader and focus behavior", async ({
   page,
-}) => {
+}, testInfo) => {
   await mockAccessibleRecipeApi(page);
   await page.goto(`/app/recipes/${accessibleRecipeId}`);
 
-  await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
+  else await page.getByText("Nutrition details and evidence").click();
   const status = page.getByLabel("Nutrition processing status").getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(status).toHaveText("Working…");

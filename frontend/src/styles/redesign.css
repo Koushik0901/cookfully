@@ -734,6 +734,33 @@
   .recipe-editor__nutrition-review { animation: none !important; }
 }
 
+/* On a phone, planning is a single day and its next meal—not a compressed week grid. */
+@media (max-width: 47.99rem) {
+  .planner-page { gap: 1rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+  .planner-mobile-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; align-items: start; }
+  .planner-mobile-top > div:first-child { display: grid; gap: 0.18rem; }
+  .planner-mobile-top h1 { max-width: 12ch; font-size: 2rem; line-height: 1; }
+  .planner-mobile-top > div:first-child > p:last-child { color: var(--color-on-surface-variant); font-size: 0.84rem; }
+  .planner-mobile-top__actions { display: grid; grid-template-columns: repeat(3, 2.75rem); gap: 0.15rem; }
+  .planner-mobile-top__actions button { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-surface); background: transparent; cursor: pointer; }
+  .planner-mobile-top__actions button:last-child { color: var(--color-on-primary); background: var(--color-primary); box-shadow: var(--shadow-control); }
+  .planner-mobile-top__actions button:active { transform: scale(0.96); }
+  .planner-mobile-top__actions svg { width: 1.15rem; }
+  .planner-toolbar { position: static; display: block; margin: 0; border: 0; padding: 0; background: transparent; backdrop-filter: none; }
+  .planner-toolbar > .cf-button { display: none; }
+  .planner-views { display: none; }
+  .planner-page #planner-panel-week,
+  .planner-page #planner-panel-prep { display: none; }
+  .planner-page #planner-panel-day { display: block; }
+  .planner-page .day-tabs { margin-inline: -1rem; padding-inline: 1rem; }
+  .planner-page .planner-day__heading { display: none; }
+  .planner-page .plan-workspace { display: block; }
+  .planner-page .plan-nutrition { display: none; }
+  .planner-page .meal-slot { gap: 0.55rem; padding-block: 1rem; }
+  .planner-page .meal-slot__empty { min-height: 0; border-radius: var(--radius-lg); padding: 0; background: transparent; }
+  .planner-page .meal-slot__empty .cf-button { width: 100%; min-height: 3rem; justify-content: flex-start; border: 1px dashed var(--color-outline); background: var(--color-surface-low); }
+}
+
 /* Recipe editor follow-through: actions should feel like part of the page,
    while the long form keeps one calm, direct editing rhythm. */
 .recipe-editor__topline { border-bottom: 0; }
@@ -1004,6 +1031,69 @@
   .recipe-editor-page .ingredient-row__body { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
   .recipe-editor-page .ingredient-row__optional { align-self: center; justify-self: start; padding-bottom: 0; }
   .recipe-editor-page .method-step textarea { min-height: 4.5rem; }
+}
+
+/* Phone grocery is for moving through a store. It deliberately does not inherit
+   the desktop shopping-pass hero, management controls, or card grid. */
+@media (max-width: 47.99rem) {
+  .grocery-page { gap: 1.35rem; padding-bottom: calc(1.35rem + env(safe-area-inset-bottom)); }
+  .grocery-mobile-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem 1rem; align-items: start; }
+  .grocery-mobile-top > div:first-child { display: grid; gap: 0.18rem; min-width: 0; }
+  .grocery-mobile-top h1 { max-width: 12ch; font-size: 2rem; line-height: 1; }
+  .grocery-mobile-top > div:first-child > p:last-child { color: var(--color-on-surface-variant); font-size: 0.85rem; }
+  .grocery-mobile-top__actions { display: flex; align-items: center; gap: 0.2rem; }
+  .grocery-mobile-top__add { display: grid; width: 3rem; height: 3rem; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-primary); background: var(--color-primary); box-shadow: var(--shadow-control); cursor: pointer; }
+  .grocery-mobile-top__more { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-surface-variant); background: transparent; cursor: pointer; }
+  .grocery-mobile-top__add:active { transform: scale(0.96); }
+  .grocery-mobile-top__add svg { width: 1.25rem; }
+  .grocery-mobile-progress { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.65rem; padding-top: 0.25rem; color: var(--color-primary); font-size: 0.78rem; font-weight: 700; }
+  .grocery-mobile-progress progress { height: 0.38rem; background: var(--color-primary-container); }
+  .grocery-mobile-progress progress::-webkit-progress-bar { background: var(--color-primary-container); }
+
+  .grocery-page .grocery-list-stage { gap: 1.5rem; }
+  .grocery-page .grocery-list-stage__heading { display: none; }
+  .grocery-page .grocery-groups { gap: 1.65rem; }
+  .grocery-page .grocery-group { gap: 0.4rem; }
+  .grocery-page .grocery-group > .section-heading { min-height: 2.25rem; align-items: center; padding-inline: 0.1rem; }
+  .grocery-page .grocery-group > .section-heading h2 { font-family: var(--font-body); font-size: 0.8rem; font-weight: 720; letter-spacing: 0.035em; text-transform: uppercase; }
+  .grocery-page .grocery-group > .section-heading p { padding: 0; background: transparent; font-size: 0.76rem; }
+  .grocery-page .grocery-items { gap: 0; border-top: 1px solid var(--color-outline-variant); }
+  .grocery-page .grocery-item { border: 0; border-bottom: 1px solid var(--color-outline-variant); border-radius: 0; padding: 0; background: transparent; }
+  .grocery-page .grocery-item:hover { border-color: var(--color-outline-variant); background: transparent; }
+  .grocery-item__mobile-row { display: grid; grid-template-columns: 2.75rem 2rem minmax(0, 1fr) 2.75rem; align-items: center; gap: 0.2rem 0.55rem; min-height: 5.35rem; }
+  .grocery-item__mobile-row .grocery-check { width: 2.75rem; height: 3.25rem; }
+  .grocery-item__mobile-row .grocery-check .cf-checkbox { width: 1.45rem; height: 1.45rem; }
+  .grocery-item__mobile-row .grocery-item__icon { align-self: start; padding-top: 0.75rem; }
+  .grocery-item__mobile-row .grocery-icon { width: 1.8rem; height: 1.8rem; }
+  .grocery-item__mobile-row .grocery-item__content { display: grid; min-width: 0; gap: 0.08rem; padding-block: 0.75rem; }
+  .grocery-item__mobile-row h3 { overflow: hidden; font-family: var(--font-body); font-size: 1rem; font-weight: 680; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  .grocery-item__mobile-row .data-value { color: var(--color-on-surface-variant); font-size: 0.78rem; }
+  .grocery-item__mobile-row .grocery-item__uses { overflow: hidden; flex-wrap: nowrap; gap: 0.25rem; margin: 0.05rem 0 0; font-size: 0.7rem; white-space: nowrap; }
+  .grocery-item__mobile-row .grocery-item__uses > * { overflow: hidden; text-overflow: ellipsis; }
+  .grocery-item__mobile-more { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-surface-variant); background: transparent; cursor: pointer; }
+  .grocery-item__mobile-more:active { background: var(--color-surface-low); transform: scale(0.96); }
+  .grocery-item__mobile-more svg { width: 1.2rem; }
+  .grocery-item--checked .grocery-item__mobile-row > :not(.grocery-check) { opacity: 0.56; }
+  .grocery-item--checked .grocery-item__mobile-row h3 { color: var(--color-on-surface-variant); text-decoration: line-through; }
+
+  .grocery-mobile-sheet { position: fixed; top: auto; right: 0; bottom: 0; left: 0; display: grid; width: 100%; max-width: none; max-height: min(88dvh, 42rem); gap: 1rem; margin: 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding: 0.65rem 1rem max(1rem, env(safe-area-inset-bottom)); transform: none; animation: grocery-sheet-in var(--motion-entrance) var(--ease-out-expo) both; }
+  .grocery-mobile-sheet__handle { justify-self: center; width: 2.5rem; height: 0.28rem; border-radius: var(--radius-full); background: var(--color-outline); }
+  .grocery-mobile-sheet header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .grocery-mobile-sheet header > div { display: grid; gap: 0.2rem; min-width: 0; }
+  .grocery-mobile-sheet header h2 { font-size: 1.65rem; }
+  .grocery-mobile-sheet .grocery-edit { grid-template-columns: 1fr; gap: 0.85rem; padding: 0; }
+  .grocery-mobile-sheet .grocery-edit > .cf-button { width: 100%; min-height: 3rem; justify-self: stretch; }
+  .grocery-mobile-sheet__measure { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 0.65rem; }
+  .grocery-mobile-sheet__remove { justify-self: start; min-height: 2.75rem; padding-inline: 0; color: var(--color-error); }
+  .grocery-mobile-actions { display: grid; gap: 0.7rem; }
+  .grocery-mobile-actions > .cf-button { width: 100%; justify-content: flex-start; min-height: 3rem; }
+  .grocery-mobile-actions .shopping-stops { margin-top: 0.3rem; border: 0; border-top: 1px solid var(--color-outline-variant); border-radius: 0; padding: 1rem 0 0; background: transparent; }
+  @keyframes grocery-sheet-in { from { opacity: 0; transform: translateY(1.25rem); } to { opacity: 1; transform: translateY(0); } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grocery-mobile-top__add,
+  .grocery-mobile-sheet { animation: none; transition-duration: 0.01ms; }
 }
 
 /* Food matching keeps the decision small: search, five useful choices, or make one. */
