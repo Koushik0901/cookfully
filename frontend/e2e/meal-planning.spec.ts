@@ -107,9 +107,16 @@ test("starts mobile planning on a single, touch-ready day", async ({ page }, tes
   await page.goto("/app/plan");
 
   await expect(page.getByRole("heading", { name: "March 11" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Plan dinner" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a meal" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /wednesday.*march 11/i })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".week-board")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 320, height: 844 });
+  const sunday = page.getByRole("tab", { name: /sunday.*march 15/i });
+  await sunday.scrollIntoViewIfNeeded();
+  await expect(sunday).toBeVisible();
+  expect(await sunday.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThanOrEqual(44);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

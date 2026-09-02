@@ -744,14 +744,13 @@
 
 /* On a phone, planning is a single day and its next meal—not a compressed week grid. */
 @media (max-width: 47.99rem) {
-  .planner-page { gap: 1rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+  .planner-page { gap: 1rem; padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
   .planner-mobile-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; align-items: start; }
   .planner-mobile-top > div:first-child { display: grid; gap: 0.18rem; }
   .planner-mobile-top h1 { max-width: 12ch; font-size: 2rem; line-height: 1; }
   .planner-mobile-top > div:first-child > p:last-child { color: var(--color-on-surface-variant); font-size: 0.84rem; }
-  .planner-mobile-top__actions { display: grid; grid-template-columns: repeat(3, 2.75rem); gap: 0.15rem; }
+  .planner-mobile-top__actions { display: grid; grid-template-columns: repeat(2, 2.75rem); gap: 0.15rem; }
   .planner-mobile-top__actions button { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 0; border-radius: 50%; color: var(--color-on-surface); background: transparent; cursor: pointer; }
-  .planner-mobile-top__actions button:last-child { color: var(--color-on-primary); background: var(--color-primary); box-shadow: var(--shadow-control); }
   .planner-mobile-top__actions button:active { transform: scale(0.96); }
   .planner-mobile-top__actions svg { width: 1.15rem; }
   .planner-toolbar { position: static; display: block; margin: 0; border: 0; padding: 0; background: transparent; backdrop-filter: none; }
@@ -760,13 +759,19 @@
   .planner-page #planner-panel-week,
   .planner-page #planner-panel-prep { display: none; }
   .planner-page #planner-panel-day { display: block; }
-  .planner-page .day-tabs { margin-inline: -1rem; padding-inline: 1rem; }
+  .planner-page .day-tabs { grid-template-columns: repeat(7, minmax(2.75rem, 1fr)); overflow-x: auto; margin-inline: -1rem; border-radius: 0; padding-inline: 1rem; scroll-padding-inline: 1rem; background: transparent; }
+  .planner-page .day-tab { min-width: 2.75rem; min-height: 4.9rem; border-bottom: 1px solid var(--color-outline-variant); }
+  .planner-page .day-tab--active { background: var(--color-primary-container); }
+  .planner-page .day-tab::after { right: 22%; left: 22%; }
   .planner-page .planner-day__heading { display: none; }
   .planner-page .plan-workspace { display: block; }
   .planner-page .plan-nutrition { display: none; }
   .planner-page .meal-slot { gap: 0.55rem; padding-block: 1rem; }
   .planner-page .meal-slot__empty { min-height: 0; border-radius: var(--radius-lg); padding: 0; background: transparent; }
   .planner-page .meal-slot__empty .cf-button { width: 100%; min-height: 3rem; justify-content: flex-start; border: 1px dashed var(--color-outline); background: var(--color-surface-low); }
+  .planner-mobile-add { position: fixed; z-index: 25; right: 1rem; bottom: calc(4.75rem + env(safe-area-inset-bottom)); left: 1rem; pointer-events: none; }
+  .planner-mobile-add::before { position: absolute; z-index: -1; right: -1rem; bottom: -1rem; left: -1rem; height: 5.75rem; background: linear-gradient(to top, var(--color-surface) 62%, color-mix(in oklch, var(--color-surface) 0%, transparent)); content: ""; }
+  .planner-mobile-add .cf-button { width: 100%; min-height: 3.25rem; pointer-events: auto; box-shadow: var(--shadow-level-2); }
 }
 
 /* Recipe editor follow-through: actions should feel like part of the page,
