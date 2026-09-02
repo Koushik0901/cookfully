@@ -343,6 +343,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   if (testInfo.project.name !== "narrow-mobile") await captureUi(page, testInfo, "recipe-editor-ingredients", { focus: page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }) });
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
+  await expect(page.locator(".recipe-hero__media .recipe-fallback-art")).toHaveJSProperty("naturalWidth", 960);
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
   await captureUi(page, testInfo, "recipe-detail");
 
@@ -487,7 +488,7 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
 test("makes a focused recipe-library view easy to understand and clear", async ({ page }, testInfo) => {
   await mockApi(page);
   await page.goto("/app/recipes");
-  await expect(page.getByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
   await expect(page.locator(".recipe-card--featured")).toHaveCount(0);
   await expect(page.locator(".recipe-card__media .recipe-card__state")).toHaveCount(0);
   await expect(page.locator(".recipe-card__body .recipe-card__state")).toBeVisible();

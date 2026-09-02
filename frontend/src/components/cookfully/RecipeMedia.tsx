@@ -32,7 +32,7 @@ export function RecipeMedia({
 }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [recipe.imageUrl]);
-  if (!recipe.imageUrl || failed) return <RecipeFallbackArt title={recipe.title} className={className} />;
+  if (!recipe.imageUrl || failed) return <RecipeFallbackArt title={recipe.title} className={className} loading={loading} />;
   const crop = recipe.thumbnailCrop ?? { x: "0", y: "0", width: "1", height: "1" };
   return (
     <img

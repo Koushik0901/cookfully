@@ -1,3 +1,5 @@
+import type { ImgHTMLAttributes } from "react";
+
 const FALLBACKS = {
   breakfast: "/media/recipe-fallbacks/breakfast.jpg",
   grain: "/media/recipe-fallbacks/grain-bowl.jpg",
@@ -17,10 +19,18 @@ function recipeFallbackKind(title: string): FallbackKind {
   for (const character of title.toLocaleLowerCase()) {
     hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193);
   }
-  return kinds[hash % kinds.length];
+  return kinds[(hash >>> 0) % kinds.length];
 }
 
-export function RecipeFallbackArt({ title, className = "" }: { title: string; className?: string }) {
+export function RecipeFallbackArt({
+  title,
+  className = "",
+  loading = "lazy",
+}: {
+  title: string;
+  className?: string;
+  loading?: ImgHTMLAttributes<HTMLImageElement>["loading"];
+}) {
   const kind = recipeFallbackKind(title);
-  return <img className={`recipe-fallback-art ${className}`} src={FALLBACKS[kind]} alt="" loading="lazy" decoding="async" draggable={false} data-fallback-kind={kind} />;
+  return <img className={`recipe-fallback-art ${className}`} src={FALLBACKS[kind]} alt="" loading={loading} decoding="async" draggable={false} data-fallback-kind={kind} />;
 }

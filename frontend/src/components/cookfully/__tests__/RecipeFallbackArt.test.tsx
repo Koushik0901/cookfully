@@ -22,5 +22,12 @@ describe("RecipeFallbackArt", () => {
     const savoryKinds = [...container.querySelectorAll(".recipe-fallback-art")]
       .map((image) => image.getAttribute("data-fallback-kind"));
     expect(new Set(savoryKinds).size).toBeGreaterThan(1);
+    expect(savoryKinds.every((kind) => kind != null)).toBe(true);
+    expect([...container.querySelectorAll(".recipe-fallback-art")].every((image) => image.getAttribute("src")?.startsWith("/media/recipe-fallbacks/"))).toBe(true);
+  });
+
+  it("accepts eager loading for above-the-fold recipe surfaces", () => {
+    const { container } = render(<RecipeFallbackArt title="Protein oats" loading="eager" />);
+    expect(container.querySelector(".recipe-fallback-art")).toHaveAttribute("loading", "eager");
   });
 });

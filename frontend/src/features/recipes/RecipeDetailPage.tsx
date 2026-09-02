@@ -222,9 +222,9 @@ export function RecipeDetailPage() {
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
            </div>
+           <span className={`recipe-hero__nutrition-state nutrition-state nutrition-state--${nutritionStatePresentation.key}`} title={nutritionStatePresentation.description}>{nutritionStatePresentation.label}</span>
            <p className="recipe-provenance"><strong>{originLabel[recipe.originKind] ?? "Recipe"}</strong>{recipe.sourceUrl ? <> · <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">View original source</a></> : <> · No external source</>}</p>
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
-          <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
           <div className="recipe-hero__actions">
             {recipe.instructions.length > 0 && !isMobile ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
             <Button asChild variant="secondary"><Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" />Edit recipe</Link></Button>
@@ -248,6 +248,10 @@ export function RecipeDetailPage() {
         <button type="button" aria-pressed={mobilePanel === "method"} onClick={() => setMobilePanel("method")}>Method <span>{recipe.instructions.length}</span></button>
         <button type="button" aria-pressed={mobilePanel === "nutrition"} onClick={() => { setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}>Nutrition</button>
       </nav>
+
+      <div className="recipe-detail__nutrition-summary">
+        <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
+      </div>
 
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">

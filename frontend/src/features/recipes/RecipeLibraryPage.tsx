@@ -208,9 +208,7 @@ export function RecipeLibraryPage() {
   return (
     <main className="page-shell recipe-library-page">
       <PageHeader
-        eyebrow="Your recipes"
-        title="What would you like to cook?"
-        description="Search the dishes you know, then narrow the shelf only when you need to."
+        title="Recipes"
         actions={
           <details className="recipe-add-menu" ref={addMenuRef}>
             <summary className="cf-button cf-button--primary cf-button--md"><Plus aria-hidden="true" />Add recipe<ChevronDown aria-hidden="true" /></summary>
