@@ -263,8 +263,9 @@ function PlannerShell() {
       </nav>
       <CommandPalette />
       <main id="planner-content" className="planner-shell__content">
-        <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
-          <Routes>
+        <div className="planner-shell__route" key={location.key} data-route={location.pathname}>
+          <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
+            <Routes>
             <Route index element={<HomePage />} />
             <Route path="recipes" element={<RecipeLibraryPage />} />
             <Route path="recipes/new" element={<RecipeEditorPage />} />
@@ -280,8 +281,9 @@ function PlannerShell() {
              <Route path="suggestions" element={<SuggestionPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<div className="page-shell utility-page"><EmptyState title="That kitchen page isn’t here" description="The link may be old, but your recipes and plans are still safe." action={<><Button asChild><Link to="/app">Return home</Link></Button><Button variant="secondary" asChild><Link to="/app/recipes">Open recipes</Link></Button></>} /></div>} />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+        </div>
       </main>
     </div>
   );

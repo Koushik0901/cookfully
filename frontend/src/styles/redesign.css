@@ -1109,6 +1109,32 @@
   .grocery-mobile-sheet { animation: none; transition-duration: 0.01ms; }
 }
 
+/* One physical response language for the kitchen's browse-and-decide surfaces.
+   It is intentionally limited to tangible food and planning objects: settings,
+   dense forms, and destructive controls should stay planted. */
+:where(.recipe-card, .home-recipe-card, .plan-entry, .grocery-item, .pantry-staple__card-trigger, .owner-food-card, .suggestion-item) {
+  transform-origin: center;
+  transition: transform var(--motion-state) var(--ease-out-expo), box-shadow var(--motion-state) var(--ease-out-quart);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(.recipe-card, .home-recipe-card, .plan-entry, .grocery-item, .pantry-staple__card-trigger, .owner-food-card, .suggestion-item):hover {
+    transform: translateY(-0.18rem);
+  }
+}
+
+@media (pointer: coarse) {
+  :where(.recipe-card, .home-recipe-card, .plan-entry, .grocery-item, .pantry-staple__card-trigger, .owner-food-card, .suggestion-item):active {
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.recipe-card, .home-recipe-card, .plan-entry, .grocery-item, .pantry-staple__card-trigger, .owner-food-card, .suggestion-item) {
+    transition-duration: 0.01ms;
+  }
+}
+
 /* Food matching keeps the decision small: search, five useful choices, or make one. */
 .food-picker-dialog {
   width: min(38rem, calc(100% - 2rem));
