@@ -63,8 +63,9 @@ export function WeeklyPlannerPage() {
 
   useEffect(() => {
     const requestedSlot = searchParams.get("slot");
-    if (!weekStart || !selectedDate || !requestedSlot || shortcutHandled || !SLOTS.includes(requestedSlot)) return;
-    setPickerSlot(requestedSlot);
+    const preferredRecipeId = searchParams.get("recipe");
+    if (!weekStart || !selectedDate || (!requestedSlot && !preferredRecipeId) || shortcutHandled || (requestedSlot != null && !SLOTS.includes(requestedSlot))) return;
+    setPickerSlot(requestedSlot && SLOTS.includes(requestedSlot) ? requestedSlot : "dinner");
     setView("day");
     if (selectedDate >= todayInTimezone(preferences.data!.timezone)) setPickerOpen(true);
     else setAddMessage("Past days are read-only. Choose today or a future day.");
@@ -251,7 +252,7 @@ export function WeeklyPlannerPage() {
         <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
           <div className="planner-day__heading"><div><p className="eyebrow">Selected day</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
           {selectedDateIsPast ? <div className="planner-day__readonly" role="status"><strong>Past day</strong><span>This day has already passed. You can review it, but new changes start today.</span></div> : null}
-          {addMessage ? <p className={`planner-day__feedback ${move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "error-text" : "success-text"}`} role={move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "alert" : "status"}>{addMessage}</p> : null}
+          {addMessage ? <div className={`planner-day__feedback ${move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "error-text" : "success-text"}`} role={move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "alert" : "status"}><span>{addMessage}</span>{addMessage === "Meal added to your plan." ? <Link to="/app/grocery">Build grocery list</Link> : null}</div> : null}
           <DayMealBoard
             date={selectedDate}
             slots={SLOTS.map((slot) => ({ slot, label: slot[0].toUpperCase() + slot.slice(1), entries: selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position) }))}
@@ -274,7 +275,7 @@ export function WeeklyPlannerPage() {
 
        {view === "prep" ? <section id="planner-panel-prep" role="tabpanel" aria-labelledby="planner-tab-prep"><PrepOverview entries={entries} recipesById={recipesById} groceryStatus={plan.data?.groceryStatus} /></section> : null}
       {isMobile && !selectedDateIsPast ? <div className="planner-mobile-add"><Button onClick={() => { add.reset(); setPickerSlot("dinner"); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a meal</Button></div> : null}
-      <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
+      <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} preferredRecipeId={searchParams.get("recipe")} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
     </main>
   );
 }

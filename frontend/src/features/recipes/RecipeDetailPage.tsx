@@ -237,7 +237,7 @@ export function RecipeDetailPage() {
         </div>
       </section>
 
-       {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>{coverStatus === "failed" ? "Recipe saved, cover needs another try" : "Recipe saved"}</strong><p>{coverStatus === "attached" ? "Recipe and cover are ready in your kitchen." : coverStatus === "failed" ? "The recipe is safe. You can choose a different cover in Edit recipe." : "It is ready in your kitchen."}</p></div></section> : null}
+       {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>{coverStatus === "failed" ? "Recipe saved, cover needs another try" : "Recipe saved"}</strong><p>{coverStatus === "attached" ? "Recipe and cover are ready in your kitchen." : coverStatus === "failed" ? "The recipe is safe. You can choose a different cover in Edit recipe." : "It is ready in your kitchen."}</p></div><Button asChild variant="secondary"><Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}>Plan it for dinner</Link></Button></section> : null}
       <RecipeProcessingBanner job={latestJob} nutritionState={recipe.nutritionState} />
        {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
 

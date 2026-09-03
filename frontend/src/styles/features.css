@@ -1716,7 +1716,9 @@
 .planner-day__heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; }
 .planner-day__heading > div { display: grid; gap: 0.35rem; }
 .planner-day__heading > span { color: var(--color-on-surface-variant); font-size: 0.82rem; }
-.planner-day__feedback { margin-bottom: 1rem; }
+.planner-day__feedback { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+.planner-day__feedback a { flex: 0 0 auto; color: var(--color-primary); font-weight: 650; text-decoration: none; }
+.planner-day__feedback a:hover { text-decoration: underline; }
 .planner-day__gap-action { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-block: 1px solid var(--color-outline-variant); padding-block: 1rem; }
 .planner-day__gap-action > div { display: grid; gap: 0.2rem; }
 .planner-day__gap-action span { color: var(--color-on-surface-variant); font-size: 0.82rem; }
@@ -1813,6 +1815,10 @@
 .recipe-picker__header p:last-child { color: var(--color-on-surface-variant); font-size: 0.85rem; }
 .recipe-picker__search { display: block; }
 .recipe-picker__results { display: grid; align-content: start; gap: 0.25rem; overflow: auto; margin-inline: -0.5rem; padding-inline: 0.5rem; }
+.recipe-picker__recommended { display: grid; gap: 0.45rem; border-bottom: 1px solid var(--color-outline-variant); padding-bottom: 0.8rem; }
+.recipe-picker__recommended > span { color: var(--color-on-surface-variant); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.045em; text-transform: uppercase; }
+.recipe-pick--recommended { border-color: var(--color-primary); background: var(--color-primary-container); }
+.recipe-pick--recommended .recipe-pick__action { color: var(--color-primary); }
 .recipe-pick { display: grid; grid-template-columns: 4.25rem minmax(0, 1fr) auto; align-items: center; gap: 0.85rem; border: 0; border-bottom: 1px solid var(--color-outline-variant); padding: 0.7rem 0.25rem; text-align: left; background: transparent; cursor: pointer; transition: background-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-quart); }
 .recipe-pick:hover { border-radius: var(--radius); background: var(--color-surface-low); transform: translateX(2px); }
 .recipe-pick__media { width: 4.25rem; height: 3.5rem; overflow: hidden; border-radius: 0.75rem; background: var(--color-surface-high); }
@@ -1868,6 +1874,7 @@
    .nutrition-pulse__grid { grid-template-columns: 1fr; }
    .plan-workspace { gap: 2rem; }
    .planner-day__gap-action { align-items: stretch; flex-direction: column; }
+   .planner-day__feedback { align-items: flex-start; flex-direction: column; }
    .meal-slot__empty { align-items: flex-start; flex-direction: column; }
   .meal-slot__empty-actions { width: 100%; }
   .meal-slot__empty-actions .cf-button { flex: 1; }

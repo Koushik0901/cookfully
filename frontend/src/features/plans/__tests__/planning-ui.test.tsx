@@ -330,6 +330,27 @@ describe("goal and weekly planning UI", () => {
     expect(screen.queryByRole("button", { name: "Add Changed recipe to Lunch" })).not.toBeInTheDocument();
   });
 
+  it("carries a newly saved recipe into dinner planning and then toward groceries", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json(preferences);
+      if (path.includes("/goals/current")) return json(goal);
+      if (path.includes("/meal-plans/") && init?.method === "POST") return json({ ...entry, mealSlot: "dinner" });
+      if (path.includes("/meal-plans/")) return json(plan);
+      if (path.includes("/recipes")) return json({ items: [{ id: entry.recipeId, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "estimated", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    });
+
+    renderPage(<WeeklyPlannerPage />, `/app/plan?slot=dinner&recipe=${entry.recipeId}`);
+
+    expect(await screen.findByText("Ready to place")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Add Protein oats to Dinner" }));
+    expect(await screen.findByText("Meal added to your plan.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Build grocery list" })).toHaveAttribute("href", "/app/grocery");
+  });
+
   it("links a fresh kitchen with unresolved recipes to nutrition-data setup", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input) => {

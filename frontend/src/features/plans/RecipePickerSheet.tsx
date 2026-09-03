@@ -20,6 +20,7 @@ export function RecipePickerSheet({
   error,
   loading = false,
   unavailableRecipeCount = 0,
+  preferredRecipeId,
   libraryError,
   onRetry,
   onChoose,
@@ -33,6 +34,7 @@ export function RecipePickerSheet({
   error?: string;
   loading?: boolean;
   unavailableRecipeCount?: number;
+  preferredRecipeId?: string | null;
   libraryError?: string;
   onRetry?: () => void;
   onChoose: (recipeId: string) => void;
@@ -48,6 +50,8 @@ export function RecipePickerSheet({
   }, [query, recipes]);
 
   const slotLabel = mealSlot[0]?.toUpperCase() + mealSlot.slice(1);
+  const preferredRecipe = !query.trim() && preferredRecipeId ? recipes.find((recipe) => recipe.id === preferredRecipeId) : undefined;
+  const remainingRecipes = preferredRecipe ? visibleRecipes.filter((recipe) => recipe.id !== preferredRecipe.id) : visibleRecipes;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -77,7 +81,16 @@ export function RecipePickerSheet({
                 <p>{libraryError}</p>
                 {onRetry ? <button className="text-link" type="button" onClick={onRetry}>Try again</button> : null}
               </div>
-            ) : visibleRecipes.length ? visibleRecipes.map((recipe) => {
+            ) : visibleRecipes.length ? <>
+              {preferredRecipe ? <div className="recipe-picker__recommended">
+                <span>Ready to place</span>
+                <button className="recipe-pick recipe-pick--recommended" type="button" disabled={Boolean(pendingRecipeId)} onClick={() => onChoose(preferredRecipe.id)} aria-label={`Add ${preferredRecipe.title} to ${slotLabel}`}>
+                  <span className={`recipe-pick__media ${preferredRecipe.imageUrl ? "" : "recipe-pick__media--fallback"}`}><RecipeMedia recipe={preferredRecipe} /></span>
+                  <span className="recipe-pick__copy"><strong>{preferredRecipe.title}</strong><small>One serving · change it any time</small></span>
+                  <span className="recipe-pick__action">{pendingRecipeId === preferredRecipe.id ? "Adding…" : "Plan it"}</span>
+                </button>
+              </div> : null}
+              {remainingRecipes.map((recipe) => {
               const pending = pendingRecipeId === recipe.id;
               const yieldUnit = Number(recipe.yieldQuantity) === 1 && recipe.yieldUnit.toLocaleLowerCase() === "servings" ? "serving" : recipe.yieldUnit;
               return (
@@ -93,7 +106,8 @@ export function RecipePickerSheet({
                   <span className="recipe-pick__action">{pending ? "Adding…" : "Add"}</span>
                 </button>
               );
-            }) : (
+              })}
+            </> : (
               <div className="recipe-picker__empty">
                 <CookingPot aria-hidden="true" />
                 <strong>{query ? "No recipes match that search" : unavailableRecipeCount ? "No recipes are ready to plan" : "Your recipe shelf is empty"}</strong>
