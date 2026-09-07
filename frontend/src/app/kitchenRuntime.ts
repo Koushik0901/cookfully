@@ -81,6 +81,10 @@ export async function verifyKitchenSession(): Promise<boolean> {
     if (response.status === 401) {
       markSessionKnown(false);
       void clearOfflineResponses();
+      // A rejected session is an expected, healthy response for a signed-out
+      // browser. Clear any stale transport-error banner left by an earlier
+      // connection attempt before showing the sign-in screen.
+      notifyServerRestored();
       return false;
     }
     if (!response.ok) throw new Error("Unable to verify your session.");

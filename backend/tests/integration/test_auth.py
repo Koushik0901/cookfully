@@ -81,6 +81,7 @@ def test_owner_timezone_week_start_and_optimistic_version(
         display_name="Owner",
         timezone="America/Vancouver",
         week_starts_on=7,
+        health_profile=owner.health_profile,
         expected_version=1,
     )
     assert (updated.timezone, updated.week_starts_on, updated.version) == (
@@ -90,7 +91,12 @@ def test_owner_timezone_week_start_and_optimistic_version(
     )
     with pytest.raises(DomainError, match="changed"):
         preferences.update(
-            owner.id, display_name="Owner", timezone="UTC", week_starts_on=1, expected_version=1
+            owner.id,
+            display_name="Owner",
+            timezone="UTC",
+            week_starts_on=1,
+            health_profile=owner.health_profile,
+            expected_version=1,
         )
     with pytest.raises(DomainError, match="timezone"):
         preferences.update(
@@ -98,6 +104,7 @@ def test_owner_timezone_week_start_and_optimistic_version(
             display_name="Owner",
             timezone="Mars/Base",
             week_starts_on=1,
+            health_profile=owner.health_profile,
             expected_version=2,
         )
 

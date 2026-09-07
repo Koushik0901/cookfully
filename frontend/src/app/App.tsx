@@ -95,6 +95,7 @@ const SECONDARY_NAVIGATION = [
 ] as const;
 
 const MOBILE_NAVIGATION = PRIMARY_NAVIGATION.filter(({ label }) => label !== "Pantry");
+const MORE_MENU_NAVIGATION_KEYS = new Set(["ArrowDown", "ArrowUp", "Home", "End"]);
 
 function LandingPage() {
   return (
@@ -175,7 +176,21 @@ function PlannerShell() {
       if (event.key === "Escape") {
         closeMore();
         moreTriggerRef.current?.focus();
+        return;
       }
+      if (!MORE_MENU_NAVIGATION_KEYS.has(event.key)) return;
+      const items = Array.from(moreMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? []);
+      if (!items.length) return;
+      event.preventDefault();
+      const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? items.length - 1
+          : event.key === "ArrowUp"
+            ? (currentIndex <= 0 ? items.length - 1 : currentIndex - 1)
+            : (currentIndex + 1) % items.length;
+      items[nextIndex]?.focus();
     }
     function handleClick(event: MouseEvent) {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node) && !moreTriggerRef.current?.contains(event.target as Node)) {
@@ -235,12 +250,13 @@ function PlannerShell() {
             className="mobile-nav__more-trigger"
             aria-expanded={moreOpen}
             aria-haspopup="menu"
+            aria-controls="mobile-more-menu"
             onClick={toggleMore}
           >
             <CircleEllipsis aria-hidden="true" /><span>More</span>
           </button>
           {moreOpen ? (
-            <div ref={moreMenuRef} className="mobile-nav__menu" role="menu" aria-label="More navigation">
+            <div ref={moreMenuRef} id="mobile-more-menu" className="mobile-nav__menu" role="menu" aria-label="More navigation">
               <NavLink to="/app/pantry" role="menuitem" onMouseEnter={() => navigationIntent("/app/pantry")} onFocus={() => navigationIntent("/app/pantry")} onPointerDown={() => navigationIntent("/app/pantry")} onClick={closeMore}>
                 <PackageOpen aria-hidden="true" /><span>Pantry</span>
               </NavLink>

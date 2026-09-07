@@ -82,7 +82,7 @@ export function OwnerFoodsPage() {
                   ? `Nothing matches “${search}”. Try a product or brand name.`
                   : "Packaged staples are a good place to start—protein powder, yogurt, bread, sauces, or anything whose label you want Cookfully to remember."
               }
-              action={search ? <Button variant="secondary" onClick={() => setSearch("")}>Clear search</Button> : undefined}
+              action={search ? <Button variant="secondary" onClick={() => setSearch("")}>Clear search</Button> : <CreateFoodDialog ingredientName="" trigger={<Button>Add a food from a label</Button>} onCreated={() => queryClient.invalidateQueries({ queryKey: ["owner-foods"] })} />}
             />
           ) : (
             <ul className="owner-foods-list">

@@ -61,11 +61,10 @@ from cookfully.infrastructure.models.reference_foods import FoodReference
 from cookfully.infrastructure.observability import safe_log
 from cookfully.infrastructure.recipe_images import RecipeImageService
 from cookfully.infrastructure.recipe_importer import (
-    ImportedCookbook,
-    ImportedRecipe,
     RecipeImporter,
     RecipeImportError,
 )
+from cookfully.infrastructure.recipe_importer_types import ImportedCookbook, ImportedRecipe
 from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher

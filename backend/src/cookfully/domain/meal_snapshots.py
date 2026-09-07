@@ -20,7 +20,7 @@ from cookfully.domain.nutrition import (
     MicronutrientKey,
 )
 
-NutritionReliability = Literal["source_provided", "estimated", "partial", "manual"]
+NutritionReliability = Literal["unavailable", "source_provided", "estimated", "partial", "manual"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +70,13 @@ def create_snapshot(source: SnapshotSource, servings: Decimal) -> MealNutritionS
     coverage = quantize_decimal(source.coverage_ratio, NUTRIENT_SCALE)
     if not Decimal(0) <= coverage <= Decimal(1):
         raise DomainError("invalid_coverage", "Coverage must be between zero and one.", 422)
-    if source.status not in {"source_provided", "estimated", "partial", "manual"}:
+    if source.status not in {
+        "unavailable",
+        "source_provided",
+        "estimated",
+        "partial",
+        "manual",
+    }:
         raise DomainError("invalid_nutrition_status", "Nutrition status is invalid.", 422)
 
     def scaled(field: str, scale: Decimal) -> Decimal | None:

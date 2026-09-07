@@ -86,7 +86,7 @@ export function RecipeCard({
       {selectionMode ? <Checkbox className="recipe-card__selection" checked={selected} aria-label={`Select ${recipe.title}`} onCheckedChange={(checked) => onSelectedChange?.(checked === true)} /> : null}
       <Link className="recipe-card__primary" to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} viewTransition>
         <div className="recipe-card__media" style={{ viewTransitionName: `recipe-media-${recipe.id}` } as CSSProperties}>
-          <RecipeMedia recipe={recipe} />
+          <RecipeMedia recipe={recipe} sizes="(max-width: 47.99rem) 50vw, (max-width: 80rem) 33vw, 480px" />
         </div>
         <div className="recipe-card__body">
           <div className="recipe-card__heading">

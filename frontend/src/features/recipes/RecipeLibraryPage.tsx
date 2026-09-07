@@ -13,7 +13,7 @@ import type { RecipePage } from "./types";
 import { FirstRunJourney } from "../onboarding/FirstRunJourney";
 import { onboardingApi } from "../onboarding/api";
 import { Checkbox } from "@/components/ui/checkbox";
-import { isRecipeReadyToPlan } from "./recipeEligibility";
+import { isRecipePlannable } from "./recipeEligibility";
 
 export function RecipeLibraryPage() {
   const queryClient = useQueryClient();
@@ -134,7 +134,7 @@ export function RecipeLibraryPage() {
   const displayedRecipes = useMemo(() => {
     const items = loadedItems.filter((recipe) => {
       if (unfiled && (recipe.collections ?? []).length > 0) return false;
-      const ready = isRecipeReadyToPlan(recipe);
+      const ready = isRecipePlannable(recipe);
       if (libraryView === "ready") return ready;
       if (libraryView === "attention") return recipe.status !== "archived" && !ready;
       if (libraryView === "archived") return recipe.status === "archived";
@@ -150,7 +150,7 @@ export function RecipeLibraryPage() {
   }, [libraryView, loadedItems, sortBy, unfiled]);
   const groupedRecipes = groupBy === "readiness"
     ? [
-        { title: "Ready to plan", items: displayedRecipes.filter(isRecipeReadyToPlan) },
+        { title: "Ready to plan", items: displayedRecipes.filter(isRecipePlannable) },
         { title: "Needs a nutrition check", items: displayedRecipes.filter((recipe) => recipe.status !== "archived" && ["pending", "partial", "failed", "stale"].includes(recipe.nutritionState)) },
         { title: "Archived", items: displayedRecipes.filter((recipe) => recipe.status === "archived") },
       ].filter((group) => group.items.length)
@@ -158,6 +158,12 @@ export function RecipeLibraryPage() {
   const hasDiscoveryFilter = Boolean(query || favoriteOnly || collectionId || mealRole || libraryView !== "all");
   const isGenuinelyEmpty = Boolean(recipes.data && loadedItems.length === 0 && !hasDiscoveryFilter && !bulkMessage);
   const hasArchivedRecipes = Boolean(loadedItems.some((recipe) => recipe.status === "archived"));
+  const readyViewNeedsReview = libraryView === "ready"
+    && !query
+    && !favoriteOnly
+    && !collectionId
+    && !mealRole
+    && loadedItems.some((recipe) => recipe.status !== "archived" && !isRecipePlannable(recipe));
   const clearDiscovery = () => {
     setQueryInput("");
     setQuery("");
@@ -252,7 +258,7 @@ export function RecipeLibraryPage() {
        {recipes.isPending ? <Skeleton label="Loading recipe library" lines={6} /> : null}
        {recipes.isError ? <ErrorRecovery title="Recipes could not be loaded" onRetry={() => void recipes.refetch()} /> : null}
        {collections.isError ? <p className="notice recipe-notice" role="alert">Collections could not be loaded. Your recipes are still safe. <Button variant="ghost" onClick={() => void collections.refetch()}>Retry collections</Button></p> : null}
-       {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={hasDiscoveryFilter ? <><Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button><Button variant="ghost" asChild><Link to="/app/suggestions">Get ideas</Link></Button></> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
+       {recipes.data && displayedRecipes.length === 0 ? <EmptyState title={readyViewNeedsReview ? "No recipes ready to plan" : hasDiscoveryFilter ? "No matching recipes" : "No active recipes"} description={readyViewNeedsReview ? "Review nutrition estimates or ingredient matches, then these recipes can join your plan." : hasDiscoveryFilter ? "Try another search or recipe view." : "Your saved recipes are archived. Restore one when you want it back in planning."} action={readyViewNeedsReview ? <><Button onClick={() => setLibraryView("attention")}>Review recipes</Button><Button variant="ghost" asChild><Link to="/app/settings?tab=data">Set up nutrition data</Link></Button></> : hasDiscoveryFilter ? <><Button variant="secondary" onClick={clearDiscovery}>Clear recipe filters</Button><Button variant="ghost" asChild><Link to="/app/suggestions">Get ideas</Link></Button></> : hasArchivedRecipes ? <Button variant="secondary" onClick={() => setLibraryView("archived")}>View archived recipes</Button> : null} /> : null}
        {selectionMode && selectedIds.length ? <BulkRecipeActions selectedCount={selectedIds.length} pending={bulkArchive.isPending} onArchive={archiveSelected} onClear={() => setSelectedIds([])} /> : null}
        {recipes.data && displayedRecipes.length ? <SectionHeading className="recipe-results-heading" eyebrow="Recipe box" title={hasDiscoveryFilter ? "Matching recipes" : "Saved recipes"} meta={`${displayedRecipes.length} ${displayedRecipes.length === 1 ? "recipe" : "recipes"}`} /> : null}
        <div id="recipe-view-panel" role="tabpanel" aria-labelledby={favoriteOnly ? "recipe-view-tab-favorites" : "recipe-view-tab-all"}>

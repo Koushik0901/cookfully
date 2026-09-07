@@ -85,9 +85,12 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   await expect(page.getByRole("heading", { name: mobile ? /march 11/i : /week of march 9/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
-  await captureUi(page, testInfo, "planner-week-empty");
-
-  if (!mobile) await page.getByRole("tab", { name: "Day" }).click();
+  await expect(page.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-selected", "true");
+  if (!mobile) {
+    await page.getByRole("tab", { name: "Week" }).click();
+    await captureUi(page, testInfo, "planner-week-empty");
+    await page.getByRole("tab", { name: "Day" }).click();
+  }
   await expect(page.getByRole("link", { name: "Guide my ideas" })).toHaveCount(0);
   await expect(page.locator(".plan-nutrition")).toHaveCount(0);
   await captureUi(page, testInfo, "planner-day-top");
@@ -125,6 +128,7 @@ test("keeps dates before today visible but read-only", async ({ page }, testInfo
   await page.goto("/app/plan");
 
   if (testInfo.project.name !== "narrow-mobile") {
+    await page.getByRole("tab", { name: "Week" }).click();
     await expect(page.locator(".week-day--past")).toHaveCount(2);
     await page.getByRole("tab", { name: "Day", exact: true }).click();
   }

@@ -68,10 +68,12 @@ def test_stale_hashing_retries_neural_after_interval(engine: IngredientEngine) -
     assert isinstance(retried, HashingTextEmbedder)
 
 
-def test_no_row_defaults_to_fastembed(engine: IngredientEngine) -> None:
+def test_no_row_defaults_to_configured_backend(engine: IngredientEngine) -> None:
     session = MagicMock()
     session.get.return_value = None
-    with patch("cookfully.application.ingredient_engine.create_text_embedder") as factory:
-        factory.return_value = object()
-        engine.resolve_embedder(session)
-    factory.assert_called_once()
+    with patch(
+        "cookfully.application.ingredient_engine.get_settings",
+        return_value=MagicMock(semantic_matching_backend="hashing"),
+    ):
+        embedder = engine.resolve_embedder(session)
+    assert isinstance(embedder, HashingTextEmbedder)

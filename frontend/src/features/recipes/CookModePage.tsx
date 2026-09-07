@@ -1,13 +1,16 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
-import { Button, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, Skeleton } from "../../components";
+import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageState, RecipeMedia, Skeleton } from "../../components";
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { readOfflineResponse } from "../../app/offlineCache";
 import { Checkbox } from "@/components/ui/checkbox";
 import { intelligenceApi } from "../intelligence/api";
+import { planningApi } from "../plans/api";
+import { addDays } from "../plans/dates";
+import type { MealPlan, MealPlanEntry } from "../plans/types";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
@@ -61,6 +64,17 @@ function AnswerChip({ children }: { children: string }) {
 
 export function CookModePage() {
   const { recipeId } = useParams();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const plannedEntryId = searchParams.get("entry");
+  const plannedWeekStart = searchParams.get("week");
+  const plan = useQuery({
+    queryKey: ["meal-plan", plannedWeekStart],
+    queryFn: () => planningApi.plan(plannedWeekStart!),
+    enabled: Boolean(plannedEntryId && plannedWeekStart),
+    retry: false,
+  });
+  const plannedEntry = plan.data?.entries.find((entry) => entry.id === plannedEntryId && entry.recipeId === recipeId);
   const recipe = useQuery({
     queryKey: ["recipe", recipeId],
     queryFn: () => recipesApi.get(recipeId!),
@@ -69,7 +83,12 @@ export function CookModePage() {
   const [currentStep, setCurrentStep] = useState(() => loadCookSession(recipeId)?.currentStep ?? 0);
   const [stepDirection, setStepDirection] = useState<"forward" | "backward">("forward");
   const [complete, setComplete] = useState(() => loadCookSession(recipeId)?.complete ?? false);
+  const [finishing, setFinishing] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(() => new Set(loadCookSession(recipeId)?.checkedIngredients ?? []));
+  const [preparedServings, setPreparedServings] = useState("1");
+  const [leftoverServings, setLeftoverServings] = useState("0");
+  const [leftoversExpireOn, setLeftoversExpireOn] = useState("");
+  const [syncError, setSyncError] = useState("");
   const [ingredientsOpen, setIngredientsOpen] = useState(
     () => typeof window === "undefined" || typeof window.matchMedia !== "function" || !window.matchMedia(COMPACT_COOK_MODE_QUERY).matches,
   );
@@ -79,10 +98,85 @@ export function CookModePage() {
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const currentStepRef = useRef(currentStep);
   const touchStartX = useRef<number | null>(null);
+  const hydratedEntryVersion = useRef<number | null>(null);
+  const startAttempted = useRef<string | null>(null);
+
+  const updatePlannedEntry = useCallback((nextEntry: MealPlanEntry) => {
+    if (!plannedWeekStart) return;
+    queryClient.setQueryData<MealPlan>(["meal-plan", plannedWeekStart], (current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        entries: current.entries.map((entry) => entry.id === nextEntry.id && entry.version < nextEntry.version ? nextEntry : entry),
+      };
+    });
+    void queryClient.invalidateQueries({ queryKey: ["home-bootstrap"] });
+  }, [plannedWeekStart, queryClient]);
+
+  const startCooking = useMutation({
+    mutationFn: (entry: MealPlanEntry) => planningApi.startCooking(entry.id, entry.version),
+    onSuccess: updatePlannedEntry,
+    onError: (error) => setSyncError(error instanceof Error ? error.message : "Cooking progress could not be started."),
+  });
+  const saveProgress = useMutation({
+    mutationFn: ({ entryId, step, checked }: { entryId: string; step: number; checked: number[] }) => planningApi.saveCookingProgress(entryId, { currentStep: step, checkedIngredients: checked }),
+    onSuccess: updatePlannedEntry,
+    onError: () => setSyncError("This cooking step is saved on this device, but could not be synced yet."),
+  });
+  const completeCooking = useMutation({
+    mutationFn: ({ entry, prepared, leftovers, expiresOn }: { entry: MealPlanEntry; prepared: string; leftovers: string; expiresOn: string }) => planningApi.completeCooking(entry.id, entry.version, {
+      preparedServings: prepared,
+      leftoverServings: leftovers,
+      leftoversExpireOn: Number(leftovers) > 0 ? expiresOn : null,
+    }),
+    onSuccess: (entry) => {
+      updatePlannedEntry(entry);
+      setSyncError("");
+      setFinishing(false);
+      setComplete(true);
+    },
+    onError: (error) => setSyncError(error instanceof Error ? error.message : "Cooking completion could not be saved."),
+  });
+  const undoCooking = useMutation({
+    mutationFn: (entry: MealPlanEntry) => planningApi.undoCooking(entry.id, entry.version),
+    onSuccess: (entry) => {
+      updatePlannedEntry(entry);
+      setComplete(false);
+      setFinishing(false);
+      setSyncError("");
+    },
+    onError: (error) => setSyncError(error instanceof Error ? error.message : "Cooking completion could not be undone."),
+  });
+  const finishLeftovers = useMutation({
+    mutationFn: (entry: MealPlanEntry) => planningApi.finishLeftovers(entry.id, entry.version),
+    onSuccess: (entry) => {
+      updatePlannedEntry(entry);
+      setSyncError("");
+    },
+    onError: (error) => setSyncError(error instanceof Error ? error.message : "Leftovers could not be updated."),
+  });
 
   useEffect(() => {
     currentStepRef.current = currentStep;
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!plannedEntry || hydratedEntryVersion.current === plannedEntry.version) return;
+    hydratedEntryVersion.current = plannedEntry.version;
+    setCurrentStep(plannedEntry.cookingStep ?? 0);
+    setCheckedIngredients(new Set(plannedEntry.checkedIngredients ?? []));
+    setComplete(plannedEntry.cookingStatus === "cooked");
+    if (plannedEntry.cookingStatus === "cooked") setFinishing(false);
+    setPreparedServings(plannedEntry.preparedServings ?? plannedEntry.servings);
+    setLeftoverServings(plannedEntry.leftoverServings ?? "0");
+    setLeftoversExpireOn(plannedEntry.leftoversExpireOn ?? addDays(plannedEntry.localDate, 3));
+  }, [plannedEntry]);
+
+  useEffect(() => {
+    if (!plannedEntry || plannedEntry.cookingStatus !== "planned" || startAttempted.current === plannedEntry.id) return;
+    startAttempted.current = plannedEntry.id;
+    startCooking.mutate(plannedEntry);
+  }, [plannedEntry, startCooking]);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,13 +190,19 @@ export function CookModePage() {
     };
   }, [recipe.data?.id, recipeId]);
 
+  const persistProgress = useCallback((step: number, checked: Set<number>) => {
+    if (!plannedEntry) return;
+    setSyncError("");
+    saveProgress.mutate({ entryId: plannedEntry.id, step, checked: [...checked].sort((a, b) => a - b) });
+  }, [plannedEntry, saveProgress]);
+
   // Voice-ready handler: Step+Ingredients+User prompt via same gateway
   const utteranceMut = useMutation({
     mutationFn: (payload: { utterance: string; stepIdx: number; ingredientTexts: string[]; stepText: string }) => {
       const prompt = `Step: ${payload.stepText}\nIngredients: ${payload.ingredientTexts.join(", ")}\nUser: ${payload.utterance}`;
       return intelligenceApi.infer("cook", prompt);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
       const call = data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
       const confidence = data?.confidence ?? 0;
       const isOk = data?.status === "ok" && confidence >= 0.80;
@@ -112,16 +212,25 @@ export function CookModePage() {
         setStepDirection("forward");
         setCurrentStep((s) => {
           const stepsLen = recipe.data?.instructions.length ?? 0;
-          if (s < stepsLen - 1) return s + 1;
-          if (stepsLen) setComplete(true);
+          if (s < stepsLen - 1) {
+            const next = s + 1;
+            persistProgress(next, checkedIngredients);
+            return next;
+          }
+          if (stepsLen) {
+            if (plannedEntry) setFinishing(true);
+            else setComplete(true);
+          }
           return s;
         });
-        // avoid using stale total; handler above uses latest recipe.data length via closure but we also read ref
-        void variables;
       } else if (action === "previous") {
-        setComplete(false);
+        setFinishing(false);
         setStepDirection("backward");
-        setCurrentStep((s) => Math.max(s - 1, 0));
+        setCurrentStep((s) => {
+          const previous = Math.max(s - 1, 0);
+          persistProgress(previous, checkedIngredients);
+          return previous;
+        });
       } else if (action === "timer") {
         const minutes = Number(call.arguments.minutes);
         if (Number.isFinite(minutes)) setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
@@ -184,23 +293,31 @@ export function CookModePage() {
       const next = new Set(previous);
       if (next.has(index)) next.delete(index);
       else next.add(index);
+      persistProgress(currentStepRef.current, next);
       return next;
     });
-  }, []);
+  }, [persistProgress]);
 
   const total = recipe.data?.instructions.length ?? 0;
   const nextStep = useCallback(() => {
     if (currentStep < total - 1) {
       setStepDirection("forward");
-      setCurrentStep((step) => step + 1);
+      const next = currentStep + 1;
+      setCurrentStep(next);
+      persistProgress(next, checkedIngredients);
     }
-    else if (total) setComplete(true);
-  }, [currentStep, total]);
+    else if (total) {
+      if (plannedEntry) setFinishing(true);
+      else setComplete(true);
+    }
+  }, [checkedIngredients, currentStep, persistProgress, plannedEntry, total]);
   const prevStep = useCallback(() => {
-    setComplete(false);
+    setFinishing(false);
     setStepDirection("backward");
-    setCurrentStep((step) => Math.max(step - 1, 0));
-  }, []);
+    const previous = Math.max(currentStep - 1, 0);
+    setCurrentStep(previous);
+    persistProgress(previous, checkedIngredients);
+  }, [checkedIngredients, currentStep, persistProgress]);
 
   useEffect(() => {
     function navigateSteps(event: KeyboardEvent) {
@@ -263,6 +380,7 @@ export function CookModePage() {
           <span>{screenAwake ? "Screen stays awake" : "Cook mode"}</span>
         </div>
       </header>
+      {syncError ? <p className="cook-mode__sync-error" role="alert">{syncError}</p> : plannedEntry?.cookingStatus === "cooking" ? <p className="cook-mode__sync-status" role="status">Progress is saved to your plan.</p> : null}
 
       {!steps.length ? (
         <main className="cook-mode__empty">
@@ -286,23 +404,65 @@ export function CookModePage() {
             <p className="eyebrow">Cooking complete</p>
             <h2>Time to eat.</h2>
             <p>{currentRecipe.title} is ready. Plate it, take a breath, and enjoy what you made.</p>
+            {plannedEntry && Number(plannedEntry.leftoverServings ?? 0) > 0 ? <p className="cook-mode__leftovers"><strong>{plannedEntry.leftoverServings} leftover {Number(plannedEntry.leftoverServings) === 1 ? "serving" : "servings"}</strong> saved until {plannedEntry.leftoversExpireOn}.</p> : null}
             <div className="cook-mode__complete-actions">
               <Button asChild>
-                <Link to={"/app/recipes/" + recipeId}>Back to recipe</Link>
+                <Link to={plannedEntry ? `/app/plan?date=${plannedEntry.localDate}` : "/app/recipes/" + recipeId}>{plannedEntry ? "Back to today’s plan" : "Back to recipe"}</Link>
               </Button>
-              <Button
+              {plannedEntry && Number(plannedEntry.leftoverServings ?? 0) > 0 ? <Button variant="secondary" disabled={finishLeftovers.isPending} onClick={() => finishLeftovers.mutate(plannedEntry)}>Leftovers finished</Button> : null}
+              {plannedEntry ? <Button variant="ghost" disabled={undoCooking.isPending} onClick={() => undoCooking.mutate(plannedEntry)}>
+                <RotateCcw aria-hidden="true" />
+                Undo completion
+              </Button> : <Button
                 variant="secondary"
                 onClick={() => {
                   setCurrentStep(0);
                   setComplete(false);
+                  setFinishing(false);
                   setCheckedIngredients(new Set());
                 }}
               >
                 <RotateCcw aria-hidden="true" />
                 Cook again
-              </Button>
+              </Button>}
             </div>
           </div>
+        </main>
+      ) : finishing ? (
+        <main className="cook-mode__finish">
+          <div className="cook-mode__finish-copy">
+            <p className="eyebrow">Dinner is ready</p>
+            <h2>Finish this cooking session</h2>
+            <p>Save only what is useful. Leftovers are optional and never change your pantry automatically.</p>
+          </div>
+          <form className="cook-mode__finish-form" onSubmit={(event) => {
+            event.preventDefault();
+            const prepared = Number(preparedServings);
+            const leftovers = Number(leftoverServings || 0);
+            if (!Number.isFinite(prepared) || prepared <= 0 || !Number.isFinite(leftovers) || leftovers < 0 || leftovers > prepared) {
+              setSyncError("Enter how much you made, with leftovers no greater than that amount.");
+              return;
+            }
+            if (leftovers > 0 && !leftoversExpireOn) {
+              setSyncError("Choose a use-by date for the leftovers.");
+              return;
+            }
+            if (plannedEntry) completeCooking.mutate({ entry: plannedEntry, prepared: preparedServings, leftovers: leftoverServings || "0", expiresOn: leftoversExpireOn });
+            else {
+              setFinishing(false);
+              setComplete(true);
+            }
+          }}>
+            <div className="cook-mode__finish-fields">
+              <Field label="Servings made"><DecimalInput value={preparedServings} onInput={(event) => setPreparedServings(event.currentTarget.value)} /></Field>
+              <Field label="Leftover servings (optional)"><DecimalInput value={leftoverServings} onInput={(event) => setLeftoverServings(event.currentTarget.value)} /></Field>
+              {Number(leftoverServings) > 0 ? <Field label="Use leftovers by"><input className="input data-value" type="date" min={plannedEntry?.localDate} value={leftoversExpireOn} onChange={(event) => setLeftoversExpireOn(event.currentTarget.value)} /></Field> : null}
+            </div>
+            <div className="cook-mode__finish-actions">
+              <Button type="button" variant="secondary" onClick={() => setFinishing(false)}>Back to last step</Button>
+              <Button type="submit" disabled={completeCooking.isPending || saveProgress.isPending}>{completeCooking.isPending ? "Saving…" : "Finish cooking"}</Button>
+            </div>
+          </form>
         </main>
       ) : (
         <div className="cook-mode__body">
@@ -372,7 +532,7 @@ export function CookModePage() {
                 <ChevronLeft aria-hidden="true" />
                 Previous
               </Button>
-              <Button onClick={nextStep}>
+              <Button disabled={saveProgress.isPending} onClick={nextStep}>
                 {currentStep < total - 1 ? "Next step" : "Finish cooking"}
                 <ChevronRight aria-hidden="true" />
               </Button>

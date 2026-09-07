@@ -18,7 +18,7 @@ const sensors = typeof window !== "undefined" && "PointerEvent" in window
   : [];
 
 function DraggableDayEntry({ entry, weekStart, recipe, readOnly }: { entry: PlannedEntry; weekStart: string; recipe?: Recipe; readOnly: boolean }) {
-  const { ref, isDragging } = useDraggable<MealDragData>({ id: `day-${entry.id}`, data: { kind: "meal", entry }, disabled: !entry.recipeId || readOnly });
+  const { ref, isDragging } = useDraggable<MealDragData>({ id: `day-${entry.id}`, data: { kind: "meal", entry }, disabled: !entry.recipeId || readOnly || entry.cookingStatus === "cooked" });
   return <div ref={ref} className={`day-entry-drag${isDragging ? " is-dragging" : ""}`}><MealPlanEntry entry={entry} weekStart={weekStart} recipe={recipe} readOnly={readOnly} /></div>;
 }
 

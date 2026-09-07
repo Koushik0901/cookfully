@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { daysLeft, expiryBadge } from "../expiry";
@@ -205,5 +206,23 @@ describe("pantry use-soon chips and sort", () => {
     expect((await screen.findAllByText("Berries")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Expired 1d ago/).length).toBeGreaterThanOrEqual(1);
     expect(document.querySelector(".expiry-chip--danger")).toBeInTheDocument();
+  });
+
+  it("gives a pantry with no saved recipes a direct path to add one", async () => {
+    const { PantryPage } = await import("../PantryPage");
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <PantryPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Show recipe ideas" }));
+    await user.click(screen.getByRole("button", { name: "Find recipes" }));
+    expect(await screen.findByText("Add a recipe to compare")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add a recipe" })).toHaveAttribute("href", "/app/recipes/new");
   });
 });

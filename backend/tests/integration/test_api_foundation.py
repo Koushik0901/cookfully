@@ -53,5 +53,13 @@ def test_health_login_csrf_preferences_and_problem_contract(isolated_database_ur
             "displayName": "Owner",
             "timezone": "America/Vancouver",
             "weekStartsOn": 7,
+            "healthProfile": {
+                "ageYears": None,
+                "heightCm": None,
+                "currentWeightKg": None,
+                "targetWeightKg": None,
+                "dietaryPattern": "no_preference",
+                "avoidIngredients": [],
+            },
             "version": 2,
         }

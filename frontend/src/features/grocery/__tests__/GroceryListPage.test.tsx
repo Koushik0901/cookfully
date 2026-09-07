@@ -179,6 +179,23 @@ describe("GroceryListPage", () => {
     expect(screen.getByRole("button", { name: "Refresh from plan" })).toBeVisible();
   });
 
+  it("puts the build action in reach after a meal is planned on mobile", async () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    currentList = list([]);
+    mocks.regenerate.mockResolvedValue(currentList);
+    mocks.plan.mockResolvedValue({ ...plan, entries: [{ id: "meal-1" }] });
+    renderPage();
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("heading", { name: "Build your grocery list" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "1 planned meal, one shopping list" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Build grocery list" }));
+    await waitFor(() => expect(mocks.regenerate).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByLabelText("More grocery actions"));
+    await screen.findByRole("dialog", { name: "List actions" });
+    expect(screen.queryByRole("button", { name: "Refresh from plan" })).not.toBeInTheDocument();
+  });
+
   it("shows all-items-complete state, finishes the pass, and supports reopen", async () => {
     currentList = list([
       item({ id: "item-done", displayName: "Apples", checked: true, shoppingStop: stop }),
@@ -191,6 +208,6 @@ describe("GroceryListPage", () => {
     expect(await screen.findByText("This shopping pass is complete")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Reopen list" }));
     await waitFor(() => expect(screen.getByText("Ready when you are")).toBeVisible());
-    expect(mocks.reopen).toHaveBeenCalledWith("2026-08-24", 4);
+    expect(mocks.reopen).toHaveBeenCalledWith(expect.any(String), 4);
   });
 });

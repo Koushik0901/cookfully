@@ -85,7 +85,7 @@ export function RecipePickerSheet({
               {preferredRecipe ? <div className="recipe-picker__recommended">
                 <span>Ready to place</span>
                 <button className="recipe-pick recipe-pick--recommended" type="button" disabled={Boolean(pendingRecipeId)} onClick={() => onChoose(preferredRecipe.id)} aria-label={`Add ${preferredRecipe.title} to ${slotLabel}`}>
-                  <span className={`recipe-pick__media ${preferredRecipe.imageUrl ? "" : "recipe-pick__media--fallback"}`}><RecipeMedia recipe={preferredRecipe} /></span>
+                  <span className={`recipe-pick__media ${preferredRecipe.imageUrl ? "" : "recipe-pick__media--fallback"}`}><RecipeMedia recipe={preferredRecipe} sizes="68px" /></span>
                   <span className="recipe-pick__copy"><strong>{preferredRecipe.title}</strong><small>One serving · change it any time</small></span>
                   <span className="recipe-pick__action">{pendingRecipeId === preferredRecipe.id ? "Adding…" : "Plan it"}</span>
                 </button>
@@ -96,7 +96,7 @@ export function RecipePickerSheet({
               return (
                 <button className="recipe-pick" type="button" key={recipe.id} disabled={Boolean(pendingRecipeId)} onClick={() => onChoose(recipe.id)} aria-label={`Add ${recipe.title} to ${slotLabel}`}>
                   <span className={`recipe-pick__media ${recipe.imageUrl ? "" : "recipe-pick__media--fallback"}`}>
-                    <RecipeMedia recipe={recipe} />
+                    <RecipeMedia recipe={recipe} sizes="68px" />
                   </span>
                   <span className="recipe-pick__copy">
                     <strong>{recipe.title}</strong>
@@ -110,9 +110,9 @@ export function RecipePickerSheet({
             </> : (
               <div className="recipe-picker__empty">
                 <CookingPot aria-hidden="true" />
-                <strong>{query ? "No recipes match that search" : unavailableRecipeCount ? "No recipes are ready to plan" : "Your recipe shelf is empty"}</strong>
-                <p>{query ? "Try a shorter dish name or clear the search." : unavailableRecipeCount ? "Finish or refresh the nutrition estimate on a recipe, then it can join the plan. In a new kitchen, install nutrition data first." : "Save a recipe first, then come back to place it in your week."}</p>
-                {!query && unavailableRecipeCount ? <Dialog.Close asChild><Link to="/app/settings?tab=data">Set up nutrition data</Link></Dialog.Close> : null}
+                <strong>{query ? "No recipes match that search" : unavailableRecipeCount ? "These recipes need a quick review" : "Your recipe shelf is empty"}</strong>
+                <p>{query ? "Try a shorter dish name or clear the search." : unavailableRecipeCount ? "Refresh a stale recipe before planning it. Nutrition that is still processing will not hold up dinner." : "Save a recipe first, then come back to place it in your week."}</p>
+                {!query && unavailableRecipeCount ? <Dialog.Close asChild><Link to="/app/recipes?view=attention">Review recipes</Link></Dialog.Close> : null}
               </div>
             )}
           </div>

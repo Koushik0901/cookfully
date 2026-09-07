@@ -7,5 +7,7 @@ export type MealTarget = components["schemas"]["MealTarget"];
 export type MealPlan = components["schemas"]["MealPlan"];
 export type MealPlanEntry = components["schemas"]["MealPlanEntry"];
 export type MealPlanEntryWrite = components["schemas"]["MealPlanEntryWrite"];
+export type MealCookingProgress = components["schemas"]["MealCookingProgress"];
+export type MealCookingComplete = components["schemas"]["MealCookingComplete"];
 export type PeriodTotal = components["schemas"]["PeriodTotal"];
 export type RecipePage = components["schemas"]["RecipePage"];

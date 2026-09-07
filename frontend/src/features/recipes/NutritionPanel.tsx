@@ -1,5 +1,6 @@
 import { Button, PollingStatusBadge, SectionHeading } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
+import { Link } from "react-router-dom";
 import type { Job, ResolvedNutrition } from "./types";
 
 const MICRONUTRIENTS = [
@@ -37,11 +38,13 @@ export function NutritionPanel({
   nutritionState,
   job,
   onRecalculate,
+  editTo,
 }: {
   nutrition: ResolvedNutrition | null | undefined;
   nutritionState: string;
   job?: Job | null;
   onRecalculate: () => Promise<void>;
+  editTo?: string;
 }) {
   const availableMicronutrients = nutrition
     ? MICRONUTRIENTS.flatMap(([key, label]) => {
@@ -57,6 +60,7 @@ export function NutritionPanel({
       <SectionHeading eyebrow="How Cookfully got the numbers" title="Nutrition details" id="nutrition-evidence-heading" action={<Button variant="secondary" onClick={() => void onRecalculate()}>Recalculate nutrition</Button>} />
 
       <p className="nutrition-caution">Estimated nutrition is a planning aid, not medical advice. Verify values when clinical precision matters.</p>
+      {editTo ? <Link className="text-link nutrition-evidence-panel__edit" to={`${editTo}#nutrition`}>Edit nutrition</Link> : null}
       {nutrition ? <p className="muted">Basis: {Number(nutrition.basisServings).toLocaleString()} servings · {Math.round(Number(nutrition.coverageRatio) * 100)}% ingredient coverage</p> : null}
 
       {job ? (

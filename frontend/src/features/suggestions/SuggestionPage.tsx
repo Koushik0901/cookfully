@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, RecipeMedia, SearchField, Select, Skeleton } from "../../components";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
-import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
+import { isRecipeReadyForNutritionGuidance } from "../recipes/recipeEligibility";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todayInTimezone, weekStartFor } from "../plans/dates";
 import { suggestionsApi } from "./api";
@@ -127,9 +127,10 @@ export function SuggestionPage() {
   const today = preferences.data ? todayInTimezone(preferences.data.timezone) : "";
   const selectedDateIsPast = Boolean(localDate && today && localDate < today);
   const availableRecipes = useMemo(
-    () => recipes.data?.items.filter(isRecipeReadyToPlan) ?? [],
+    () => recipes.data?.items.filter(isRecipeReadyForNutritionGuidance) ?? [],
     [recipes.data],
   );
+  const savedRecipeCount = recipes.data?.items.length ?? 0;
   const visibleRuleRecipes = useMemo(() => {
     const query = recipeRuleQuery.trim().toLocaleLowerCase();
     return availableRecipes
@@ -184,7 +185,7 @@ export function SuggestionPage() {
           <Field label="Fat tolerance"><DecimalInput value={tolerances.fatG} onValueChange={(value) => updateTolerance("fatG", value)} /></Field>
         </fieldset></div></details>
         <details className="suggestion-tune"><summary><ChefHat aria-hidden="true" /><span><strong>Use or avoid specific recipes</strong><small>Optional rules that Cookfully will always respect</small></span></summary><fieldset className="recipe-constraints suggestion-tune__body"><legend>Recipe preferences</legend>
-          {availableRecipes.length ? <><SearchField label="Find a recipe" value={recipeRuleQuery} onChange={(event) => setRecipeRuleQuery(event.target.value)} onClear={() => setRecipeRuleQuery("")} placeholder="Search your recipe library" /><div className="recipe-rule-list">{visibleRuleRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><span className="recipe-rule__identity"><strong>{recipe.title}</strong><RecipeMetadata recipe={recipe} compact /></span><label><Checkbox checked={requiredIds.includes(recipe.id)} onCheckedChange={(checked) => toggleRequired(recipe.id, checked === true)} /> Use <span className="visually-hidden">{recipe.title}</span></label><label><Checkbox checked={excludedIds.includes(recipe.id)} onCheckedChange={(checked) => toggleExcluded(recipe.id, checked === true)} /> Avoid <span className="visually-hidden">{recipe.title}</span></label></div>)}</div>{recipeRuleQuery && !visibleRuleRecipes.length ? <p className="muted">No recipes match that search.</p> : null}{availableRecipes.length > visibleRuleRecipes.length ? <p className="muted">Showing {visibleRuleRecipes.length} of {availableRecipes.length}. Search to find another recipe.</p> : null}</> : <p className="muted">No nutrition-ready recipes are available.</p>}
+          {availableRecipes.length ? <><SearchField label="Find a recipe" value={recipeRuleQuery} onChange={(event) => setRecipeRuleQuery(event.target.value)} onClear={() => setRecipeRuleQuery("")} placeholder="Search your recipe library" /><div className="recipe-rule-list">{visibleRuleRecipes.map((recipe) => <div className="recipe-rule" key={recipe.id}><span className="recipe-rule__identity"><strong>{recipe.title}</strong><RecipeMetadata recipe={recipe} compact /></span><label><Checkbox checked={requiredIds.includes(recipe.id)} onCheckedChange={(checked) => toggleRequired(recipe.id, checked === true)} /> Use <span className="visually-hidden">{recipe.title}</span></label><label><Checkbox checked={excludedIds.includes(recipe.id)} onCheckedChange={(checked) => toggleExcluded(recipe.id, checked === true)} /> Avoid <span className="visually-hidden">{recipe.title}</span></label></div>)}</div>{recipeRuleQuery && !visibleRuleRecipes.length ? <p className="muted">No recipes match that search.</p> : null}{availableRecipes.length > visibleRuleRecipes.length ? <p className="muted">Showing {visibleRuleRecipes.length} of {availableRecipes.length}. Search to find another recipe.</p> : null}</> : <div className="suggestion-recipe-onramp"><strong>{savedRecipeCount ? "Get a recipe ready first" : "Start with a recipe"}</strong><p>{savedRecipeCount ? "Finish its nutrition estimate or review its ingredient matches, then Cookfully can use it for suggestions." : "Save a dish you want to cook. Cookfully will use it when it finds a practical fit for your plan."}</p><div>{savedRecipeCount ? <><Link to="/app/recipes">Review recipes</Link><Link to="/app/settings?tab=data">Set up nutrition data</Link></> : <Link to="/app/recipes/new">Add a recipe</Link>}</div></div>}
         </fieldset></details>
         <div className="suggestion-create"><div><Soup aria-hidden="true" /><p><strong>Ready to find a good fit</strong><span>Uses your saved recipes, current plan, and nutrition guide.</span></p></div><Button disabled={create.isPending || !availableRecipes.length || selectedDateIsPast} onClick={() => create.mutate()}>{create.isPending ? "Finding ideas…" : "Find meal ideas"}</Button></div>
         {selectedDateIsPast ? <p className="error-text" role="alert">Past planning days are read-only. Choose today or a future day.</p> : null}

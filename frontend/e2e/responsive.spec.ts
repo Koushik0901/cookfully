@@ -27,6 +27,7 @@ test("desktop and 390x844 layouts contain long content without document overflow
   if (testInfo.project.name === "narrow-mobile") {
     await page.getByRole("button", { name: "Nutrition" }).click();
     await expect(page.locator(".recipe-nutrition-drawer")).toHaveAttribute("open", "");
+    await expect(page.getByRole("link", { name: "Edit nutrition" })).toHaveAttribute("href", `/app/recipes/${accessibleRecipeId}/edit#nutrition`);
     await expect(page.getByRole("link", { name: "Start cooking" })).toHaveCount(1);
   }
 

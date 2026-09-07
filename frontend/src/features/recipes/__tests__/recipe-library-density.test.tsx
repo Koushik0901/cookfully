@@ -94,7 +94,7 @@ describe("recipe library density", () => {
   it("makes search and add recipe the clear first actions", async () => {
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "What would you like to cook?" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Recipes" })).toBeVisible();
     const addRecipe = screen.getByText("Add recipe", { selector: "summary" });
     expect(addRecipe).toBeVisible();
     await userEvent.click(addRecipe);
@@ -109,7 +109,7 @@ describe("recipe library density", () => {
   it("archives selected recipes together and clears the selection", async () => {
     renderPage();
     const user = userEvent.setup();
-    await screen.findByRole("heading", { name: "What would you like to cook?" });
+    await screen.findByRole("heading", { name: "Recipes" });
 
     await user.click(screen.getByRole("button", { name: "Select recipes" }));
     await user.click(screen.getByRole("checkbox", { name: "Select Roasted salmon bowl" }));
@@ -133,9 +133,29 @@ describe("recipe library density", () => {
       return json({}, 404);
     }));
     renderPage();
-    await screen.findByRole("heading", { name: "What would you like to cook?" });
+    await screen.findByRole("heading", { name: "Recipes" });
     await userEvent.selectOptions(screen.getByLabelText("Group results"), "readiness");
     expect(await screen.findByRole("heading", { name: "Needs a nutrition check" })).toBeVisible();
     expect(screen.getAllByText("Roasted salmon bowl")).toHaveLength(2);
+  });
+
+  it("keeps pending nutrition recipes available in the ready-to-plan view", async () => {
+    vi.stubGlobal("fetch", vi.fn((input) => {
+      const path = String(input);
+      if (path.includes("/owner-onboarding")) return json({ state: "completed", version: 1 });
+      if (path.endsWith("/recipes/collections")) return json([]);
+      if (path.includes("/recipes")) return json({ ...page, items: page.items.map((recipe) => ({ ...recipe, nutritionState: "pending" })) });
+      return json({}, 404);
+    }));
+    renderPage();
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: "Recipes" });
+    await user.click(screen.getByText("Refine recipes"));
+    await user.selectOptions(screen.getByLabelText("Recipe status"), "ready");
+
+    expect(await screen.findByText("Roasted salmon bowl")).toBeVisible();
+    expect(screen.queryByText("No recipes ready to plan")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Nutrition pending").length).toBeGreaterThan(0);
   });
 });

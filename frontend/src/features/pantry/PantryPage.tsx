@@ -323,7 +323,7 @@ function MatchResultCard({ match, recipe }: { match: PantryRecipeMatch; recipe?:
   return (
     <article className="pantry-match" aria-label={match.recipeTitle}>
       <Link className="pantry-match__media" to={`/app/recipes/${match.recipeId}`} tabIndex={-1} aria-hidden="true">
-        {recipe ? <RecipeMedia recipe={recipe} loading="eager" /> : <RecipeFallbackArt title={match.recipeTitle} />}
+        {recipe ? <RecipeMedia recipe={recipe} sizes="(max-width: 47.99rem) 100vw, 168px" /> : <RecipeFallbackArt title={match.recipeTitle} />}
       </Link>
       <div className="pantry-match__body">
         <header className="pantry-match__heading">
@@ -441,6 +441,7 @@ export function PantryPage() {
   const reviewCount = items.data.filter((item) => item.matchStatus !== "matched" && item.matchStatus !== "manual").length;
   const shelf = [...items.data].sort((a, b) => (a.expiresOn ? 0 : 1) - (b.expiresOn ? 0 : 1) || (a.expiresOn || "").localeCompare(b.expiresOn || "") || (MATCH_ORDER.get(a.matchStatus) ?? 3) - (MATCH_ORDER.get(b.matchStatus) ?? 3));
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
+  const availableRecipeCount = recipes.data?.items.length ?? 0;
 
   return (
     <main className="page-shell pantry-page">
@@ -541,7 +542,11 @@ export function PantryPage() {
               {matches.data.map((match) => <MatchResultCard key={match.recipeId} match={match} recipe={recipesById.get(match.recipeId)} />)}
             </div>
           ) : searchEnabled && matches.data ? (
-            <EmptyState title="No recipes found" description="Try a different title filter or add recipes first." />
+            <EmptyState
+              title={recipeQuery ? "No recipes match that title" : availableRecipeCount ? "Nothing matches your shelf yet" : "Add a recipe to compare"}
+              description={recipeQuery ? "Clear the title to compare every saved recipe with your shelf." : availableRecipeCount ? "Try another recipe title, or add the missing ingredients when you are ready to make one." : "Save a dish you want to cook, then Cookfully can show what your shelf already covers."}
+              action={recipeQuery ? <Button variant="secondary" onClick={() => { setRecipeQuery(""); setSearchEnabled(true); }}>Compare every recipe</Button> : availableRecipeCount ? <Button variant="secondary" asChild><Link to="/app/recipes">Browse saved recipes</Link></Button> : <Button asChild><Link to="/app/recipes/new">Add a recipe</Link></Button>}
+            />
           ) : null}
           <p className="pantry-cook__more muted">
             <ArrowRight aria-hidden="true" />

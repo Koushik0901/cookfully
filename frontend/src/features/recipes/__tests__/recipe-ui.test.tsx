@@ -101,7 +101,7 @@ function renderRoute(element: React.ReactNode, path = "/app/recipes/00000000-000
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[{ pathname: path, state }]}>
+      <MemoryRouter initialEntries={[state === undefined ? path : { pathname: path, state }]}>
         <Routes>
           <Route path="/app/recipes/:recipeId" element={element} />
           <Route path="/app/recipes/:recipeId/cook" element={element} />
@@ -263,6 +263,71 @@ describe("recipe UI", () => {
 
     await user.click(screen.getByRole("button", { name: "Cook again" }));
     expect(screen.getByText("Mix the oats.")).toBeVisible();
+  });
+
+  it("resumes a planned cooking session and saves leftovers with undo", async () => {
+    const weekStart = "2026-03-09";
+    const entry = {
+      id: "00000000-0000-4000-8000-000000000020",
+      localDate: "2026-03-11",
+      mealSlot: "dinner",
+      recipeId: recipe.id,
+      recipeTitle: recipe.title,
+      servings: "2",
+      position: 0,
+      refreshNutrition: false,
+      nutrition: recipe.nutrition,
+      origin: "manual",
+      version: 3,
+      cookingStatus: "cooking",
+      cookingStep: 1,
+      checkedIngredients: [0],
+      cookingStartedAt: "2026-03-11T18:00:00Z",
+      cookedAt: null,
+      preparedServings: null,
+      leftoverServings: null,
+      leftoversExpireOn: null,
+    };
+    const plan = {
+      id: "00000000-0000-4000-8000-000000000030",
+      weekStart,
+      timezone: "America/Vancouver",
+      entries: [entry],
+      dayTotals: {},
+      weekTotal: { ...recipe.nutrition, targetDifference: null },
+      groceryStatus: "current",
+      version: 3,
+    };
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation((input, init) => {
+      const path = String(input);
+      if (path.includes(`/meal-plans/${weekStart}`)) return response(plan);
+      if (path.includes("/cooking/complete") && init?.method === "POST") return response({ ...entry, version: 4, cookingStatus: "cooked", cookedAt: "2026-03-11T18:30:00Z", preparedServings: "2", leftoverServings: "1", leftoversExpireOn: "2026-03-14" });
+      if (path.includes("/cooking/undo") && init?.method === "POST") return response({ ...entry, version: 5 });
+      return response({ ...recipe, instructions: [{ position: 0, text: "Mix the oats." }, { position: 1, text: "Chill and serve." }] });
+    });
+
+    renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook?entry=${entry.id}&week=${weekStart}`);
+    const user = userEvent.setup();
+
+    expect(await screen.findByText("Step 2 of 2")).toBeVisible();
+    expect(screen.getByRole("checkbox")).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Finish cooking" }));
+    expect(screen.getByRole("heading", { name: "Finish this cooking session" })).toBeVisible();
+    await user.clear(screen.getByLabelText("Leftover servings (optional)"));
+    await user.type(screen.getByLabelText("Leftover servings (optional)"), "1");
+    await user.click(screen.getByRole("button", { name: "Finish cooking" }));
+
+    expect(await screen.findByRole("heading", { name: "Time to eat." })).toBeVisible();
+    expect(screen.getByText(/1 leftover serving/)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Back to today’s plan" })).toHaveAttribute("href", "/app/plan?date=2026-03-11");
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input, init]) => String(input).includes("/cooking/complete") && init?.method === "POST");
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ preparedServings: "2", leftoverServings: "1", leftoversExpireOn: "2026-03-14" });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Undo completion" }));
+    expect(await screen.findByText("Step 2 of 2")).toBeVisible();
   });
 
   it("keeps stale lifecycle warnings ahead of manual provenance on recipe cards", () => {

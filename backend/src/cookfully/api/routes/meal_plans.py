@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date
 from typing import Annotated
 from uuid import UUID
@@ -7,6 +8,8 @@ from fastapi import APIRouter, Depends, Path, Request, Response, status
 from cookfully.api.dependencies.auth import require_scopes
 from cookfully.api.routes.recipes import expected_version, idempotency_key
 from cookfully.api.schemas.plans import (
+    MealCookingCompleteRequest,
+    MealCookingProgressRequest,
     MealPlanEntryResponse,
     MealPlanEntrySwapRequest,
     MealPlanEntrySwapResponse,
@@ -14,7 +17,7 @@ from cookfully.api.schemas.plans import (
     MealPlanResponse,
 )
 from cookfully.application.idempotency import IdempotencyService
-from cookfully.application.meal_plans import MealPlanService
+from cookfully.application.meal_plans import MealPlanEntryRead, MealPlanService
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
 
@@ -206,3 +209,170 @@ def delete_meal_plan_entry(
             raise
         idempotency.complete(owner_id=owner.id, key=key, response_status=204, resource_id=entry_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _entry_mutation_response(
+    *,
+    owner: OwnerAccount,
+    idempotency: IdempotencyService,
+    key: str,
+    operation: str,
+    request_body: dict[str, object],
+    mutate: Callable[[], MealPlanEntryRead],
+) -> MealPlanEntryResponse:
+    decision = idempotency.begin(
+        owner_id=owner.id, key=key, operation=operation, payload=request_body
+    )
+    if decision.replay:
+        if decision.response_body is None:
+            raise DomainError(
+                "idempotency_response_missing", "Stored response is unavailable.", 500
+            )
+        return MealPlanEntryResponse.model_validate(decision.response_body)
+    try:
+        response = MealPlanEntryResponse.from_read(mutate())
+    except Exception:
+        idempotency.abort(owner_id=owner.id, key=key)
+        raise
+    idempotency.complete(
+        owner_id=owner.id,
+        key=key,
+        response_status=200,
+        resource_id=response.id,
+        response_body=response.model_dump(mode="json", by_alias=True),
+    )
+    return response
+
+
+@router.post(
+    "/meal-plan-entries/{entryId}/cooking/start",
+    response_model=MealPlanEntryResponse,
+    response_model_by_alias=True,
+)
+def start_meal_cooking(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntryResponse:
+    return _entry_mutation_response(
+        owner=owner,
+        idempotency=idempotency,
+        key=key,
+        operation="meal_plan.entry.cooking.start",
+        request_body={"entryId": str(entry_id), "version": version},
+        mutate=lambda: service.start_cooking(owner.id, entry_id, expected_version=version),
+    )
+
+
+@router.patch(
+    "/meal-plan-entries/{entryId}/cooking/progress",
+    response_model=MealPlanEntryResponse,
+    response_model_by_alias=True,
+)
+def save_meal_cooking_progress(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    payload: MealCookingProgressRequest,
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntryResponse:
+    request_body = {"entryId": str(entry_id), **payload.model_dump(mode="json", by_alias=True)}
+    return _entry_mutation_response(
+        owner=owner,
+        idempotency=idempotency,
+        key=key,
+        operation="meal_plan.entry.cooking.progress",
+        request_body=request_body,
+        mutate=lambda: service.save_cooking_progress(
+            owner.id,
+            entry_id,
+            current_step=payload.current_step,
+            checked_ingredients=payload.checked_ingredients,
+        ),
+    )
+
+
+@router.post(
+    "/meal-plan-entries/{entryId}/cooking/complete",
+    response_model=MealPlanEntryResponse,
+    response_model_by_alias=True,
+)
+def complete_meal_cooking(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    payload: MealCookingCompleteRequest,
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntryResponse:
+    request_body = {
+        "entryId": str(entry_id),
+        "version": version,
+        **payload.model_dump(mode="json", by_alias=True),
+    }
+    return _entry_mutation_response(
+        owner=owner,
+        idempotency=idempotency,
+        key=key,
+        operation="meal_plan.entry.cooking.complete",
+        request_body=request_body,
+        mutate=lambda: service.complete_cooking(
+            owner.id,
+            entry_id,
+            prepared_servings=payload.prepared_servings,
+            leftover_servings=payload.leftover_servings,
+            leftovers_expires_on=payload.leftovers_expires_on,
+            expected_version=version,
+        ),
+    )
+
+
+@router.post(
+    "/meal-plan-entries/{entryId}/cooking/undo",
+    response_model=MealPlanEntryResponse,
+    response_model_by_alias=True,
+)
+def undo_meal_cooking(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntryResponse:
+    return _entry_mutation_response(
+        owner=owner,
+        idempotency=idempotency,
+        key=key,
+        operation="meal_plan.entry.cooking.undo",
+        request_body={"entryId": str(entry_id), "version": version},
+        mutate=lambda: service.undo_cooking(owner.id, entry_id, expected_version=version),
+    )
+
+
+@router.post(
+    "/meal-plan-entries/{entryId}/leftovers/finish",
+    response_model=MealPlanEntryResponse,
+    response_model_by_alias=True,
+)
+def finish_meal_leftovers(
+    entry_id: Annotated[UUID, Path(alias="entryId")],
+    version: Annotated[int, Depends(expected_version)],
+    service: Annotated[MealPlanService, Depends(plan_service)],
+    idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("plans:write"))],
+    key: Annotated[str, Depends(idempotency_key)],
+) -> MealPlanEntryResponse:
+    return _entry_mutation_response(
+        owner=owner,
+        idempotency=idempotency,
+        key=key,
+        operation="meal_plan.entry.leftovers.finish",
+        request_body={"entryId": str(entry_id), "version": version},
+        mutate=lambda: service.finish_leftovers(owner.id, entry_id, expected_version=version),
+    )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
@@ -149,6 +150,17 @@ class MealPlanEntrySwapRequest(ApiModel):
     target_version: int = Field(alias="targetVersion", ge=1)
 
 
+class MealCookingProgressRequest(ApiModel):
+    current_step: int = Field(alias="currentStep", ge=0)
+    checked_ingredients: tuple[int, ...] = Field(alias="checkedIngredients", default=())
+
+
+class MealCookingCompleteRequest(ApiModel):
+    prepared_servings: ServingDecimal = Field(alias="preparedServings")
+    leftover_servings: Decimal6 = Field(alias="leftoverServings", default=Decimal(0))
+    leftovers_expires_on: date | None = Field(alias="leftoversExpireOn", default=None)
+
+
 class NutritionSnapshotResponse(ApiModel):
     basis_servings: str = Field(alias="basisServings")
     calories_kcal: str | None = Field(alias="caloriesKcal")
@@ -199,6 +211,14 @@ class MealPlanEntryResponse(ApiModel):
     nutrition: NutritionSnapshotResponse
     origin: str
     version: int
+    cooking_status: str = Field(alias="cookingStatus", default="planned")
+    cooking_step: int = Field(alias="cookingStep", default=0, ge=0)
+    checked_ingredients: tuple[int, ...] = Field(alias="checkedIngredients", default=())
+    cooking_started_at: datetime | None = Field(alias="cookingStartedAt", default=None)
+    cooked_at: datetime | None = Field(alias="cookedAt", default=None)
+    prepared_servings: str | None = Field(alias="preparedServings", default=None)
+    leftover_servings: str | None = Field(alias="leftoverServings", default=None)
+    leftovers_expires_on: date | None = Field(alias="leftoversExpireOn", default=None)
 
     @classmethod
     def from_read(cls, value: MealPlanEntryRead) -> MealPlanEntryResponse:
@@ -214,6 +234,22 @@ class MealPlanEntryResponse(ApiModel):
             nutrition=NutritionSnapshotResponse.from_read(value),
             origin=value.origin,
             version=value.version,
+            cooking_status=value.cooking_status,
+            cooking_step=value.cooking_step,
+            checked_ingredients=value.checked_ingredients,
+            cooking_started_at=value.cooking_started_at,
+            cooked_at=value.cooked_at,
+            prepared_servings=(
+                canonical_decimal(value.prepared_servings, places=3)
+                if value.prepared_servings is not None
+                else None
+            ),
+            leftover_servings=(
+                canonical_decimal(value.leftover_servings, places=3)
+                if value.leftover_servings is not None
+                else None
+            ),
+            leftovers_expires_on=value.leftovers_expires_on,
         )
 
 

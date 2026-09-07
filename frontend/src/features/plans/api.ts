@@ -1,6 +1,8 @@
 import { apiRequest } from "../recipes/api";
 import type {
   MealPlan,
+  MealCookingComplete,
+  MealCookingProgress,
   MealPlanEntry,
   MealPlanEntryWrite,
   OwnerPreferences,
@@ -77,6 +79,42 @@ export const planningApi = {
   removeEntry(entryId: string, version: number) {
     return apiRequest<void>(`/meal-plan-entries/${entryId}`, {
       method: "DELETE",
+      idempotent: true,
+      version,
+    });
+  },
+  startCooking(entryId: string, version: number) {
+    return apiRequest<MealPlanEntry>(`/meal-plan-entries/${entryId}/cooking/start`, {
+      method: "POST",
+      idempotent: true,
+      version,
+    });
+  },
+  saveCookingProgress(entryId: string, value: MealCookingProgress) {
+    return apiRequest<MealPlanEntry>(`/meal-plan-entries/${entryId}/cooking/progress`, {
+      method: "PATCH",
+      idempotent: true,
+      body: JSON.stringify(value),
+    });
+  },
+  completeCooking(entryId: string, version: number, value: MealCookingComplete) {
+    return apiRequest<MealPlanEntry>(`/meal-plan-entries/${entryId}/cooking/complete`, {
+      method: "POST",
+      idempotent: true,
+      version,
+      body: JSON.stringify(value),
+    });
+  },
+  undoCooking(entryId: string, version: number) {
+    return apiRequest<MealPlanEntry>(`/meal-plan-entries/${entryId}/cooking/undo`, {
+      method: "POST",
+      idempotent: true,
+      version,
+    });
+  },
+  finishLeftovers(entryId: string, version: number) {
+    return apiRequest<MealPlanEntry>(`/meal-plan-entries/${entryId}/leftovers/finish`, {
+      method: "POST",
       idempotent: true,
       version,
     });

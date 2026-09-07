@@ -35,12 +35,13 @@ export function MacroSummary({ total, target, label }: { total?: PeriodTotal; ta
       <SectionHeading title={label} action={total ? <details className="nutrition-confidence"><summary>{nutritionConfidenceLabel(total.status, total.coverageRatio)}</summary><p>{total.status.replace("_", " ")} nutrition · {Math.round(Number(total.coverageRatio) * 100)}% source coverage</p></details> : <span className="nutrition-confidence__empty">No meals planned</span>} />
       <div className="budget-grid">
         {MACROS.map(([field, name, unit, className]) => {
-          const consumed = total?.[field] ?? "0";
+          const consumed = total?.[field] ?? (!total ? "0" : null);
           const targetValue = target[field];
-          const percentage = Math.min(100, Math.max(0, Number(consumed) / Number(targetValue || 1) * 100));
+          const available = consumed != null;
+          const percentage = available ? Math.min(100, Math.max(0, Number(consumed) / Number(targetValue || 1) * 100)) : 0;
           const difference = total?.targetDifference?.[field] ?? (total ? undefined : `-${targetValue}`);
-          const differenceLabel = formatTargetDifference(difference, unit);
-          return <div className={`budget budget--${className}`} key={field}><strong className="budget__name">{name}</strong><span className="budget__value data-value">{consumed} / {targetValue} {unit}</span><div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Math.min(Number(targetValue), Number(consumed))} aria-valuetext={`${consumed} of ${targetValue} ${unit}; ${differenceLabel}`} className="budget__track"><span style={{ width: `${percentage}%` }} /></div><small className="budget__remaining data-value">{differenceLabel}</small></div>;
+          const differenceLabel = available ? formatTargetDifference(difference, unit) : "Guidance unavailable";
+          return <div className={`budget budget--${className}`} key={field}><strong className="budget__name">{name}</strong><span className="budget__value data-value">{available ? `${consumed} / ${targetValue} ${unit}` : "Unavailable"}</span>{available ? <div role="progressbar" aria-label={`${name} budget used`} aria-valuemin={0} aria-valuemax={Number(targetValue)} aria-valuenow={Math.min(Number(targetValue), Number(consumed))} aria-valuetext={`${consumed} of ${targetValue} ${unit}; ${differenceLabel}`} className="budget__track"><span style={{ width: `${percentage}%` }} /></div> : <div className="budget__track" aria-hidden="true" />}<small className="budget__remaining data-value">{differenceLabel}</small></div>;
         })}
       </div>
       <details className="plan-micronutrients">

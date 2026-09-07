@@ -17,8 +17,8 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB, ExcludeConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from cookfully.domain.common import uuid7
@@ -146,7 +146,8 @@ class MealNutritionSnapshot(Base):
         CheckConstraint("basis_servings > 0", name="positive_servings"),
         CheckConstraint("coverage_ratio >= 0 AND coverage_ratio <= 1", name="valid_coverage"),
         CheckConstraint(
-            "nutrition_state IN ('source_provided', 'estimated', 'partial', 'manual')",
+            "nutrition_state IN "
+            "('unavailable', 'source_provided', 'estimated', 'partial', 'manual')",
             name="valid_nutrition_state",
         ),
     )
@@ -185,6 +186,24 @@ class MealPlanEntry(TimestampMixin, Base):
         CheckConstraint("position >= 0", name="nonnegative_position"),
         CheckConstraint("servings > 0", name="positive_servings"),
         CheckConstraint("origin IN ('manual', 'suggestion', 'external')", name="valid_origin"),
+        CheckConstraint(
+            "cooking_status IN ('planned', 'cooking', 'cooked')",
+            name="valid_cooking_status",
+        ),
+        CheckConstraint("cooking_step >= 0", name="nonnegative_cooking_step"),
+        CheckConstraint(
+            "prepared_servings IS NULL OR prepared_servings > 0",
+            name="positive_prepared_servings",
+        ),
+        CheckConstraint(
+            "leftover_servings IS NULL OR leftover_servings >= 0",
+            name="nonnegative_leftover_servings",
+        ),
+        CheckConstraint(
+            "leftover_servings IS NULL OR prepared_servings IS NULL "
+            "OR leftover_servings <= prepared_servings",
+            name="leftovers_within_prepared_servings",
+        ),
         CheckConstraint("version > 0", name="positive_version"),
         Index(
             "uq_meal_plan_entries_position",
@@ -214,6 +233,16 @@ class MealPlanEntry(TimestampMixin, Base):
         nullable=False,
     )
     origin: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
+    cooking_status: Mapped[str] = mapped_column(String(16), nullable=False, default="planned")
+    cooking_step: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    checked_ingredient_positions: Mapped[list[int]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    cooking_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cooked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    prepared_servings: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    leftover_servings: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    leftovers_expires_on: Mapped[date | None] = mapped_column(Date)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     meal_plan: Mapped[MealPlan] = relationship(back_populates="entries")
     nutrition_snapshot: Mapped[MealNutritionSnapshot] = relationship()

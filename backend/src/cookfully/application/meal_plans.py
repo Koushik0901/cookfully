@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import cast
 from uuid import UUID
@@ -12,7 +12,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.recipe_queries import RecipeQueryService
-from cookfully.domain.common import DomainError, require_version, today_in_timezone
+from cookfully.domain.common import (
+    SERVING_SCALE,
+    DomainError,
+    quantize_decimal,
+    require_version,
+    today_in_timezone,
+    utc_now,
+)
 from cookfully.domain.goals import (
     DailyGoal,
     GoalMode,
@@ -106,6 +113,14 @@ class MealPlanEntryRead:
     nutrition: MealNutritionSnapshotValue
     origin: str
     version: int
+    cooking_status: str = "planned"
+    cooking_step: int = 0
+    checked_ingredients: tuple[int, ...] = ()
+    cooking_started_at: datetime | None = None
+    cooked_at: datetime | None = None
+    prepared_servings: Decimal | None = None
+    leftover_servings: Decimal | None = None
+    leftovers_expires_on: date | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -363,6 +378,7 @@ class MealPlanService:
             repository = MealPlanRepository(session)
             entry = repository.get_entry(owner_id, entry_id, for_update=True)
             require_version(expected_version, entry.version)
+            self._require_planning_editable(entry)
             owner = self._owner(session, owner_id)
             self._validate_week(owner, entry.meal_plan.week_start, value.local_date)
             position = value.position if value.position is not None else entry.position
@@ -419,6 +435,8 @@ class MealPlanService:
             target = second if source is first else first
             require_version(expected_version, source.version)
             require_version(target_expected_version, target.version)
+            self._require_planning_editable(source)
+            self._require_planning_editable(target)
             if source.meal_plan_id != target.meal_plan_id:
                 raise DomainError(
                     "plan_swap_different_plans", "Meals must belong to the same plan.", 422
@@ -466,11 +484,149 @@ class MealPlanService:
         with self._session_factory.begin() as session:
             entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
             require_version(expected_version, entry.version)
+            self._require_planning_editable(entry)
             owner = self._owner(session, owner_id)
             self._ensure_date_is_writable(owner, entry.local_date)
             entry.meal_plan.version += 1
             GroceryListService.mark_dirty(session, entry.meal_plan_id)
             session.execute(delete(MealPlanEntry).where(MealPlanEntry.id == entry.id))
+
+    def start_cooking(
+        self, owner_id: UUID, entry_id: UUID, *, expected_version: int
+    ) -> MealPlanEntryRead:
+        with self._session_factory.begin() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
+            require_version(expected_version, entry.version)
+            self._require_cookable_entry(entry)
+            if entry.cooking_status == "cooked":
+                raise DomainError(
+                    "meal_already_cooked",
+                    "Undo cooking completion before starting this meal again.",
+                    409,
+                )
+            if entry.cooking_status == "planned":
+                entry.cooking_status = "cooking"
+                entry.cooking_started_at = utc_now()
+                entry.cooking_step = 0
+                entry.checked_ingredient_positions = []
+                self._touch_cooking_entry(entry)
+            session.flush()
+            return self._entry_read(entry, entry.nutrition_snapshot)
+
+    def save_cooking_progress(
+        self,
+        owner_id: UUID,
+        entry_id: UUID,
+        *,
+        current_step: int,
+        checked_ingredients: tuple[int, ...],
+    ) -> MealPlanEntryRead:
+        if current_step < 0 or any(position < 0 for position in checked_ingredients):
+            raise DomainError(
+                "cooking_progress_invalid", "Cooking progress cannot be negative.", 422
+            )
+        normalized_checked = sorted(set(checked_ingredients))
+        with self._session_factory.begin() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
+            self._require_cookable_entry(entry)
+            recipe = self._recipes.get(cast(UUID, entry.recipe_id))
+            if current_step >= len(recipe.instructions) or any(
+                position >= len(recipe.ingredients) for position in normalized_checked
+            ):
+                raise DomainError(
+                    "cooking_progress_out_of_range",
+                    "Cooking progress does not match this recipe.",
+                    422,
+                )
+            if entry.cooking_status == "cooked":
+                raise DomainError(
+                    "meal_already_cooked",
+                    "Undo cooking completion before changing its progress.",
+                    409,
+                )
+            if entry.cooking_status == "planned":
+                entry.cooking_status = "cooking"
+                entry.cooking_started_at = utc_now()
+            entry.cooking_step = current_step
+            entry.checked_ingredient_positions = normalized_checked
+            self._touch_cooking_entry(entry)
+            session.flush()
+            return self._entry_read(entry, entry.nutrition_snapshot)
+
+    def complete_cooking(
+        self,
+        owner_id: UUID,
+        entry_id: UUID,
+        *,
+        prepared_servings: Decimal,
+        leftover_servings: Decimal,
+        leftovers_expires_on: date | None,
+        expected_version: int,
+    ) -> MealPlanEntryRead:
+        prepared = self._serving_value(prepared_servings, positive=True)
+        leftovers = self._serving_value(leftover_servings, positive=False)
+        if leftovers > prepared:
+            raise DomainError(
+                "leftovers_exceed_prepared",
+                "Leftover servings cannot exceed the amount prepared.",
+                422,
+            )
+        if leftovers > 0 and leftovers_expires_on is None:
+            raise DomainError(
+                "leftovers_expiry_required",
+                "Choose a use-by date when saving leftovers.",
+                422,
+            )
+        with self._session_factory.begin() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
+            require_version(expected_version, entry.version)
+            self._require_cookable_entry(entry)
+            if entry.cooking_status == "cooked":
+                raise DomainError("meal_already_cooked", "This meal is already marked cooked.", 409)
+            now = utc_now()
+            entry.cooking_status = "cooked"
+            entry.cooking_started_at = entry.cooking_started_at or now
+            entry.cooked_at = now
+            entry.prepared_servings = prepared
+            entry.leftover_servings = leftovers
+            entry.leftovers_expires_on = leftovers_expires_on if leftovers > 0 else None
+            self._touch_cooking_entry(entry)
+            session.flush()
+            return self._entry_read(entry, entry.nutrition_snapshot)
+
+    def undo_cooking(
+        self, owner_id: UUID, entry_id: UUID, *, expected_version: int
+    ) -> MealPlanEntryRead:
+        with self._session_factory.begin() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
+            require_version(expected_version, entry.version)
+            self._require_cookable_entry(entry)
+            if entry.cooking_status != "cooked":
+                raise DomainError("meal_not_cooked", "Only a completed meal can be reopened.", 409)
+            entry.cooking_status = "cooking"
+            entry.cooked_at = None
+            entry.prepared_servings = None
+            entry.leftover_servings = None
+            entry.leftovers_expires_on = None
+            self._touch_cooking_entry(entry)
+            session.flush()
+            return self._entry_read(entry, entry.nutrition_snapshot)
+
+    def finish_leftovers(
+        self, owner_id: UUID, entry_id: UUID, *, expected_version: int
+    ) -> MealPlanEntryRead:
+        with self._session_factory.begin() as session:
+            entry = MealPlanRepository(session).get_entry(owner_id, entry_id, for_update=True)
+            require_version(expected_version, entry.version)
+            if entry.cooking_status != "cooked" or not entry.leftover_servings:
+                raise DomainError(
+                    "leftovers_not_available", "This meal has no saved leftovers.", 409
+                )
+            entry.leftover_servings = Decimal(0)
+            entry.leftovers_expires_on = None
+            self._touch_cooking_entry(entry)
+            session.flush()
+            return self._entry_read(entry, entry.nutrition_snapshot)
 
     def _source(self, recipe_id: UUID) -> SnapshotSource:
         recipe = self._recipes.get(recipe_id)
@@ -489,10 +645,13 @@ class MealPlanService:
             "partial",
             "manual",
         }:
-            raise DomainError(
-                "recipe_nutrition_unavailable",
-                "Recipe nutrition must be resolved before it can be planned.",
-                409,
+            return SnapshotSource(
+                recipe_id=recipe.id,
+                estimate_id=None,
+                recipe_title=recipe.title,
+                macros=MacroValues(None, None, None, None),
+                status="unavailable",
+                coverage_ratio=Decimal(0),
             )
         return SnapshotSource(
             recipe_id=recipe.id,
@@ -563,6 +722,51 @@ class MealPlanService:
             raise DomainError("entry_position_conflict", "Meal slot position is already used.", 409)
 
     @staticmethod
+    def _require_cookable_entry(entry: MealPlanEntry) -> None:
+        if entry.recipe_id is None:
+            raise DomainError(
+                "recipe_unavailable",
+                "The source recipe is no longer available for cook mode.",
+                409,
+            )
+
+    @staticmethod
+    def _require_planning_editable(entry: MealPlanEntry) -> None:
+        if entry.cooking_status == "cooked":
+            raise DomainError(
+                "cooked_meal_read_only",
+                "Undo cooking completion before changing or removing this meal.",
+                409,
+            )
+
+    @staticmethod
+    def _touch_cooking_entry(entry: MealPlanEntry) -> None:
+        entry.version += 1
+        entry.meal_plan.version += 1
+
+    @staticmethod
+    def _serving_value(value: Decimal, *, positive: bool) -> Decimal:
+        exponent = value.as_tuple().exponent
+        if not isinstance(exponent, int) or exponent < -6:
+            raise DomainError(
+                "servings_precision", "Servings may contain at most three decimal places.", 422
+            )
+        result = quantize_decimal(value, SERVING_SCALE)
+        if result != value:
+            raise DomainError(
+                "servings_precision", "Servings may contain at most three decimal places.", 422
+            )
+        if result < 0 or (positive and result == 0):
+            raise DomainError(
+                "invalid_servings",
+                "Serving quantity must be greater than zero."
+                if positive
+                else "Serving quantity cannot be negative.",
+                422,
+            )
+        return result
+
+    @staticmethod
     def _snapshot_model(value: MealNutritionSnapshotValue) -> MealNutritionSnapshot:
         return MealNutritionSnapshot(
             recipe_id=value.recipe_id,
@@ -630,17 +834,25 @@ class MealPlanService:
             nutrition.micronutrients,
         )
         return MealPlanEntryRead(
-            entry.id,
-            entry.local_date,
-            entry.meal_slot,
-            entry.recipe_id,
-            entry.recipe_title_snapshot,
-            entry.servings,
-            entry.position,
-            False,
-            nutrition,
-            entry.origin,
-            entry.version,
+            id=entry.id,
+            local_date=entry.local_date,
+            meal_slot=entry.meal_slot,
+            recipe_id=entry.recipe_id,
+            recipe_title=entry.recipe_title_snapshot,
+            servings=entry.servings,
+            position=entry.position,
+            refresh_nutrition=False,
+            nutrition=nutrition,
+            origin=entry.origin,
+            version=entry.version,
+            cooking_status=entry.cooking_status,
+            cooking_step=entry.cooking_step,
+            checked_ingredients=tuple(entry.checked_ingredient_positions),
+            cooking_started_at=entry.cooking_started_at,
+            cooked_at=entry.cooked_at,
+            prepared_servings=entry.prepared_servings,
+            leftover_servings=entry.leftover_servings,
+            leftovers_expires_on=entry.leftovers_expires_on,
         )
 
     @classmethod

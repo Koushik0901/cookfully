@@ -95,4 +95,19 @@ describe("NutritionDataTab", () => {
     expect(screen.getByRole("status").querySelector("svg")).toHaveClass("reference-data__spinner");
     expect(calls).toBeGreaterThanOrEqual(1);
   });
+
+  it("does not offer installs when the current dataset state is unknown", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ detail: "Reference data is unavailable" }), {
+      status: 503,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderTab();
+
+    expect(await screen.findByRole("heading", { name: "Nutrition data status could not be loaded" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Install Foundation + SR Legacy" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
 });

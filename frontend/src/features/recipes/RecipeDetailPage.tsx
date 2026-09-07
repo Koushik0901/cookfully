@@ -316,7 +316,7 @@ export function RecipeDetailPage() {
             <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
           </section>
         ) : null}
-        <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} onRecalculate={async () => { await recalculate.mutateAsync(); }} />
+        <NutritionPanel nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} onRecalculate={async () => { await recalculate.mutateAsync(); }} />
       </details>
 
       <details className="danger-zone"><summary><span><strong>More recipe options</strong><small>Archive, restore, or permanently remove this recipe</small></span></summary><div className="danger-zone__body">

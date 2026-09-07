@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Database, Download, LoaderCircle } from "lucide-react";
-import { Button, SectionHeading } from "../../components";
+import { Button, ErrorRecovery, SectionHeading, Skeleton } from "../../components";
 import { referenceDataApi, type InstallUnit } from "./api";
 import { ApiProblem } from "../recipes/api";
 
@@ -48,6 +48,24 @@ export function NutritionDataTab() {
       ? Math.round(((job.progressCurrent ?? 0) / job.progressTotal) * 100)
       : 0;
   const requested = new Set(status.data?.requestedDatasets ?? []);
+
+  if (status.isPending) {
+    return (
+      <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">
+        <SectionHeading id="nutrition-data-title" title="Nutrition reference data" description="USDA FoodData Central powers ingredient matching. Install it so Cookfully can estimate macros and micronutrients from official reference data." />
+        <Skeleton label="Loading nutrition data status" lines={4} />
+      </section>
+    );
+  }
+
+  if (status.isError) {
+    return (
+      <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">
+        <SectionHeading id="nutrition-data-title" title="Nutrition reference data" description="USDA FoodData Central powers ingredient matching. Install it so Cookfully can estimate macros and micronutrients from official reference data." />
+        <ErrorRecovery title="Nutrition data status could not be loaded" description="Cookfully cannot safely tell which datasets are installed right now." onRetry={() => void status.refetch()} />
+      </section>
+    );
+  }
 
   return (
     <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">

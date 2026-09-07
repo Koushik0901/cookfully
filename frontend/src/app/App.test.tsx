@@ -63,6 +63,31 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
+  it("keeps the mobile More menu navigable from the keyboard", async () => {
+    window.history.pushState({}, "", "/app/recipes");
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).pathname;
+      if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
+      if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+      if (path === "/api/v1/recipes/collections") return json([]);
+      if (path === "/api/v1/recipes") return json({ items: [], nextCursor: null });
+      return json({ title: "Not found" }, 404);
+    }));
+    render(<App />);
+    const user = userEvent.setup();
+    const more = await screen.findByRole("button", { name: "More" });
+
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-controls", "mobile-more-menu");
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Pantry" })).toHaveFocus();
+    await user.keyboard("{End}");
+    expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(more).toHaveFocus();
+    expect(more).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("opens the authenticated kitchen on Home with one useful next action", async () => {
     window.history.pushState({}, "", "/app");
     document.cookie = "cookfully_csrf=home-csrf; path=/";
@@ -132,6 +157,26 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Quick actions" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Cook next" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Recently saved" })).toBeVisible();
+  });
+
+  it("clears a stale server banner when an expected signed-out response arrives", async () => {
+    window.history.pushState({}, "", "/app");
+    window.localStorage.clear();
+    let attempts = 0;
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input), window.location.origin).pathname;
+      if (path === "/api/v1/owner/preferences") {
+        attempts += 1;
+        if (attempts === 1) return Promise.reject(new TypeError("Failed to fetch"));
+        return json({ detail: "Not authenticated" }, 401);
+      }
+      return json({ title: "Not found" }, 404);
+    }));
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Welcome back" }, { timeout: 4000 })).toBeVisible();
+    expect(screen.queryByText(/server is unavailable/i)).not.toBeInTheDocument();
   });
 });
 

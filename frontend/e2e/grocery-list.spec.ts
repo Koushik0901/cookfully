@@ -135,6 +135,7 @@ async function mockGroceryApi(page: Page, { empty = false, missing = false }: { 
 }
 
 test("keeps a missing grocery list focused on one useful choice", async ({ page }, testInfo) => {
+  const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page, { missing: true, empty: true });
   await page.goto("/app/grocery");
   await expect(page.getByRole("heading", { level: 1, name: "Plan meals. Shop with a clear list." })).toBeVisible();
@@ -144,7 +145,8 @@ test("keeps a missing grocery list focused on one useful choice", async ({ page 
   await expect(page.getByText("Use what you have", { exact: true })).toBeVisible();
   await expect(page.getByText("Shop and check off")).toBeVisible();
   await page.getByRole("button", { name: "Start an empty list" }).click();
-  await expect(page.getByRole("heading", { name: "Nothing to pick up yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? "Build your grocery list" : "Nothing to pick up yet" })).toBeVisible();
+  if (mobile) await expect(page.getByRole("button", { name: "Build grocery list" })).toBeVisible();
   await captureUi(page, testInfo, "grocery-missing");
 });
 
@@ -152,18 +154,19 @@ test("does not call an empty grocery list ready to shop", async ({ page }, testI
   const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page, { empty: true });
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: "Nothing to pick up yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? "Build your grocery list" : "Nothing to pick up yet" })).toBeVisible();
   await expect(page.getByText("Ready to shop")).toHaveCount(0);
   await expect(page.getByText("Shop by stop", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Back to meal plan" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Use pantry stock" })).toHaveCount(0);
   if (mobile) {
-    await page.getByLabel("More grocery actions").click();
-    await expect(page.getByRole("dialog", { name: "List actions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "2 planned meals, one shopping list" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Build grocery list" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(0);
+  } else {
+    await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(1);
   }
-  await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(1);
-  if (mobile) await page.getByLabel("Close grocery actions").click();
-  await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Open meal plan" })).toHaveCount(mobile ? 0 : 1);
   if (mobile) await expect(page.getByLabel("Add grocery item")).toBeVisible();
   else await expect(page.getByText("Add something else", { exact: true })).toBeVisible();
   await captureUi(page, testInfo, "grocery-empty");
@@ -176,8 +179,8 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   await expect(page.getByRole("heading", { name: mobile ? "2 left to pick up" : "Everything you need this week" })).toBeVisible();
   await captureUi(page, testInfo, "grocery-active");
   await expect(page.getByText(/meal plan changed.*refresh/i)).toBeVisible();
-  if (mobile) await page.getByLabel("More grocery actions").click();
-  await page.getByRole("button", { name: "Refresh from plan" }).click();
+  if (mobile) await page.getByRole("button", { name: "Update grocery list" }).click();
+  else await page.getByRole("button", { name: "Refresh from plan" }).click();
   if (!mobile) await expect(page.getByText("Ready to shop")).toBeVisible();
 
   await expect(page.getByText("Sheet-pan tofu bowls")).toBeVisible();
@@ -234,6 +237,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByRole("button", { name: "Finish shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
   await expect(page.locator('.grocery-complete [data-companion-moment="milestone"]')).toBeVisible();
+  await expect(page.getByRole("link", { name: "See today’s plan" })).toHaveAttribute("href", "/app/plan");
   await captureUi(page, testInfo, "grocery-complete");
   await expect(page.getByLabel("Edit Red onion")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Remove Red onion" })).toHaveCount(0);

@@ -13,7 +13,7 @@ import { formatCookingNumber, servingLabel } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { recipeTimeLabel } from "../recipes/recipeMetadataUtils";
 import type { Recipe } from "../recipes/types";
-import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
+import { isRecipePlannable } from "../recipes/recipeEligibility";
 import { homeApi } from "./api";
 import { prefetchRecipeIntent } from "../../app/routeIntent";
 
@@ -73,7 +73,7 @@ function WeekDay({ date, entries, recipesById, today }: { date: string; entries:
     <Link className={`home-week-day${date === today ? " is-today" : ""}${meal ? " is-planned" : ""}`} to={`/app/plan?date=${date}`} aria-label={label}>
       <span>{weekday(date, "short")}</span>
       <span className="home-week-day__media" aria-hidden="true">
-        {recipe ? <RecipeMedia recipe={recipe} /> : meal ? <RecipeFallbackArt title={meal.recipeTitle} /> : <Plus />}
+        {recipe ? <RecipeMedia recipe={recipe} sizes="48px" /> : meal ? <RecipeFallbackArt title={meal.recipeTitle} /> : <Plus />}
       </span>
       <small>{entries.length ? entries.length : "Open"}</small>
     </Link>
@@ -99,7 +99,7 @@ export function HomePage() {
   const weekStart = preferences ? weekStartFor(today, preferences.weekStartsOn) : "";
 
   const activeRecipes = useMemo(() => recipePage?.items.filter((recipe) => recipe.status !== "archived") ?? [], [recipePage?.items]);
-  const readyRecipes = useMemo(() => activeRecipes.filter(isRecipeReadyToPlan), [activeRecipes]);
+  const readyRecipes = useMemo(() => activeRecipes.filter(isRecipePlannable), [activeRecipes]);
   const recipesById = useMemo(() => new Map(activeRecipes.map((recipe) => [recipe.id, recipe])), [activeRecipes]);
   const recentRecipes = useMemo(() => [...activeRecipes].sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()).slice(0, 4), [activeRecipes]);
 
@@ -115,7 +115,7 @@ export function HomePage() {
   const dinner = todayEntries.find((entry) => entry.mealSlot === "dinner") ?? todayEntries[0];
   const focusSlot = dinner?.mealSlot ?? "dinner";
   const focusLabel = focusSlot[0].toUpperCase() + focusSlot.slice(1);
-  const focusTimeLabel = focusSlot === "dinner" ? "Tonight" : focusLabel;
+  const focusTimeLabel = dinner?.cookingStatus === "cooking" ? "Cooking now" : dinner?.cookingStatus === "cooked" ? "Made today" : focusSlot === "dinner" ? "Tonight" : focusLabel;
   const dinnerRecipe = dinner?.recipeId ? recipesById.get(dinner.recipeId) : undefined;
   const days = weekStart ? weekDates(weekStart) : [];
   const entriesByDate = new Map(days.map((date) => [date, entries.filter((entry) => entry.localDate === date)]));
@@ -127,10 +127,14 @@ export function HomePage() {
     .filter((recipe) => recipe.id !== dinner?.recipeId)
     .sort((a, b) => recommendationRank(b, matchesByRecipeId.get(b.id), plannedRecipeIds) - recommendationRank(a, matchesByRecipeId.get(a.id), plannedRecipeIds) || new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())
     .slice(0, 3);
+  const savedLeftovers = entries
+    .filter((entry) => entry.cookingStatus === "cooked" && Number(entry.leftoverServings ?? 0) > 0 && entry.leftoversExpireOn)
+    .sort((a, b) => String(a.leftoversExpireOn).localeCompare(String(b.leftoversExpireOn)))
+    .slice(0, 3);
   const useSoon = pantryItems
     .filter((item) => item.expiresOn && Date.parse(`${item.expiresOn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`) <= 7 * DAY_MS)
     .sort((a, b) => String(a.expiresOn).localeCompare(String(b.expiresOn)))
-    .slice(0, 3);
+    .slice(0, Math.max(0, 3 - savedLeftovers.length));
   const activeGroceryItems = grocery?.items.filter((item) => !item.checked) ?? [];
   const purchasedCount = grocery?.items.filter((item) => item.checked).length ?? 0;
   const groceryHeading = grocery?.status === "generating" ? "Updating your list…"
@@ -143,7 +147,9 @@ export function HomePage() {
     dinner.nutrition?.caloriesKcal ? `${Math.round(Number(dinner.nutrition.caloriesKcal))} kcal` : null,
     dinner.nutrition?.proteinG ? `${Math.round(Number(dinner.nutrition.proteinG))} g protein` : null,
     dinner.nutrition?.fatG ? `${Math.round(Number(dinner.nutrition.fatG))} g fat` : null,
+    dinner.cookingStatus === "cooked" && Number(dinner.leftoverServings ?? 0) > 0 ? `${dinner.leftoverServings} leftover ${Number(dinner.leftoverServings) === 1 ? "serving" : "servings"}` : null,
   ].filter((value): value is string => Boolean(value)) : [];
+  const dinnerCookUrl = dinner?.recipeId ? `/app/recipes/${dinner.recipeId}/cook?entry=${dinner.id}&week=${weekStart}` : "";
 
   return (
     <main className="page-shell home-page">
@@ -161,7 +167,7 @@ export function HomePage() {
               <h2>{dinner.recipeTitle}</h2>
               {heroFacts.length ? <ul className="home-tonight__facts">{heroFacts.map((fact) => <li key={fact}>{fact}</li>)}</ul> : null}
               {dinnerMatch?.availability === "full" ? <p className="home-tonight__availability">Everything you need is already in the pantry.</p> : dinnerMatch?.missingIngredients.length ? <p className="home-tonight__availability">{dinnerMatch.missingIngredients.length} {dinnerMatch.missingIngredients.length === 1 ? "ingredient" : "ingredients"} still needed. <Link to="/app/grocery">Check groceries</Link></p> : null}
-              {dinner.recipeId ? <Button asChild><Link to={`/app/recipes/${dinner.recipeId}/cook`} onMouseEnter={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onFocus={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onPointerDown={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : <Button asChild><Link to="/app/plan">Review dinner</Link></Button>}
+              {dinner.recipeId ? <Button asChild><Link to={dinnerCookUrl} onMouseEnter={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onFocus={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)} onPointerDown={() => prefetchRecipeIntent(queryClient, dinner.recipeId!)}><ChefHat aria-hidden="true" />{dinner.cookingStatus === "cooking" ? "Resume cooking" : dinner.cookingStatus === "cooked" ? "See cooked meal" : "Start cooking"}</Link></Button> : <Button asChild><Link to="/app/plan">Review dinner</Link></Button>}
             </> : readyRecipes.length ? <><h2>Plan today’s next meal</h2><p>Make one good decision now.</p><Button asChild><Link to={`/app/plan?date=${today}&slot=${focusSlot}`}><CalendarDays aria-hidden="true" />Plan {focusSlot === "dinner" ? "tonight" : focusSlot}</Link></Button></> : <><h2>Save your first recipe</h2><p>Start with a dish you already love.</p><Button asChild><Link to="/app/recipes/new">Add a recipe</Link></Button></>}
           </div>
         </article>
@@ -175,8 +181,8 @@ export function HomePage() {
 
       <div className="home-priorities">
         <section className="home-use-soon" aria-labelledby="home-use-soon-heading">
-          <div className="home-section-heading"><div><p className="eyebrow">Pantry</p><h2 id="home-use-soon-heading">Use soon</h2></div><Link to="/app/pantry">Open pantry <ArrowRight aria-hidden="true" /></Link></div>
-          {useSoon.length ? <ul className="home-use-soon__list">{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantryItems.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
+          <div className="home-section-heading"><div><p className="eyebrow">Kitchen</p><h2 id="home-use-soon-heading">Use soon</h2></div><Link to="/app/pantry">Open pantry <ArrowRight aria-hidden="true" /></Link></div>
+          {savedLeftovers.length || useSoon.length ? <ul className="home-use-soon__list">{savedLeftovers.map((entry) => <li key={`leftovers-${entry.id}`}><span className="home-use-soon__produce" aria-hidden="true"><ChefHat /></span><span><strong>{entry.recipeTitle}</strong><small>{entry.leftoverServings} leftover {Number(entry.leftoverServings) === 1 ? "serving" : "servings"}</small></span><em>{relativeUseBy(today, entry.leftoversExpireOn!)}</em></li>)}{useSoon.map((item) => <li key={item.id}><span className="home-use-soon__produce" aria-hidden="true"><FoodCategoryIcon name={item.displayName} size="row" /></span><span><strong>{item.displayName}</strong><small>{formatCookingNumber(item.quantity)} {item.unit}</small></span><em>{relativeUseBy(today, item.expiresOn!)}</em></li>)}</ul> : pantryItems.length ? <div className="home-module-empty"><strong>No use-by dates yet</strong><p>Add a date to fresh food and Cookfully will bring it here before it gets forgotten.</p><Link to="/app/pantry">Add dates in Pantry</Link></div> : <div className="home-module-empty"><strong>Your shelf can help decide dinner</strong><p>Add a few things you already have. Rough quantities are enough.</p><Link to="/app/pantry">Add pantry items</Link></div>}
         </section>
 
         <nav className="home-quick-actions" aria-labelledby="home-quick-actions-heading">
@@ -189,7 +195,7 @@ export function HomePage() {
 
       <section className="home-for-you" aria-labelledby="home-for-you-heading">
         <div className="home-section-heading"><div><h2 id="home-for-you-heading">Cook next</h2></div><Link to="/app/recipes">Browse recipes <ArrowRight aria-hidden="true" /></Link></div>
-        {recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} onMouseEnter={() => prefetchRecipeIntent(queryClient, recipe.id)} onFocus={() => prefetchRecipeIntent(queryClient, recipe.id)} onPointerDown={() => prefetchRecipeIntent(queryClient, recipe.id)}><span className="home-recommendation__media"><RecipeMedia recipe={recipe} /></span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
+        {recommendations.length ? <div className="home-for-you__grid">{recommendations.map((recipe, index) => <article className={`home-recommendation${index === 0 ? " is-featured" : ""}`} key={recipe.id}><Link to={`/app/recipes/${recipe.id}`} aria-label={recipe.title} onMouseEnter={() => prefetchRecipeIntent(queryClient, recipe.id)} onFocus={() => prefetchRecipeIntent(queryClient, recipe.id)} onPointerDown={() => prefetchRecipeIntent(queryClient, recipe.id)}><span className="home-recommendation__media"><RecipeMedia recipe={recipe} sizes="(max-width: 47.99rem) 120px, (max-width: 80rem) 34vw, 480px" /></span><span className="home-recommendation__body"><span className="home-recommendation__reason">{recommendationReason(recipe, matchesByRecipeId.get(recipe.id), plannedRecipeIds)}</span><h3>{recipe.title}</h3><small>Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</small><RecipeMetadata recipe={recipe} compact /></span></Link></article>)}</div> : <div className="home-module-empty"><strong>Ideas need a recipe box</strong><p>Save a few dishes and Cookfully will surface useful next choices here.</p><Link to="/app/recipes/new">Add a recipe</Link></div>}
       </section>
 
       <div className="home-lower-grid">

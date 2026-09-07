@@ -41,7 +41,11 @@ class IngredientEngine:
 
     def resolve_embedder(self, session: Session, *, fallback: bool = True) -> TextEmbedder:
         settings = session.get(NutritionIntelligenceSettings, 1)
-        backend = settings.backend if settings is not None else "fastembed"
+        # Fresh test schemas and pre-migration instances may not have the
+        # singleton settings row yet. Honor the configured runtime backend in
+        # that window instead of implicitly initializing the optional model.
+        runtime = get_settings()
+        backend = settings.backend if settings is not None else runtime.semantic_matching_backend
         model_name = settings.model_name if settings is not None else _DEFAULT_MODEL
         revision = settings.model_revision if settings is not None else None
         ready = bool(settings and settings.last_ready_at)
@@ -52,7 +56,6 @@ class IngredientEngine:
             and time.monotonic() - self._checked_at >= _RETRY_INTERVAL_SECONDS
         )
         if self._embedder is None or self._embedder_key != key or stale_hashing:
-            runtime = get_settings()
             if backend == "fastembed":
                 if not fallback and settings is not None and settings.last_ready_at is None:
                     raise DomainError(

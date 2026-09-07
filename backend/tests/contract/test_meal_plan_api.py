@@ -106,6 +106,11 @@ def test_owner_preferences_goal_and_plan_openapi_surface(
         assert "/api/v1/meal-plans/{weekStart}" in paths
         assert "/api/v1/meal-plans/{weekStart}/entries" in paths
         assert "/api/v1/meal-plan-entries/{entryId}" in paths
+        assert "/api/v1/meal-plan-entries/{entryId}/cooking/start" in paths
+        assert "/api/v1/meal-plan-entries/{entryId}/cooking/progress" in paths
+        assert "/api/v1/meal-plan-entries/{entryId}/cooking/complete" in paths
+        assert "/api/v1/meal-plan-entries/{entryId}/cooking/undo" in paths
+        assert "/api/v1/meal-plan-entries/{entryId}/leftovers/finish" in paths
         assert {"UserGoalWriteRequest", "MealPlanResponse", "MealPlanEntryWriteRequest"}.issubset(
             schema["components"]["schemas"]
         )
@@ -349,3 +354,107 @@ def test_meal_plan_can_start_before_a_goal_exists(
         assert body["goal"] is None
         assert body["entries"][0]["recipeTitle"] == "Plan bowl"
         assert body["dayTotals"][WEEK_START]["targetDifference"] is None
+
+
+def test_unavailable_nutrition_can_be_planned_and_cooking_progress_is_durable(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        recipe = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers).json()
+        added = client.post(
+            f"/api/v1/meal-plans/{WEEK_START}/entries",
+            json={
+                "localDate": WEEK_START,
+                "mealSlot": "dinner",
+                "recipeId": recipe["id"],
+                "servings": "2.000",
+                "position": 0,
+                "refreshNutrition": False,
+            },
+            headers={**headers, "Idempotency-Key": "cook-plan-unavailable-01"},
+        )
+        assert added.status_code == 201
+        entry = added.json()
+        assert entry["nutrition"]["status"] == "unavailable"
+        assert entry["nutrition"]["caloriesKcal"] is None
+        assert entry["cookingStatus"] == "planned"
+
+        started = client.post(
+            f"/api/v1/meal-plan-entries/{entry['id']}/cooking/start",
+            headers={
+                **headers,
+                "If-Match": '"1"',
+                "Idempotency-Key": "cook-start-000001",
+            },
+        )
+        assert started.status_code == 200
+        assert started.json()["cookingStatus"] == "cooking"
+
+        progress = client.patch(
+            f"/api/v1/meal-plan-entries/{entry['id']}/cooking/progress",
+            json={"currentStep": 0, "checkedIngredients": [0, 0]},
+            headers={**headers, "Idempotency-Key": "cook-progress-01"},
+        )
+        assert progress.status_code == 200
+        assert progress.json()["cookingStep"] == 0
+        assert progress.json()["checkedIngredients"] == [0]
+
+        completed = client.post(
+            f"/api/v1/meal-plan-entries/{entry['id']}/cooking/complete",
+            json={
+                "preparedServings": "2.000",
+                "leftoverServings": "1.000",
+                "leftoversExpireOn": DAY_AFTER,
+            },
+            headers={
+                **headers,
+                "If-Match": f'"{progress.json()["version"]}"',
+                "Idempotency-Key": "cook-complete-01",
+            },
+        )
+        assert completed.status_code == 200, completed.text
+        cooked = completed.json()
+        assert cooked["cookingStatus"] == "cooked"
+        assert cooked["preparedServings"] == "2"
+        assert cooked["leftoverServings"] == "1"
+        assert cooked["leftoversExpireOn"] == DAY_AFTER
+
+        protected = client.delete(
+            f"/api/v1/meal-plan-entries/{entry['id']}",
+            headers={
+                **headers,
+                "If-Match": f'"{cooked["version"]}"',
+                "Idempotency-Key": "cook-delete-protected-01",
+            },
+        )
+        assert protected.status_code == 409
+        assert protected.json()["code"] == "cooked_meal_read_only"
+
+        leftovers_finished = client.post(
+            f"/api/v1/meal-plan-entries/{entry['id']}/leftovers/finish",
+            headers={
+                **headers,
+                "If-Match": f'"{cooked["version"]}"',
+                "Idempotency-Key": "cook-leftovers-finished-01",
+            },
+        )
+        assert leftovers_finished.status_code == 200
+        assert leftovers_finished.json()["leftoverServings"] == "0"
+        assert leftovers_finished.json()["leftoversExpireOn"] is None
+
+        reopened = client.post(
+            f"/api/v1/meal-plan-entries/{entry['id']}/cooking/undo",
+            headers={
+                **headers,
+                "If-Match": f'"{leftovers_finished.json()["version"]}"',
+                "Idempotency-Key": "cook-undo-000001",
+            },
+        )
+        assert reopened.status_code == 200
+        assert reopened.json()["cookingStatus"] == "cooking"
+        assert reopened.json()["cookedAt"] is None
+
+        plan = client.get(f"/api/v1/meal-plans/{WEEK_START}").json()
+        assert plan["weekTotal"]["status"] == "unavailable"
+        assert plan["weekTotal"]["caloriesKcal"] is None

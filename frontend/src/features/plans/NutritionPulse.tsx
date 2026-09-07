@@ -27,6 +27,15 @@ export function NutritionPulse({ total, target, plannedDays }: { total?: PeriodT
     );
   }
 
+  if (total.status === "unavailable" || NUTRIENTS.some(([field]) => total[field] == null)) {
+    return (
+      <section className="nutrition-pulse nutrition-pulse--empty" aria-label="Weekly nutrition guidance unavailable">
+        <div><p className="eyebrow">Nutrition guidance</p><h2>The meals are planned; the numbers can wait</h2></div>
+        <p>At least one recipe has no nutrition estimate yet, so Cookfully is not showing a misleading weekly comparison.</p>
+      </section>
+    );
+  }
+
   const coverage = Math.round(Number(total.coverageRatio) * 100);
   return (
     <section className="nutrition-pulse" aria-label="Weekly nutrition guidance">

@@ -171,4 +171,21 @@ describe("recipe photo UI", () => {
     expect(screen.getByRole("link", { name: value.title })).toBeVisible();
     expect(document.querySelector(".recipe-fallback-art")).toBeInTheDocument();
   });
+
+  it("requests card-sized image derivatives for the recipe shelf", () => {
+    const value = {
+      ...recipe,
+      imageUrl: "https://example.com/recipe-960.webp",
+      imageSrcSet: "https://example.com/recipe-480.webp 480w, https://example.com/recipe-960.webp 960w",
+    } as Recipe;
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <RecipeCard recipe={value} onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(container.querySelector(".recipe-card__media img")).toHaveAttribute("sizes", "(max-width: 47.99rem) 50vw, (max-width: 80rem) 33vw, 480px");
+  });
 });

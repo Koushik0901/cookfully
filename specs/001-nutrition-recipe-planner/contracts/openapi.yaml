@@ -974,6 +974,97 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /meal-plan-entries/{entryId}/cooking/start:
+    post:
+      tags: [Meal Plans]
+      operationId: startMealCooking
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Cooking started or resumed from its durable planned-meal state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlanEntry" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /meal-plan-entries/{entryId}/cooking/progress:
+    patch:
+      tags: [Meal Plans]
+      operationId: saveMealCookingProgress
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MealCookingProgress" }
+      responses:
+        "200":
+          description: Latest cooking step and ingredient checklist saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlanEntry" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /meal-plan-entries/{entryId}/cooking/complete:
+    post:
+      tags: [Meal Plans]
+      operationId: completeMealCooking
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MealCookingComplete" }
+      responses:
+        "200":
+          description: Meal marked cooked with optional leftover servings and use-by date.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlanEntry" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /meal-plan-entries/{entryId}/cooking/undo:
+    post:
+      tags: [Meal Plans]
+      operationId: undoMealCooking
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Completion undone and the cooking session reopened.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlanEntry" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /meal-plan-entries/{entryId}/leftovers/finish:
+    post:
+      tags: [Meal Plans]
+      operationId: finishMealLeftovers
+      parameters:
+        - $ref: "#/components/parameters/EntryId"
+        - $ref: "#/components/parameters/IfMatchVersion"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Saved leftovers marked finished without changing the cooked meal.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MealPlanEntry" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
   /meal-plans/{weekStart}/grocery-list:
     get:
       tags: [Grocery]
@@ -2271,7 +2362,7 @@ components:
       enum: [pending, source_provided, estimated, partial, failed, stale]
     NutritionStatus:
       type: string
-      enum: [source_provided, estimated, partial, manual]
+      enum: [unavailable, source_provided, estimated, partial, manual]
     MacroValues:
       type: object
       required: [caloriesKcal, proteinG, carbohydrateG, fatG]
@@ -2813,10 +2904,27 @@ components:
       properties:
         targetEntryId: { type: string, format: uuid }
         targetVersion: { type: integer, minimum: 1 }
+    MealCookingProgress:
+      type: object
+      additionalProperties: false
+      required: [currentStep, checkedIngredients]
+      properties:
+        currentStep: { type: integer, minimum: 0 }
+        checkedIngredients:
+          type: array
+          items: { type: integer, minimum: 0 }
+    MealCookingComplete:
+      type: object
+      additionalProperties: false
+      required: [preparedServings, leftoverServings]
+      properties:
+        preparedServings: { $ref: "#/components/schemas/ServingDecimal" }
+        leftoverServings: { $ref: "#/components/schemas/Decimal6" }
+        leftoversExpireOn: { type: [string, "null"], format: date }
     MealPlanEntry:
       type: object
       additionalProperties: false
-      required: [id, localDate, mealSlot, recipeId, recipeTitle, servings, position, refreshNutrition, nutrition, origin, version]
+      required: [id, localDate, mealSlot, recipeId, recipeTitle, servings, position, refreshNutrition, nutrition, origin, version, cookingStatus, cookingStep, checkedIngredients]
       properties:
         id: { type: string, format: uuid }
         localDate: { type: string, format: date }
@@ -2829,6 +2937,16 @@ components:
         nutrition: { $ref: "#/components/schemas/NutritionSnapshot" }
         origin: { type: string, enum: [manual, suggestion, external] }
         version: { type: integer, minimum: 1 }
+        cookingStatus: { type: string, enum: [planned, cooking, cooked] }
+        cookingStep: { type: integer, minimum: 0 }
+        checkedIngredients:
+          type: array
+          items: { type: integer, minimum: 0 }
+        cookingStartedAt: { type: [string, "null"], format: date-time }
+        cookedAt: { type: [string, "null"], format: date-time }
+        preparedServings: { oneOf: [{ $ref: "#/components/schemas/ServingDecimal" }, { type: "null" }] }
+        leftoverServings: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+        leftoversExpireOn: { type: [string, "null"], format: date }
     MealPlanEntrySwapResponse:
       type: object
       additionalProperties: false

@@ -11,7 +11,13 @@ from cookfully.domain.meal_snapshots import MealNutritionSnapshotValue, Nutritio
 from cookfully.domain.nutrition import MICRONUTRIENT_KEYS, MacroValues, MicronutrientAmounts
 
 FIELDS = ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
-RELIABILITY = {"partial": 0, "estimated": 1, "source_provided": 2, "manual": 3}
+RELIABILITY = {
+    "unavailable": -1,
+    "partial": 0,
+    "estimated": 1,
+    "source_provided": 2,
+    "manual": 3,
+}
 
 
 @dataclass(frozen=True, slots=True)

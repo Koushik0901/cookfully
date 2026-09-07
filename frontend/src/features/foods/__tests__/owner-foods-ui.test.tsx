@@ -88,3 +88,13 @@ it("turns a product label into a reusable food without exposing a form wall", as
     typicalServingUnit: "cup",
   });
 });
+
+it("gives an empty foods library a direct label-entry action", async () => {
+  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("[]", { headers: { "content-type": "application/json" } }))));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><MemoryRouter><OwnerFoodsPage /></MemoryRouter></QueryClientProvider>);
+  const user = userEvent.setup();
+
+  await user.click(await screen.findByRole("button", { name: "Add a food from a label" }));
+  expect(screen.getByRole("dialog", { name: "Add a food you know" })).toBeVisible();
+});

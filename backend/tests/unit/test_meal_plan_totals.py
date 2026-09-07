@@ -65,6 +65,27 @@ def test_partial_snapshot_retains_nulls_and_least_reliable_state() -> None:
     assert report.week_total.protein_g is None
 
 
+def test_unavailable_snapshot_keeps_the_meal_without_inventing_totals() -> None:
+    unavailable = create_snapshot(
+        source(
+            macros=MacroValues(None, None, None, None),
+            status="unavailable",
+            coverage_ratio=Decimal(0),
+        ),
+        Decimal("2.000"),
+    )
+    report = aggregate_plan([PlannedSnapshot(date(2026, 8, 10), "dinner", 0, unavailable)])
+
+    assert unavailable.basis_servings == Decimal("2.000")
+    assert report.week_total.status == "unavailable"
+    assert report.week_total.as_strings() == {
+        "caloriesKcal": None,
+        "proteinG": None,
+        "carbohydrateG": None,
+        "fatG": None,
+    }
+
+
 def test_meal_day_week_totals_sum_display_quantized_values_and_use_canonical_strings() -> None:
     first = create_snapshot(source(), Decimal("1.500"))
     second = create_snapshot(

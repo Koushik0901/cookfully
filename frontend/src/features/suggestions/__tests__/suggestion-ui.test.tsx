@@ -108,6 +108,37 @@ describe("suggestion UI", () => {
     expect(screen.getByLabelText("Meal")).toHaveValue("dinner");
   });
 
+  it("gives saved recipes a clear next step when none can support suggestions yet", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json({ timezone: "America/Vancouver", weekStartsOn: 1, version: 1 });
+      if (path.includes("/recipes")) return json({ items: [{ id: recipeOne, title: "Protein oats", yieldQuantity: "2", yieldUnit: "servings", status: "ready", nutritionState: "pending", version: 1 }], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText("Use or avoid specific recipes", { selector: "strong" }));
+    expect(screen.getByText("Get a recipe ready first")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Review recipes" })).toHaveAttribute("href", "/app/recipes");
+    expect(screen.getByRole("link", { name: "Set up nutrition data" })).toHaveAttribute("href", "/app/settings?tab=data");
+  });
+
+  it("invites a cook without recipes to add their first dish before suggesting meals", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const path = String(input);
+      if (path.includes("/owner/preferences")) return json({ timezone: "America/Vancouver", weekStartsOn: 1, version: 1 });
+      if (path.includes("/recipes")) return json({ items: [], nextCursor: null });
+      return json({}, 404);
+    });
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByText("Use or avoid specific recipes", { selector: "strong" }));
+    expect(screen.getByText("Start with a recipe")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add a recipe" })).toHaveAttribute("href", "/app/recipes/new");
+  });
+
   it("edits meal/day/week constraints and explains a feasible deterministic preview", async () => {
     renderPage();
     const user = userEvent.setup();

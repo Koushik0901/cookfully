@@ -129,8 +129,25 @@ async function mockFirstKitchenApi(page: Page) {
         nutrition: { basisServings: body.servings, caloriesKcal: "540", proteinG: "38.5", carbohydrateG: "62", fatG: "14", status: "estimated", coverageRatio: "0.950000" },
         origin: "manual",
         version: 1,
+        cookingStatus: "planned",
+        cookingStep: 0,
+        checkedIngredients: [],
       };
       return json(entry, 201);
+    }
+    if (path === `/api/v1/meal-plan-entries/${entryId}/cooking/start` && method === "POST") {
+      entry = { ...entry, cookingStatus: "cooking", cookingStartedAt: "2026-03-11T18:00:00Z", version: Number(entry?.version ?? 0) + 1 };
+      return json(entry);
+    }
+    if (path === `/api/v1/meal-plan-entries/${entryId}/cooking/progress` && method === "PATCH") {
+      const body = request.postDataJSON() as { currentStep: number; checkedIngredients: number[] };
+      entry = { ...entry, cookingStatus: "cooking", cookingStep: body.currentStep, checkedIngredients: body.checkedIngredients, version: Number(entry?.version ?? 0) + 1 };
+      return json(entry);
+    }
+    if (path === `/api/v1/meal-plan-entries/${entryId}/cooking/complete` && method === "POST") {
+      const body = request.postDataJSON() as { preparedServings: string; leftoverServings: string; leftoversExpireOn: string | null };
+      entry = { ...entry, ...body, cookingStatus: "cooked", cookedAt: "2026-03-11T18:30:00Z", version: Number(entry?.version ?? 0) + 1 };
+      return json(entry);
     }
     if (path === `/api/v1/meal-plans/${weekStart}` && method === "GET") {
       const entries = entry ? [entry] : [];
@@ -198,7 +215,7 @@ async function mockFirstKitchenApi(page: Page) {
   };
 }
 
-test("takes a first kitchen from recipe and cover through a finished shopping pass", async ({ page }, testInfo) => {
+test("takes a first kitchen from recipe and cover through shopping and a cooked dinner", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-chromium", "Individual recipe, planner, and grocery specs cover narrow layouts.");
   const api = await mockFirstKitchenApi(page);
 
@@ -206,6 +223,7 @@ test("takes a first kitchen from recipe and cover through a finished shopping pa
   await page.getByLabel("Recipe title").fill("Lemon lentils");
   await page.getByLabel("Yield quantity").fill("2.000");
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("1 cup red lentils");
+  await page.getByRole("textbox", { name: "step 1 for main recipe", exact: true }).fill("Simmer until tender.");
   await page.locator('input[type="file"]').setInputFiles({
     name: "lentils.png",
     mimeType: "image/png",
@@ -242,9 +260,20 @@ test("takes a first kitchen from recipe and cover through a finished shopping pa
   await page.getByRole("button", { name: "Finish shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
 
+  await page.goto("/app/plan");
+  await page.getByRole("link", { name: "Start cooking Lemon lentils" }).click();
+  await expect(page.getByText("Simmer until tender.")).toBeVisible();
+  await page.getByRole("checkbox", { name: /1 cup red lentils/i }).check();
+  await page.getByRole("button", { name: "Finish cooking" }).click();
+  await expect(page.getByRole("heading", { name: "Finish this cooking session" })).toBeVisible();
+  await page.getByLabel("Leftover servings (optional)").fill("1");
+  await page.getByRole("button", { name: "Finish cooking" }).click();
+  await expect(page.getByRole("heading", { name: "Time to eat." })).toBeVisible();
+  await expect(page.getByText(/1 leftover serving/)).toBeVisible();
+
   expect(api.snapshot()).toMatchObject({
     recipe: { imageUrl: expect.any(String), favorite: true, mealRoles: ["dinner"] },
-    entry: { recipeId, recipeTitle: "Lemon lentils", mealSlot: "dinner" },
+    entry: { recipeId, recipeTitle: "Lemon lentils", mealSlot: "dinner", cookingStatus: "cooked", leftoverServings: "1" },
     groceryStatus: "completed",
     stop: { name: "Market" },
     groceryItem: { checked: true, shoppingStop: { id: groceryStopId } },

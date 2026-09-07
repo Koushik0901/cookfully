@@ -632,6 +632,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/meal-plan-entries/{entryId}/cooking/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startMealCooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plan-entries/{entryId}/cooking/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["saveMealCookingProgress"];
+        trace?: never;
+    };
+    "/meal-plan-entries/{entryId}/cooking/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeMealCooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plan-entries/{entryId}/cooking/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["undoMealCooking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plan-entries/{entryId}/leftovers/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["finishMealLeftovers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/meal-plans/{weekStart}/grocery-list": {
         parameters: {
             query?: never;
@@ -1518,7 +1598,7 @@ export interface components {
         /** @enum {string} */
         NutritionState: "pending" | "source_provided" | "estimated" | "partial" | "failed" | "stale";
         /** @enum {string} */
-        NutritionStatus: "source_provided" | "estimated" | "partial" | "manual";
+        NutritionStatus: "unavailable" | "source_provided" | "estimated" | "partial" | "manual";
         MacroValues: {
             caloriesKcal: components["schemas"]["Decimal6"] | null;
             proteinG: components["schemas"]["Decimal6"] | null;
@@ -1930,6 +2010,16 @@ export interface components {
             targetEntryId: string;
             targetVersion: number;
         };
+        MealCookingProgress: {
+            currentStep: number;
+            checkedIngredients: number[];
+        };
+        MealCookingComplete: {
+            preparedServings: components["schemas"]["ServingDecimal"];
+            leftoverServings: components["schemas"]["Decimal6"];
+            /** Format: date */
+            leftoversExpireOn?: string | null;
+        };
         MealPlanEntry: {
             /** Format: uuid */
             id: string;
@@ -1947,6 +2037,18 @@ export interface components {
             /** @enum {string} */
             origin: "manual" | "suggestion" | "external";
             version: number;
+            /** @enum {string} */
+            cookingStatus: "planned" | "cooking" | "cooked";
+            cookingStep: number;
+            checkedIngredients: number[];
+            /** Format: date-time */
+            cookingStartedAt?: string | null;
+            /** Format: date-time */
+            cookedAt?: string | null;
+            preparedServings?: components["schemas"]["ServingDecimal"] | null;
+            leftoverServings?: components["schemas"]["Decimal6"] | null;
+            /** Format: date */
+            leftoversExpireOn?: string | null;
         };
         MealPlanEntrySwapResponse: {
             source: components["schemas"]["MealPlanEntry"];
@@ -3555,6 +3657,145 @@ export interface operations {
             };
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationError"];
+        };
+    };
+    startMealCooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                entryId: components["parameters"]["EntryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cooking started or resumed from its durable planned-meal state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    saveMealCookingProgress: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                entryId: components["parameters"]["EntryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealCookingProgress"];
+            };
+        };
+        responses: {
+            /** @description Latest cooking step and ingredient checklist saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    completeMealCooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                entryId: components["parameters"]["EntryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealCookingComplete"];
+            };
+        };
+        responses: {
+            /** @description Meal marked cooked with optional leftover servings and use-by date. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    undoMealCooking: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                entryId: components["parameters"]["EntryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Completion undone and the cooking session reopened. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    finishMealLeftovers: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": components["parameters"]["IfMatchVersion"];
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                entryId: components["parameters"]["EntryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved leftovers marked finished without changing the cooked meal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
         };
     };
     getGroceryList: {

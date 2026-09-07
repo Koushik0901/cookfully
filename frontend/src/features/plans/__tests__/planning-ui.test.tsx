@@ -42,6 +42,9 @@ const entry = {
   nutrition: { basisServings: "1.500", caloriesKcal: "752", proteinG: "60.1", carbohydrateG: "90.1", fatG: "16.7", status: "estimated" as const, coverageRatio: "0.950000", micronutrients: planMicronutrients },
   origin: "manual" as const,
   version: 1,
+  cookingStatus: "planned" as const,
+  cookingStep: 0,
+  checkedIngredients: [],
 };
 const total = {
   caloriesKcal: "752",
@@ -187,6 +190,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
     expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "Week" }));
     expect(screen.getByRole("heading", { name: "Your week at a glance" })).toBeVisible();
     expect(screen.getByRole("button", { name: /open day view for monday.*march 9/i })).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Prep" }));
@@ -237,6 +241,7 @@ describe("goal and weekly planning UI", () => {
     const user = userEvent.setup();
 
     await screen.findByRole("heading", { name: /week of march 9/i });
+    await user.click(screen.getByRole("tab", { name: "Week" }));
     expect(document.querySelectorAll(".week-day--past")).toHaveLength(2);
     await user.click(screen.getByRole("tab", { name: "Day" }));
     await user.click(screen.getByRole("tab", { name: /monday.*march 9.*past/i }));
@@ -265,6 +270,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
 
+    await user.click(await screen.findByRole("tab", { name: "Week" }));
     await screen.findByRole("heading", { name: "Your week at a glance" });
     expect(screen.queryByRole("button", { name: "Move Protein oats" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Protein oats" })).toBeVisible();
@@ -330,6 +336,14 @@ describe("goal and weekly planning UI", () => {
     expect(screen.queryByRole("button", { name: "Add Changed recipe to Lunch" })).not.toBeInTheDocument();
   });
 
+  it("keeps Cook Mode one action away from a planned recipe", async () => {
+    renderPage(<WeeklyPlannerPage />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("tab", { name: "Day" }));
+    expect(screen.getByRole("link", { name: "Start cooking Protein oats" })).toHaveAttribute("href", `/app/recipes/${entry.recipeId}/cook?entry=${entry.id}&week=${plan.weekStart}`);
+  });
+
   it("carries a newly saved recipe into dinner planning and then toward groceries", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.mocked(fetch);
@@ -351,14 +365,14 @@ describe("goal and weekly planning UI", () => {
     expect(screen.getByRole("link", { name: "Build grocery list" })).toHaveAttribute("href", "/app/grocery");
   });
 
-  it("links a fresh kitchen with unresolved recipes to nutrition-data setup", async () => {
+  it("keeps unresolved nutrition from blocking a recipe picker", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockImplementation((input) => {
       const path = String(input);
       if (path.includes("/owner/preferences")) return json(preferences);
       if (path.includes("/goals/current")) return json(goal);
       if (path.includes("/meal-plans/")) return json(plan);
-      if (path.includes("/recipes")) return json({ items: [{ ...entry, status: "processing", nutritionState: "pending" }], nextCursor: null });
+      if (path.includes("/recipes")) return json({ items: [{ ...entry, title: entry.recipeTitle, yieldQuantity: "2", yieldUnit: "servings", status: "processing", nutritionState: "pending" }], nextCursor: null });
       return json({}, 404);
     });
     renderPage(<WeeklyPlannerPage />);
@@ -367,7 +381,7 @@ describe("goal and weekly planning UI", () => {
     await user.click(await screen.findByRole("tab", { name: "Day" }));
     await user.click(screen.getByRole("button", { name: "Add a recipe to Lunch" }));
 
-    expect(await screen.findByText("No recipes are ready to plan")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Set up nutrition data" })).toHaveAttribute("href", "/app/settings?tab=data");
+    expect(await screen.findByRole("button", { name: "Add Protein oats to Lunch" })).toBeVisible();
+    expect(screen.queryByText("No recipes are ready to plan")).not.toBeInTheDocument();
   });
 });

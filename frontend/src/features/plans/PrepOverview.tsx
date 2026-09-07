@@ -50,7 +50,7 @@ export function PrepOverview({ entries, recipesById, groceryStatus }: { entries:
           {prepGroups.map((group, index) => (
             <li className="prep-item" key={group.key}>
               <span className="prep-item__number data-value">{String(index + 1).padStart(2, "0")}</span>
-              {group.recipeId ? <Link className="prep-item__media" to={`/app/recipes/${group.recipeId}`} aria-label={`Open ${group.title}`}>{group.recipe ? <RecipeMedia recipe={group.recipe} /> : <RecipeFallbackArt title={group.title} />}</Link> : <span className="prep-item__media"><RecipeFallbackArt title={group.title} /></span>}
+              {group.recipeId ? <Link className="prep-item__media" to={`/app/recipes/${group.recipeId}`} aria-label={`Open ${group.title}`}>{group.recipe ? <RecipeMedia recipe={group.recipe} sizes="80px" /> : <RecipeFallbackArt title={group.title} />}</Link> : <span className="prep-item__media"><RecipeFallbackArt title={group.title} /></span>}
               <div className="prep-item__body">
                 <div><h3>{group.title}</h3>{group.entries.length > 1 ? <span className="prep-item__batch"><Check aria-hidden="true" />Batch-friendly</span> : null}</div>
                 <strong>{formatCookingNumber(String(group.servings))} total {group.servings === 1 ? "serving" : "servings"}</strong>

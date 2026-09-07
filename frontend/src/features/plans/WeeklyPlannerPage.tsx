@@ -16,7 +16,7 @@ import { RecipePickerSheet } from "./RecipePickerSheet";
 import { DayMealBoard } from "./DayMealBoard";
 import { WeekOverview } from "./WeekOverview";
 import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
-import { isRecipeReadyToPlan } from "../recipes/recipeEligibility";
+import { isRecipePlannable } from "../recipes/recipeEligibility";
 import { useExpiringPantry } from "./useExpiringPantry";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
@@ -44,7 +44,7 @@ export function WeeklyPlannerPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSlot, setPickerSlot] = useState(searchParams.get("slot") ?? "dinner");
   const [addMessage, setAddMessage] = useState("");
-  const [view, setView] = useState<PlannerView>(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767.98px)").matches ? "day" : "week");
+  const [view, setView] = useState<PlannerView>("day");
   const [shortcutHandled, setShortcutHandled] = useState(false);
   const goal = useQuery({ queryKey: ["current-goal", weekStart], queryFn: () => planningApi.goal(weekStart), enabled: Boolean(weekStart), retry: false });
 
@@ -199,7 +199,7 @@ export function WeeklyPlannerPage() {
   const selectedEntries = entries.filter((entry) => entry.localDate === selectedDate);
   const openSlots = SLOTS.filter((slot) => !selectedEntries.some((entry) => entry.mealSlot === slot));
   const totals = plan.data?.dayTotals ?? {};
-  const availableRecipes = recipes.data?.items.filter(isRecipeReadyToPlan) ?? [];
+  const availableRecipes = recipes.data?.items.filter(isRecipePlannable) ?? [];
   // Keep historical/stale recipe media available for cards already on the plan;
   // only the picker is restricted to recipes that are safe to add.
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
@@ -217,11 +217,11 @@ export function WeeklyPlannerPage() {
       {isMobile ? <header className="planner-mobile-top"><div><p className="eyebrow">This week</p><h1>{longDate(selectedDate)}</h1><p>{selectedEntries.length ? `${selectedEntries.length} meals planned` : "A clear day, ready to plan."}</p></div><div className="planner-mobile-top__actions"><button type="button" aria-label="Previous day" onClick={() => selectAdjacentDay(-1)}><ChevronLeft aria-hidden="true" /></button><button type="button" aria-label="Next day" onClick={() => selectAdjacentDay(1)}><ChevronRight aria-hidden="true" /></button></div></header> : <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />}
       <div className="planner-toolbar">
         <TabList className="planner-views" label="Planning views">
-           <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
            <button id="planner-tab-day" role="tab" aria-controls="planner-panel-day" aria-selected={view === "day"} tabIndex={view === "day" ? 0 : -1} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
+           <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
            <button id="planner-tab-prep" role="tab" aria-controls="planner-panel-prep" aria-selected={view === "prep"} tabIndex={view === "prep" ? 0 : -1} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
         </TabList>
-        {goal.data ? <Button asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
+        {goal.data ? <Button variant="secondary" asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
       </div>
 
         {view === "week" ? <section id="planner-panel-week" role="tabpanel" aria-labelledby="planner-tab-week">

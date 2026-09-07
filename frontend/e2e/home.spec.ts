@@ -144,7 +144,7 @@ test("Home opens on tonight, the week, recent recipes, and focused quick search"
   await page.goto("/app");
 
   await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening)$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start cooking" })).toHaveAttribute("href", `/app/recipes/${recipeId}/cook`);
+  await expect(page.getByRole("link", { name: "Start cooking" })).toHaveAttribute("href", new RegExp(`^/app/recipes/${recipeId}/cook\\?entry=00000000-0000-4000-8000-000000000703&week=\\d{4}-\\d{2}-\\d{2}$`));
   await expect(page.getByRole("heading", { name: "Two meals planned" })).toBeVisible();
   await expect(page.getByText("620 kcal")).toBeVisible();
   await expect(page.locator(".home-for-you .recipe-meta__item--calories").first()).toBeVisible();
