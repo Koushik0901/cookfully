@@ -2,6 +2,7 @@ name: cookfully
 
 services:
   storage-init:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -85,6 +86,7 @@ services:
     restart: unless-stopped
 
   intelligence:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-intelligence:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/intelligence.Dockerfile
@@ -115,6 +117,7 @@ services:
     restart: unless-stopped
 
   api:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -186,6 +189,7 @@ services:
     restart: unless-stopped
 
   worker-interactive: &worker
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -219,6 +223,7 @@ services:
     command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--queues=bulk,maintenance", "--concurrency=${COOKFULLY_BULK_WORKER_CONCURRENCY:-2}"]
 
   outbox:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -236,6 +241,7 @@ services:
     restart: unless-stopped
 
   retention:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -262,6 +268,7 @@ services:
     restart: unless-stopped
 
   backup:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-backup:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/backup.Dockerfile
@@ -290,6 +297,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-web:${COOKFULLY_IMAGE_TAG:-v0.1.0}
     build:
       context: ..
       dockerfile: deploy/docker/web.Dockerfile

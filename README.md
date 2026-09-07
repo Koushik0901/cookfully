@@ -61,6 +61,10 @@ Then open <http://localhost:8080> and sign in with `owner@example.com` and the p
 `deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). Full instructions, what to try, and
 troubleshooting are in [docs/docker-quickstart.md](docs/docker-quickstart.md).
 
+The first published container release is `v0.1.0`. Set `COOKFULLY_IMAGE_TAG=v0.1.0`, run
+`docker compose -f deploy/compose.yaml pull`, and start the same stack without `--build` to use the
+public GHCR images.
+
 ## Develop and verify
 
 Install the required Python and Node toolchains, then use these checks from the repository root:

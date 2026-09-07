@@ -76,6 +76,22 @@ docker compose -f deploy/compose.yaml ps
 
 Wait until `api`, `postgres`, `redis`, `web`, `retention`, and `backup` report `healthy`.
 
+### Use the published GHCR release instead
+
+The first release is published as four public GHCR images so the full Compose topology can be
+started without building locally. Pin the release tag rather than using a floating tag when you
+want a reproducible deployment:
+
+```powershell
+$env:COOKFULLY_IMAGE_TAG = "v0.1.0"
+docker compose -f deploy/compose.yaml pull
+docker compose -f deploy/compose.yaml up -d
+```
+
+The images are `ghcr.io/koushik0901/cookfully-api`, `cookfully-web`, `cookfully-intelligence`, and
+`cookfully-backup`. PostgreSQL and Redis continue to use their upstream images. The package links
+and anonymous-pull behavior depend on the package being set to public in GitHub Packages.
+
 ## 4. Open the app
 
 Visit <http://localhost:8080> and sign in with:
