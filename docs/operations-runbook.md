@@ -86,7 +86,7 @@ Inline repair is **enabled by default** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=
 
 1. Place `needle2.cact` at `/models/needle2.cact` (`deploy/intelligence/README.md:11`) — `GET /intelligence/health` must be `ready` not `degraded`.
 2. Run `python scripts/needle_threshold_sweep.py --real` (uses real Needle if artifact present, else synthetic fallback) sweeping `0.60→0.90`; commit `artifacts/needle-threshold-report.json` — verify `false_overwrite <1%` at `0.80` (report `chosen 0.75` `p95 31ms` synth, real envelope `prefill/decode/peak_ram` logged).
-3. Deploy: `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --build` — verify `GET /api/v1/health` `200`, `POST /pantry-items` bulk paste returns `201 {items,created}` and `POST /intelligence/infer` not `422`.
+3. Deploy the pinned release: `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml pull`, then `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --no-build` — verify `GET /api/v1/health` `200`, `POST /pantry-items` bulk paste returns `201 {items,created}` and `POST /intelligence/infer` not `422`. Use `--build` only from a source checkout when intentionally building a local image.
 4. Monitor 24h: `needle_inline_applied` rate, `p95 latency <600ms`, `peak_ram_mb ~28MB`, no `skipped_invalid` rise; logs contain `confidence/reasoning` not user text. Breach → bump `T` +0.05 or `INLINE_ENABLED=false` (no-op rollback).
 
 **Rollback:** set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false` and restart API. No data migration; legacy path always authoritative.

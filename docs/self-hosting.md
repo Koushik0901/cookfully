@@ -7,8 +7,9 @@ must survive database and media restore.
 ## Host and secrets
 
 Use a maintained x86-64 Linux host, Docker Engine with Compose v2, persistent SSD-backed Docker
-storage, a DNS name, and a TLS-terminating reverse proxy. Keep the repository and `.env` readable only
-by the deployment account. Generate a stable UUID once, a database password, a 32-byte-or-longer
+storage, a DNS name, and a TLS-terminating reverse proxy. A source checkout is optional: for a
+published release, keep only the downloaded Compose files and `.env` readable by the deployment
+account. Generate a stable UUID once, a database password, a 32-byte-or-longer
 application secret, and a strong bootstrap password; do not rotate `COOKFULLY_SECRET_KEY` without first
 accounting for encrypted diagnostics.
 
@@ -43,15 +44,46 @@ values aligned. Do not use `*` or trust the public internet. Production validati
 URLs, insecure cookies, an empty/invalid proxy allowlist, development secrets, or the default
 instance ID.
 
+## Download the release deployment files
+
+For a published release, download the pinned Compose file, production network override, and
+secret-free environment template. This avoids cloning the application repository on the host:
+
+```bash
+mkdir -p cookfully/deploy
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+  -o cookfully/deploy/compose.yaml
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.production.yaml \
+  -o cookfully/deploy/compose.production.yaml
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+  -o cookfully/deploy/.env.example
+cp cookfully/deploy/.env.example cookfully/deploy/.env
+```
+
+Fill in the production values above, set `COOKFULLY_DATA_ROOT` to the host data directory, and run
+the commands below from `cookfully/`. PowerShell users can use `Invoke-WebRequest` for the same
+three downloads and `Copy-Item` for the environment file.
+
+No Compose-file edits are normally required. `COOKFULLY_DATA_ROOT` is the single host-owned root
+for durable Cookfully state; set it in `deploy/.env` to the disk or filesystem you want to use.
+Compose creates and bind-mounts `postgres/`, `media/`, `exports/`, `backups/`, `erasure-ledger/`,
+`semantic-models/`, `intelligence-models/`, and `redis/` beneath that root. Keep the Compose files
+and `.env` outside the data root and back them up as deployment configuration.
+
 ## Compose topology
 
 Validate and start the merged production configuration:
 
 ```bash
 docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml config --quiet
-docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --build
+docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml pull
+docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --no-build
 docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml ps
 ```
+
+The Compose files default to the pinned `v0.1.0` GHCR images. Set `COOKFULLY_IMAGE_TAG` in
+`deploy/.env` before `pull` when upgrading to a later release. Use a source checkout and
+`--build` only when developing or maintaining the application itself.
 
 PostgreSQL and Redis have no published production ports. The API is reachable only on the backend and
 proxy networks. The web gateway binds to `127.0.0.1:8080` by default, so TLS must terminate on the same

@@ -47,27 +47,45 @@ client under `frontend/`, and Docker Compose deployment assets under `deploy/`.
 
 ## Try it now (Docker)
 
-The fastest way to see Cookfully running is the Docker Compose stack — no Node or Python install
-required:
+The fastest way to run Cookfully is the published GHCR release. You do not need to clone the
+repository or install Node, Python, or `uv` — download the Compose files, create the secret file,
+and start the images:
 
 ```bash
-git clone https://github.com/Koushik0901/cookfully.git
-cd cookfully
-cp deploy/.env.example deploy/.env   # then fill in the three required secrets
-docker compose -f deploy/compose.yaml up -d --build
+mkdir -p cookfully/deploy
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+  -o cookfully/deploy/compose.yaml
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+  -o cookfully/deploy/.env.example
+cp cookfully/deploy/.env.example cookfully/deploy/.env
 ```
 
-Then open <http://localhost:8080> and sign in with `owner@example.com` and the password you set in
-`deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). Full instructions, what to try, and
-troubleshooting are in [docs/docker-quickstart.md](docs/docker-quickstart.md).
+Fill in the three required secrets in `cookfully/deploy/.env`, then run:
 
-The first published container release is `v0.1.0`. Set `COOKFULLY_IMAGE_TAG=v0.1.0`, run
-`docker compose -f deploy/compose.yaml pull`, and start the same stack without `--build` to use the
-public GHCR images.
+```bash
+cd cookfully
+docker compose -f deploy/compose.yaml pull
+docker compose -f deploy/compose.yaml up -d --no-build
+```
+
+`COOKFULLY_DATA_ROOT` in that same file selects the host folder for Cookfully's durable state. It
+defaults to `../data` beside the downloaded deployment directory; change it to an absolute path
+before starting if you want the database, recipes, media, backups, and model files on another disk.
+No Compose-file edits are normally required: use `.env` for secrets, the data path, and the release
+tag. Edit Compose only for advanced changes such as custom port bindings or a reverse-proxy topology.
+
+PowerShell users can use `Invoke-WebRequest` instead of `curl`; the complete copy-and-start
+instructions, what to try, and troubleshooting are in
+[docs/docker-quickstart.md](docs/docker-quickstart.md).
+
+Then open <http://localhost:8080> and sign in with `owner@example.com` and the password you set in
+`deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). The release tag is pinned to `v0.1.0`; set
+`COOKFULLY_IMAGE_TAG` in `deploy/.env` when moving to a later release.
 
 ## Develop and verify
 
-Install the required Python and Node toolchains, then use these checks from the repository root:
+For development from source, clone the repository and install the required Python and Node
+toolchains. Then use these checks from the repository root:
 
 ```powershell
 uv run --directory backend ruff format --check .

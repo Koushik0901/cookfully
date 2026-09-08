@@ -1,8 +1,8 @@
 # Docker quickstart: run Cookfully on your machine
 
-The fastest way to try Cookfully is the full Docker Compose stack. It builds and runs the web
-client, API, workers, PostgreSQL, and Redis with one command. No Node, Python, or `uv` install is
-needed — only Docker.
+The fastest way to try Cookfully is the published Docker Compose release. It runs the web client,
+API, workers, PostgreSQL, and Redis from public images. No repository checkout or Node, Python, or
+`uv` install is needed — only Docker.
 
 For the development workflow (live-reloading API and client, tests, CLI tools), use the
 [development quickstart](../specs/001-nutrition-recipe-planner/quickstart.md) instead. For a
@@ -10,15 +10,28 @@ production deployment with TLS and a reverse proxy, see [self-hosting](self-host
 
 ## Prerequisites
 
-- Git
 - Docker Engine with the Compose v2 plugin, or Docker Desktop
-- ~4 GB free RAM and ~10 GB free disk (first build pulls images and installs dependencies)
+- ~4 GB free RAM and ~5 GB free disk for the first image pull and application data
 
-## 1. Clone the repository
+## 1. Download the release Compose files
+
+The release bundle is intentionally just the deployment files. Download the pinned `v0.1.0`
+Compose file and secret-free environment template into a small deployment directory:
 
 ```bash
-git clone https://github.com/Koushik0901/cookfully.git
-cd cookfully
+mkdir -p cookfully/deploy
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+  -o cookfully/deploy/compose.yaml
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+  -o cookfully/deploy/.env.example
+```
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force -Path 'cookfully\deploy' | Out-Null
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml' -OutFile 'cookfully\deploy\compose.yaml'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example' -OutFile 'cookfully\deploy\.env.example'
 ```
 
 ## 2. Create the environment file
@@ -27,10 +40,12 @@ Compose fails closed without secrets: it refuses to start until `deploy/.env` ex
 required values. Copy the template and fill them in.
 
 ```powershell
-Copy-Item -LiteralPath 'deploy\.env.example' -Destination 'deploy\.env'
+Copy-Item -LiteralPath 'cookfully\deploy\.env.example' -Destination 'cookfully\deploy\.env'
 ```
 
-Open `deploy/.env` and replace the three required placeholders:
+On bash, run `cp cookfully/deploy/.env.example cookfully/deploy/.env`.
+
+Open `cookfully/deploy/.env` and replace the three required placeholders:
 
 | Variable | Purpose | Example value |
 | --- | --- | --- |
@@ -41,32 +56,59 @@ Open `deploy/.env` and replace the three required placeholders:
 The owner email defaults to `owner@example.com`; set `COOKFULLY_OWNER_EMAIL` in the same file to
 change it. Everything else already has a working local default.
 
-> `.env` is gitignored. Never commit it.
+> `.env` contains secrets. Keep it private and never commit or share it.
 
-## 3. Build and start the stack
+## 3. Choose the persistent data location
 
-Before starting, choose where Cookfully's durable data belongs. The default is `data/` beside the
-repository, but a dedicated local disk is safer for a kitchen you intend to keep:
+`COOKFULLY_DATA_ROOT` is the one host path you choose for Cookfully's durable state. The template
+sets it to `../data`, which creates a `data/` folder beside the downloaded `deploy/` directory. To
+use another disk, edit only this value before starting, for example:
 
 ```dotenv
-# deploy/.env
+# cookfully/deploy/.env
 COOKFULLY_DATA_ROOT=D:/Cookfully
 ```
 
-That folder contains PostgreSQL, recipe media, exports, the erasure ledger, model files, and
-database backups. They are bind-mounted from your computer; Cookfully does **not** use Docker named
-volumes for durable data.
+No Compose-file edits are normally required. The Compose file bind-mounts these subfolders beneath
+the selected root:
 
-From the repository root:
+| Folder | Persisted state |
+| --- | --- |
+| `postgres/` | Cookfully database, recipes, plans, groceries, nutrition, accounts, and jobs |
+| `media/` | Recipe photos and managed media |
+| `exports/` | Portable export archives while they are retained |
+| `backups/` | Automatic PostgreSQL dumps, checksums, manifests, and backup requests |
+| `erasure-ledger/` | Independent append-only erasure records and checkpoints |
+| `semantic-models/` | Rebuildable semantic-matching model artifacts |
+| `intelligence-models/` | Optional Needle2 model artifact |
+| `redis/` | Redis AOF and short-lived coordination state |
+
+The `.env` file and Compose files live outside this root, so back up the `.env` securely as
+configuration. Temporary files, health heartbeats, container logs, and browser caches are
+intentionally not durable application data.
+
+`docker compose down` removes containers and networks but leaves this host folder untouched. Do not
+delete the selected data root unless you intend to destroy the instance; use the backup and restore
+guidance for migration or recovery.
+
+If you change `COOKFULLY_DATA_ROOT` later, Cookfully will see that path as a new instance unless you
+copy or restore the existing data into it first. Stop the stack and complete a backup/restore or
+careful host-folder migration before switching paths.
+
+## 4. Pull and start the stack
+
+From the deployment directory:
 
 ```bash
-docker compose -f deploy/compose.yaml up -d --build
+cd cookfully
+docker compose -f deploy/compose.yaml pull
+docker compose -f deploy/compose.yaml up -d --no-build
 ```
 
-The first build takes a few minutes (it installs locked frontend dependencies and the Python
-environment). It starts the web client, API, workers, PostgreSQL, Redis, retention worker, storage
-initializer, and automatic backup service. The API runs database migrations automatically on first
-start and creates the owner account from `COOKFULLY_OWNER_*`.
+The first pull downloads the locked release images. It starts the web client, API, workers,
+PostgreSQL, Redis, retention worker, storage initializer, and automatic backup service. The API
+runs database migrations automatically on first start and creates the owner account from
+`COOKFULLY_OWNER_*`.
 
 Check that everything is healthy:
 
@@ -76,23 +118,15 @@ docker compose -f deploy/compose.yaml ps
 
 Wait until `api`, `postgres`, `redis`, `web`, `retention`, and `backup` report `healthy`.
 
-### Use the published GHCR release instead
+## 5. Release images and tags
 
-The first release is published as four public GHCR images so the full Compose topology can be
-started without building locally. Pin the release tag rather than using a floating tag when you
-want a reproducible deployment:
+The Compose file defaults to the pinned `v0.1.0` images. To move to a later release, set
+`COOKFULLY_IMAGE_TAG` in `cookfully/deploy/.env`, then run `docker compose -f deploy/compose.yaml
+pull` and `docker compose -f deploy/compose.yaml up -d --no-build` again. The images are
+`ghcr.io/koushik0901/cookfully-api`, `cookfully-web`, `cookfully-intelligence`, and
+`cookfully-backup`; PostgreSQL and Redis continue to use their upstream images.
 
-```powershell
-$env:COOKFULLY_IMAGE_TAG = "v0.1.0"
-docker compose -f deploy/compose.yaml pull
-docker compose -f deploy/compose.yaml up -d
-```
-
-The images are `ghcr.io/koushik0901/cookfully-api`, `cookfully-web`, `cookfully-intelligence`, and
-`cookfully-backup`. PostgreSQL and Redis continue to use their upstream images. The package links
-and anonymous-pull behavior depend on the package being set to public in GitHub Packages.
-
-## 4. Open the app
+## 6. Open the app
 
 Visit <http://localhost:8080> and sign in with:
 
@@ -131,10 +165,21 @@ The app downloads the official bulk files, imports them into PostgreSQL, and act
 background — no local tools or manual files are needed. Operators who prefer the CLI can still use
 `cookfully reference-data import` + `activate` (see the development quickstart, section 4).
 
+## Development from source (optional)
+
+Clone the repository only when you want to modify Cookfully or build images locally:
+
+```bash
+git clone https://github.com/Koushik0901/cookfully.git
+cd cookfully
+cp deploy/.env.example deploy/.env
+docker compose -f deploy/compose.yaml up -d --build
+```
+
 ## Rebuilding after a code change
 
-Frontend and backend images are built from the repository, so pull new commits and rebuild the
-affected image:
+For a source checkout, frontend and backend images are built from the repository. Pull new commits
+and rebuild the affected image:
 
 ```bash
 git pull

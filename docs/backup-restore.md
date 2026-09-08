@@ -20,8 +20,9 @@ are the recovery source.
 
 ## Host-owned storage
 
-The Compose topology bind-mounts normal host folders beneath `COOKFULLY_DATA_ROOT` (default: `data/`
-beside the repository). Docker container and volume deletion therefore cannot delete this state:
+The Compose topology bind-mounts normal host folders beneath the user-selected
+`COOKFULLY_DATA_ROOT` (default: `data/` beside the downloaded deployment directory). Docker
+container and volume deletion therefore cannot delete this state:
 
 | Host folder | Contents | Recovery treatment |
 | --- | --- | --- |
