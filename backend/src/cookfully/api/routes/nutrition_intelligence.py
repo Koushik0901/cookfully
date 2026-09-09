@@ -23,6 +23,8 @@ class NutritionIntelligenceSettingsResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     backend: Backend
+    intelligence_enabled: bool = Field(alias="intelligenceEnabled")
+    inline_enabled: bool = Field(alias="inlineEnabled")
     model_name: str = Field(alias="modelName")
     model_revision: str | None = Field(alias="modelRevision")
     concurrency: int = Field(ge=1, le=4)
@@ -71,6 +73,8 @@ class NutritionIntelligenceEstimateResponse(BaseModel):
 class NutritionIntelligenceSettingsWrite(NutritionIntelligenceEstimateRequest):
     version: int = Field(ge=1)
     estimate_hash: str = Field(alias="estimateHash", min_length=64, max_length=64)
+    intelligence_enabled: bool | None = Field(default=None, alias="intelligenceEnabled")
+    inline_enabled: bool | None = Field(default=None, alias="inlineEnabled")
 
 
 def _response(
@@ -98,6 +102,8 @@ def _response(
             status = "ready"
     return NutritionIntelligenceSettingsResponse(
         backend=value.backend,
+        intelligence_enabled=value.intelligence_enabled,
+        inline_enabled=value.inline_enabled,
         model_name=value.model_name,
         model_revision=value.model_revision,
         concurrency=value.concurrency,
@@ -163,6 +169,8 @@ def update_settings(
         concurrency=payload.concurrency,
         expected_version=payload.version,
         estimate_hash=payload.estimate_hash,
+        intelligence_enabled=payload.intelligence_enabled,
+        inline_enabled=payload.inline_enabled,
         trace_id=request.headers.get("x-request-id", "nutrition-intelligence-settings"),
     )
     return _response(value, latest_model_download(request.app.state.sessions))

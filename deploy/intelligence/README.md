@@ -8,11 +8,19 @@ execution.
 Compose places the service on a private `intelligence-net` shared only with the
 API and worker. Postgres and Redis are not attached to that network.
 
-Place the pinned Needle 2 model artifact at
-`<COOKFULLY_DATA_ROOT>/intelligence-models/needle2.cact` before enabling
-production inference. The artifact must be obtained from the approved model
-release and verified against the release checksum. Do not mount the application
-media or database directories into this service.
+Needle2 is enabled by default. The local service starts automatically, but the
+release image does not ship model weights. To make inference ready, place the
+pinned Needle 2 artifact at
+`<COOKFULLY_DATA_ROOT>/intelligence-models/needle2.cact`. Obtain it from the
+approved model release and verify its release checksum. If the artifact is
+missing, the service reports `degraded` and Cookfully safely falls back to its
+deterministic paths. Do not mount application media or database directories into
+this service.
+
+The owner can turn Needle2 and its inline import/repair assistance off or back
+on under **Settings → Intelligence**. The `COOKFULLY_INTELLIGENCE_ENABLED` and
+`COOKFULLY_INTELLIGENCE_INLINE_ENABLED` environment variables remain emergency
+operator kill switches; both default to `true`.
 
 For a remote model host, set `COOKFULLY_INTELLIGENCE_URL` on the API and worker
 to an HTTPS endpoint and configure the same service key on both sides. Keep the

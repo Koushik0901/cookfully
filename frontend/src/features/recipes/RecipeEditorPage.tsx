@@ -133,7 +133,9 @@ export function RecipeEditorPage() {
     refetchIntervalInBackground: true,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
+      const deadline = query.state.data?.terminalDeadlineAt;
       if (!status || ["succeeded", "failed", "cancelled", "superseded"].includes(status)) return false;
+      if (deadline && Date.parse(deadline) <= Date.now()) return false;
       return document.visibilityState === "visible" ? 2_000 : 15_000;
     },
   });
@@ -318,9 +320,15 @@ const [title, setTitle] = useState("");
 
   const ingredientCount = blocks.reduce((total, block) => total + block.ingredients.filter((item) => item.originalText.trim()).length, 0);
   const stepCount = blocks.reduce((total, block) => total + block.instructions.filter((item) => item.text.trim()).length, 0);
+  const nutritionJobExpired = Boolean(
+    nutritionJob.data?.terminalDeadlineAt
+      && Date.parse(nutritionJob.data.terminalDeadlineAt) <= Date.now(),
+  );
   const nutritionProcessing = activeNutritionJobId
-    ? !nutritionJob.data || ["queued", "running", "retry_wait"].includes(nutritionJob.data.status)
-    : ["pending", "processing", "retry_wait"].includes(detail.data?.nutritionState ?? "");
+    ? !nutritionJobExpired
+      && !nutritionJob.isError
+      && (!nutritionJob.data || ["queued", "running", "retry_wait"].includes(nutritionJob.data.status))
+    : false;
   const handleFoodSelected = (accepted: JobAccepted) => {
     setNutritionJobId(accepted.jobId);
     queryClient.setQueryData<RecipeDetail>(["recipe", recipeId], (current) => current
@@ -439,6 +447,8 @@ const [title, setTitle] = useState("");
         <section className="recipe-editor__nutrition-review" id="ingredient-matches" aria-labelledby="nutrition-review-heading" aria-busy={nutritionProcessing}>
           <header><div><p className="eyebrow">Nutrition</p><h2 id="nutrition-review-heading">Nutrition</h2></div></header>
           {detail.data?.ingredients.some((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional") ? <details className="structured-review" open={matchesOpen} onToggle={(event) => setMatchesOpen(event.currentTarget.open)}><summary>Review food matches</summary><p className="muted">Some ingredients are estimated or unresolved. Choose a food reference when you want a more specific nutrition estimate; the choice can update similar ingredients elsewhere.</p><ul>{detail.data.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <li key={item.id}><span><strong>{item.originalText}</strong><small>{item.resolutionKind === "provisional" ? `Estimated from ${item.candidateEvidence?.length ?? 0} possible foods` : item.matchStatus === "ambiguous" ? "Several possible foods" : "No food selected yet"}</small></span><FoodPicker recipeId={detail.data.id} ingredientId={item.id} ingredientName={item.food || item.originalText} trigger={<Button type="button" variant="secondary" size="sm">Choose food</Button>} onSelected={handleFoodSelected} /></li>)}</ul></details> : null}
+          {nutritionJobExpired ? <p className="error-text" role="alert">Nutrition processing took too long and was stopped. The recipe is still editable; save it to try again.</p> : null}
+          {activeNutritionJobId && nutritionJob.isError ? <p className="error-text" role="alert">Nutrition processing could not be reached. The recipe is still editable; save it to try again.</p> : null}
           <details className={`recipe-editor__nutrition${nutritionProcessing ? " is-processing" : ""}`} id="nutrition" open={nutritionOpen || nutritionProcessing} onToggle={(event) => setNutritionOpen(event.currentTarget.open)} aria-busy={nutritionProcessing}>
             <summary><span><strong>Nutrition values</strong><small>Optional values from a label or trusted source</small></span></summary>
             <div className="recipe-editor__nutrition-content">

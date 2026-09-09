@@ -22,6 +22,10 @@ class ImportedRecipe:
     prep_minutes: int | None = None
     cook_minutes: int | None = None
     image_candidates: tuple[str, ...] = ()
+    cleanup_status: str = "deterministic"
+    cleanup_provider: str = "none"
+    cleanup_warnings: tuple[str, ...] = ()
+    cleanup_changes: tuple[dict[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

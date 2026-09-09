@@ -76,7 +76,9 @@ class Settings(BaseSettings):
     database_backup_retention_count: Annotated[int, Field(ge=1, le=365)] = 14
     cookie_secure: bool = False
     session_ttl_days: Annotated[int, Field(ge=1, le=400)] = 400
-    semantic_matching_backend: Literal["hashing", "fastembed"] = "hashing"
+    # FastEmbed is the normal matching backend. Ingredient matching can still
+    # degrade to deterministic hashing when the optional model is unavailable.
+    semantic_matching_backend: Literal["hashing", "fastembed"] = "fastembed"
     semantic_matching_model: str = "BAAI/bge-small-en-v1.5"
     semantic_matching_model_dir: Path = Path("semantic-models")
     intelligence_enabled: bool = True
@@ -86,6 +88,8 @@ class Settings(BaseSettings):
     intelligence_inline_enabled: bool = True
     intelligence_inline_threshold: Annotated[float, Field(ge=0, le=1)] = 0.80
     intelligence_inline_timeout_ms: Annotated[int, Field(ge=100, le=5000)] = 600
+    openrouter_api_key: SecretStr = SecretStr("")
+    openrouter_model: str = ""
 
     @model_validator(mode="after")
     def build_database_url_from_postgres_credentials(self) -> "Settings":

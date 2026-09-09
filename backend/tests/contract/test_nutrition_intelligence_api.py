@@ -42,6 +42,8 @@ def test_settings_estimate_and_update_require_reviewed_estimate(
         current = client.get("/api/v1/nutrition-intelligence/settings", headers=headers)
         assert current.status_code == 200
         assert current.json()["backend"] == "fastembed"
+        assert current.json()["intelligenceEnabled"] is True
+        assert current.json()["inlineEnabled"] is True
 
         estimate = client.post(
             "/api/v1/nutrition-intelligence/estimate",
@@ -62,10 +64,23 @@ def test_settings_estimate_and_update_require_reviewed_estimate(
                 "concurrency": 2,
                 "version": current.json()["version"],
                 "estimateHash": estimate_body["estimateHash"],
+                "intelligenceEnabled": False,
+                "inlineEnabled": False,
             },
         )
         assert updated.status_code == 200
         assert updated.json()["concurrency"] == 2
+        assert updated.json()["intelligenceEnabled"] is False
+        assert updated.json()["inlineEnabled"] is False
+
+        disabled = client.post(
+            "/api/v1/intelligence/infer",
+            headers=headers,
+            json={"operation": "command", "prompt": "add oats to groceries"},
+        )
+        assert disabled.status_code == 200
+        assert disabled.json()["status"] == "unavailable"
+        assert disabled.json()["errorCode"] == "intelligence_disabled"
 
         stale = client.put(
             "/api/v1/nutrition-intelligence/settings",

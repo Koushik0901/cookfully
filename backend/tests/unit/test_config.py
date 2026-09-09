@@ -7,6 +7,9 @@ from cookfully.infrastructure.config import Settings
 def test_safe_job_policy_defaults_are_fixed() -> None:
     settings = Settings()
 
+    assert settings.intelligence_enabled is True
+    assert settings.intelligence_inline_enabled is True
+    assert settings.semantic_matching_backend == "fastembed"
     assert settings.failed_import_diagnostics_enabled is False
     assert settings.failed_import_diagnostic_ttl_seconds == 86_400
     assert settings.job_attempt_timeout_seconds == 60

@@ -172,10 +172,12 @@ class RecipeImporter:
         except Exception:
             groups = []
         if not groups or not any(getattr(group, "purpose", None) for group in groups):
-            flat = tuple(
-                item.strip()
-                for item in scraper.ingredients()  # type: ignore[no-untyped-call]
-                if item.strip()
+            flat = RecipeImporter._sanitize_ingredient_lines(
+                tuple(
+                    item.strip()
+                    for item in scraper.ingredients()  # type: ignore[no-untyped-call]
+                    if item.strip()
+                )
             )
             return flat, (None,) * len(flat), ()
         titles: list[str] = []
@@ -184,17 +186,51 @@ class RecipeImporter:
         sections: list[int | None] = []
         for group in groups:
             purpose = getattr(group, "purpose", None) or ""
+            if purpose and (
+                RecipeImporter._pdf_ingredient_metadata_start(str(purpose))
+                or RecipeImporter._pdf_instruction_start(str(purpose))
+            ):
+                continue
             if purpose and purpose not in by_title:
                 by_title[purpose] = len(titles)
                 titles.append(purpose)
             section = by_title.get(purpose)
-            for item in group.ingredients:
-                text = item.strip()
-                if not text:
-                    continue
+            for text in RecipeImporter._sanitize_ingredient_lines(
+                tuple(item.strip() for item in group.ingredients if item.strip())
+            ):
                 ingredients.append(text)
                 sections.append(section)
         return tuple(ingredients), tuple(sections), tuple(titles)
+
+    @classmethod
+    def _sanitize_ingredient_lines(
+        cls, values: tuple[str, ...], *, join_wrapped: bool = False
+    ) -> tuple[str, ...]:
+        """Keep a source's ingredient list from absorbing adjacent page content.
+
+        Recipe pages and PDF text extraction occasionally expose the nutrition
+        card, serving notes, photo credits, or the first method step as if they
+        were ingredient rows. Apply the same conservative boundaries to both
+        source types, then join only clearly wrapped lowercase continuations.
+        """
+
+        result: list[str] = []
+        for value in values:
+            stripped = value.strip(" \t•-\N{EN DASH}")
+            if not stripped:
+                continue
+            if cls._pdf_ingredient_metadata_start(stripped) or cls._pdf_instruction_start(stripped):
+                break
+            normalized = cls._normalize_pdf_ingredient(stripped)
+            if join_wrapped and (
+                result
+                and re.match(r"^[a-z]", normalized)
+                and not result[-1].rstrip().endswith((".", ":", ";"))
+            ):
+                result[-1] = f"{result[-1]} {normalized}"
+                continue
+            result.append(normalized)
+        return tuple(result)
 
     @classmethod
     def _import_pdf(cls, content: bytes, source_url: str, canonical_url: str) -> ImportedCookbook:
@@ -235,14 +271,18 @@ class RecipeImporter:
         metadata_title = str(reader.metadata.title or "").strip() if reader.metadata else ""
         image_candidates = cls._pdf_image_candidates(content)
         if image_candidates:
-            first = recipes[0]
-            recipes = (
+            # A PDF rarely exposes a reliable page-to-recipe mapping for
+            # embedded images. Give every recipe a bounded default candidate
+            # (cycling through the extracted set) so later cookbook entries do
+            # not silently lose their cover. Keeping one candidate per entry
+            # also avoids multiplying a large base64 preview eightfold.
+            recipes = tuple(
                 replace(
-                    first,
-                    image_url=image_candidates[0],
-                    image_candidates=image_candidates,
-                ),
-                *recipes[1:],
+                    recipe,
+                    image_url=image_candidates[index % len(image_candidates)],
+                    image_candidates=(image_candidates[index % len(image_candidates)],),
+                )
+                for index, recipe in enumerate(recipes)
             )
         return ImportedCookbook(
             title=metadata_title or "Imported cookbook",
@@ -422,6 +462,15 @@ class RecipeImporter:
         titles: list[str] = []
         by_title: dict[str, int] = {}
         group: str | None = None
+        last_by_column: dict[int, int] = {}
+        column_boundary: int | None = None
+        for line in lines:
+            spans = list(re.finditer(r"\S.*?(?=\s{3,}|$)", line))
+            if len(spans) > 1:
+                candidate = spans[1].start()
+                column_boundary = (
+                    candidate if column_boundary is None else min(column_boundary, candidate)
+                )
         multi_column = any(
             len([column for column in re.split(r"\s{3,}", line) if column.strip()]) > 1
             for line in lines
@@ -430,11 +479,17 @@ class RecipeImporter:
             # A number of professionally typeset cookbooks use two ingredient
             # columns.  Keep both entries as distinct ingredients instead of
             # combining them into a single malformed line.
-            columns = re.split(r"\s{3,}", line)
-            for column in columns:
-                stripped = column.strip(" \t•-\N{EN DASH}")
+            spans = list(re.finditer(r"\S.*?(?=\s{3,}|$)", line))
+            columns = [(span.group().strip(), span.start()) for span in spans]
+            for column_text, column_start in columns:
+                column_index = 0 if column_boundary is None or column_start < column_boundary else 1
+                stripped = column_text.strip(" \t•-\N{EN DASH}")
                 if not stripped:
                     continue
+                if RecipeImporter._pdf_ingredient_metadata_start(
+                    stripped
+                ) or RecipeImporter._pdf_instruction_start(stripped):
+                    return tuple(result), tuple(sections), tuple(titles)
                 if stripped.lower() == "notes" or re.match(
                     r"^author\s*(?:\||i\b)", stripped, flags=re.IGNORECASE
                 ):
@@ -459,10 +514,81 @@ class RecipeImporter:
                         by_title[group] = len(titles)
                         titles.append(group)
                     continue
-                normalized = re.sub(r"\s{2,}", " ", stripped)
+                normalized = RecipeImporter._normalize_pdf_ingredient(stripped)
+                target = last_by_column.get(column_index)
+                if (
+                    target is not None
+                    and re.match(r"^[a-z]", normalized)
+                    and not result[target].rstrip().endswith((".", ":", ";"))
+                ):
+                    result[target] = f"{result[target]} {normalized}"
+                    continue
                 result.append(normalized)
                 sections.append(by_title.get(group) if group else None)
+                last_by_column[column_index] = len(result) - 1
         return tuple(result), tuple(sections), tuple(titles)
+
+    @staticmethod
+    def _pdf_ingredient_metadata_start(value: str) -> bool:
+        """Detect the metadata/footer columns that often follow PDF ingredients.
+
+        Text extraction cannot know that a nutrition card or photo credit is a
+        separate visual panel. These markers are deliberately conservative:
+        they only stop at standalone labels, so a real ingredient such as
+        ``protein powder`` remains valid.
+        """
+
+        normalized = re.sub(r"\s+", " ", value).strip().lower().rstrip(":")
+        if re.match(
+            r"^(?:accompanied with|served with|serve with|image courtesy(?:/| ).*|"
+            r"dish credit.*|photo credit.*|nutrition(?:al)?(?: facts| information| values)?|"
+            r"per (?:piece|pieces|serving|portion))$",
+            normalized,
+        ):
+            return True
+        return normalized in {
+            "calorie",
+            "calories",
+            "protein",
+            "fat",
+            "fats",
+            "carb",
+            "carbs",
+            "carbohydrate",
+            "carbohydrates",
+            "fiber",
+            "dietary fiber",
+        }
+
+    @staticmethod
+    def _pdf_instruction_start(value: str) -> bool:
+        """Stop an ingredient column when layout extraction leaks method text."""
+
+        normalized = value.strip()
+        if re.match(r"(?i)^(?:directions?|instructions?|method|steps?)\b", normalized):
+            return True
+        return bool(
+            re.match(
+                r"(?i)^\d{1,2}[.)]?\s+(?:then|add|put|place|heat|cook|mix|stir|"
+                r"bake|boil|serve|pour|cover|remove|open|close|roll|grill)\b",
+                normalized,
+            )
+        )
+
+    @staticmethod
+    def _normalize_pdf_ingredient(value: str) -> str:
+        """Repair bounded OCR/layout artifacts without rewriting source text."""
+
+        normalized = re.sub(r"\s{2,}", " ", value).strip()
+        normalized = re.sub(r"(?i)(?<=\d)\s*(?:grms?|gms?|gm)\b", " g", normalized)
+        normalized = re.sub(r"(?i)(?<=\d)(?=(?:tbsp|tsp|cups?|ml|kg|oz|lb)\b)", " ", normalized)
+        normalized = re.sub(r"(?i)\s*/\s*f[_\s]*lour\b", " flour", normalized)
+        normalized = re.sub(r"(?i)\s*/\s*f[_\s]*lakes\b", " flakes", normalized)
+        normalized = re.sub(r"(?i)\bf[_\s]*lour\b", "flour", normalized)
+        normalized = re.sub(r"(?i)\bf[_\s]*lakes\b", "flakes", normalized)
+        normalized = re.sub(r"(?i)\bdr\s+y\b", "dry", normalized)
+        normalized = re.sub(r"\s+", " ", normalized)
+        return normalized
 
     @staticmethod
     def _pdf_directions(value: str) -> tuple[str, ...]:
@@ -472,7 +598,14 @@ class RecipeImporter:
         # ordered steps stay readable in the review editor.
         body = re.sub(r"(?<=[.!?])\s*1\s+(?=2\s+[A-Z])", " ", body)
         body = re.sub(r"\b([A-Z])\s+([a-z]{2,}\b)", r"\1\2", body)
-        matches = list(re.finditer(r"(?m)^\s*\d+[.)]\s*", body))
+        matches = list(re.finditer(r"(?m)^\s*\d{1,2}(?:[.)]\s*|\s+)", body))
+        inline_matches = list(re.finditer(r"(?<!\w)\d{1,2}[.)]?\s+(?=[A-Z])", body))
+        # Layout extraction can retain several numbered steps in one visual
+        # column line (for example ``For Green 1 Mix ... 2 Make ...``). When
+        # those inline step markers are more complete than line-start markers,
+        # use them to avoid collapsing the method into one oversized step.
+        if len(inline_matches) > len(matches):
+            matches = inline_matches
         if len(matches) < 2:
             # Layout extraction often leaves numbered instructions in a right
             # column without their original line breaks ("For the sauce 1 Heat").
@@ -504,6 +637,11 @@ class RecipeImporter:
         for index, match in enumerate(matches):
             end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
             step = re.sub(r"\s+", " ", body[match.end() : end]).strip()
+            # Some PDF text layers repeat the step number immediately after
+            # the number consumed by the boundary match (for example
+            # ``1 1 For...``). Keep the user-facing step text clean without
+            # stripping legitimate quantities from the body of a step.
+            step = re.sub(rf"^{index + 1}\s+", "", step)
             if step:
                 steps.append(step)
         return tuple(steps)

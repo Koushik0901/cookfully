@@ -213,13 +213,19 @@ def idempotency_service(request: Request) -> IdempotencyService:
 _ALLOWED_UNITS = {"g", "kg", "ml", "l", "cup", "tbsp", "tsp", "count", "scoop", "oz", "lb"}
 
 
-async def _maybe_repair_recipe_ingredients(payload: RecipeWriteRequest) -> RecipeWriteRequest:
+async def _maybe_repair_recipe_ingredients(
+    payload: RecipeWriteRequest, *, enabled: bool = True
+) -> RecipeWriteRequest:
     """Gap-only unit repair for editor rows where unit is None or not in allowlist."""
     try:
         from cookfully.infrastructure.config import get_settings
 
         settings = get_settings()
-        if not settings.intelligence_inline_enabled:
+        if (
+            not enabled
+            or not settings.intelligence_inline_enabled
+            or not settings.intelligence_enabled
+        ):
             return payload
         needs: list[int] = []
         for idx, ing in enumerate(payload.ingredients):
@@ -309,13 +315,18 @@ def list_recipes(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_recipe(
+    request: Request,
     payload: RecipeWriteRequest,
     recipes: Annotated[RecipeService, Depends(recipe_service)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeResponse:
-    repaired = await _maybe_repair_recipe_ingredients(payload)
+    configured = request.app.state.nutrition_intelligence.get()
+    repaired = await _maybe_repair_recipe_ingredients(
+        payload,
+        enabled=configured.intelligence_enabled and configured.inline_enabled,
+    )
     write = repaired.to_write()
     mutation = recipes.create(write, trace_id=correlation_id.get(), owner_id=owner.id)
     if repaired.staged_photo_id is not None:
@@ -473,6 +484,10 @@ def _preview_response(data: dict[str, Any]) -> ImportPreviewResponse:
                 )
                 for section in value["sections"]
             ),
+            cleanup_status=value.get("cleanup_status", "deterministic"),
+            cleanup_provider=value.get("cleanup_provider", "none"),
+            cleanup_warnings=tuple(value.get("cleanup_warnings", ())),
+            cleanup_changes=tuple(value.get("cleanup_changes", ())),
         )
 
     previews = tuple(recipe_preview(value) for value in data.get("recipes", ()))
@@ -487,6 +502,10 @@ def _preview_response(data: dict[str, Any]) -> ImportPreviewResponse:
         sections=first.sections,
         origin_kind=data.get("origin_kind", "web_import"),
         recipes=previews,
+        cleanup_status=data.get("cleanup_status", "deterministic"),
+        cleanup_provider=data.get("cleanup_provider", "none"),
+        cleanup_warnings=tuple(data.get("cleanup_warnings", ())),
+        cleanup_changes=tuple(data.get("cleanup_changes", ())),
     )
 
 
@@ -603,6 +622,7 @@ def get_recipe(
 
 @router.patch("/{recipeId}", response_model=RecipeDetailResponse, response_model_by_alias=True)
 async def update_recipe(
+    request: Request,
     recipe_id: Annotated[UUID, Path(alias="recipeId")],
     payload: RecipeWriteRequest,
     version: Annotated[int, Depends(expected_version)],
@@ -611,7 +631,11 @@ async def update_recipe(
     photos: Annotated[RecipePhotoService, Depends(recipe_photos)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> RecipeDetailResponse:
-    repaired = await _maybe_repair_recipe_ingredients(payload)
+    configured = request.app.state.nutrition_intelligence.get()
+    repaired = await _maybe_repair_recipe_ingredients(
+        payload,
+        enabled=configured.intelligence_enabled and configured.inline_enabled,
+    )
     mutation = recipes.update(
         recipe_id,
         repaired.to_write(),

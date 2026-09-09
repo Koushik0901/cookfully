@@ -8,8 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy.orm import Session, sessionmaker
+
 from cookfully.application.inline_repair import InlineRepairGateway
 from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.intelligence.client import IntelligenceClient
 
 
@@ -18,13 +21,22 @@ class InlineImportEnrichment:
         self.gateway = gateway
 
     @classmethod
-    def enabled_from_settings(cls) -> InlineImportEnrichment | None:
+    def enabled_from_settings(
+        cls, session_factory: sessionmaker[Session] | None = None
+    ) -> InlineImportEnrichment | None:
         try:
             from cookfully.infrastructure.config import get_settings
 
             settings: Settings = get_settings()
-            if not settings.intelligence_inline_enabled:
+            if not settings.intelligence_inline_enabled or not settings.intelligence_enabled:
                 return None
+            if session_factory is not None:
+                with session_factory() as session:
+                    persisted = session.get(NutritionIntelligenceSettings, 1)
+                    if persisted is not None and (
+                        not persisted.inline_enabled or not persisted.intelligence_enabled
+                    ):
+                        return None
             client = IntelligenceClient(
                 settings.intelligence_url,
                 settings.intelligence_service_key.get_secret_value(),

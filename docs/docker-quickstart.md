@@ -15,14 +15,14 @@ production deployment with TLS and a reverse proxy, see [self-hosting](self-host
 
 ## 1. Download the release Compose files
 
-The release bundle is intentionally just the deployment files. Download the pinned `v0.1.0`
+The release bundle is intentionally just the deployment files. Download the pinned `v0.1.1`
 Compose file and secret-free environment template into a small deployment directory:
 
 ```bash
 mkdir -p cookfully/deploy
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/compose.yaml \
   -o cookfully/deploy/compose.yaml
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/.env.example \
   -o cookfully/deploy/.env.example
 ```
 
@@ -30,14 +30,14 @@ PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path 'cookfully\deploy' | Out-Null
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml' -OutFile 'cookfully\deploy\compose.yaml'
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example' -OutFile 'cookfully\deploy\.env.example'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/compose.yaml' -OutFile 'cookfully\deploy\compose.yaml'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/.env.example' -OutFile 'cookfully\deploy\.env.example'
 ```
 
 ## 2. Create the environment file
 
 Compose fails closed without secrets: it refuses to start until `deploy/.env` exists with the three
-required values. Copy the template and fill them in.
+required values. Copy the short template and fill them in.
 
 ```powershell
 Copy-Item -LiteralPath 'cookfully\deploy\.env.example' -Destination 'cookfully\deploy\.env'
@@ -53,12 +53,23 @@ Open `cookfully/deploy/.env` and replace the three required placeholders:
 | `COOKFULLY_SECRET_KEY` | Session signing / diagnostics key, 32+ chars | `openssl rand -hex 32` output |
 | `COOKFULLY_OWNER_BOOTSTRAP_PASSWORD` | Sign-in password for the single owner account | `ChangeMe-Owner-2026!` |
 
-The owner email defaults to `owner@example.com`; set `COOKFULLY_OWNER_EMAIL` in the same file to
-change it. Everything else already has a working local default.
+The owner email defaults to `owner@example.com`; set `COOKFULLY_OWNER_EMAIL` only if you want a
+different sign-in address. Everything else already has a working local default.
 
 > `.env` contains secrets. Keep it private and never commit or share it.
 
-## 3. Choose the persistent data location
+Semantic ingredient matching defaults to FastEmbed embeddings (`BAAI/bge-small-en-v1.5`). After
+sign-in, choose the backend, model, and matching workload under **Settings → Intelligence**. The
+first model download is persisted under `semantic-models/`; no matching-related `.env` setting is
+needed.
+
+Recipe import cleanup is enabled by default. URL imports and text-based cookbook PDFs are cleaned
+once before review using the local Needle2 service, with deterministic parsing as the safe fallback.
+Scanned/image-only PDFs are intentionally rejected; no OCR or vision model is pulled. If you need a
+remote fallback, add `COOKFULLY_OPENROUTER_API_KEY` and `COOKFULLY_OPENROUTER_MODEL` to the server
+`.env`, then enable it under **Settings → Intelligence**. The key is never shown in the UI.
+
+## 3. Choose storage and the web port
 
 `COOKFULLY_DATA_ROOT` is the one host path you choose for Cookfully's durable state. The template
 sets it to `../data`, which creates a `data/` folder beside the downloaded `deploy/` directory. To
@@ -68,6 +79,24 @@ use another disk, edit only this value before starting, for example:
 # cookfully/deploy/.env
 COOKFULLY_DATA_ROOT=D:/Cookfully
 ```
+
+The web container listens on port `8080` inside Docker and publishes that port on the host by
+default. If another app already uses it, add a host port to `.env`:
+
+```dotenv
+COOKFULLY_WEB_PORT=5050
+```
+
+When the app is opened from another device, optionally set both public URLs to the same LAN or
+Tailscale address, for example:
+
+```dotenv
+COOKFULLY_PUBLIC_BASE_URL=http://zimaos.tailbf2103.ts.net:5050
+COOKFULLY_API_BASE_URL=http://zimaos.tailbf2103.ts.net:5050
+```
+
+For local-only access, leave these URL settings out and use `http://localhost:8080` (or the port
+you selected).
 
 No Compose-file edits are normally required. The Compose file bind-mounts these subfolders beneath
 the selected root:
@@ -80,7 +109,7 @@ the selected root:
 | `backups/` | Automatic PostgreSQL dumps, checksums, manifests, and backup requests |
 | `erasure-ledger/` | Independent append-only erasure records and checkpoints |
 | `semantic-models/` | Rebuildable semantic-matching model artifacts |
-| `intelligence-models/` | Optional Needle2 model artifact |
+| `intelligence-models/` | Needle2 model artifact; the model is enabled by default and the service degrades safely until this artifact is present |
 | `redis/` | Redis AOF and short-lived coordination state |
 
 The `.env` file and Compose files live outside this root, so back up the `.env` securely as
@@ -120,7 +149,7 @@ Wait until `api`, `postgres`, `redis`, `web`, `retention`, and `backup` report `
 
 ## 5. Release images and tags
 
-The Compose file defaults to the pinned `v0.1.0` images. To move to a later release, set
+The Compose file defaults to the pinned `v0.1.1` images. To move to a later release, set
 `COOKFULLY_IMAGE_TAG` in `cookfully/deploy/.env`, then run `docker compose -f deploy/compose.yaml
 pull` and `docker compose -f deploy/compose.yaml up -d --no-build` again. The images are
 `ghcr.io/koushik0901/cookfully-api`, `cookfully-web`, `cookfully-intelligence`, and
@@ -128,7 +157,7 @@ pull` and `docker compose -f deploy/compose.yaml up -d --no-build` again. The im
 
 ## 6. Open the app
 
-Visit <http://localhost:8080> and sign in with:
+Visit <http://localhost:8080> (or your `COOKFULLY_WEB_PORT`) and sign in with:
 
 - Email: the value of `COOKFULLY_OWNER_EMAIL` (default `owner@example.com`)
 - Password: the value of `COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`
@@ -139,9 +168,9 @@ The API health endpoint is at <http://localhost:8080/api/v1/health>; the OpenAPI
 ### Open it from a phone
 
 `localhost` works only on the computer running Docker. For a trusted-LAN test, open
-`http://<server-lan-ip>:8080` on the phone while both devices share Wi-Fi. For a durable deployment,
-use the production HTTPS profile and follow [Mobile and PWA deployment](mobile-pwa.md), including
-the optional Tailscale MagicDNS path.
+`http://<server-lan-ip>:<COOKFULLY_WEB_PORT>` on the phone while both devices share Wi-Fi. For a
+Tailscale deployment, use the MagicDNS hostname in both public URL settings. For durable HTTPS,
+follow [Mobile and PWA deployment](mobile-pwa.md).
 
 ## What you can try
 
@@ -220,9 +249,9 @@ does not contain the named variable. Copy `deploy/.env.example` to `deploy/.env`
 three required values, then retry.
 
 **`port is already allocated` for 5432 / 6379 / 8080** — another PostgreSQL, Redis, or web server
-already uses the port. Stop the conflicting process, or remap the ports with a Compose override file
-(for example `ports: ["15432:5432"]`) and adjust `COOKFULLY_PUBLIC_BASE_URL`/`COOKFULLY_API_BASE_URL`
-to the web port you chose.
+already uses the port. Keep the other service running and set `COOKFULLY_WEB_PORT` to a free host
+port (for example `5050`). If you use a non-local URL, update both
+`COOKFULLY_PUBLIC_BASE_URL` and `COOKFULLY_API_BASE_URL` to that same port.
 
 **`api` never becomes healthy** — check the logs for the real cause:
 

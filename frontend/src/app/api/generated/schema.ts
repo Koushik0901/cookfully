@@ -1192,6 +1192,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipe-import/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecipeImportSettings"];
+        put: operations["updateRecipeImportSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/nutrition-intelligence/estimate": {
         parameters: {
             query?: never;
@@ -1494,6 +1510,10 @@ export interface components {
         NutritionIntelligenceSettings: {
             /** @enum {string} */
             backend: "hashing" | "fastembed";
+            /** @default true */
+            intelligenceEnabled: boolean;
+            /** @default true */
+            inlineEnabled: boolean;
             modelName: string;
             modelRevision: string | null;
             concurrency: number;
@@ -1510,6 +1530,8 @@ export interface components {
         NutritionIntelligenceSettingsWrite: {
             /** @enum {string} */
             backend: "hashing" | "fastembed";
+            intelligenceEnabled?: boolean;
+            inlineEnabled?: boolean;
             modelName: string;
             concurrency: number;
             version: number;
@@ -1520,6 +1542,21 @@ export interface components {
             backend: "hashing" | "fastembed";
             modelName: string;
             concurrency: number;
+        };
+        RecipeImportSettings: {
+            /** @default true */
+            cleanupEnabled: boolean;
+            /** @default false */
+            openrouterFallbackEnabled: boolean;
+            localAvailable: boolean;
+            openrouterConfigured: boolean;
+            openrouterModel: string | null;
+            version: number;
+        };
+        RecipeImportSettingsWrite: {
+            cleanupEnabled: boolean;
+            openrouterFallbackEnabled: boolean;
+            version: number;
         };
         NutritionIntelligenceEstimate: {
             /** @enum {string} */
@@ -1871,6 +1908,17 @@ export interface components {
                 instructions: string[];
             }[];
             originKind?: components["schemas"]["RecipeOrigin"];
+            /** @enum {string} */
+            cleanupStatus: "cleaned" | "deterministic" | "fallback";
+            /** @enum {string} */
+            cleanupProvider: "needle2" | "openrouter" | "none";
+            cleanupWarnings: string[];
+            cleanupChanges: {
+                kind: string;
+                sourceIndex: string;
+                before: string;
+                after: string;
+            }[];
             recipes?: components["schemas"]["ImportRecipePreview"][];
         };
         ImportRecipePreview: {
@@ -1892,6 +1940,17 @@ export interface components {
                     needsQuantity: boolean;
                 }[];
                 instructions: string[];
+            }[];
+            /** @enum {string} */
+            cleanupStatus: "cleaned" | "deterministic" | "fallback";
+            /** @enum {string} */
+            cleanupProvider: "needle2" | "openrouter" | "none";
+            cleanupWarnings: string[];
+            cleanupChanges: {
+                kind: string;
+                sourceIndex: string;
+                before: string;
+                after: string;
             }[];
         };
         ImportConfirm: {
@@ -4787,6 +4846,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NutritionIntelligenceSettings"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getRecipeImportSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recipe import cleanup and privacy settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeImportSettings"];
+                };
+            };
+        };
+    };
+    updateRecipeImportSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeImportSettingsWrite"];
+            };
+        };
+        responses: {
+            /** @description Updated recipe import settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeImportSettings"];
                 };
             };
             409: components["responses"]["Conflict"];

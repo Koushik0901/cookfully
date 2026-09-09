@@ -30,7 +30,7 @@ class InferenceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     request_id: str = Field(alias="requestId", min_length=1, max_length=120)
-    operation: Literal["command", "recipe_extract", "pantry_extract", "cook"]
+    operation: Literal["command", "recipe_extract", "recipe_cleanup", "pantry_extract", "cook"]
     prompt: str = Field(min_length=1, max_length=50_000)
     tools: tuple[ToolDefinition, ...] = Field(default=())
     context: dict[str, str] = Field(default_factory=dict)

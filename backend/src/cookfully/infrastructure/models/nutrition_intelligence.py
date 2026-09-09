@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from cookfully.infrastructure.models.base import Base, TimestampMixin
@@ -18,6 +18,12 @@ class NutritionIntelligenceSettings(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    intelligence_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    inline_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
     backend: Mapped[str] = mapped_column(String(16), nullable=False, default="fastembed")
     model_name: Mapped[str] = mapped_column(
         String(200), nullable=False, default="BAAI/bge-small-en-v1.5"

@@ -51,11 +51,11 @@ secret-free environment template. This avoids cloning the application repository
 
 ```bash
 mkdir -p cookfully/deploy
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/compose.yaml \
   -o cookfully/deploy/compose.yaml
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.production.yaml \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/compose.production.yaml \
   -o cookfully/deploy/compose.production.yaml
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/.env.example \
   -o cookfully/deploy/.env.example
 cp cookfully/deploy/.env.example cookfully/deploy/.env
 ```
@@ -81,7 +81,7 @@ docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --
 docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml ps
 ```
 
-The Compose files default to the pinned `v0.1.0` GHCR images. Set `COOKFULLY_IMAGE_TAG` in
+The Compose files default to the pinned `v0.1.1` GHCR images. Set `COOKFULLY_IMAGE_TAG` in
 `deploy/.env` before `pull` when upgrading to a later release. Use a source checkout and
 `--build` only when developing or maintaining the application itself.
 

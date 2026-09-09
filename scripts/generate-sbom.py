@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 CDXGEN_VERSION = "12.8.2"
-ROOT_PURL = "pkg:generic/cookfully@0.1.0"
-FRONTEND_PURL = "pkg:npm/cookfully-web@0.1.0"
-BACKEND_PURL = "pkg:pypi/cookfully@0.1.0"
+ROOT_PURL = "pkg:generic/cookfully@0.1.1"
+FRONTEND_PURL = "pkg:npm/cookfully-web@0.1.1"
+BACKEND_PURL = "pkg:pypi/cookfully@0.1.1"
 LEGACY_ROOT_PURL = "pkg:pypi/gym-focused recipe & nutrition planner@latest"
 
 EXPECTED_DIRECT_LICENSES = {
@@ -95,7 +95,7 @@ def _normalize(bom: dict[str, Any]) -> None:
         "type": "application",
         "bom-ref": ROOT_PURL,
         "name": "Cookfully",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "purl": ROOT_PURL,
         "licenses": [{"license": {"name": "Proprietary"}}],
         "properties": [

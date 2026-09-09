@@ -97,6 +97,8 @@ describe("settings page", () => {
       if (path.includes("/nutrition-intelligence/settings") && !init?.method) {
         return json({
           backend: "hashing",
+          intelligenceEnabled: true,
+          inlineEnabled: true,
           modelName: "BAAI/bge-small-en-v1.5",
           modelRevision: null,
           concurrency: 1,
@@ -134,6 +136,8 @@ describe("settings page", () => {
     await user.click(screen.getByRole("tab", { name: "Intelligence" }));
 
     expect(await screen.findByText("Plan the load before you save.")).toBeVisible();
+    expect(screen.getByLabelText("Use the local model for assistant and extraction requests")).toBeChecked();
+    expect(screen.getByLabelText("Use Needle2 automatically while importing recipes and pantry text")).toBeChecked();
     await user.selectOptions(screen.getByLabelText("Matching backend"), "fastembed");
     expect(await screen.findByText("Comfortable headroom")).toBeVisible();
     expect(screen.getByText("127 MB")).toBeVisible();

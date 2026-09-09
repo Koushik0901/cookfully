@@ -158,6 +158,122 @@ def test_two_column_cookbook_pdf_with_uppercase_headings_is_structured() -> None
     )
 
 
+def test_pdf_ingredients_stop_at_nutrition_and_join_wrapped_ocr_lines() -> None:
+    pages = (
+        "BROCCOLI PARATHA\nIngredients:\n"
+        "Broccoli (150-200grms)\n"
+        "400grms of whole wheat /f_lour\n"
+        "blanched\n"
+        "2tbsp oil\n"
+        "2-3 Finely chopped green\n"
+        "chilies (or as per your taste)\n"
+        "Half tsp dr y mango powder\n"
+        "Half tsp coriander and cumin\n"
+        "powder\n"
+        "Accompanied with:\nMint Chutney, ketchup or any\n"
+        "dip of your choice.\nPer Piece\nProtein\n01gm\n"
+        "Directions:\n1. Mix everything.\n2. Cook and serve.",
+    )
+
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "cookfully-upload://book.pdf", "cookfully-upload://book.pdf"
+    )
+
+    assert recipes[0].ingredients == (
+        "Broccoli (150-200 g)",
+        "400 g of whole wheat flour blanched",
+        "2 tbsp oil",
+        "2-3 Finely chopped green chilies (or as per your taste)",
+        "Half tsp dry mango powder",
+        "Half tsp coriander and cumin powder",
+    )
+
+
+def test_pdf_ingredients_keep_wrapped_rows_in_their_original_column() -> None:
+    ingredients, _, _ = RecipeImporter._pdf_ingredients(
+        "For Filling                      For the Dough\n"
+        "2-3 Finely chopped green         400grms of whole wheat flour\n"
+        "chilies (or as per your taste)   2tbsp oil\n"
+        "or red chili flakes              1tsp salt\n"
+        "Salt (as per your taste)"
+    )
+    assert ingredients == (
+        "2-3 Finely chopped green chilies (or as per your taste) or red chili flakes",
+        "400 g of whole wheat flour",
+        "2 tbsp oil",
+        "1 tsp salt",
+        "Salt (as per your taste)",
+    )
+
+
+def test_pdf_ingredients_drop_leaked_numbered_method_column() -> None:
+    pages = (
+        "CABBAGE MATKA\nIngredients\n250 g cabbage\n1 tsp salt\n"
+        "4 Then put all the veggies in cabbage leaves\n"
+        "and sprinkle very little water.\n"
+        "Directions\n1. Steam until tender.",
+    )
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "cookfully-upload://book.pdf", "cookfully-upload://book.pdf"
+    )
+    assert recipes[0].ingredients == ("250 g cabbage", "1 tsp salt")
+
+
+def test_pdf_ingredients_stop_at_photo_credit_footer() -> None:
+    pages = (
+        "BROCCOLI PARATHA\nIngredients\n2 cups broccoli\n1 tsp salt\n"
+        "Image courtesy/Dish Credit:\nAkanksha Tripathi\n"
+        "Directions\n1. Cook until browned.",
+    )
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "cookfully-upload://book.pdf", "cookfully-upload://book.pdf"
+    )
+    assert recipes[0].ingredients == ("2 cups broccoli", "1 tsp salt")
+
+
+def test_pdf_directions_remove_repeated_step_number_from_layout_text() -> None:
+    assert RecipeImporter._pdf_directions(
+        "1 1 For the sauce, mix everything.\n2 2 Cook until thick."
+    ) == (
+        "For the sauce, mix everything.",
+        "Cook until thick.",
+    )
+
+
+def test_pdf_directions_split_inline_numbered_steps_from_columns() -> None:
+    steps = RecipeImporter._pdf_directions(
+        "1 First step.\n2 Second step. For Green 1 Mix everything. 2 Make a paste."
+    )
+    assert steps == (
+        "First step.",
+        "Second step. For Green",
+        "Mix everything.",
+        "Make a paste.",
+    )
+
+
+def test_html_ingredients_stop_at_leaked_metadata_without_merging_rows() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: [
+            "2-3 finely chopped green",
+            "chilies (or as per your taste)",
+            "Accompanied with:",
+            "Mint chutney",
+        ],
+        ingredient_groups=lambda: [],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("2-3 finely chopped green", "chilies (or as per your taste)")
+    assert sections == (None, None)
+    assert titles == ()
+
+
+def test_pdf_ingredient_normalization_repairs_ocr_slash_artifacts() -> None:
+    assert (
+        RecipeImporter._normalize_pdf_ingredient("or red chili /f_lakes") == "or red chili flakes"
+    )
+
+
 def test_grouped_html_ingredients_become_sections_in_source_order() -> None:
     scraper = SimpleNamespace(
         ingredients=lambda: ["1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth"],
@@ -171,6 +287,20 @@ def test_grouped_html_ingredients_become_sections_in_source_order() -> None:
     assert ingredients == ("1 cup Nutritional Yeast", "8 oz Macaroni", "4 cups broth")
     assert sections == (0, 1, None)
     assert titles == ("For the cheese", "For the pasta")
+
+
+def test_grouped_html_metadata_purpose_is_not_an_ingredient_section() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: ["1 cup flour"],
+        ingredient_groups=lambda: [
+            SimpleNamespace(purpose="Accompanied with", ingredients=["Mint chutney"]),
+            SimpleNamespace(purpose="For the dough", ingredients=["1 cup flour"]),
+        ],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("1 cup flour",)
+    assert sections == (0,)
+    assert titles == ("For the dough",)
 
 
 def test_recipe_image_candidates_are_ordered_and_deduplicated() -> None:

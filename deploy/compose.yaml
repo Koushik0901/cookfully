@@ -2,7 +2,7 @@ name: cookfully
 
 services:
   storage-init:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -86,7 +86,7 @@ services:
     restart: unless-stopped
 
   intelligence:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-intelligence:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-intelligence:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/intelligence.Dockerfile
@@ -117,7 +117,7 @@ services:
     restart: unless-stopped
 
   api:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -140,8 +140,10 @@ services:
       COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD: ${COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD:-0.80}
       COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS: ${COOKFULLY_INTELLIGENCE_INLINE_TIMEOUT_MS:-600}
       COOKFULLY_INTELLIGENCE_TIMEOUT_SECONDS: ${COOKFULLY_INTELLIGENCE_TIMEOUT_SECONDS:-2}
-      COOKFULLY_PUBLIC_BASE_URL: ${COOKFULLY_PUBLIC_BASE_URL:-http://localhost:8080}
-      COOKFULLY_API_BASE_URL: ${COOKFULLY_API_BASE_URL:-http://localhost:8080}
+      COOKFULLY_OPENROUTER_API_KEY: ${COOKFULLY_OPENROUTER_API_KEY:-}
+      COOKFULLY_OPENROUTER_MODEL: ${COOKFULLY_OPENROUTER_MODEL:-}
+      COOKFULLY_PUBLIC_BASE_URL: ${COOKFULLY_PUBLIC_BASE_URL:-http://localhost:${COOKFULLY_WEB_PORT:-8080}}
+      COOKFULLY_API_BASE_URL: ${COOKFULLY_API_BASE_URL:-http://localhost:${COOKFULLY_WEB_PORT:-8080}}
       COOKFULLY_TRUSTED_PROXY_CIDRS: ${COOKFULLY_TRUSTED_PROXY_CIDRS:-}
       COOKFULLY_COOKIE_SECURE: ${COOKFULLY_COOKIE_SECURE:-false}
       COOKFULLY_SESSION_TTL_DAYS: ${COOKFULLY_SESSION_TTL_DAYS:-400}
@@ -189,7 +191,7 @@ services:
     restart: unless-stopped
 
   worker-interactive: &worker
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -223,7 +225,7 @@ services:
     command: ["celery", "-A", "cookfully.jobs.app:celery_app", "worker", "--loglevel=INFO", "--queues=bulk,maintenance", "--concurrency=${COOKFULLY_BULK_WORKER_CONCURRENCY:-2}"]
 
   outbox:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -241,7 +243,7 @@ services:
     restart: unless-stopped
 
   retention:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-api:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backend.Dockerfile
@@ -268,7 +270,7 @@ services:
     restart: unless-stopped
 
   backup:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-backup:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-backup:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/backup.Dockerfile
@@ -297,7 +299,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-web:${COOKFULLY_IMAGE_TAG:-v0.1.0}
+    image: ${COOKFULLY_IMAGE_NAMESPACE:-ghcr.io/koushik0901}/cookfully-web:${COOKFULLY_IMAGE_TAG:-v0.1.1}
     build:
       context: ..
       dockerfile: deploy/docker/web.Dockerfile
@@ -305,7 +307,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${COOKFULLY_WEB_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
       interval: 10s

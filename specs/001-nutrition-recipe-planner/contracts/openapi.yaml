@@ -1773,6 +1773,33 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /recipe-import/settings:
+    get:
+      tags: [Recipes]
+      operationId: getRecipeImportSettings
+      responses:
+        "200":
+          description: Recipe import cleanup and privacy settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeImportSettings" }
+    put:
+      tags: [Recipes]
+      operationId: updateRecipeImportSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecipeImportSettingsWrite" }
+      responses:
+        "200":
+          description: Updated recipe import settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeImportSettings" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /nutrition-intelligence/estimate:
     post:
       tags: [Nutrition Intelligence]
@@ -2224,9 +2251,11 @@ components:
     NutritionIntelligenceSettings:
       type: object
       additionalProperties: false
-      required: [backend, modelName, modelRevision, concurrency, version, runtimeStatus]
+      required: [backend, intelligenceEnabled, inlineEnabled, modelName, modelRevision, concurrency, version, runtimeStatus]
       properties:
         backend: { type: string, enum: [hashing, fastembed] }
+        intelligenceEnabled: { type: boolean, default: true }
+        inlineEnabled: { type: boolean, default: true }
         modelName: { type: string, minLength: 1, maxLength: 200 }
         modelRevision: { type: [string, "null"] }
         concurrency: { type: integer, minimum: 1, maximum: 4 }
@@ -2243,6 +2272,8 @@ components:
       required: [backend, modelName, concurrency, version, estimateHash]
       properties:
         backend: { type: string, enum: [hashing, fastembed] }
+        intelligenceEnabled: { type: boolean }
+        inlineEnabled: { type: boolean }
         modelName: { type: string, minLength: 1, maxLength: 200 }
         concurrency: { type: integer, minimum: 1, maximum: 4 }
         version: { type: integer, minimum: 1 }
@@ -2255,6 +2286,25 @@ components:
         backend: { type: string, enum: [hashing, fastembed] }
         modelName: { type: string, minLength: 1, maxLength: 200 }
         concurrency: { type: integer, minimum: 1, maximum: 4 }
+    RecipeImportSettings:
+      type: object
+      additionalProperties: false
+      required: [cleanupEnabled, openrouterFallbackEnabled, localAvailable, openrouterConfigured, openrouterModel, version]
+      properties:
+        cleanupEnabled: { type: boolean, default: true }
+        openrouterFallbackEnabled: { type: boolean, default: false }
+        localAvailable: { type: boolean }
+        openrouterConfigured: { type: boolean }
+        openrouterModel: { type: [string, "null"] }
+        version: { type: integer, minimum: 1 }
+    RecipeImportSettingsWrite:
+      type: object
+      additionalProperties: false
+      required: [cleanupEnabled, openrouterFallbackEnabled, version]
+      properties:
+        cleanupEnabled: { type: boolean }
+        openrouterFallbackEnabled: { type: boolean }
+        version: { type: integer, minimum: 1 }
     NutritionIntelligenceEstimate:
       type: object
       additionalProperties: false
@@ -2687,7 +2737,7 @@ components:
     ImportPreview:
       type: object
       additionalProperties: false
-      required: [parseId, title, imageSources, duplicates, sections]
+      required: [parseId, title, imageSources, duplicates, sections, cleanupStatus, cleanupProvider, cleanupWarnings, cleanupChanges]
       properties:
         parseId: { type: string }
         title: { type: string }
@@ -2722,13 +2772,27 @@ components:
                 type: array
                 items: { type: string }
         originKind: { $ref: "#/components/schemas/RecipeOrigin" }
+        cleanupStatus: { type: string, enum: [cleaned, deterministic, fallback] }
+        cleanupProvider: { type: string, enum: [needle2, openrouter, none] }
+        cleanupWarnings: { type: array, items: { type: string } }
+        cleanupChanges:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, sourceIndex, before, after]
+            properties:
+              kind: { type: string }
+              sourceIndex: { type: string }
+              before: { type: string }
+              after: { type: string }
         recipes:
           type: array
           items: { $ref: "#/components/schemas/ImportRecipePreview" }
     ImportRecipePreview:
       type: object
       additionalProperties: false
-      required: [parseId, title, imageSources, duplicates, sections]
+      required: [parseId, title, imageSources, duplicates, sections, cleanupStatus, cleanupProvider, cleanupWarnings, cleanupChanges]
       properties:
         parseId: { type: string }
         title: { type: string }
@@ -2762,6 +2826,20 @@ components:
               instructions:
                 type: array
                 items: { type: string }
+        cleanupStatus: { type: string, enum: [cleaned, deterministic, fallback] }
+        cleanupProvider: { type: string, enum: [needle2, openrouter, none] }
+        cleanupWarnings: { type: array, items: { type: string } }
+        cleanupChanges:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [kind, sourceIndex, before, after]
+            properties:
+              kind: { type: string }
+              sourceIndex: { type: string }
+              before: { type: string }
+              after: { type: string }
     ImportConfirm:
       type: object
       additionalProperties: false

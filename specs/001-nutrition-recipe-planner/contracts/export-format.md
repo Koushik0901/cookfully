@@ -41,7 +41,7 @@ unknown optional files.
   "format": "cookfully-portable-export",
   "schemaVersion": 1,
   "createdAt": "2026-08-09T18:00:00Z",
-  "applicationVersion": "0.1.0",
+  "applicationVersion": "0.1.1",
   "nutritionMethodologyVersion": "1",
   "referenceDatasets": [
     {"provider": "usda_fdc", "datasetType": "foundation", "releaseId": "..."}

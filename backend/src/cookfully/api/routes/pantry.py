@@ -63,6 +63,7 @@ def list_pantry_items(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_pantry_item(
+    request: Request,
     payload: PantryItemWriteRequest,
     service: Annotated[PantryService, Depends(pantry_service)],
     idempotency: Annotated[IdempotencyService, Depends(idempotency_service)],
@@ -90,7 +91,13 @@ async def create_pantry_item(
             from cookfully.infrastructure.config import get_settings
 
             settings = get_settings()
-            if settings.intelligence_inline_enabled:
+            configured = request.app.state.nutrition_intelligence.get()
+            if (
+                settings.intelligence_inline_enabled
+                and settings.intelligence_enabled
+                and configured.intelligence_enabled
+                and configured.inline_enabled
+            ):
                 from cookfully.application.inline_repair import (
                     InlineRepairGateway,
                     PantryExtractSchema,

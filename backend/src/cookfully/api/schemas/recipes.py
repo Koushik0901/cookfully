@@ -271,6 +271,14 @@ class ImportRecipePreview(ApiModel):
     image_sources: tuple[str, ...] = Field(alias="imageSources")
     duplicates: tuple[DuplicateSummary, ...] = ()
     sections: tuple[ImportPreviewSection, ...] = ()
+    cleanup_status: Literal["cleaned", "deterministic", "fallback"] = Field(
+        alias="cleanupStatus", default="deterministic"
+    )
+    cleanup_provider: Literal["needle2", "openrouter", "none"] = Field(
+        alias="cleanupProvider", default="none"
+    )
+    cleanup_warnings: tuple[str, ...] = Field(alias="cleanupWarnings", default=())
+    cleanup_changes: tuple[dict[str, str], ...] = Field(alias="cleanupChanges", default=())
 
 
 class ImportPreviewResponse(ApiModel):
@@ -283,6 +291,14 @@ class ImportPreviewResponse(ApiModel):
     sections: tuple[ImportPreviewSection, ...] = ()
     origin_kind: RecipeOrigin = Field(alias="originKind", default="web_import")
     recipes: tuple[ImportRecipePreview, ...] = ()
+    cleanup_status: Literal["cleaned", "deterministic", "fallback"] = Field(
+        alias="cleanupStatus", default="deterministic"
+    )
+    cleanup_provider: Literal["needle2", "openrouter", "none"] = Field(
+        alias="cleanupProvider", default="none"
+    )
+    cleanup_warnings: tuple[str, ...] = Field(alias="cleanupWarnings", default=())
+    cleanup_changes: tuple[dict[str, str], ...] = Field(alias="cleanupChanges", default=())
 
 
 class ImportConfirmIngredient(ApiModel):

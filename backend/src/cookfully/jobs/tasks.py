@@ -128,6 +128,16 @@ def process_job(self: Any, envelope: dict[str, Any]) -> dict[str, str | None] | 
             if draft is None:
                 jobs.fail_attempt(job_id, "intelligence_draft_not_found", retryable=False)
                 return None
+            with sessions() as session:
+                configured = session.get(NutritionIntelligenceSettings, 1)
+            if configured is not None and not configured.intelligence_enabled:
+                jobs.fail_attempt(
+                    job_id,
+                    "intelligence_disabled",
+                    retryable=False,
+                    safe_message="Local intelligence is turned off in Settings.",
+                )
+                return None
             draft_service = IntelligenceDraftService(sessions)
             draft_service.mark_processing(draft.id)
             value = draft.payload

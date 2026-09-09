@@ -53,9 +53,9 @@ and start the images:
 
 ```bash
 mkdir -p cookfully/deploy
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/compose.yaml \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/compose.yaml \
   -o cookfully/deploy/compose.yaml
-curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.0/deploy/.env.example \
+curl -fsSL https://raw.githubusercontent.com/Koushik0901/cookfully/v0.1.1/deploy/.env.example \
   -o cookfully/deploy/.env.example
 cp cookfully/deploy/.env.example cookfully/deploy/.env
 ```
@@ -71,16 +71,28 @@ docker compose -f deploy/compose.yaml up -d --no-build
 `COOKFULLY_DATA_ROOT` in that same file selects the host folder for Cookfully's durable state. It
 defaults to `../data` beside the downloaded deployment directory; change it to an absolute path
 before starting if you want the database, recipes, media, backups, and model files on another disk.
-No Compose-file edits are normally required: use `.env` for secrets, the data path, and the release
-tag. Edit Compose only for advanced changes such as custom port bindings or a reverse-proxy topology.
+If the default host port is already used, set `COOKFULLY_WEB_PORT` (for example `5050`) in `.env`;
+the container port stays `8080`. For remote access, set the public and API URLs to the same LAN or
+Tailscale URL. No Compose-file edits are normally required.
+
+After sign-in, configure nutrition matching and the default-on local Needle2 features from
+**Settings → Intelligence**. You can turn the model or its inline import/repair assistance off
+there at any time. The release `.env` intentionally contains no matching model, concurrency,
+backup, or worker-tuning knobs.
+
+Recipe URL imports and text-based cookbook PDFs also receive one conservative cleanup pass before
+the review screen. It can remove leaked nutrition/footer text and repair bounded formatting errors;
+it never invents recipe rows. Scanned or image-only PDFs remain unsupported. Optional OpenRouter
+fallback is disabled by default and requires server-side `COOKFULLY_OPENROUTER_API_KEY` and
+`COOKFULLY_OPENROUTER_MODEL`, then an explicit switch under **Settings → Intelligence**.
 
 PowerShell users can use `Invoke-WebRequest` instead of `curl`; the complete copy-and-start
 instructions, what to try, and troubleshooting are in
 [docs/docker-quickstart.md](docs/docker-quickstart.md).
 
-Then open <http://localhost:8080> and sign in with `owner@example.com` and the password you set in
-`deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). The release tag is pinned to `v0.1.0`; set
-`COOKFULLY_IMAGE_TAG` in `deploy/.env` when moving to a later release.
+Then open <http://localhost:8080> (or your `COOKFULLY_WEB_PORT`) and sign in with `owner@example.com`
+and the password you set in `deploy/.env` (`COOKFULLY_OWNER_BOOTSTRAP_PASSWORD`). The release tag is
+pinned to `v0.1.1`; set `COOKFULLY_IMAGE_TAG` in `deploy/.env` when moving to a later release.
 
 ## Develop and verify
 

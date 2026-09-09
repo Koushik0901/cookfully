@@ -10,11 +10,9 @@ delegates the actual recipe persistence + job enqueue to ``RecipeService.create`
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 import secrets
-from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Protocol, cast
@@ -23,8 +21,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.import_enrichment import InlineImportEnrichment
 from cookfully.application.import_reviews import ImportReviewStore
+from cookfully.application.recipe_cleanup import RecipeCleanupService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import (
@@ -63,6 +61,7 @@ class ImportPreviewCoordinator:
         query_service: RecipeQueryService,
         *,
         photos: RecipePhotoService,
+        cleanup: RecipeCleanupService | None = None,
         ttl: timedelta = timedelta(minutes=15),
     ) -> None:
         self._session_factory = session_factory
@@ -70,250 +69,29 @@ class ImportPreviewCoordinator:
         self._recipes: RecipeService = recipes
         self._query_service = query_service
         self._photos = photos
+        self._cleanup = cleanup
         self._ttl = ttl
         self._reviews = ImportReviewStore(session_factory)
 
     async def preview(self, url: str, *, owner_id: UUID, trace_id: str) -> dict[str, Any]:
-        """Fetch+parse a URL, persist a short-lived preview, and return its shape.
-
-        When ``intelligence_inline_enabled`` is true the preview races the
-        legacy scrape against a Needle ``recipe_extract`` call. The Needle
-        request uses a single 256-char window (gap-only first iteration) and
-        a 600 ms gate; it never overwrites existing ingredients/steps.
-        """
-        legacy_task = asyncio.create_task(self._importer.import_url(url))
-        needle_future: asyncio.Task[Any] | None = None
-        gw = None
-        enrichment = InlineImportEnrichment.enabled_from_settings()
-        if enrichment is not None:
-            try:
-                from cookfully.application.inline_repair import (
-                    RecipeExtractSchema,
-                    _window,
-                )
-                from cookfully.infrastructure.observability import correlation_id
-                from cookfully.intelligence.contracts import InferenceRequest, ToolDefinition
-
-                system = f"date: {utc_now().date().isoformat()}; locale: en-US; device: server"
-                cid = correlation_id.get() or trace_id or "unknown"
-
-                tools = (
-                    ToolDefinition(
-                        name="recipe",
-                        description="Extract ingredients and steps",
-                        parameters=RecipeExtractSchema.model_json_schema(),
-                    ),
-                )
-                gw = enrichment.gateway
-
-                async def _needle_infer() -> Any:
-                    import time as _time
-
-                    assert gw is not None
-                    gw_local = gw
-                    prompt_text = url
-                    try:
-                        fetcher = getattr(self._importer, "_fetcher", None)
-                        if fetcher is not None:
-                            try:
-                                fetched = await asyncio.wait_for(
-                                    fetcher.fetch(
-                                        url,
-                                        allowed_content_types=frozenset(
-                                            {"text/html", "application/xhtml+xml"}
-                                        ),
-                                        max_bytes=50 * 1024,
-                                    ),
-                                    timeout=0.25,
-                                )
-                                html = fetched.content.decode("utf-8", errors="replace")
-                                if html.strip():
-                                    prompt_text = html
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
-                    from cookfully.application.inline_repair import _est_toks as _est
-
-                    window, has_more = _window(prompt_text)
-                    prompt_toks_est = _est(window)
-                    window_index = 1
-                    req = InferenceRequest(
-                        requestId=f"inline-{cid}",
-                        operation="recipe_extract",
-                        prompt=window,
-                        system=system,
-                        tools=tools,
-                        context={},
-                    )
-                    t0 = _time.perf_counter()
-                    try:
-                        resp = await asyncio.wait_for(
-                            asyncio.to_thread(
-                                gw_local._client.infer, req, timeout_seconds=gw_local._timeout
-                            ),
-                            timeout=gw_local._timeout,
-                        )
-                    except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                        return None
-                    # second-window retry: only if first is empty/unsupported
-                    # and has_more and budget >120ms
-                    is_empty = False
-                    try:
-                        is_empty = resp.status != "ok" or not resp.function_calls
-                        if not is_empty and resp.function_calls:
-                            args = resp.function_calls[0].arguments
-                            if isinstance(args, dict):
-                                for k in ("ingredients", "steps"):
-                                    if (
-                                        k in args
-                                        and isinstance(args[k], list)
-                                        and len(args[k]) == 0
-                                    ):
-                                        is_empty = True
-                    except Exception:
-                        is_empty = False
-                    if is_empty and has_more:
-                        elapsed = _time.perf_counter() - t0
-                        remaining = gw_local._timeout - elapsed
-                        if remaining > 0.12:
-                            second = prompt_text[400:800][:256]
-                            second_req = InferenceRequest(
-                                requestId=f"inline-{cid}",
-                                operation="recipe_extract",
-                                prompt=second,
-                                system=system,
-                                tools=tools,
-                                context={},
-                            )
-                            try:
-                                resp2 = await asyncio.wait_for(
-                                    asyncio.to_thread(
-                                        gw_local._client.infer,
-                                        second_req,
-                                        timeout_seconds=remaining,
-                                    ),
-                                    timeout=remaining,
-                                )
-                                # attach window metadata for caller logging via gw._emit_log
-                                try:
-                                    setattr(  # noqa: B010
-                                        resp2, "_prompt_toks_est", _est(second)
-                                    )
-                                    setattr(resp2, "_window_index", 2)  # noqa: B010
-                                except Exception:
-                                    pass
-                                return resp2
-                            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                                pass
-                            except Exception:
-                                pass
-                    try:
-                        setattr(resp, "_prompt_toks_est", prompt_toks_est)  # noqa: B010
-                        setattr(resp, "_window_index", window_index)  # noqa: B010
-                    except Exception:
-                        pass
-                    return resp
-
-                needle_future = asyncio.create_task(_needle_infer())
-            except Exception:
-                logger.exception("inline repair setup failed, falling back to legacy")
-                needle_future = None
-                gw = None
-
-        # Await legacy (always) - if it fails, cancel needle and propagate
-        try:
-            imported = await legacy_task
-        except Exception:
-            if needle_future is not None and not needle_future.done():
-                needle_future.cancel()
-                try:
-                    await needle_future
-                except asyncio.CancelledError:
-                    pass
-            raise
-
-        needle_resp = None
-        if needle_future is not None:
-            try:
-                needle_resp = await needle_future
-            except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                needle_resp = None
-            except Exception:
-                needle_resp = None
-
-        # Gap-only merge when gated
-        if enrichment is not None and needle_resp is not None and enrichment.accepts(needle_resp):
-            try:
-                if isinstance(imported, ImportedCookbook):
-                    first = imported.recipes[0] if imported.recipes else None
-                    if first is not None:
-                        legacy_dict: dict[str, Any] = {
-                            "ingredients": list(first.ingredients),
-                            "steps": list(first.instructions),
-                        }
-                        merged = enrichment.gateway.merge_recipe(
-                            legacy_dict,
-                            needle_resp,
-                            prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
-                            window_index=getattr(needle_resp, "_window_index", None),
-                        )
-                        if merged is not legacy_dict and merged != legacy_dict:
-                            new_ingredients = tuple(merged.get("ingredients", first.ingredients))
-                            new_steps = tuple(merged.get("steps", first.instructions))
-                            extra = len(new_ingredients) - len(first.ingredients)
-                            new_sections = first.ingredient_sections
-                            if extra > 0:
-                                new_sections = tuple(
-                                    list(first.ingredient_sections) + [None] * extra
-                                )
-                            enriched_first = replace(
-                                first,
-                                ingredients=new_ingredients,
-                                ingredient_sections=new_sections,
-                                instructions=new_steps,
-                            )
-                            imported = replace(
-                                imported,
-                                recipes=(enriched_first,) + tuple(imported.recipes[1:]),  # noqa: RUF005
-                            )
-                else:
-                    legacy_dict = {
-                        "ingredients": list(imported.ingredients),
-                        "steps": list(imported.instructions),
-                    }
-                    merged = enrichment.gateway.merge_recipe(
-                        legacy_dict,
-                        needle_resp,
-                        prompt_toks_est=getattr(needle_resp, "_prompt_toks_est", None),
-                        window_index=getattr(needle_resp, "_window_index", None),
-                    )
-                    if merged is not legacy_dict and merged != legacy_dict:
-                        new_ingredients = tuple(merged.get("ingredients", imported.ingredients))
-                        new_steps = tuple(merged.get("steps", imported.instructions))
-                        extra = len(new_ingredients) - len(imported.ingredients)
-                        new_sections = imported.ingredient_sections
-                        if extra > 0:
-                            new_sections = tuple(
-                                list(imported.ingredient_sections) + [None] * extra
-                            )
-                        imported = replace(
-                            imported,
-                            ingredients=new_ingredients,
-                            ingredient_sections=new_sections,
-                            instructions=new_steps,
-                        )
-            except Exception:
-                logger.exception("inline repair merge failed, returning legacy preview")
-
+        """Fetch, conservatively clean, and persist a short-lived preview."""
+        del trace_id
+        imported = await self._importer.import_url(url)
+        if self._cleanup is not None:
+            imported = await self._cleanup.cleanup_imported(imported, source_kind="url")
         return self._persist_preview(imported, owner_id=owner_id)
 
     async def preview_pdf(
         self, content: bytes, filename: str, *, owner_id: UUID, trace_id: str
     ) -> dict[str, Any]:
         """Create a reviewable preview from a user-selected local cookbook PDF."""
-        del trace_id  # Kept in the public contract for the same audit surface as URL imports.
+        del trace_id
         imported = await self._importer.import_pdf(content, filename)
+        if self._cleanup is not None:
+            imported = cast(
+                ImportedCookbook,
+                await self._cleanup.cleanup_imported(imported, source_kind="text_pdf"),
+            )
         return self._persist_preview(imported, owner_id=owner_id)
 
     def _persist_preview(
@@ -347,6 +125,10 @@ class ImportPreviewCoordinator:
                         ),
                         "yield_text": recipe.yield_text,
                         "image_sources": list(recipe.image_candidates),
+                        "cleanup_status": recipe.cleanup_status,
+                        "cleanup_provider": recipe.cleanup_provider,
+                        "cleanup_warnings": list(recipe.cleanup_warnings),
+                        "cleanup_changes": list(recipe.cleanup_changes),
                         "duplicates": self._detect_duplicates(owner_id, recipe.title),
                         "sections": sections,
                     }
@@ -358,6 +140,10 @@ class ImportPreviewCoordinator:
             "yield_quantity": first_entry["yield_quantity"],
             "yield_text": first_entry["yield_text"],
             "image_sources": first_entry["image_sources"],
+            "cleanup_status": first_entry["cleanup_status"],
+            "cleanup_provider": first_entry["cleanup_provider"],
+            "cleanup_warnings": first_entry["cleanup_warnings"],
+            "cleanup_changes": first_entry["cleanup_changes"],
             "origin_kind": origin_kind,
             "duplicates": first_entry["duplicates"],
             "sections": first_entry["sections"],
@@ -465,6 +251,10 @@ class ImportPreviewCoordinator:
             ),
             "yieldText": imported.yield_text,
             "imageSources": list(imported.image_candidates),
+            "cleanupStatus": imported.cleanup_status,
+            "cleanupProvider": imported.cleanup_provider,
+            "cleanupWarnings": list(imported.cleanup_warnings),
+            "cleanupChanges": list(imported.cleanup_changes),
             "originKind": origin_kind,
             "sections": sections,
         }

@@ -13,6 +13,8 @@ import type {
   NutritionIntelligenceEstimateRequest,
   NutritionIntelligenceSettings,
   NutritionIntelligenceSettingsWrite,
+  RecipeImportSettings,
+  RecipeImportSettingsWrite,
 } from "./types";
 
 export const agentAccessApi = {
@@ -70,6 +72,18 @@ export const nutritionIntelligenceApi = {
       "/nutrition-intelligence/settings",
       { method: "PUT", body: JSON.stringify(value) },
     );
+  },
+};
+
+export const recipeImportSettingsApi = {
+  get() {
+    return apiRequest<RecipeImportSettings>("/recipe-import/settings");
+  },
+  update(value: RecipeImportSettingsWrite) {
+    return apiRequest<RecipeImportSettings>("/recipe-import/settings", {
+      method: "PUT",
+      body: JSON.stringify(value),
+    });
   },
 };
 

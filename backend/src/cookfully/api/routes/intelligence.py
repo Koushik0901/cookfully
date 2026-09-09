@@ -199,6 +199,11 @@ def infer_intelligence(
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> IntelligenceInferenceResponse:
     del owner
+    configured = request.app.state.nutrition_intelligence.get()
+    if not configured.intelligence_enabled:
+        return IntelligenceInferenceResponse(
+            status="unavailable", function_calls=[], error_code="intelligence_disabled"
+        )
     client: IntelligenceClient = request.app.state.intelligence
     system = _system_facts(payload.system, payload.operation)
     try:
@@ -270,6 +275,11 @@ def create_draft(
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> IntelligenceDraftResponse:
+    configured = request.app.state.nutrition_intelligence.get()
+    if not configured.intelligence_enabled:
+        return IntelligenceDraftResponse(
+            status="unavailable", function_calls=[], error_code="intelligence_disabled"
+        )
     client: IntelligenceClient = request.app.state.intelligence
     system = _system_facts(payload.system, payload.operation)
     try:
@@ -327,6 +337,12 @@ def create_extraction_job(
             "intelligence_operation_not_async",
             "Only recipe and pantry extraction use the background job path.",
             422,
+        )
+    if not request.app.state.nutrition_intelligence.get().intelligence_enabled:
+        raise DomainError(
+            "intelligence_disabled",
+            "Local intelligence is turned off in Settings.",
+            409,
         )
     system = _system_facts(payload.system, payload.operation)
     drafts = request.app.state.intelligence_drafts

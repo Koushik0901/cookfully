@@ -15,6 +15,10 @@ const preview: ImportPreview = {
   imageSources: [],
   duplicates: [{ id: "00000000-0000-4000-8000-000000000001", title: "Shawarma bowl", version: 4 }],
   originKind: "web_import",
+  cleanupStatus: "deterministic",
+  cleanupProvider: "none",
+  cleanupWarnings: [],
+  cleanupChanges: [],
   sections: [
     {
       title: "The chicken",
@@ -110,6 +114,56 @@ describe("recipe import merge", () => {
 
     await waitFor(() => expect(confirm.imageSourceKind).toBe("pdf_thumbnail"));
     expect(confirm.imageSource).toBe(pdfThumbnail);
+  });
+
+  it("shows cleaned status and readable cleanup warnings before confirmation", async () => {
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({
+          ...preview,
+          duplicates: [],
+          cleanupStatus: "cleaned",
+          cleanupProvider: "needle2",
+          cleanupWarnings: ["dropped_ingredient", "dropped_ingredient", "normalized_ingredient"],
+          cleanupChanges: [{ kind: "ingredient", sourceIndex: "1", before: "Protein", after: "" }],
+        });
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/shawarma");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/Cleaned automatically before review/);
+    expect(screen.getByText(/Removed 2 ingredient rows; Normalized 1 ingredient row/)).toBeVisible();
+    expect(screen.getByText(/1 row adjusted/)).toBeVisible();
+  });
+
+  it("explains when cleanup falls back to the deterministic parse", async () => {
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({
+          ...preview,
+          duplicates: [],
+          cleanupStatus: "fallback",
+          cleanupProvider: "needle2",
+          cleanupWarnings: ["cleanup_deadline"],
+        });
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/shawarma");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/Cleanup was unavailable; showing the deterministic parse/);
+    expect(screen.getByText(/Cleanup timed out; the deterministic parse was kept/)).toBeVisible();
   });
 
   it("posts a merge with the existing recipe id, expected version, and reviewed draft", async () => {

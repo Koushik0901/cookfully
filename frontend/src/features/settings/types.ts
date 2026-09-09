@@ -20,6 +20,8 @@ export type PasswordChange = { currentPassword: string; newPassword: string };
 export type NutritionBackend = "hashing" | "fastembed";
 export type NutritionIntelligenceSettings = {
   backend: NutritionBackend;
+  intelligenceEnabled: boolean;
+  inlineEnabled: boolean;
   modelName: string;
   modelRevision: string | null;
   concurrency: number;
@@ -39,7 +41,11 @@ export type NutritionIntelligenceEstimateRequest = {
 export type NutritionIntelligenceSettingsWrite = NutritionIntelligenceEstimateRequest & {
   version: number;
   estimateHash: string;
+  intelligenceEnabled?: boolean;
+  inlineEnabled?: boolean;
 };
+export type RecipeImportSettings = components["schemas"]["RecipeImportSettings"];
+export type RecipeImportSettingsWrite = components["schemas"]["RecipeImportSettingsWrite"];
 export type NutritionIntelligenceEstimate = {
   backend: NutritionBackend;
   modelName: string;

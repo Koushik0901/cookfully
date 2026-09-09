@@ -508,6 +508,38 @@ describe("recipe UI", () => {
     expect(screen.getByText(/Estimated from 2 possible foods/i)).toBeInTheDocument();
   });
 
+  it("stops showing the nutrition spinner after a job deadline", async () => {
+    const staleJob: Job = {
+      id: "00000000-0000-4000-8000-000000000003",
+      kind: "recipe.nutrition",
+      aggregateId: recipe.id,
+      status: "running",
+      attempt: 1,
+      maxAttempts: 3,
+      inputHash: "abc",
+      progressCurrent: 1,
+      progressTotal: 2,
+      nextRetryAt: null,
+      terminalDeadlineAt: "2026-08-10T10:05:00Z",
+      failureCode: null,
+      failureMessage: null,
+      createdAt: "2026-08-10T10:00:00Z",
+      finishedAt: null,
+      pollAfterSeconds: 2,
+      recoveryActions: [],
+    };
+    vi.mocked(fetch).mockImplementation((input) =>
+      String(input).includes("/jobs/")
+        ? response(staleJob)
+        : response({ ...recipe, status: "processing", activeJob: staleJob }),
+    );
+    renderRoute(<RecipeEditorPage />, `/app/recipes/${recipe.id}/edit`);
+
+    await screen.findByDisplayValue("Exact oats");
+    expect(screen.queryByText("Refreshing the values…")).not.toBeInTheDocument();
+    expect(screen.getByText(/took too long and was stopped/i)).toBeVisible();
+  });
+
   it("polls visible work after two seconds and recovers authoritative state after reload", async () => {
     vi.useFakeTimers();
     const running: Job = {

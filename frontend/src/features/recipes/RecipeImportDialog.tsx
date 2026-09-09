@@ -21,6 +21,21 @@ interface EditableComponent {
 }
 const defaultThumbnailCrop = (): ThumbnailCropWrite => ({ x: "0", y: "0", width: "1", height: "1" });
 
+function cleanupWarningLabels(warnings: string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const warning of warnings) counts.set(warning, (counts.get(warning) ?? 0) + 1);
+  return [...counts.entries()].map(([warning, count]) => {
+    const [action, kind] = warning.split("_");
+    const noun = kind === "ingredient" ? "ingredient row" : kind === "step" ? "method step" : "row";
+    if (action === "dropped") return `Removed ${count} ${noun}${count === 1 ? "" : "s"}`;
+    if (action === "normalized") return `Normalized ${count} ${noun}${count === 1 ? "" : "s"}`;
+    if (action === "merged") return `Merged ${count} ${noun}${count === 1 ? "" : "s"}`;
+    if (warning === "cleanup_deadline") return "Cleanup timed out; the deterministic parse was kept";
+    if (warning === "cleanup_invalid_output") return "Cleanup output was unsafe; the deterministic parse was kept";
+    return "Cleanup was unavailable; the deterministic parse was kept";
+  });
+}
+
 function componentsPayload(components: EditableComponent[]): ImportConfirmComponent[] {
   return components.map((component) => ({
     title: component.title || undefined,
@@ -344,6 +359,15 @@ export function RecipeImportDialog({
             <>
               <Dialog.Title>Review the recipe</Dialog.Title>
               <Dialog.Description id="import-description">Make any changes before adding it to your collection. Nutrition is calculated after saving.</Dialog.Description>
+              {preview.cleanupStatus !== "deterministic" ? (
+                <p className="import-wizard__cleanup-status" role="status">
+                  {preview.cleanupStatus === "cleaned" ? "Cleaned automatically before review." : "Cleanup was unavailable; showing the deterministic parse."}
+                  {preview.cleanupChanges?.length ? ` ${preview.cleanupChanges.length} row${preview.cleanupChanges.length === 1 ? "" : "s"} adjusted.` : ""}
+                </p>
+              ) : null}
+              {preview.cleanupWarnings?.length ? (
+                <p className="muted">Review note: {cleanupWarningLabels(preview.cleanupWarnings).join("; ")}.</p>
+              ) : null}
 
               {cookbookRecipes.length > 1 ? (
                 <section className="import-wizard__cookbook" aria-labelledby="cookbook-import-title">
@@ -374,6 +398,7 @@ export function RecipeImportDialog({
                             />
                             <span>{entry.title}</span>
                           </label>
+                          {entry.cleanupStatus === "fallback" ? <span className="muted">Deterministic parse</span> : entry.cleanupStatus === "cleaned" ? <span className="muted">Cleaned</span> : null}
                           {reason ? <span className="muted">{reason}</span> : null}
                         </li>
                       );

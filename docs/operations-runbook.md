@@ -72,9 +72,18 @@ access, and the retention heartbeat.
 Rollback application images only when the schema remains compatible; otherwise restore into a clean
 target and prove ledger replay.
 
-## Needle2 inline repair — production live (hidden, gap-only, 600ms)
+## Needle2 local intelligence — production live (default-on, bounded, 600ms)
 
-Inline repair is **enabled by default** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=true` in `infrastructure/config.py:81` and `deploy/compose.yaml:77` `:-true`). Prod is now **live at 100%** — threshold `T` (`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`, sweep chooses `0.75` `false_overwrite <1%`) and timeout `600ms` remain hot-reloadable via env without redeploy. Kill-switch: set `INLINE_ENABLED=false` and restart API (no data migration). Graceful: if `/models/needle2.cact` missing or `cactus-needle` not installed, service is `degraded` and gateway falls through to legacy (no error).
+Needle2 intelligence and its import/pantry inline path are **enabled by default** (the persisted Settings values and the
+`COOKFULLY_INTELLIGENCE_INLINE_ENABLED` Compose default are both `true`). Owners can
+turn Needle2 or inline repair off under **Settings → Intelligence**; operators retain
+the environment kill-switch for emergency rollback. The threshold `T`
+(`COOKFULLY_INTELLIGENCE_INLINE_THRESHOLD`, default `0.80`) and timeout `600ms` remain
+environment controls. Graceful: if `/models/needle2.cact` is missing or
+`cactus-needle` is not installed, service is `degraded` and the gateway falls through
+to the deterministic importer (no error). The deterministic importer is authoritative:
+it removes obvious nutrition/credit/method leakage and only accepts model output when
+the confidence gate passes; model enrichment never silently overwrites reviewed content.
 
 **Observability (no PII):**
 - `logger="cookfully.intelligence"` emits `needle_infer` with `extra={request_id, confidence, reasoning, prefill, decode, peak_ram, latency_ms}`.
@@ -89,7 +98,14 @@ Inline repair is **enabled by default** (`COOKFULLY_INTELLIGENCE_INLINE_ENABLED=
 3. Deploy the pinned release: `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml pull`, then `docker compose -f deploy/compose.yaml -f deploy/compose.production.yaml up -d --no-build` — verify `GET /api/v1/health` `200`, `POST /pantry-items` bulk paste returns `201 {items,created}` and `POST /intelligence/infer` not `422`. Use `--build` only from a source checkout when intentionally building a local image.
 4. Monitor 24h: `needle_inline_applied` rate, `p95 latency <600ms`, `peak_ram_mb ~28MB`, no `skipped_invalid` rise; logs contain `confidence/reasoning` not user text. Breach → bump `T` +0.05 or `INLINE_ENABLED=false` (no-op rollback).
 
-**Rollback:** set `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false` and restart API. No data migration; legacy path always authoritative.
+**Rollback:** set `COOKFULLY_INTELLIGENCE_ENABLED=false` (and, if desired, `COOKFULLY_INTELLIGENCE_INLINE_ENABLED=false`) and restart API. No data migration; deterministic paths remain authoritative.
+
+Recipe import cleanup uses the same local Needle2 timeout but a separate strict contract. It runs
+once per URL/text-PDF recipe, sequentially for cookbooks, and never logs source text. Invalid,
+unsupported, or timed-out output keeps the deterministic candidate. Optional OpenRouter fallback is
+disabled by default, requires server-side `COOKFULLY_OPENROUTER_API_KEY` plus
+`COOKFULLY_OPENROUTER_MODEL`, and is enabled only by the owner under Settings → Intelligence.
+Scanned/image-only PDFs remain unsupported; no OCR or vision service is started.
 
 ## Offline owner erasure
 

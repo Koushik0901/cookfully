@@ -27,6 +27,7 @@ from cookfully.api.routes import (
     nutrition_intelligence,
     owner,
     pantry,
+    recipe_import,
     recipes,
     reference_data,
     suggestions,
@@ -48,6 +49,7 @@ from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.application.pantry import PantryService
 from cookfully.application.pantry_deductions import PantryDeductionService
 from cookfully.application.pantry_search import PantrySearchService
+from cookfully.application.recipe_cleanup import build_recipe_cleanup_service
 from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
@@ -159,6 +161,8 @@ _OPERATION_IDS = {
     "get_settings": "getNutritionIntelligenceSettings",
     "estimate": "estimateNutritionIntelligence",
     "update_settings": "updateNutritionIntelligenceSettings",
+    "get_recipe_import_settings": "getRecipeImportSettings",
+    "update_recipe_import_settings": "updateRecipeImportSettings",
     "infer_intelligence": "inferIntelligence",
     "create_draft": "createIntelligenceDraft",
     "get_draft": "getIntelligenceDraft",
@@ -264,6 +268,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 app.state.recipes,
                 recipe_query_service,
                 photos=app.state.recipe_photos,
+                cleanup=build_recipe_cleanup_service(sessions, intelligence_client, resolved),
             )
             app.state.corrections = CorrectionService(sessions, jobs=job_service)
             app.state.idempotency = idempotency_service
@@ -327,6 +332,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(access_tokens.router)
     versioned.include_router(jobs.router)
     versioned.include_router(recipes.router)
+    versioned.include_router(recipe_import.router)
     versioned.include_router(goals.router)
     versioned.include_router(meal_plans.router)
     versioned.include_router(grocery.router)

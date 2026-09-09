@@ -16,10 +16,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.jobs import JobService
 from cookfully.application.model_download import (
+    MODEL_DOWNLOAD_AGGREGATE_ID,
+    MODEL_DOWNLOAD_JOB_KIND,
     accept_model_download_job_in_session,
+    model_download_input_hash,
     supersede_model_download_jobs_in_session,
 )
 from cookfully.domain.common import DomainError, utc_now
+from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 from cookfully.infrastructure.models.reference_foods import FoodReference, ReferenceDataset
 
@@ -238,6 +242,8 @@ class NutritionIntelligenceService:
         concurrency: int,
         expected_version: int,
         estimate_hash: str,
+        intelligence_enabled: bool | None = None,
+        inline_enabled: bool | None = None,
         trace_id: str = "nutrition-intelligence-settings",
     ) -> NutritionIntelligenceSettings:
         jobs = JobService(self._session_factory)
@@ -251,6 +257,9 @@ class NutritionIntelligenceService:
                 session.flush()
             if value.version != expected_version:
                 raise DomainError("stale_settings", "Settings changed while you were editing.", 409)
+            previous_backend = value.backend
+            previous_model_name = value.model_name
+            previous_model_revision = value.model_revision
             metadata = fetch_model_metadata(model_name) if backend == "fastembed" else None
             active_food_count = self.active_food_count()
             estimate = estimate_resources(
@@ -277,16 +286,39 @@ class NutritionIntelligenceService:
             value.model_name = model_name if backend == "fastembed" else DEFAULT_MODEL
             value.model_revision = estimate.model_revision
             value.concurrency = concurrency
-            value.last_ready_at = None
+            if intelligence_enabled is not None:
+                value.intelligence_enabled = intelligence_enabled
+            if inline_enabled is not None:
+                value.inline_enabled = inline_enabled
+            model_changed = (
+                previous_backend != backend
+                or previous_model_name != value.model_name
+                or previous_model_revision != value.model_revision
+            )
             value.version += 1
             if backend == "fastembed":
-                accept_model_download_job_in_session(
-                    session,
-                    jobs,
-                    model_name=value.model_name,
-                    model_revision=value.model_revision,
-                    trace_id=trace_id,
-                )
+                if model_changed:
+                    value.last_ready_at = None
+                if model_changed or value.last_ready_at is None:
+                    input_hash = model_download_input_hash(value.model_name, value.model_revision)
+                    active_same_model = session.scalar(
+                        select(ProcessingJob.id)
+                        .where(
+                            ProcessingJob.kind == MODEL_DOWNLOAD_JOB_KIND,
+                            ProcessingJob.aggregate_id == MODEL_DOWNLOAD_AGGREGATE_ID,
+                            ProcessingJob.input_hash == input_hash,
+                            ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
+                        )
+                        .limit(1)
+                    )
+                    if active_same_model is None:
+                        accept_model_download_job_in_session(
+                            session,
+                            jobs,
+                            model_name=value.model_name,
+                            model_revision=value.model_revision,
+                            trace_id=trace_id,
+                        )
             else:
                 supersede_model_download_jobs_in_session(session, jobs)
                 value.last_ready_at = utc_now()

@@ -3,7 +3,7 @@ import { Cpu, Database, Gauge, HardDrive, RotateCcw, Save } from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 
 import { Button, ErrorRecovery, Field, SectionHeading, Select, Skeleton } from "../../components";
-import { nutritionIntelligenceApi } from "./api";
+import { nutritionIntelligenceApi, recipeImportSettingsApi } from "./api";
 
 const DEFAULT_MODEL = "BAAI/bge-small-en-v1.5";
 
@@ -19,18 +19,35 @@ export function NutritionIntelligenceTab() {
     queryKey: ["nutrition-intelligence-settings"],
     queryFn: nutritionIntelligenceApi.get,
   });
-  const [backend, setBackend] = useState<"hashing" | "fastembed">("hashing");
+  const recipeImportSettings = useQuery({
+    queryKey: ["recipe-import-settings"],
+    queryFn: recipeImportSettingsApi.get,
+  });
+  const [backend, setBackend] = useState<"hashing" | "fastembed">("fastembed");
+  const [intelligenceEnabled, setIntelligenceEnabled] = useState(true);
+  const [inlineEnabled, setInlineEnabled] = useState(true);
   const [modelName, setModelName] = useState(DEFAULT_MODEL);
   const [concurrency, setConcurrency] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [cleanupEnabled, setCleanupEnabled] = useState(true);
+  const [openrouterFallbackEnabled, setOpenrouterFallbackEnabled] = useState(false);
+  const [cleanupSaved, setCleanupSaved] = useState(false);
   const deferredModelName = useDeferredValue(modelName);
 
   useEffect(() => {
     if (!settings.data) return;
     setBackend(settings.data.backend);
+    setIntelligenceEnabled(settings.data.intelligenceEnabled ?? true);
+    setInlineEnabled(settings.data.inlineEnabled ?? true);
     setModelName(settings.data.modelName || DEFAULT_MODEL);
     setConcurrency(settings.data.concurrency);
   }, [settings.data]);
+
+  useEffect(() => {
+    if (!recipeImportSettings.data) return;
+    setCleanupEnabled(recipeImportSettings.data.cleanupEnabled);
+    setOpenrouterFallbackEnabled(recipeImportSettings.data.openrouterFallbackEnabled);
+  }, [recipeImportSettings.data]);
 
   const estimate = useQuery({
     queryKey: ["nutrition-intelligence-estimate", backend, deferredModelName, concurrency],
@@ -51,10 +68,24 @@ export function NutritionIntelligenceTab() {
         concurrency,
         version: settings.data?.version ?? 1,
         estimateHash: estimate.data?.estimateHash ?? "",
+        intelligenceEnabled,
+        inlineEnabled,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["nutrition-intelligence-settings"] });
       setSaved(true);
+    },
+  });
+
+  const saveCleanup = useMutation({
+    mutationFn: () => recipeImportSettingsApi.update({
+      cleanupEnabled,
+      openrouterFallbackEnabled,
+      version: recipeImportSettings.data?.version ?? 1,
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["recipe-import-settings"] });
+      setCleanupSaved(true);
     },
   });
 
@@ -99,11 +130,94 @@ export function NutritionIntelligenceTab() {
         </p>
       </div>
 
+      <div className="settings-system-intro">
+        <strong>Needle2 local intelligence is on by default.</strong>
+        <p>
+          Cookfully uses the local Needle2 service for command, extraction, and small inline repairs. Turn either switch off when you want deterministic imports or no assistant requests; existing recipes and manual matches are never changed. Semantic nutrition matching is configured separately below.
+        </p>
+      </div>
+
+      <div className="form-grid">
+        <Field label="Local Needle2 intelligence">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={intelligenceEnabled}
+              onChange={(event) => {
+                setIntelligenceEnabled(event.target.checked);
+                setSaved(false);
+              }}
+            />
+            <span>Use the local model for assistant and extraction requests</span>
+          </label>
+        </Field>
+        <Field label="Inline repair and extraction">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={inlineEnabled}
+              disabled={!intelligenceEnabled}
+              onChange={(event) => {
+                setInlineEnabled(event.target.checked);
+                setSaved(false);
+              }}
+            />
+            <span>Use Needle2 automatically while importing recipes and pantry text</span>
+          </label>
+        </Field>
+      </div>
+
+      {recipeImportSettings.isError ? (
+        <p className="error-text" role="alert">Recipe import cleanup settings could not be loaded.</p>
+      ) : (
+        <section className="settings-system-intro" aria-labelledby="recipe-import-cleanup-title">
+          <strong id="recipe-import-cleanup-title">Recipe import cleanup</strong>
+          <p>
+            Every URL or text-based PDF import gets one bounded, conservative cleanup pass. It can remove leaked nutrition/footer text and repair formatting, but it cannot invent ingredients or steps.
+          </p>
+          <div className="form-grid">
+            <Field label="Automatic cleanup">
+              <label className="settings-checkbox">
+                <input
+                  type="checkbox"
+                  checked={cleanupEnabled}
+                  disabled={recipeImportSettings.isPending || saveCleanup.isPending}
+                  onChange={(event) => { setCleanupEnabled(event.target.checked); setCleanupSaved(false); }}
+                />
+                <span>Clean imported recipe rows before I review them</span>
+              </label>
+            </Field>
+            <Field
+              label="OpenRouter fallback"
+              hint={recipeImportSettings.data?.openrouterConfigured ? `Configured model: ${recipeImportSettings.data.openrouterModel}` : "Configure an OpenRouter key and model on the server first."}
+            >
+              <label className="settings-checkbox">
+                <input
+                  type="checkbox"
+                  checked={openrouterFallbackEnabled}
+                  disabled={!recipeImportSettings.data?.openrouterConfigured || recipeImportSettings.isPending || saveCleanup.isPending}
+                  onChange={(event) => { setOpenrouterFallbackEnabled(event.target.checked); setCleanupSaved(false); }}
+                />
+                <span>Use the remote model only if local Needle2 fails</span>
+              </label>
+            </Field>
+          </div>
+          {!recipeImportSettings.data?.localAvailable ? <p className="muted">Local Needle2 is not configured; imports will use deterministic parsing unless a remote fallback is enabled.</p> : null}
+          {saveCleanup.error instanceof Error ? <p className="error-text" role="alert">{saveCleanup.error.message}</p> : null}
+          {cleanupSaved ? <p className="success-text" role="status">Recipe import cleanup settings saved.</p> : null}
+          <div className="actions">
+            <Button type="button" onClick={() => saveCleanup.mutate()} disabled={recipeImportSettings.isPending || saveCleanup.isPending}>
+              {saveCleanup.isPending ? "Saving…" : "Save import settings"}
+            </Button>
+          </div>
+        </section>
+      )}
+
       <div className="form-grid">
         <Field label="Matching backend">
           <Select value={backend} onChange={(event) => { setBackend(event.target.value as "hashing" | "fastembed"); setSaved(false); }}>
-            <option value="hashing">Deterministic + hashing fallback</option>
-            <option value="fastembed">FastEmbed Hugging Face model</option>
+            <option value="fastembed">FastEmbed embeddings (recommended)</option>
+            <option value="hashing">Hashing fallback (lightweight)</option>
           </Select>
         </Field>
         <Field
@@ -162,7 +276,7 @@ export function NutritionIntelligenceTab() {
       {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
       {saved ? <p className="success-text" role="status">Nutrition intelligence settings saved. Existing manual matches are unchanged.</p> : null}
       <div className="actions">
-        <Button type="button" variant="ghost" onClick={() => { setBackend("hashing"); setModelName(DEFAULT_MODEL); setConcurrency(1); setSaved(false); }} disabled={save.isPending}>
+        <Button type="button" variant="ghost" onClick={() => { setBackend("fastembed"); setIntelligenceEnabled(true); setInlineEnabled(true); setModelName(DEFAULT_MODEL); setConcurrency(1); setSaved(false); }} disabled={save.isPending}>
           <RotateCcw aria-hidden="true" /> Reset draft
         </Button>
         <Button type="button" onClick={() => save.mutate()} disabled={saveBlocked}>
