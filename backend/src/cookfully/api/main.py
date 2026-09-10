@@ -247,6 +247,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.owner_preferences = OwnerPreferenceService(sessions)
             app.state.owner_onboarding = OwnerOnboardingService(sessions)
             app.state.jobs = job_service
+            # Repair processing projections left behind by older terminal
+            # deadline/stall reconciliation before the UI starts polling them.
+            job_service.reconcile_recipe_projections()
             media_store = MediaStore(resolved.media_root, resolved.secret_key.get_secret_value())
             app.state.media_store = media_store
             app.state.recipes = RecipeService(

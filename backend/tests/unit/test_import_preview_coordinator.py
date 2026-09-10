@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import nullcontext
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -11,7 +12,7 @@ from pydantic import SecretStr
 from sqlalchemy import select
 
 from cookfully.application.import_preview import ImportPreviewCoordinator
-from cookfully.domain.common import DomainError, utc_now, uuid7
+from cookfully.domain.common import DomainError, OptimisticConcurrencyError, utc_now, uuid7
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
@@ -282,6 +283,48 @@ async def test_confirm_attaches_pdf_thumbnail_best_effort(
     assert owned_coordinator.photos.calls[-1][1] == thumbnail
     assert owned_coordinator.photos.calls[-1][2] == 1
     assert owned_coordinator.photos.calls[-1][3] is not None
+
+
+async def test_confirm_retries_thumbnail_after_worker_advances_recipe_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class ReloadedRecipe:
+        version = 2
+
+    class FakeRepository:
+        def __init__(self, _session):
+            pass
+
+        def get(self, _recipe_id):
+            return ReloadedRecipe()
+
+    monkeypatch.setattr("cookfully.application.import_preview.RecipeRepository", FakeRepository)
+    attempts: list[int] = []
+
+    class StubPhotos:
+        async def attach_url(
+            self, _recipe_id, _image_url: str, *, expected_version: int, crop=None
+        ):
+            attempts.append(expected_version)
+            if len(attempts) == 1:
+                raise OptimisticConcurrencyError()
+
+    coordinator = SimpleNamespace(
+        _photos=StubPhotos(),
+        _session_factory=lambda: nullcontext(object()),
+    )
+    recipe = SimpleNamespace(id=uuid7(), version=1)
+    status = await ImportPreviewCoordinator._attach_preview_image(
+        coordinator,
+        recipe,
+        {
+            "imageSource": "data:image/jpeg;base64,c2FtcGxl",
+            "imageSourceKind": "pdf_thumbnail",
+        },
+        {},
+    )
+    assert attempts == [1, 2]
+    assert status == "attached"
 
 
 async def test_confirm_attaches_selected_remote_url_image(

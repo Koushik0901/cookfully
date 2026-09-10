@@ -158,6 +158,49 @@ def test_two_column_cookbook_pdf_with_uppercase_headings_is_structured() -> None
     )
 
 
+def test_layout_pdf_columns_keep_ingredients_out_of_method() -> None:
+    def columns(left: str, right: str) -> str:
+        return f"{left:<44}   {right}"
+
+    pages = (
+        "\n".join(
+            [
+                columns("Matka", "INSTRUCTIONS"),
+                columns("Undhiyu", "For Muthiya Take a small pan, add oil."),
+                columns("", "Some mustard seeds and curry leaves."),
+                columns("", "Mix all ingredients and form small balls."),
+                columns("", "For Green 1 Mix all ingredients into a paste."),
+                columns("", "2 Make a slit in the brinjals and stuff them."),
+                columns("INGREDIENTS", "3 Wash and peel the plantains."),
+                columns("250 grams Surti papdi", "4 Heat oil in a large pan."),
+                columns("4 small Brinjals slit", "5 Add muthiyas and mix well."),
+                columns("100 grams Fresh papdi dana", "6 Garnish with coriander."),
+                columns("1/2 cup Coriander chopped", ""),
+                columns("10-12 Garlic cloves", ""),
+                columns("2 inch piece Ginger", ""),
+                columns("4 tbsp Sesame oil", ""),
+            ]
+        ),
+    )
+    recipes = RecipeImporter._recipes_from_pdf_pages(
+        pages, "cookfully-upload://book.pdf", "cookfully-upload://book.pdf"
+    )
+
+    assert len(recipes) == 1
+    assert recipes[0].title == "Matka Undhiyu"
+    assert set(recipes[0].ingredients) == {
+        "250 grams Surti papdi",
+        "4 small Brinjals slit",
+        "100 grams Fresh papdi dana",
+        "1/2 cup Coriander chopped",
+        "10-12 Garlic cloves",
+        "2 inch piece Ginger",
+        "4 tbsp Sesame oil",
+    }
+    assert len(recipes[0].instructions) >= 6
+    assert not any("Sesame oil" in step for step in recipes[0].instructions)
+
+
 def test_pdf_ingredients_stop_at_nutrition_and_join_wrapped_ocr_lines() -> None:
     pages = (
         "BROCCOLI PARATHA\nIngredients:\n"
@@ -219,6 +262,19 @@ def test_pdf_ingredients_drop_leaked_numbered_method_column() -> None:
     assert recipes[0].ingredients == ("250 g cabbage", "1 tsp salt")
 
 
+def test_pdf_directions_collapse_duplicate_layout_markers() -> None:
+    directions = (
+        "1 1 For The Filling Finely chop the broccoli 1 and mash the potato. "
+        "2 2 Now mix the filling. 3 3 Roll the dough."
+    )
+
+    assert RecipeImporter._pdf_directions(directions) == (
+        "For The Filling: Finely chop the broccoli and mash the potato.",
+        "Now mix the filling.",
+        "Roll the dough.",
+    )
+
+
 def test_pdf_ingredients_stop_at_photo_credit_footer() -> None:
     pages = (
         "BROCCOLI PARATHA\nIngredients\n2 cups broccoli\n1 tsp salt\n"
@@ -246,9 +302,19 @@ def test_pdf_directions_split_inline_numbered_steps_from_columns() -> None:
     )
     assert steps == (
         "First step.",
-        "Second step. For Green",
-        "Mix everything.",
+        "Second step.",
+        "For Green: Mix everything.",
         "Make a paste.",
+    )
+
+
+def test_pdf_directions_remove_markers_embedded_before_continuations() -> None:
+    assert RecipeImporter._pdf_directions(
+        "For The Filling chop the broccoli 1 and mash the potato. "
+        "For The Paratha make a small 1 cavity, then seal it."
+    ) == (
+        "For The Filling: chop the broccoli and mash the potato.",
+        "For The Paratha: make a small cavity, then seal it.",
     )
 
 

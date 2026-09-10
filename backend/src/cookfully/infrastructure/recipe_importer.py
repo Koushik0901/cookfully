@@ -349,6 +349,13 @@ class RecipeImporter:
 
     @classmethod
     def _pdf_recipe_parts(cls, value: str) -> tuple[str, str, str] | None:
+        # pypdf's layout mode keeps side-by-side cookbook columns on the same
+        # line.  Prefer the coordinate-aware split whenever the instruction
+        # heading is in a right-hand column; otherwise a plain substring split
+        # would feed the ingredient column into the method parser.
+        two_column = cls._pdf_two_column_recipe_parts(value)
+        if two_column is not None:
+            return two_column
         ingredients = cls._pdf_heading(value, "ingredients")
         if ingredients is None:
             return None
@@ -590,13 +597,30 @@ class RecipeImporter:
         normalized = re.sub(r"\s+", " ", normalized)
         return normalized
 
-    @staticmethod
-    def _pdf_directions(value: str) -> tuple[str, ...]:
+    @classmethod
+    def _pdf_directions(cls, value: str) -> tuple[str, ...]:
         body = re.split(r"^\s*Notes?\s*$", value, maxsplit=1, flags=re.MULTILINE)[0]
         # A few layout engines relocate the first step number to the end of the
         # preceding rendered line.  Removing that duplicate lets the remaining
         # ordered steps stay readable in the review editor.
         body = re.sub(r"(?<=[.!?])\s*1\s+(?=2\s+[A-Z])", " ", body)
+        # Layout extraction can place a step marker between the previous line
+        # and its continuation (``broccoli 1 and mash`` / ``small 1 cavity``).
+        # These are markers, not quantities; remove only the bounded continuation
+        # forms so real measurements such as ``1 cup`` remain untouched.
+        body = re.sub(
+            r"(?<=\w)\s+\d{1,2}(?=\s+(?:and|cavity|into|on|from)\b)", "", body, flags=re.IGNORECASE
+        )
+        # Some cookbook text layers duplicate each numbered marker (``1 1 For``)
+        # while keeping the second copy as the only marker followed by a
+        # capitalized word.  Collapse only identical, adjacent markers before
+        # finding boundaries; this prevents a stray marker being emitted as a
+        # preface or at the end of the preceding step.
+        body = re.sub(
+            r"(?<!\w)(\d{1,2})\s+\1(?=\s+[A-Z])",
+            r"\1",
+            body,
+        )
         body = re.sub(r"\b([A-Z])\s+([a-z]{2,}\b)", r"\1\2", body)
         matches = list(re.finditer(r"(?m)^\s*\d{1,2}(?:[.)]\s*|\s+)", body))
         inline_matches = list(re.finditer(r"(?<!\w)\d{1,2}[.)]?\s+(?=[A-Z])", body))
@@ -629,11 +653,25 @@ class RecipeImporter:
                     current = f"{current} {stripped}".strip()
             if current:
                 fallback_steps.append(re.sub(r"\s+", " ", current).strip())
-            return tuple(fallback_steps)
+            return tuple(
+                item for step in fallback_steps for item in cls._split_pdf_direction_sections(step)
+            )
         steps: list[str] = []
+        pending_section: str | None = None
+        section_continuations = {"masala", "undhiyu", "dough", "paratha"}
+
+        def section_tail(text: str) -> tuple[str, str | None]:
+            match = re.search(r"\s+(For\s+(?:The\s+)?[A-Z][\w]*(?:\s+[A-Z][\w]*){0,2})\s*$", text)
+            if match is None:
+                return text, None
+            return text[: match.start()].rstrip(), match.group(1)
+
         preface = re.sub(r"\s+", " ", body[: matches[0].start()]).strip()
         if preface:
-            steps.append(preface)
+            preface = re.sub(r"\s+\d{1,2}\s*$", "", preface)
+            preface, pending_section = section_tail(preface)
+            if preface:
+                steps.append(preface)
         for index, match in enumerate(matches):
             end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
             step = re.sub(r"\s+", " ", body[match.end() : end]).strip()
@@ -642,9 +680,46 @@ class RecipeImporter:
             # ``1 1 For...``). Keep the user-facing step text clean without
             # stripping legitimate quantities from the body of a step.
             step = re.sub(rf"^{index + 1}\s+", "", step)
+            step, trailing_section = section_tail(step)
+            if pending_section:
+                for continuation in section_continuations:
+                    suffix = f" {continuation}"
+                    if step.lower().endswith(suffix):
+                        pending_section = f"{pending_section} {step[-len(continuation) :]}"
+                        step = step[: -len(suffix)].rstrip()
+                        break
+            section = pending_section
+            pending_section = trailing_section
+            if section and step:
+                step = f"{section}: {step}"
             if step:
                 steps.append(step)
-        return tuple(steps)
+        return tuple(item for step in steps for item in cls._split_pdf_direction_sections(step))
+
+    @staticmethod
+    def _split_pdf_direction_sections(value: str) -> tuple[str, ...]:
+        """Keep inline ``For The ...`` layout headings from swallowing steps."""
+
+        heading = re.compile(
+            r"(?<!\w)(For(?:\s+The)?\s+[A-Z][\w]*"
+            r"(?:\s+(?!(?:Finely|Now|Take|Mix|Make|Then|With|In|On|Add|Wash|Heat|Cook|"
+            r"Knead|Place|Roll|Smear)\b)[A-Z][\w]*){0,2})"
+            r"(?=\s*:?[\s]*(?:\d{1,2}[.)]?\s+|[A-Z]|"
+            r"(?:chop|in|take|mix|add|wash|heat|cook|knead|place|roll|smear|make)\b))"
+        )
+        matches = list(heading.finditer(value))
+        if not matches:
+            return (value,)
+        pieces: list[str] = []
+        prefix = value[: matches[0].start()].strip(" :")
+        if prefix:
+            pieces.append(prefix)
+        for index, match in enumerate(matches):
+            end = matches[index + 1].start() if index + 1 < len(matches) else len(value)
+            text = value[match.end() : end].strip(" :")
+            if text:
+                pieces.append(f"{match.group(1)}: {text}")
+        return tuple(pieces)
 
     @classmethod
     def _pdf_image_candidates(cls, content: bytes) -> tuple[str, ...]:

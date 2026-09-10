@@ -45,7 +45,7 @@ def test_database_url_uses_postgres_credentials_from_env_file(
     settings = Settings(_env_file=env_file)
 
     assert settings.database_url == (
-        "postgresql+psycopg://local%20user:p%40ss%2Fword@localhost:5432/meal%20planner"
+        "postgresql+psycopg://local%20user:p%40ss%2Fword@127.0.0.1:5432/meal%20planner"
     )
 
 

@@ -159,9 +159,13 @@ class NeedleRecipeCleanupProvider:
         except Exception:
             logger.exception("local recipe cleanup failed")
             return CleanupResponse(None, "local_failed")
-        if response.status != "ok" or response.confidence is None:
+        if response.status != "ok" or not response.function_calls:
             return CleanupResponse(None, "local_unsupported")
-        if response.confidence < self._threshold or not response.function_calls:
+        # Needle archives do not expose a calibrated confidence head when
+        # loaded through the Python weights path.  The cleanup payload still
+        # carries its own bounded confidence field, and _apply_cleanup applies
+        # the same threshold after deterministic row validation.
+        if response.confidence is not None and response.confidence < self._threshold:
             return CleanupResponse(None, "local_low_confidence")
         try:
             return CleanupResponse(
@@ -247,7 +251,15 @@ class RecipeCleanupService:
         with self._sessions() as session:
             import_settings = session.get(RecipeImportSettings, 1)
             if import_settings is None:
-                import_settings = RecipeImportSettings(id=1)
+                # A fresh install may not have materialized the singleton row
+                # until Settings is opened.  Apply the model defaults here as
+                # well so automatic cleanup is truly on from the first import.
+                import_settings = RecipeImportSettings(
+                    id=1,
+                    cleanup_enabled=True,
+                    openrouter_fallback_enabled=False,
+                    version=1,
+                )
             return import_settings, session.get(NutritionIntelligenceSettings, 1)
 
     async def cleanup_imported(

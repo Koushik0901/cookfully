@@ -23,8 +23,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("version", sa.Integer(), server_default="1", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.CheckConstraint("id = 1", name="singleton_recipe_import_settings"),
         sa.CheckConstraint("version > 0", name="positive_recipe_import_settings_version"),
         sa.PrimaryKeyConstraint("id"),

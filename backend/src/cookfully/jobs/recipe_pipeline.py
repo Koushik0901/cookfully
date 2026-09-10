@@ -386,7 +386,15 @@ class RecipePipeline:
                     "Required nutrition reference data is not active.",
                     503,
                 )
-            matcher = FoodMatcher(repository, embedder=self._session_embedder(session))
+            # Keep each nutrition attempt bounded. Loading and embedding the
+            # entire USDA corpus for every recipe can exceed the worker's
+            # 60-second task limit; lexical shortlisting keeps the semantic
+            # ranking accurate while only embedding relevant candidates.
+            matcher = FoodMatcher(
+                repository,
+                embedder=self._session_embedder(session),
+                candidate_pool_limit=256,
+            )
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )

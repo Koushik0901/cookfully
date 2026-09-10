@@ -212,6 +212,15 @@ class JobService:
                 raise DomainError("job_not_claimable", "Job is not available to run.", 409)
             if claimed_at >= job.terminal_deadline_at:
                 self._terminal(job, "failed", claimed_at, "deadline_exceeded")
+                self._sync_recipe_after_terminal_job(session, job)
+                return job
+            # A stalled worker is requeued without consuming an attempt because
+            # the original process never reached a terminal result. Once the
+            # ceiling is reached, leave the job terminal instead of allowing the
+            # increment below to violate the database check constraint.
+            if job.attempt >= job.max_attempts:
+                self._terminal(job, "failed", claimed_at, "attempt_limit_reached")
+                self._sync_recipe_after_terminal_job(session, job)
                 return job
             job.status = "running"
             job.attempt += 1
@@ -380,7 +389,52 @@ class JobService:
             ).all()
             for job in jobs:
                 self._terminal(job, "failed", checked_at, "deadline_exceeded")
+                self._sync_recipe_after_terminal_job(session, job)
             return [job.id for job in jobs]
+
+    def reconcile_recipe_projections(self) -> list[UUID]:
+        """Repair recipes left in ``processing`` by an older failed job.
+
+        Releases before terminal-failure projection repair could leave a
+        recipe stuck in ``processing`` after the deadline reconciler marked its
+        last job failed. On startup, repair only recipes with no active job and
+        a matching terminal failure; newer imports and user edits are left
+        untouched.
+        """
+
+        repaired: list[UUID] = []
+        with self._session_factory.begin() as session:
+            recipes = session.scalars(select(Recipe).where(Recipe.status == "processing")).all()
+            for recipe in recipes:
+                active = session.scalar(
+                    select(ProcessingJob.id).where(
+                        ProcessingJob.aggregate_type == "recipe",
+                        ProcessingJob.aggregate_id == recipe.id,
+                        ProcessingJob.status.in_(NONTERMINAL_JOB_STATUSES),
+                    )
+                )
+                if active is not None:
+                    continue
+                latest = session.scalar(
+                    select(ProcessingJob)
+                    .where(
+                        ProcessingJob.aggregate_type == "recipe",
+                        ProcessingJob.aggregate_id == recipe.id,
+                    )
+                    .order_by(ProcessingJob.accepted_at.desc(), ProcessingJob.id.desc())
+                    .limit(1)
+                )
+                if (
+                    latest is None
+                    or latest.status != "failed"
+                    or latest.input_hash != recipe.input_hash
+                ):
+                    continue
+                before = recipe.version
+                self._sync_recipe_after_terminal_job(session, latest)
+                if recipe.version != before:
+                    repaired.append(recipe.id)
+        return repaired
 
     def requeue_stalled(self, *, now: datetime | None = None) -> list[UUID]:
         checked_at = now or utc_now()
@@ -403,20 +457,24 @@ class JobService:
                 )
             ]
             for job in jobs:
-                job.status = "queued"
-                job.available_at = checked_at
                 job.failure_code = "worker_stalled"
                 job.failure_message = None
-                session.add(
-                    OutboxEvent(
-                        event_type="processing_job.recovered.v1",
-                        aggregate_id=job.id,
-                        payload_version=1,
-                        payload=self._envelope(job),
-                        created_at=checked_at,
-                        publish_attempts=0,
+                if job.attempt >= job.max_attempts or checked_at >= job.terminal_deadline_at:
+                    self._terminal(job, "failed", checked_at, "worker_stalled")
+                    self._sync_recipe_after_terminal_job(session, job)
+                else:
+                    job.status = "queued"
+                    job.available_at = checked_at
+                    session.add(
+                        OutboxEvent(
+                            event_type="processing_job.recovered.v1",
+                            aggregate_id=job.id,
+                            payload_version=1,
+                            payload=self._envelope(job),
+                            created_at=checked_at,
+                            publish_attempts=0,
+                        )
                     )
-                )
             return [job.id for job in jobs]
 
     def reduce_diagnostics(self, *, now: datetime | None = None) -> list[UUID]:
@@ -514,6 +572,31 @@ class JobService:
         job.failure_message = failure_message
         job.diagnostic_reduce_at = finished_at + DIAGNOSTIC_RETENTION
         job.safe_metadata_delete_at = finished_at + SAFE_METADATA_RETENTION
+
+    @staticmethod
+    def _sync_recipe_after_terminal_job(session: Session, job: ProcessingJob) -> None:
+        """Clear a recipe's processing projection when reconciliation gives up.
+
+        Pipeline failures normally pass through ``RecipePipeline._fail`` and
+        update the recipe in the same transaction. Deadline and stalled-worker
+        reconciliation can terminate a job without invoking that pipeline,
+        however, which previously left recipes (and the editor spinner) stuck
+        in ``processing`` forever. Only update a matching, still-processing
+        recipe; a newer import or a user edit must win.
+        """
+
+        if job.aggregate_type != "recipe":
+            return
+        recipe = session.get(Recipe, job.aggregate_id, with_for_update=True)
+        if recipe is None or recipe.status != "processing" or recipe.input_hash != job.input_hash:
+            return
+        if recipe.ingredients:
+            recipe.status = "partial"
+            recipe.nutrition_state = "partial"
+        else:
+            recipe.status = "failed"
+            recipe.nutrition_state = "failed"
+        recipe.version += 1
 
     @staticmethod
     def _envelope(job: ProcessingJob) -> dict[str, object]:

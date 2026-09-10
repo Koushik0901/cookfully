@@ -8,9 +8,10 @@ execution.
 Compose places the service on a private `intelligence-net` shared only with the
 API and worker. Postgres and Redis are not attached to that network.
 
-Needle2 is enabled by default. The local service starts automatically, but the
-release image does not ship model weights. To make inference ready, place the
-pinned Needle 2 artifact at
+Needle2 is enabled by default. The release image includes the small
+platform-native Needle2 runtime, so the service does not need to download code
+on first use. It intentionally does not ship model weights. To make inference
+ready, place the pinned Needle 2 artifact at
 `<COOKFULLY_DATA_ROOT>/intelligence-models/needle2.cact`. Obtain it from the
 approved model release and verify its release checksum. If the artifact is
 missing, the service reports `degraded` and Cookfully safely falls back to its

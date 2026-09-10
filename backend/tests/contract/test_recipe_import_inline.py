@@ -75,10 +75,11 @@ def _authenticate(client: TestClient) -> dict[str, str]:
     return {"X-CSRF-Token": csrf}
 
 
-def test_import_preview_enriched_no_extra_step(
+def test_import_preview_keeps_deterministic_candidate_when_cleanup_cannot_validate(
     isolated_database_url: str, tmp_path: Path, monkeypatch
 ) -> None:
-    # enabled case: should enrich sparse page
+    # Cleanup is conservative: a sparse deterministic candidate with no source
+    # steps cannot be completed by a model, so the preview must remain unchanged.
     with _client_for(isolated_database_url, tmp_path, inline_enabled=True) as client:
         # inject sparse importer
         class SparseImporter:
@@ -121,11 +122,11 @@ def test_import_preview_enriched_no_extra_step(
         )
         assert resp.status_code == 200, resp.text
         body = resp.json()
-        # sections[0] should have enriched ingredients (gap-only merge)
+        # The legacy gap-only enrichment path must not invent rows or steps.
         ingredients = [ing["originalText"] for ing in body["sections"][0]["ingredients"]]
-        # legacy had 1, needle has 3, gap-only should append missing tail
-        assert ingredients == ["1 cup flour", "1 tsp salt", "2 eggs"]
-        assert body["sections"][0]["instructions"] == ["Mix well", "Bake 10 min"]
+        assert ingredients == ["1 cup flour"]
+        assert body["sections"][0]["instructions"] == []
+        assert body["cleanupStatus"] == "fallback"
 
 
 def test_import_preview_not_enriched_when_disabled(

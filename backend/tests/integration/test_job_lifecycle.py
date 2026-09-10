@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.jobs import JobService
 from cookfully.infrastructure.models.jobs import OutboxEvent, ProcessingJob
+from cookfully.infrastructure.models.recipes import Recipe
 
 
 def create_job(service: JobService, aggregate_id: UUID, now: datetime) -> ProcessingJob:
@@ -89,3 +91,97 @@ def test_stalled_job_recovery_and_retention_boundaries(
     assert terminal.safe_metadata_delete_at == terminal.finished_at + timedelta(days=365)
     assert service.reduce_diagnostics(now=terminal.diagnostic_reduce_at) == [job.id]
     assert service.delete_safe_metadata(now=terminal.safe_metadata_delete_at) == [job.id]
+
+
+def test_stalled_job_at_attempt_ceiling_is_failed_without_overflow(
+    session_factory: sessionmaker[Session],
+) -> None:
+    service = JobService(session_factory)
+    accepted = datetime(2026, 8, 10, tzinfo=UTC)
+    job = create_job(service, UUID("0198a9f0-6666-7666-8666-666666666666"), accepted)
+    with session_factory.begin() as session:
+        stored = session.get(ProcessingJob, job.id)
+        assert stored is not None
+        stored.status = "running"
+        stored.attempt = stored.max_attempts
+        stored.heartbeat_at = accepted
+
+    stalled = service.requeue_stalled(now=accepted + timedelta(seconds=61))
+    assert stalled == [job.id]
+    assert service.progress(job.id).status == "failed"
+    assert service.progress(job.id).failure_code == "worker_stalled"
+
+
+def test_claim_defensively_fails_queued_job_at_attempt_ceiling(
+    session_factory: sessionmaker[Session],
+) -> None:
+    service = JobService(session_factory)
+    accepted = datetime(2026, 8, 10, tzinfo=UTC)
+    job = create_job(service, UUID("0198a9f0-7777-7777-8777-777777777777"), accepted)
+    with session_factory.begin() as session:
+        stored = session.get(ProcessingJob, job.id)
+        assert stored is not None
+        stored.attempt = stored.max_attempts
+
+    claimed = service.claim(job.id, now=accepted)
+    assert claimed.status == "failed"
+    assert claimed.failure_code == "attempt_limit_reached"
+
+
+def test_deadline_reconciliation_clears_processing_recipe_projection(
+    session_factory: sessionmaker[Session],
+) -> None:
+    service = JobService(session_factory)
+    accepted = datetime(2026, 8, 10, tzinfo=UTC)
+    recipe_id = UUID("0198a9f0-8888-7888-8888-888888888888")
+    with session_factory.begin() as session:
+        session.add(
+            Recipe(
+                id=recipe_id,
+                title="Stalled soup",
+                yield_quantity=Decimal("1.000"),
+                yield_unit="servings",
+                status="processing",
+                nutrition_state="pending",
+                input_hash="sha256:current",
+                version=1,
+            )
+        )
+    job = create_job(service, recipe_id, accepted)
+    expired = service.reconcile_deadlines(now=accepted + timedelta(minutes=15))
+    assert expired == [job.id]
+    with session_factory() as session:
+        recipe = session.get(Recipe, recipe_id)
+        assert recipe is not None
+        assert recipe.status == "failed"
+        assert recipe.nutrition_state == "failed"
+
+
+def test_startup_projection_reconciliation_repairs_legacy_terminal_failure(
+    session_factory: sessionmaker[Session],
+) -> None:
+    service = JobService(session_factory)
+    accepted = datetime(2026, 8, 10, tzinfo=UTC)
+    recipe_id = UUID("0198a9f0-9999-7999-8999-999999999999")
+    with session_factory.begin() as session:
+        session.add(
+            Recipe(
+                id=recipe_id,
+                title="Legacy stalled recipe",
+                yield_quantity=Decimal("1.000"),
+                yield_unit="servings",
+                status="processing",
+                nutrition_state="pending",
+                input_hash="sha256:current",
+                version=1,
+            )
+        )
+    job = create_job(service, recipe_id, accepted)
+    service.claim(job.id, now=accepted)
+    service.fail_attempt(job.id, "processing_error", retryable=False, now=accepted)
+    assert service.reconcile_recipe_projections() == [recipe_id]
+    with session_factory() as session:
+        recipe = session.get(Recipe, recipe_id)
+        assert recipe is not None
+        assert recipe.status == "failed"
+        assert recipe.nutrition_state == "failed"

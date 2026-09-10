@@ -1,0 +1,13 @@
+# The web image only needs the frontend source and its nginx configuration.
+**
+!frontend/
+!frontend/**
+frontend/node_modules/
+frontend/dist/
+frontend/output/
+frontend/test-results/
+frontend/playwright-report/
+frontend/.vite/
+!deploy/
+!deploy/docker/
+!deploy/docker/nginx.conf

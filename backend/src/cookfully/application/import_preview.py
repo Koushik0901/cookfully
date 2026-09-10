@@ -34,12 +34,18 @@ from cookfully.application.recipes import (
     SectionWrite,
     _extract_food_from_text,
 )
-from cookfully.domain.common import DomainError, quantize_decimal, utc_now
+from cookfully.domain.common import (
+    DomainError,
+    OptimisticConcurrencyError,
+    quantize_decimal,
+    utc_now,
+)
 from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.recipe_importer_types import ImportedCookbook, ImportedRecipe
+from cookfully.infrastructure.repositories.recipes import RecipeRepository
 
 logger = logging.getLogger(__name__)
 
@@ -183,17 +189,35 @@ class ImportPreviewCoordinator:
             return "failed"
         if image_source_kind == "pdf_thumbnail" and not image_source.startswith("data:image/"):
             return "failed"
-        try:
-            await self._photos.attach_url(
-                recipe.id,
-                image_source,
-                expected_version=recipe.version,
-                crop=_thumbnail_crop(payload.get("thumbnailCrop")),
-            )
-            return "attached"
-        except Exception:
-            logger.exception("Skipped attaching selected cover for imported recipe %s", recipe.id)
-            return "failed"
+        crop = _thumbnail_crop(payload.get("thumbnailCrop"))
+        for attempt in range(2):
+            try:
+                await self._photos.attach_url(
+                    recipe.id,
+                    image_source,
+                    expected_version=recipe.version,
+                    crop=crop,
+                )
+                return "attached"
+            except OptimisticConcurrencyError:
+                if attempt == 0:
+                    # The ingredient/nutrition worker can advance the recipe version
+                    # between create() and this best-effort cover attachment. Reload
+                    # once so a valid selected thumbnail is not lost to that race.
+                    with self._session_factory() as session:
+                        recipe.version = RecipeRepository(session).get(recipe.id).version
+                    continue
+                logger.warning(
+                    "Skipped attaching selected cover after a concurrent recipe update %s",
+                    recipe.id,
+                )
+                return "failed"
+            except Exception:
+                logger.exception(
+                    "Skipped attaching selected cover for imported recipe %s", recipe.id
+                )
+                return "failed"
+        return "failed"
 
     def merge(
         self,

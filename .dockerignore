@@ -3,8 +3,10 @@
 .agents/
 .specify/
 node_modules/
+.pnpm-store/
 frontend/node_modules/
 frontend/dist/
+frontend/output/
 backend/.venv/
 __pycache__/
 *.py[cod]
@@ -16,11 +18,15 @@ htmlcov/
 playwright-report/
 test-results/
 tmp/
+output/
+.playwright-cli/
+.playwright-mcp/
 *.log*
 .env
 .env.*
 !.env.example
 artifacts/
+data/
 media/
 erasure-ledger/
 Dockerfile*

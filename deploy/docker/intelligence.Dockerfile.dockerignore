@@ -1,0 +1,9 @@
+# The intelligence image only needs its service module. Model weights stay in
+# the host-mounted persistent directory and are never sent in the build context.
+**
+!backend/
+!backend/src/
+!backend/src/cookfully/
+!backend/src/cookfully/intelligence/
+!backend/src/cookfully/intelligence/**
+backend/**/__pycache__/

@@ -35,7 +35,12 @@ class Settings(BaseSettings):
     secret_key: SecretStr = SecretStr("development-only-change-before-production")
     owner_email: EmailStr = "owner@example.com"
     owner_bootstrap_password: SecretStr = SecretStr("development-only")
-    database_url: str = "postgresql+psycopg://cookfully:cookfully@localhost:5432/cookfully"
+    # Use the IPv4 loopback explicitly for local development/test connections.
+    # On some Windows/Docker hosts ``localhost`` resolves to an unreachable
+    # IPv6 listener first, making every disposable-schema test wait for the
+    # driver's long connect timeout. Compose deployments override this with
+    # the ``postgres`` service hostname.
+    database_url: str = "postgresql+psycopg://cookfully:cookfully@127.0.0.1:5432/cookfully"
     database_pool_size: Annotated[int, Field(ge=1, le=100)] = 10
     database_max_overflow: Annotated[int, Field(ge=0, le=200)] = 20
     database_pool_timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 30.0
@@ -99,7 +104,7 @@ class Settings(BaseSettings):
             user = quote(self.postgres_user, safe="")
             password = quote(self.postgres_password.get_secret_value(), safe="")
             database = quote(self.postgres_db, safe="")
-            self.database_url = f"postgresql+psycopg://{user}:{password}@localhost:5432/{database}"
+            self.database_url = f"postgresql+psycopg://{user}:{password}@127.0.0.1:5432/{database}"
         return self
 
     @field_validator("job_retry_delays_seconds", mode="before")

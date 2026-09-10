@@ -1,0 +1,18 @@
+# The backend image never needs the frontend, docs, local model cache, or
+# browser/test artifacts. Keep the test target's backend fixtures available.
+**
+!README.md
+!backend/
+!backend/**
+backend/.venv/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.hypothesis/
+backend/**/__pycache__/
+backend/media/
+backend/exports/
+backend/erasure-ledger/
+!deploy/
+!deploy/docker/
+!deploy/docker/backend-entrypoint.sh

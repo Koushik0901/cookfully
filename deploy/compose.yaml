@@ -94,6 +94,13 @@ services:
       COOKFULLY_INTELLIGENCE_SERVICE_KEY: ${COOKFULLY_INTELLIGENCE_SERVICE_KEY:-cookfully-intelligence-development}
       COOKFULLY_INTELLIGENCE_MODEL: ${COOKFULLY_INTELLIGENCE_MODEL:-needle2}
       COOKFULLY_INTELLIGENCE_MODEL_PATH: /models/needle2.cact
+      # The native Needle2 engine is bundled in the release image. The service
+      # is read-only by design, so keep any disposable runtime cache in tmpfs
+      # instead of the image's /app home directory.
+      HOME: /tmp
+      XDG_CACHE_HOME: /tmp/.cache
+      NEEDLE_TELEMETRY: "0"
+      NEEDLE2_LIB_PATH: /usr/local/lib/libneedle.so
     read_only: true
     tmpfs:
       - /tmp

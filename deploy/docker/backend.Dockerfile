@@ -4,6 +4,7 @@ FROM python:3.13-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
+    NLTK_DATA=/usr/local/share/nltk_data \
     PATH=/app/.venv/bin:$PATH
 
 RUN groupadd --system cookfully && useradd --system --gid cookfully --home /app cookfully
@@ -12,6 +13,11 @@ COPY --from=uv /uv /usr/local/bin/uv
 COPY README.md /app/README.md
 COPY backend/pyproject.toml backend/uv.lock /app/backend/
 RUN uv sync --directory /app/backend --locked --no-dev --all-extras --no-install-project
+# ingredient-parser-nlp otherwise downloads this small tagger separately in
+# every API/worker container on each restart. Bundle it once in the image so
+# startup is offline, quiet, and deterministic.
+RUN mkdir -p "$NLTK_DATA" \
+    && /app/.venv/bin/python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng', download_dir='$NLTK_DATA', quiet=True)"
 COPY backend /app/backend
 COPY deploy/docker/backend-entrypoint.sh /usr/local/bin/backend-entrypoint
 RUN uv sync --directory /app/backend --locked --no-dev --all-extras \

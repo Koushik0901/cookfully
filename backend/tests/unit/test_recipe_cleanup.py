@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from cookfully.application.recipe_cleanup import (
     CleanupCandidate,
     CleanupResponse,
+    NeedleRecipeCleanupProvider,
     RecipeCleanupSchema,
     RecipeCleanupService,
     _apply_cleanup,
@@ -14,6 +15,7 @@ from cookfully.application.recipe_cleanup import (
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.recipe_import import RecipeImportSettings
 from cookfully.infrastructure.recipe_importer_types import ImportedCookbook
+from cookfully.intelligence.contracts import InferenceResponse, ToolCall
 
 
 def candidate() -> CleanupCandidate:
@@ -217,6 +219,52 @@ def test_remote_fallback_is_not_called_when_disabled() -> None:
     assert result.cleanup_status == "fallback"
     assert result.cleanup_provider == "needle2"
     assert remote.calls == 0
+
+
+def test_cleanup_defaults_on_when_settings_row_is_missing() -> None:
+    class EmptySession:
+        def __enter__(self) -> EmptySession:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def get(self, model: object, key: int) -> object | None:
+            del model, key
+            return None
+
+    provider = FakeProvider("needle2", CleanupResponse(valid_output()))
+    service = RecipeCleanupService(EmptySession, provider, None)  # type: ignore[arg-type]
+
+    import asyncio
+
+    result = asyncio.run(service.cleanup_imported(_recipe(), source_kind="text_pdf"))
+    assert provider.calls == 1
+    assert result.cleanup_status == "cleaned"
+
+
+def test_needle_provider_accepts_weighted_response_without_calibrated_confidence() -> None:
+    class FakeClient:
+        def infer(self, request: object, *, timeout_seconds: float) -> InferenceResponse:
+            del request, timeout_seconds
+            return InferenceResponse(
+                requestId="needle-weighted",
+                status="ok",
+                confidence=None,
+                functionCalls=(
+                    ToolCall(
+                        name="recipe_cleanup",
+                        arguments=valid_output().model_dump(by_alias=True),
+                    ),
+                ),
+            )
+
+    provider = NeedleRecipeCleanupProvider(FakeClient(), timeout_ms=1000)  # type: ignore[arg-type]
+
+    import asyncio
+
+    result = asyncio.run(provider.cleanup(candidate()))
+    assert result.output is not None
 
 
 def test_missing_openrouter_credentials_builds_no_remote_provider() -> None:
