@@ -31,6 +31,33 @@ def test_iter_food_rows_streams_a_top_level_json_array(tmp_path) -> None:
     ]
 
 
+def test_iter_food_rows_reports_live_member_progress(tmp_path) -> None:
+    archive_path = tmp_path / "branded-progress.zip"
+    payload = json.dumps(
+        [
+            {"fdcId": 42, "brandedFoodCategory": "Snack, Energy & Granola Bars"},
+            {"fdcId": 43, "brandedFoodCategory": "Snack, Energy & Granola Bars"},
+        ]
+    )
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr("brandedDownload.json", payload)
+
+    events: list[tuple[int, int | None]] = []
+    rows = list(
+        iter_food_rows(
+            archive_path,
+            dataset_type="branded_food",
+            on_progress=lambda current, total: events.append((current, total)),
+        )
+    )
+
+    assert len(rows) == 2
+    assert events
+    assert all(total is not None and current <= total for current, total in events)
+    assert all(events[index][0] <= events[index + 1][0] for index in range(len(events) - 1))
+    assert events[-1][1] == events[-1][0]
+
+
 def test_iter_food_rows_filters_branded_rows_to_gym_categories(tmp_path) -> None:
     archive_path = tmp_path / "branded-filtered.zip"
     with zipfile.ZipFile(archive_path, "w") as archive:

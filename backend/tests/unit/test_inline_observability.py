@@ -140,3 +140,28 @@ def test_service_perf_envelope_logged(caplog):
     # also ensure extra strings do not contain prompt
     extra_vals = " ".join(str(v) for v in r.__dict__.values() if isinstance(v, str))
     assert "secret prompt" not in extra_vals
+
+
+def test_service_rejects_concurrent_native_inference():
+    from pathlib import Path
+    from unittest.mock import MagicMock, patch
+
+    from cookfully.intelligence.contracts import InferenceRequest
+    from cookfully.intelligence.service import ModelEngine
+
+    fake_needle = MagicMock()
+    engine = ModelEngine()
+    engine._needle = fake_needle
+    engine._error = None
+    request = InferenceRequest(requestId="busy-1", operation="recipe_cleanup", prompt="recipe")
+
+    with patch.object(Path, "is_file", return_value=True):
+        assert engine._inference_lock.acquire(blocking=False)
+        try:
+            response = engine.complete(request)
+        finally:
+            engine._inference_lock.release()
+
+    assert response.status == "unavailable"
+    assert response.error_code == "model_busy"
+    fake_needle.Needle.assert_not_called()

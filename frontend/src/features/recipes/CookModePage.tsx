@@ -7,7 +7,6 @@ import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageState
 import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt";
 import { readOfflineResponse } from "../../app/offlineCache";
 import { Checkbox } from "@/components/ui/checkbox";
-import { intelligenceApi } from "../intelligence/api";
 import { planningApi } from "../plans/api";
 import { addDays } from "../plans/dates";
 import type { MealPlan, MealPlanEntry } from "../plans/types";
@@ -52,14 +51,6 @@ function TimerChip({ minutes }: { minutes: number }) {
   const displaySec = remaining % 60;
   const remainingLabel = `${displayMin}:${String(displaySec).padStart(2, "0")}`;
   return <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>{remaining ? `Timer set for ${clamped} min — ${remainingLabel} remaining` : "Timer finished"}</div>;
-}
-
-function AnswerChip({ children }: { children: string }) {
-  return (
-    <div role="status" aria-live="polite">
-      {children}
-    </div>
-  );
 }
 
 export function CookModePage() {
@@ -196,57 +187,6 @@ export function CookModePage() {
     saveProgress.mutate({ entryId: plannedEntry.id, step, checked: [...checked].sort((a, b) => a - b) });
   }, [plannedEntry, saveProgress]);
 
-  // Voice-ready handler: Step+Ingredients+User prompt via same gateway
-  const utteranceMut = useMutation({
-    mutationFn: (payload: { utterance: string; stepIdx: number; ingredientTexts: string[]; stepText: string }) => {
-      const prompt = `Step: ${payload.stepText}\nIngredients: ${payload.ingredientTexts.join(", ")}\nUser: ${payload.utterance}`;
-      return intelligenceApi.infer("cook", prompt);
-    },
-    onSuccess: (data) => {
-      const call = data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
-      const confidence = data?.confidence ?? 0;
-      const isOk = data?.status === "ok" && confidence >= 0.80;
-      if (!isOk || call?.name !== "cooking_action") return;
-      const action = call.arguments.action as string | undefined;
-      if (action === "next") {
-        setStepDirection("forward");
-        setCurrentStep((s) => {
-          const stepsLen = recipe.data?.instructions.length ?? 0;
-          if (s < stepsLen - 1) {
-            const next = s + 1;
-            persistProgress(next, checkedIngredients);
-            return next;
-          }
-          if (stepsLen) {
-            if (plannedEntry) setFinishing(true);
-            else setComplete(true);
-          }
-          return s;
-        });
-      } else if (action === "previous") {
-        setFinishing(false);
-        setStepDirection("backward");
-        setCurrentStep((s) => {
-          const previous = Math.max(s - 1, 0);
-          persistProgress(previous, checkedIngredients);
-          return previous;
-        });
-      } else if (action === "timer") {
-        const minutes = Number(call.arguments.minutes);
-        if (Number.isFinite(minutes)) setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
-      }
-    },
-  });
-
-  const onUtterance = useCallback(
-    (utterance: string) => {
-      const stepText = recipe.data?.instructions[currentStepRef.current]?.text ?? "";
-      const ingredientTexts = (recipe.data?.ingredients ?? []).map((i) => i.originalText);
-      utteranceMut.mutate({ utterance, stepIdx: currentStepRef.current, ingredientTexts, stepText });
-    },
-    [recipe.data, utteranceMut],
-  );
-
   const startTimer = useCallback((minutes: number) => {
     setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
   }, []);
@@ -352,14 +292,6 @@ export function CookModePage() {
   const steps = currentRecipe.instructions;
   const allIngredientsChecked = Boolean(currentRecipe.ingredients.length) && checkedIngredients.size >= currentRecipe.ingredients.length;
   const progress = complete ? total : currentStep + 1;
-
-  // Voice derived chips
-  const call = utteranceMut.data?.functionCalls?.[0] as { name: string; arguments: Record<string, unknown> } | undefined;
-  const query = (call?.arguments.query as string | undefined)?.trim();
-  const ingredientTexts = currentRecipe.ingredients.map((i) => i.originalText);
-  const hasEvidence = Boolean(query && ingredientTexts.join(",").toLowerCase().includes(query.toLowerCase()));
-  const matchedIngredient = query ? ingredientTexts.find((i) => i.toLowerCase().includes(query.toLowerCase())) : undefined;
-  const showAnswerChip = Boolean(hasEvidence && matchedIngredient);
 
   return (
     <div className="cook-mode">
@@ -526,6 +458,7 @@ export function CookModePage() {
               </div>
               <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
               <button type="button" className="cook-mode__quick-timer" onClick={() => startTimer(15)}>Start 15 min timer</button>
+              {timer ? <div className="cook-mode__timer-status"><TimerChip key={timer.run} minutes={timer.minutes} /></div> : null}
             </div>
             <div className="cook-mode__step-controls">
               <Button variant="secondary" disabled={currentStep === 0} onClick={prevStep}>
@@ -538,28 +471,6 @@ export function CookModePage() {
               </Button>
             </div>
 
-            {/* Voice entry — STT transcript=prompt hook */}
-            <div className="cook-mode-voice" aria-label="Voice commands" style={{ marginTop: "1rem" }}>
-              <div>
-                <button type="button" aria-label="Set timer 5 minutes" onClick={() => { startTimer(5); onUtterance("timer 5"); }}>
-                  timer 5
-                </button>
-                <button type="button" aria-label="Ask how much garlic" onClick={() => onUtterance("how much garlic")}>
-                  how much garlic
-                </button>
-                <button type="button" aria-label="Next step voice" onClick={() => onUtterance("next")}>
-                  next
-                </button>
-                <button type="button" aria-label="Previous step voice" onClick={() => onUtterance("previous")}>
-                  previous
-                </button>
-                <button type="button" aria-label="Repeat step voice" onClick={() => onUtterance("repeat")}>
-                  repeat
-                </button>
-              </div>
-              {timer && <TimerChip key={timer.run} minutes={timer.minutes} />}
-              {showAnswerChip && <AnswerChip>{matchedIngredient!}</AnswerChip>}
-            </div>
           </main>
         </div>
       )}

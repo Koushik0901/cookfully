@@ -101,6 +101,15 @@ services:
       XDG_CACHE_HOME: /tmp/.cache
       NEEDLE_TELEMETRY: "0"
       NEEDLE2_LIB_PATH: /usr/local/lib/libneedle.so
+      # Keep optional BLAS/OpenMP backends from creating a host-sized thread
+      # pool.  The service also serializes native inference in Python.
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      TOKENIZERS_PARALLELISM: "false"
+    # A cleanup request must not be able to consume every host core.  The
+    # parser always has a deterministic fallback when the model is slower.
+    cpus: "2.0"
     read_only: true
     tmpfs:
       - /tmp
@@ -162,6 +171,8 @@ services:
       COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED: ${COOKFULLY_FAILED_IMPORT_DIAGNOSTICS_ENABLED:-false}
       COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS: ${COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS:-21600}
       COOKFULLY_BACKUP_RETENTION_DAYS: ${COOKFULLY_BACKUP_RETENTION_DAYS:-30}
+      COOKFULLY_DATABASE_BACKUP_SCHEDULE: ${COOKFULLY_DATABASE_BACKUP_SCHEDULE:-02:00}
+      COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT: ${COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT:-14}
       COOKFULLY_RUN_MIGRATIONS: "true"
     depends_on:
       postgres:

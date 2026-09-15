@@ -85,6 +85,7 @@ _OPERATION_IDS = {
     "delete_session": "deleteSession",
     "get_database_backups": "getDatabaseBackups",
     "request_database_backup": "requestDatabaseBackup",
+    "update_database_backup_settings": "updateDatabaseBackupSettings",
     "get_home_bootstrap": "getHomeBootstrap",
     "get_preferences": "getOwnerPreferences",
     "update_preferences": "putOwnerPreferences",

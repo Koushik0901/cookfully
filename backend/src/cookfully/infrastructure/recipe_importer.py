@@ -184,22 +184,41 @@ class RecipeImporter:
         by_title: dict[str, int] = {}
         ingredients: list[str] = []
         sections: list[int | None] = []
+        boundary_seen = False
         for group in groups:
             purpose = getattr(group, "purpose", None) or ""
             if purpose and (
                 RecipeImporter._pdf_ingredient_metadata_start(str(purpose))
                 or RecipeImporter._pdf_instruction_start(str(purpose))
             ):
+                # A metadata-labelled component at the end of a grouped
+                # source is the same boundary as a leaked row. Keep the
+                # historical tolerance for a leading metadata group (some
+                # scrapers emit that before the real components), but never
+                # resume collecting rows after a boundary following content.
+                if ingredients:
+                    break
                 continue
             if purpose and purpose not in by_title:
                 by_title[purpose] = len(titles)
                 titles.append(purpose)
             section = by_title.get(purpose)
-            for text in RecipeImporter._sanitize_ingredient_lines(
-                tuple(item.strip() for item in group.ingredients if item.strip())
-            ):
+            raw_values = tuple(item.strip() for item in group.ingredients if item.strip())
+            if boundary_seen:
+                break
+            cleaned = RecipeImporter._sanitize_ingredient_lines(raw_values)
+            for text in cleaned:
                 ingredients.append(text)
                 sections.append(section)
+            # A grouped scraper can put a footer in one group and the numeric
+            # nutrition values/credit name in following groups. Once a real
+            # boundary appears, do not allow those following groups to leak
+            # back into the ingredient list.
+            boundary_seen = any(
+                RecipeImporter._pdf_ingredient_metadata_start(value)
+                or RecipeImporter._pdf_instruction_start(value)
+                for value in raw_values
+            )
         return tuple(ingredients), tuple(sections), tuple(titles)
 
     @classmethod
@@ -451,6 +470,10 @@ class RecipeImporter:
             if len(next_line.split()) <= 5 and not re.search(r"[.!?]$", next_line):
                 title_lines.append(next_line)
         raw = " ".join(title_lines)
+        # A few PDF text layers expose a closing delimiter from the preceding
+        # card at the start of the title (for example ``)Idli Dhokla``). It is
+        # layout noise, not part of the recipe name.
+        raw = re.sub(r"^[\]\)}>]+\s*", "", raw)
         words = []
         for group in re.split(r"\s{2,}", raw):
             letters = group.split()
@@ -547,13 +570,14 @@ class RecipeImporter:
 
         normalized = re.sub(r"\s+", " ", value).strip().lower().rstrip(":")
         if re.match(
-            r"^(?:accompanied with|served with|serve with|image courtesy(?:/| ).*|"
-            r"dish credit.*|photo credit.*|nutrition(?:al)?(?: facts| information| values)?|"
-            r"per (?:piece|pieces|serving|portion))$",
+            r"^(?:accompanied\s+with|served\s+with|serve\s+with)(?:\s*:?\s*.*)?$|"
+            r"^image\s+courtesy(?:[/ ]|$).*|^dish\s+credit.*|^photo\s+credit.*|"
+            r"^nutrition(?:al)?(?: facts| information| values)?(?:\s|$).*|"
+            r"^per (?:piece|pieces|serving|portion)(?:\s|$).*$",
             normalized,
         ):
             return True
-        return normalized in {
+        if normalized in {
             "calorie",
             "calories",
             "protein",
@@ -565,7 +589,18 @@ class RecipeImporter:
             "carbohydrates",
             "fiber",
             "dietary fiber",
-        }
+        }:
+            return True
+        # Some HTML/PDF extractors collapse a nutrition label and value into
+        # one row (for example ``Protein: 2.1gm``). Keep real ingredients such
+        # as ``protein powder`` by requiring a numeric value after the label.
+        return bool(
+            re.match(
+                r"^(?:calories?|protein|fats?|carbs?|carbohydrates?|dietary\s+fiber|fiber)"
+                r"\s*[:\-]?\s*\d+(?:[.,]\d+)?\s*(?:kcal|calories?|g|gm|grams?|mg)?$",
+                normalized,
+            )
+        )
 
     @staticmethod
     def _pdf_instruction_start(value: str) -> bool:
@@ -577,7 +612,8 @@ class RecipeImporter:
         return bool(
             re.match(
                 r"(?i)^\d{1,2}[.)]?\s+(?:then|add|put|place|heat|cook|mix|stir|"
-                r"bake|boil|serve|pour|cover|remove|open|close|roll|grill)\b",
+                r"bake|boil|serve|pour|cover|remove|open|close|roll|grill|finally|"
+                r"first|next|once|now|after|when|until)\b",
                 normalized,
             )
         )

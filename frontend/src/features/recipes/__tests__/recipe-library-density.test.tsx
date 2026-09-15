@@ -137,6 +137,7 @@ describe("recipe library density", () => {
     await userEvent.selectOptions(screen.getByLabelText("Group results"), "readiness");
     expect(await screen.findByRole("heading", { name: "Needs a nutrition check" })).toBeVisible();
     expect(screen.getAllByText("Roasted salmon bowl")).toHaveLength(2);
+    expect(screen.getAllByText("Nutrition needs review").length).toBeGreaterThan(0);
   });
 
   it("keeps pending nutrition recipes available in the ready-to-plan view", async () => {

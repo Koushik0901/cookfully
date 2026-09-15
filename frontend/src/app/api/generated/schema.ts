@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/database-backups/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateDatabaseBackupSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/database-backups/request": {
         parameters: {
             query?: never;
@@ -1405,6 +1421,9 @@ export interface components {
             /** @constant */
             status: "queued";
         };
+        DatabaseBackupSettingsWrite: {
+            retentionCount: number;
+        };
         LoginRequest: {
             /** Format: email */
             email: string;
@@ -2437,6 +2456,30 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Host-owned database restore points and backup service status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseBackupStatus"];
+                };
+            };
+        };
+    };
+    updateDatabaseBackupSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseBackupSettingsWrite"];
+            };
+        };
+        responses: {
+            /** @description Persisted owner-selected database backup retention settings. */
             200: {
                 headers: {
                     [name: string]: unknown;

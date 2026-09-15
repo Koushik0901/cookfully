@@ -160,11 +160,19 @@ The base unit is 4px. Approved rhythm is 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 8
 - Use a compact top bar with no heavy bottom rule, an 18px Afacad Flux wordmark, and a fixed 72px bottom
   navigation. Include safe-area padding. The navigation has five evenly distributed destinations: Home,
   Recipes, Plan, Grocery, More.
+- The mobile navigation is a solid floating dock with equal thumb-sized hit boxes, a clear mint active
+  state, and enough breathing room above the safe-area inset. It should read as a calm kitchen tool,
+  not a translucent browser toolbar.
 - Bottom-nav icons and labels are centered in equal-width, full-height hit areas. The active item uses the
   same mint field as desktop. Never allow icons, labels, or the More menu to collide or drift.
 - Mobile is a cooking context, not a shrunk desktop. Stack modules in task order, let the hero become an
   image-led vertical surface, keep the week card and pantry attention readable, and move secondary
   actions into a sheet/menu when necessary.
+- Recipe detail uses a media-first stack: a recipe-specific back/title/action bar, large food media,
+  four thumb-sized shortcuts, a segmented Ingredients/Method/Nutrition switcher, an adjacent servings
+  stepper, airy checklist-like ingredient rows, and numbered method rows. Ingredient and method rows
+  use soft touch blocks rather than stacked divider rules. The compact cooking action sits above the
+  dock so it never competes with navigation.
 - Do not use page-entry transforms on mobile; they create visible seams around the fixed navigation.
   Preserve opacity-only or no entrance motion when the viewport is narrow.
 - The mobile Week view is a vertical agenda, not a seven-column canvas or horizontal card carousel. Empty

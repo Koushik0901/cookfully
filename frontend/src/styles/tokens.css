@@ -105,6 +105,7 @@
   --space-xl: 4rem;
   --gutter: 1.25rem;
   --page-margin: 1rem;
+  --touch-target: 2.75rem;
 
   --shadow-level-1: 0 1px 2px oklch(0.218 0.038 148 / 7%), 0 8px 22px oklch(0.218 0.038 148 / 4%);
   --shadow-level-2: 0 20px 55px oklch(0.218 0.038 148 / 15%);

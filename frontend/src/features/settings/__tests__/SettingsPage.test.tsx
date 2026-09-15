@@ -162,6 +162,19 @@ describe("settings page", () => {
       if (path.includes("/database-backups/request") && init?.method === "POST") {
         return json({ requestId: "a".repeat(32), status: "queued" }, 202);
       }
+      if (path.includes("/database-backups/settings") && init?.method === "PUT") {
+        return json({
+          storageMode: "host_bind_mount",
+          schedule: "02:00",
+          retentionCount: 7,
+          backups: [],
+          latest: null,
+          lastSuccessAt: null,
+          lastFailure: null,
+          pendingManualRequest: false,
+          serviceHeartbeatAt: null,
+        });
+      }
       if (path.includes("/database-backups")) {
         return json({
           storageMode: "host_bind_mount",
@@ -196,6 +209,13 @@ describe("settings page", () => {
 
     expect(await screen.findByText("Host-owned storage is active")).toBeVisible();
     expect(screen.getByText("14 recent dumps")).toBeVisible();
+    const retentionInput = screen.getByRole("spinbutton", { name: "Keep latest backups" });
+    expect(retentionInput).toHaveValue(14);
+    await user.clear(retentionInput);
+    await user.type(retentionInput, "7");
+    await user.click(screen.getByRole("button", { name: "Save retention" }));
+    expect(await screen.findByText("Retention saved")).toBeVisible();
+    expect(screen.getByText("7 recent dumps")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Create backup now" }));
     expect(await screen.findByText("Queued safely")).toBeVisible();
   });

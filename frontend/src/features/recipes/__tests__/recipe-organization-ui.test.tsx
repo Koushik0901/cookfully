@@ -121,6 +121,9 @@ describe("recipe organization UI", () => {
     await user.selectOptions(screen.getByLabelText("Collection"), collection.id);
     await user.selectOptions(screen.getByLabelText("Meal moment"), "dinner");
     await user.click(screen.getByLabelText("Favorites only"));
+    const refineSummary = screen.getByText("Refine recipes").closest("summary");
+    expect(refineSummary?.querySelectorAll("b")).toHaveLength(1);
+    expect(refineSummary).toHaveTextContent("3");
     expect(await screen.findByLabelText("Active recipe filters")).toHaveTextContent("Favorites");
     expect(screen.getByLabelText("Active recipe filters")).toHaveTextContent("Collection:");
     expect(screen.getByLabelText("Active recipe filters")).toHaveTextContent("Meal: dinner");

@@ -68,6 +68,16 @@ def test_database_backup_status_is_owner_only_and_manual_requests_are_queued(
         assert status_body["latest"]["reason"] == "schedule"
         assert status_body["pendingManualRequest"] is False
 
+        updated = client.put(
+            "/api/v1/database-backups/settings",
+            headers={"X-CSRF-Token": client.cookies["cookfully_csrf"]},
+            json={"retentionCount": 7},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["retentionCount"] == 7
+        assert json.loads((backup_root / "settings.json").read_text())["retentionCount"] == 7
+        assert updated.json()["pendingManualRequest"] is False
+
         requested = client.post(
             "/api/v1/database-backups/request",
             headers={"X-CSRF-Token": client.cookies["cookfully_csrf"]},

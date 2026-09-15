@@ -25,6 +25,11 @@ test("desktop and 390x844 layouts contain long content without document overflow
   await captureUi(page, testInfo, "recipe-evidence", { focus: page.getByText(/deliberately-long-unbroken-preparation-token/) });
 
   if (testInfo.project.name === "narrow-mobile") {
+    const ingredientRowStyle = await page.locator(".recipe-reading-panel--ingredients.is-mobile-active .ingredient-list > li").first().evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { borderBottom: style.borderBottomWidth, borderRadius: style.borderRadius, minHeight: style.minHeight };
+    });
+    expect(ingredientRowStyle).toMatchObject({ borderBottom: "0px", borderRadius: "13.6px", minHeight: "76.8px" });
     await page.getByRole("button", { name: "Nutrition" }).click();
     await expect(page.locator(".recipe-nutrition-drawer")).toHaveAttribute("open", "");
     await expect(page.getByRole("link", { name: "Edit nutrition" })).toHaveAttribute("href", `/app/recipes/${accessibleRecipeId}/edit#nutrition`);
@@ -64,7 +69,7 @@ test("desktop and 390x844 layouts contain long content without document overflow
         navBorder: nav ? getComputedStyle(nav).borderTopWidth : null,
       };
     });
-    expect(shellGeometry).toEqual({ brandBorder: "0px", navBorder: "0px" });
+    expect(shellGeometry).toEqual({ brandBorder: "1px", navBorder: "1px" });
   }
   const controls = page.locator("button, input, select, textarea");
   for (let index = 0; index < await controls.count(); index += 1) {
@@ -258,6 +263,9 @@ test("cook mode takes over the viewport and adapts its ingredient checklist", as
   const shouldStartOpen = testInfo.project.name !== "narrow-mobile";
   expect(await ingredients.evaluate((element) => (element as HTMLDetailsElement).open)).toBe(shouldStartOpen);
   if (!shouldStartOpen) await page.locator(".cook-mode__ingredients summary").click();
+  if (testInfo.project.name === "narrow-mobile") {
+    await expect(page.locator(".cook-mode__steps > .cook-mode-voice")).toHaveCount(0);
+  }
 
   await captureUi(page, testInfo, "cook-mode");
 

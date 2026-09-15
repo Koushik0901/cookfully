@@ -88,3 +88,5 @@ export type DatabaseBackupStatus = {
 };
 
 export type DatabaseBackupRequested = { requestId: string; status: "queued" };
+
+export type DatabaseBackupSettingsWrite = { retentionCount: number };

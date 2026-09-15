@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 from functools import lru_cache
 from pathlib import Path
@@ -22,6 +23,11 @@ SERVICE_KEY = os.getenv("COOKFULLY_INTELLIGENCE_SERVICE_KEY", "")
 class ModelEngine:
     def __init__(self) -> None:
         self._agents: dict[str, Any] = {}
+        # Needle's native runtime is CPU-heavy and is not safe to run in
+        # parallel on the small self-hosted deployment.  Keep a single
+        # in-flight inference even when an HTTP caller gives up on its
+        # request while the native call is still unwinding in a worker thread.
+        self._inference_lock = threading.Lock()
         self._error: str | None = None
         try:
             import needle  # type: ignore[import-not-found]
@@ -64,6 +70,13 @@ class ModelEngine:
             }
             for tool in request.tools
         ]
+        if not self._inference_lock.acquire(blocking=False):
+            return InferenceResponse(
+                requestId=request.request_id,
+                status="unavailable",
+                model=MODEL_NAME,
+                errorCode="model_busy",
+            )
         try:
             tool_key = json.dumps(
                 {"tools": tools, "system": request.system or ""},
@@ -122,6 +135,8 @@ class ModelEngine:
                 model=MODEL_NAME,
                 errorCode=f"inference_failed:{type(exc).__name__}",
             )
+        finally:
+            self._inference_lock.release()
 
 
 @lru_cache(maxsize=1)

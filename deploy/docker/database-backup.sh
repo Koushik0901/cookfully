@@ -6,19 +6,20 @@ database_root="$backup_root/database"
 requests_root="$backup_root/requests"
 status_path="$backup_root/status.json"
 heartbeat_path="$backup_root/.heartbeat"
+settings_path="$backup_root/settings.json"
 schedule="${COOKFULLY_DATABASE_BACKUP_SCHEDULE:-02:00}"
-retention_count="${COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT:-14}"
+default_retention_count="${COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT:-14}"
 
 case "$schedule" in
   [01][0-9]:[0-5][0-9]|2[0-3]:[0-5][0-9]) ;;
   *) echo "COOKFULLY_DATABASE_BACKUP_SCHEDULE must use HH:MM (24-hour)" >&2; exit 64 ;;
 esac
 
-case "$retention_count" in
+case "$default_retention_count" in
   ''|*[!0-9]*) echo "COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT must be a positive integer" >&2; exit 64 ;;
 esac
 
-if [ "$retention_count" -lt 1 ]; then
+if [ "$default_retention_count" -lt 1 ]; then
   echo "COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT must be at least 1" >&2
   exit 64
 fi
@@ -71,8 +72,25 @@ release_lock() {
   rmdir "$backup_root/.database-backup.lock" 2>/dev/null || true
 }
 
+configured_retention_count() {
+  if [ -f "$settings_path" ]; then
+    configured=$(sed -n 's/.*"retentionCount"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$settings_path" | head -n 1)
+    case "$configured" in
+      ''|*[!0-9]*) ;;
+      *)
+        if [ "$configured" -ge 1 ] && [ "$configured" -le 365 ]; then
+          printf '%s\n' "$configured"
+          return
+        fi
+        ;;
+    esac
+  fi
+  printf '%s\n' "$default_retention_count"
+}
+
 prune_backups() {
   number=0
+  retention_count=$(configured_retention_count)
   for dump_path in $(ls -1t "$database_root"/*.dump 2>/dev/null || true); do
     number=$((number + 1))
     if [ "$number" -gt "$retention_count" ]; then
@@ -80,6 +98,14 @@ prune_backups() {
       rm -f "$dump_path" "$stem.json" "$dump_path.sha256"
     fi
   done
+}
+
+prune_once() {
+  if ! acquire_lock; then
+    return 75
+  fi
+  prune_backups
+  release_lock
 }
 
 backup_once() {
@@ -116,7 +142,12 @@ backup_once() {
 run_pending_requests() {
   for request_path in "$requests_root"/*.json; do
     [ -e "$request_path" ] || continue
-    if backup_once manual; then
+    request_kind=$(sed -n 's/.*"kind"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$request_path" | head -n 1)
+    if [ "$request_kind" = "prune" ]; then
+      if prune_once; then
+        rm -f "$request_path"
+      fi
+    elif backup_once manual; then
       rm -f "$request_path"
     fi
     return
@@ -131,6 +162,7 @@ serve() {
   last_scheduled_day=""
   while :; do
     printf '%s\n' "$(utc_now)" > "$heartbeat_path"
+    prune_once || true
     run_pending_requests
     today="$(date +%F)"
     if is_scheduled_now && [ "$last_scheduled_day" != "$today" ]; then

@@ -32,7 +32,8 @@ COOKFULLY_RETENTION_SWEEP_INTERVAL_SECONDS=21600
 COOKFULLY_BACKUP_RETENTION_DAYS=30
 COOKFULLY_DATA_ROOT=/srv/cookfully-data
 COOKFULLY_DATABASE_BACKUP_SCHEDULE=02:00
-COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT=14
+# Optional first-run default; choose the active retention count in Settings → Backups.
+# COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT=14
 POSTGRES_DB=cookfully
 POSTGRES_USER=cookfully
 POSTGRES_PASSWORD=replace-with-a-random-database-password
@@ -137,8 +138,12 @@ successful retention sweep.
 | `redis/` | Delivery and short-lived coordination | Optional; rebuild from PostgreSQL/outbox |
 | `erasure-ledger/` | Content-free append-only erasure chain | Replicate independently; never overwrite from backup |
 
+The retention choice from Settings → Backups is persisted in `backups/settings.json` under
+`COOKFULLY_DATA_ROOT`, so it survives image upgrades and container replacement.
+
 The `backup` sidecar produces complete PostgreSQL dumps automatically. It uses atomic output,
-checksum manifests, and retention only after a successful dump. Request one manually through
+checksum manifests, and retention only after a successful dump. Choose the number of latest dumps to
+keep in Settings → Backups; older restore points are pruned automatically. Request one manually through
 Settings → Backups or:
 
 ```bash

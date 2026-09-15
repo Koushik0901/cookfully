@@ -5,6 +5,8 @@ import json
 import logging
 import tempfile
 import threading
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -27,16 +29,38 @@ from cookfully.infrastructure.models.reference_foods import ReferenceDataset
 
 logger = logging.getLogger(__name__)
 RETRYABLE_CODES = frozenset({"download_failed", "network_timeout"})
+INSTALL_PROGRESS_PER_RELEASE = 1_000
+DOWNLOAD_PROGRESS_SHARE = 700
+PROGRESS_UPDATE_INTERVAL_SECONDS = 0.35
+PROGRESS_UPDATE_STEP = 10
+
+ProgressCallback = Callable[[int, int | None], None]
 
 
-def download_archive(url: str, destination: Path) -> None:
+def download_archive(
+    url: str, destination: Path, *, on_progress: ProgressCallback | None = None
+) -> None:
     timeout = httpx.Timeout(connect=20.0, read=60.0, write=60.0, pool=20.0)
     try:
         with httpx.stream("GET", url, follow_redirects=True, timeout=timeout) as response:
             response.raise_for_status()
+            content_length = response.headers.get("content-length")
+            total_bytes: int | None = None
+            if content_length is not None:
+                try:
+                    parsed_length = int(content_length)
+                except ValueError:
+                    parsed_length = 0
+                total_bytes = parsed_length if parsed_length > 0 else None
+            transferred = 0
+            if on_progress is not None:
+                on_progress(0, total_bytes)
             with destination.open("wb") as handle:
                 for chunk in response.iter_bytes():
                     handle.write(chunk)
+                    transferred += len(chunk)
+                    if on_progress is not None:
+                        on_progress(transferred, total_bytes)
     except httpx.HTTPStatusError as exc:
         raise DomainError(
             "download_failed",
@@ -64,6 +88,34 @@ class _Heartbeat(threading.Thread):
 
     def stop(self) -> None:
         self._stop.set()
+
+
+class _ProgressReporter:
+    """Persist bounded, monotonic progress updates without writing per chunk."""
+
+    def __init__(self, jobs: JobService, job_id: UUID, total: int) -> None:
+        self._jobs = jobs
+        self._job_id = job_id
+        self._total = total
+        self._last_current = -1
+        self._last_write_at = 0.0
+
+    def update(self, current: int, *, force: bool = False) -> None:
+        bounded = max(0, min(current, self._total))
+        now = time.monotonic()
+        if not force and bounded < self._total:
+            if bounded <= self._last_current:
+                return
+            if (
+                bounded - self._last_current < PROGRESS_UPDATE_STEP
+                and now - self._last_write_at < PROGRESS_UPDATE_INTERVAL_SECONDS
+            ):
+                return
+        if bounded == self._last_current and not force:
+            return
+        self._jobs.update_progress(self._job_id, bounded, self._total)
+        self._last_current = bounded
+        self._last_write_at = now
 
 
 InstallUnit = Literal["foundation_sr_legacy", "branded"]
@@ -243,34 +295,60 @@ class ReferenceDataInstallService:
 
     def _install_units(self, job_id: UUID, units: tuple[str, ...]) -> None:
         releases = tuple(release for unit in units for release in PINNED_RELEASES[unit])
-        total = len(releases)
-        completed = 0
-        self._jobs.update_progress(job_id, completed, total)
-        for release in releases:
+        total = max(1, len(releases)) * INSTALL_PROGRESS_PER_RELEASE
+        reporter = _ProgressReporter(self._jobs, job_id, total)
+        reporter.update(0, force=True)
+        for release_index, release in enumerate(releases):
+            release_base = release_index * INSTALL_PROGRESS_PER_RELEASE
             if self._installed(release):
-                completed += 1
-                self._jobs.update_progress(job_id, completed, total)
+                reporter.update(release_base + INSTALL_PROGRESS_PER_RELEASE, force=True)
                 continue
             destination = Path(tempfile.gettempdir()) / f"usda-{release.dataset_type}-{uuid7()}.zip"
+
+            def report_download(
+                current: int, total_bytes: int | None, *, base: int = release_base
+            ) -> None:
+                reporter.update(
+                    base
+                    + round(DOWNLOAD_PROGRESS_SHARE * (current / total_bytes if total_bytes else 0))
+                )
+
+            def report_import(
+                current: int, total_bytes: int | None, *, base: int = release_base
+            ) -> None:
+                reporter.update(
+                    base
+                    + DOWNLOAD_PROGRESS_SHARE
+                    + round(
+                        (INSTALL_PROGRESS_PER_RELEASE - DOWNLOAD_PROGRESS_SHARE)
+                        * (current / total_bytes if total_bytes else 0)
+                    )
+                )
+
             try:
                 try:
-                    download_archive(release.source_url, destination)
+                    download_archive(
+                        release.source_url,
+                        destination,
+                        on_progress=report_download,
+                    )
                 except OSError as exc:
                     raise DomainError(
                         "download_failed", "USDA download failed to transfer.", 502
                     ) from exc
+                reporter.update(release_base + DOWNLOAD_PROGRESS_SHARE, force=True)
                 imported = import_release(
                     destination,
                     dataset_type=release.dataset_type,
                     release_id=release.release_id,
                     released_on=release.released_on,
                     source_url=release.source_url,
+                    progress_callback=report_import,
                 )
                 activate_release(str(imported.id))
             finally:
                 destination.unlink(missing_ok=True)
-            completed += 1
-            self._jobs.update_progress(job_id, completed, total)
+            reporter.update(release_base + INSTALL_PROGRESS_PER_RELEASE, force=True)
 
     def _installed(self, release: PinnedRelease) -> bool:
         with self._session_factory() as session:

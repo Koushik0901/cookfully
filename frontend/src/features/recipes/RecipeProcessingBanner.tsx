@@ -1,4 +1,5 @@
-import { CheckCircle2, LoaderCircle, TriangleAlert } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, LoaderCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import type { Job } from "./types";
 
@@ -15,31 +16,33 @@ function progressLabel(job: Job): string | null {
   return `${job.progressCurrent} of ${job.progressTotal} ${noun}`;
 }
 
-export function RecipeProcessingBanner({ job, nutritionState }: { job?: Job | null; nutritionState: string }) {
+export function RecipeProcessingBanner({ job, nutritionState, reviewHref }: { job?: Job | null; nutritionState: string; reviewHref?: string }) {
   if (!job) return null;
   const retrying = job.status === "retry_wait";
   const failed = job.status === "failed";
   const complete = job.status === "succeeded" && nutritionState !== "pending";
   const stage = STAGES[job.kind] ?? "Updating your recipe";
   const message = failed
-    ? job.failureMessage ?? "Cookfully could not finish this step."
+    ? "Add values in the editor or try again when you’re ready."
     : retrying
-      ? "Cookfully will try this step again automatically."
+      ? "Cookfully will try again automatically."
       : complete
-        ? "Your recipe is ready to use."
-        : "You can keep using the recipe while Cookfully works.";
+        ? "Ready to use."
+        : "Working in the background.";
   const progress = progressLabel(job);
+  const state = failed ? "failed" : retrying ? "retrying" : complete ? "complete" : "active";
 
   return (
-    <section className={`recipe-processing-banner recipe-processing-banner--${failed ? "failed" : retrying ? "retrying" : complete ? "complete" : "active"}`} role={failed ? "alert" : "status"} aria-live="polite">
-      {failed ? <TriangleAlert aria-hidden="true" /> : complete ? <CheckCircle2 aria-hidden="true" /> : <LoaderCircle className="recipe-processing-banner__spinner" aria-hidden="true" />}
-      <div>
-        <p className="eyebrow">Recipe update</p>
-        <strong>{failed ? "Nutrition needs attention" : complete ? "Nutrition is ready" : stage}</strong>
-        <p>{message}</p>
-        {progress ? <div className="recipe-processing-banner__progress"><progress aria-label={progress} value={job.progressCurrent ?? undefined} max={job.progressTotal ?? undefined}>{progress}</progress><small>{progress}</small></div> : null}
-        {job.nextRetryAt ? <small>Next try: {new Date(job.nextRetryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small> : null}
+    <section className={`recipe-processing-status recipe-processing-status--${state}`} role="status" aria-live="polite">
+      <span className="recipe-processing-status__mark" aria-hidden="true">
+        {failed ? <CircleAlert /> : complete ? <Check /> : <LoaderCircle className="recipe-processing-status__spinner" />}
+      </span>
+      <div className="recipe-processing-status__copy">
+        <strong>{failed ? "Nutrition not available" : complete ? "Nutrition ready" : retrying ? "Nutrition retrying" : stage}</strong>
+        <span>{message}</span>
+        {progress ? <div className="recipe-processing-status__progress"><progress aria-label={progress} value={job.progressCurrent ?? undefined} max={job.progressTotal ?? undefined} /><small aria-hidden="true">{progress}</small></div> : null}
       </div>
+      {failed && reviewHref ? <Link className="recipe-processing-status__action" to={reviewHref}>Review nutrition <ArrowRight aria-hidden="true" /></Link> : null}
     </section>
   );
 }

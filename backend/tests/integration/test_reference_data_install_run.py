@@ -76,9 +76,11 @@ def test_run_downloads_imports_activates_and_reports_full_progress(
     write_fixture_zip(fixture, 1001, "Chicken breast")
     download_targets: list[tuple[str, Path]] = []
 
-    def fake_download(url: str, destination: Path) -> None:
+    def fake_download(url: str, destination: Path, *, on_progress=None) -> None:
         download_targets.append((url, destination))
         destination.write_bytes(fixture.read_bytes())
+        if on_progress is not None:
+            on_progress(fixture.stat().st_size, fixture.stat().st_size)
 
     monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
     service = ReferenceDataInstallService(session_factory)
@@ -88,7 +90,7 @@ def test_run_downloads_imports_activates_and_reports_full_progress(
     with session_factory() as session:
         job = session.get(ProcessingJob, accepted.job_id)
         assert job is not None and job.status == "succeeded"
-        assert job.progress_current == job.progress_total == 2
+        assert job.progress_current == job.progress_total == 2_000
         datasets = session.scalars(
             select(ReferenceDataset).where(ReferenceDataset.status == "active")
         ).all()
@@ -113,9 +115,11 @@ def test_run_skips_already_installed_releases_and_cleans_temp_files(
     write_fixture_zip(fixture, 1001, "Chicken breast")
     downloads: list[tuple[str, Path]] = []
 
-    def fake_download(url: str, destination: Path) -> None:
+    def fake_download(url: str, destination: Path, *, on_progress=None) -> None:
         downloads.append((url, destination))
         destination.write_bytes(fixture.read_bytes())
+        if on_progress is not None:
+            on_progress(fixture.stat().st_size, fixture.stat().st_size)
 
     monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
     service = ReferenceDataInstallService(session_factory)
@@ -128,7 +132,7 @@ def test_run_skips_already_installed_releases_and_cleans_temp_files(
     with session_factory() as session:
         job = session.get(ProcessingJob, second.job_id)
         assert job is not None and job.status == "succeeded"
-        assert job.progress_current == 2
+        assert job.progress_current == 2_000
 
 
 def test_run_requeues_recipes_blocked_by_missing_reference_data(
@@ -146,8 +150,10 @@ def test_run_requeues_recipes_blocked_by_missing_reference_data(
     fixture = tmp_path / "foundation.zip"
     write_fixture_zip(fixture, 1001, "Chicken breast")
 
-    def fake_download(url: str, destination: Path) -> None:
+    def fake_download(url: str, destination: Path, *, on_progress=None) -> None:
         destination.write_bytes(fixture.read_bytes())
+        if on_progress is not None:
+            on_progress(fixture.stat().st_size, fixture.stat().st_size)
 
     monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
     recipes = RecipeService(
@@ -216,7 +222,7 @@ def test_run_fails_safely_on_download_error_leaving_zero_rows(
     )
     downloads: list[tuple[str, Path]] = []
 
-    def failing_download(url: str, destination: Path) -> None:
+    def failing_download(url: str, destination: Path, *, on_progress=None) -> None:
         downloads.append((url, destination))
         raise OSError("disk full")
 
@@ -247,8 +253,10 @@ def test_dispatcher_routes_install_kind_to_the_service(
     fixture = tmp_path / "foundation.zip"
     write_fixture_zip(fixture, 1001, "Chicken breast")
 
-    def fake_download(url: str, destination: Path) -> None:
+    def fake_download(url: str, destination: Path, *, on_progress=None) -> None:
         destination.write_bytes(fixture.read_bytes())
+        if on_progress is not None:
+            on_progress(fixture.stat().st_size, fixture.stat().st_size)
 
     monkeypatch.setattr(app_reference_data, "download_archive", fake_download)
     service = ReferenceDataInstallService(session_factory)

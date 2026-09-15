@@ -461,6 +461,10 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
       columns: gridStyle.gridTemplateColumns.split(" ").length,
       cardWidth: cardBox.width,
       mediaRatio: mediaBox.width / mediaBox.height,
+      mediaLeft: mediaBox.left,
+      cardLeft: cardBox.left,
+      cardRight: cardBox.right,
+      mediaRight: mediaBox.right,
       viewportWidth: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
       metadataDisplay: card.querySelector<HTMLElement>(".recipe-meta") ? getComputedStyle(card.querySelector<HTMLElement>(".recipe-meta")!).display : "missing",
@@ -471,7 +475,9 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
   expect(layout!.cardWidth).toBeGreaterThan(layout!.viewportWidth * 0.4);
   expect(layout!.cardWidth).toBeLessThan(layout!.viewportWidth * 0.6);
   expect(layout!.mediaRatio).toBeGreaterThan(1.15);
-  expect(layout!.metadataDisplay).toBe("none");
+  expect(Math.abs(layout!.mediaLeft - layout!.cardLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout!.mediaRight - layout!.cardRight)).toBeLessThanOrEqual(1);
+  expect(layout!.metadataDisplay).toBe("grid");
   expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
   const textFit = await page.locator(".recipe-card").evaluateAll((cards) => cards.map((card) => {
     const metadata = card.querySelector<HTMLElement>(".recipe-meta");

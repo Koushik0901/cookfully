@@ -43,12 +43,18 @@
 .recipe-library-page .recipe-card .recipe-meta__item--time { color: var(--color-on-surface-variant); }
 
 .recipe-detail-page { gap: 2.75rem; }
+.recipe-detail-page .recipe-detail__topline { border-bottom: 0; }
 .recipe-hero { grid-template-columns: minmax(22rem, 0.92fr) minmax(25rem, 1.08fr); align-items: center; }
 .recipe-hero__media { aspect-ratio: 3 / 2; border-radius: 1.75rem 5rem 1.75rem 1.75rem; }
 .recipe-hero h1 { max-width: 14ch; font-size: clamp(2.6rem, 4vw, 3.75rem); }
 .recipe-hero__copy { gap: 0.85rem; }
 .recipe-provenance { margin-top: 0.25rem; }
 .recipe-reading-grid { padding-top: 0.5rem; }
+.recipe-detail-page .recipe-processing-status { border: 0; padding-block: 0.35rem; }
+.recipe-detail-page .recipe-organization { border: 0; }
+.recipe-detail-page .recipe-nutrition-summary { border: 0; padding-block: 0.35rem; }
+.recipe-detail-page .recipe-reading-panel > .section-heading { margin-bottom: 0.85rem; border-bottom: 0; padding-bottom: 0; }
+.recipe-detail-page .recipe-reading-panel .ingredient-list > li { border-bottom: 0; padding-block: 0.55rem; }
 
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: var(--motion-entrance); animation-timing-function: var(--ease-out-expo); }
@@ -400,7 +406,7 @@
   .recipe-library-page .recipe-card__favorite-toggle { left: 0.45rem; }
   .recipe-library-page .recipe-card__menu { right: 0.45rem; }
   .recipe-library-page .recipe-card__favorite-toggle,
-  .recipe-library-page .recipe-card__menu { border: 1px solid color-mix(in oklch, var(--color-surface-bright) 72%, var(--color-primary)); background: color-mix(in oklch, var(--color-surface-bright) 92%, transparent); box-shadow: none; backdrop-filter: none; }
+  .recipe-library-page .recipe-card__menu { border: 1px solid color-mix(in oklch, var(--color-surface-bright) 72%, var(--color-primary)); background: var(--color-surface-bright); box-shadow: none; backdrop-filter: none; }
   .recipe-results-heading { padding-bottom: 0.65rem; }
   .recipe-results-heading h2 { font-size: 1.25rem; }
   .recipe-detail-page { gap: 2rem; }
@@ -666,7 +672,7 @@
 .recipe-editor__extras > summary,
 .recipe-editor__nutrition > summary { min-height: 4.75rem; }
 .recipe-editor__photo { grid-template-columns: minmax(14rem, 0.58fr) minmax(0, 1.42fr); gap: clamp(2rem, 5vw, 5rem); }
-.recipe-editor__save { position: sticky; z-index: 12; bottom: 1.25rem; width: min(100%, 52rem); border: 0; border-radius: var(--radius-xl); padding: 0.8rem 0.8rem 0.8rem 1.25rem; background: color-mix(in oklch, var(--color-primary-container) 86%, var(--color-surface)); box-shadow: var(--shadow-level-2); backdrop-filter: blur(14px); }
+.recipe-editor__save { position: sticky; z-index: 12; bottom: 1.25rem; width: min(100%, 52rem); border: 0; border-radius: var(--radius-xl); padding: 0.8rem 0.8rem 0.8rem 1.25rem; background: var(--color-primary-container); box-shadow: var(--shadow-level-2); backdrop-filter: none; }
 
 @keyframes recipe-editor-stage-arrive {
   from { opacity: 0; transform: translateY(0.4rem); }
@@ -690,7 +696,7 @@
   .recipe-editor__hero-copy { gap: 0.6rem; }
   .recipe-editor__hero-details { gap: 0.65rem; }
   .recipe-title-input { min-height: 3.25rem; font-size: 2.3rem; }
-  .recipe-editor__journey { position: sticky; z-index: 18; top: 3.75rem; flex-wrap: nowrap; margin-inline: -1rem; border-radius: 0; padding: 0.35rem 1rem; background: color-mix(in oklch, var(--color-surface) 94%, transparent); backdrop-filter: blur(14px); }
+  .recipe-editor__journey { position: sticky; z-index: 18; top: 3.75rem; flex-wrap: nowrap; margin-inline: -1rem; border-radius: 0; padding: 0.35rem 1rem; background: var(--color-surface); backdrop-filter: none; }
   .recipe-editor__journey button { min-height: 3.85rem; grid-template-columns: 1fr; justify-items: center; gap: 0.15rem; padding: 0.4rem 0.15rem; text-align: center; }
   .recipe-editor__journey-index { width: 1.4rem; height: 1.4rem; font-size: 0.65rem; }
   .recipe-editor__journey strong { font-size: 0.66rem; }
@@ -805,9 +811,9 @@
   gap: 0.55rem;
   border-radius: var(--radius);
   color: var(--color-on-primary-container);
-  background: color-mix(in srgb, var(--color-primary-container) 78%, transparent);
+  background: var(--color-primary-container);
   text-align: center;
-  backdrop-filter: blur(2px);
+  backdrop-filter: none;
 }
 .recipe-editor__nutrition-processing-overlay strong { font-size: 0.9rem; }
 .recipe-editor__nutrition-processing-spinner { width: 1.5rem; height: 1.5rem; animation: spin 0.9s linear infinite; }

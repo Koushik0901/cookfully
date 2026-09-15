@@ -34,6 +34,9 @@ container and volume deletion therefore cannot delete this state:
 | `erasure-ledger/` | Append-only erasure records and checkpoints | Replicate independently; restore must never overwrite it |
 | `semantic-models/`, `intelligence-models/` | Rebuildable model artifacts | Include in host backup to avoid a slow redownload |
 
+The owner-selected restore-point count is stored in `backups/settings.json` on the same host-owned
+root. It survives container replacement and is read by the backup sidecar when it prunes older dumps.
+
 Keep the erasure-ledger replica in a different failure domain and with credentials that the database
 backup process cannot use to rewrite history. Replicate each append/checkpoint, monitor lag, and
 regularly run continuity verification. A database/media backup without the independently retained
@@ -42,17 +45,19 @@ ledger anchor is intentionally not restorable through the application archive ga
 ## Automatic database dumps and second-disk copies
 
 The `backup` service runs a complete PostgreSQL dump every day at **02:00 UTC** by default and keeps
-the newest **14** successful dumps. It writes an atomic custom-format `.dump`, a SHA-256
-checksum, and a manifest before making the restore point visible. Change the defaults in `deploy/.env`:
+the newest **14** successful dumps by default. It writes an atomic custom-format `.dump`, a SHA-256
+checksum, and a manifest before making the restore point visible. The schedule is configured in
+`deploy/.env`:
 
 ```dotenv
 # Times are UTC because the backup container defaults to UTC.
 COOKFULLY_DATABASE_BACKUP_SCHEDULE=02:00
-COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT=14
 ```
 
-Open **Settings → Backups** to see verified restore points or request one immediately. Operators can
-also run the same safe sidecar command:
+Open **Settings → Backups** to choose how many of the latest successful dumps to keep. Cookfully
+prunes older dumps automatically, including when the count is lowered. The optional
+`COOKFULLY_DATABASE_BACKUP_RETENTION_COUNT` value is only a first-run bootstrap default for
+installations that have not selected a value in the UI. Operators can also request a backup immediately:
 
 ```powershell
 docker compose -f deploy/compose.yaml exec -T backup cookfully-database-backup run

@@ -45,9 +45,19 @@ export function NutritionDataTab() {
   const working = job !== undefined && job !== null && ACTIVE_STATUSES.has(job.status);
   const progress =
     job?.progressTotal && job.progressTotal > 0
-      ? Math.round(((job.progressCurrent ?? 0) / job.progressTotal) * 100)
+      ? Math.min(100, Math.max(0, Math.round(((job.progressCurrent ?? 0) / job.progressTotal) * 100)))
       : 0;
   const requested = new Set(status.data?.requestedDatasets ?? []);
+  const installTitle = requested.size === 1 && requested.has("branded")
+    ? "Branded foods"
+    : requested.size === 1 && requested.has("foundation_sr_legacy")
+      ? "Foundation + SR Legacy"
+      : "nutrition reference data";
+  const progressStage = progress === 0
+    ? "Preparing the download…"
+    : progress < 70
+      ? "Downloading the release…"
+      : "Importing foods into Cookfully…";
 
   if (status.isPending) {
     return (
@@ -71,13 +81,15 @@ export function NutritionDataTab() {
     <section className="settings-section reference-data-section" aria-labelledby="nutrition-data-title">
       <SectionHeading id="nutrition-data-title" title="Nutrition reference data" description="USDA FoodData Central powers ingredient matching. Install it so Cookfully can estimate macros and micronutrients from official reference data." />
       {working && job ? (
-        <div className="token-card" role="status">
-          <h3>
-            <LoaderCircle className="reference-data__spinner" aria-hidden="true" /> Installing USDA data… {progress}%
-          </h3>
-          <progress aria-label="USDA data install progress" max={100} value={progress}>
+        <div className="token-card reference-data__install-progress" role="status" aria-live="polite">
+          <div className="reference-data__progress-heading">
+            <h3><LoaderCircle className="reference-data__spinner" aria-hidden="true" /> Installing {installTitle}…</h3>
+            <strong>{progress}%</strong>
+          </div>
+          <progress aria-label={`${installTitle} install progress`} max={100} value={progress}>
             {progress}%
           </progress>
+          <p className="muted">{progressStage} Progress updates as bytes are transferred and indexed.</p>
         </div>
       ) : null}
       {job?.status === "failed" ? (

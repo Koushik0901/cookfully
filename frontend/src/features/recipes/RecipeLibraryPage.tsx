@@ -49,6 +49,10 @@ export function RecipeLibraryPage() {
     collectionId ? { label: unfiled ? "Unfiled recipes" : `Collection: ${collectionName ?? "Selected"}`, clear: () => setCollectionId("") } : null,
     mealRole ? { label: `Meal: ${mealRole}`, clear: () => setMealRole("") } : null,
   ].filter((filter): filter is { label: string; clear: () => void } => filter !== null);
+  // Keep one badge for the controls that change the library view. `favoriteOnly`
+  // already contributes to activeFilters, so counting it again makes the
+  // disclosure read as if two filters were active when only one is selected.
+  const activeRefinementCount = activeFilters.length + (sortBy !== "updated" ? 1 : 0);
   const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: unfiled ? undefined : collectionId || undefined, mealRole: mealRole || undefined };
   const recipes = useQuery({
     queryKey: ["recipes", filters],
@@ -234,7 +238,7 @@ export function RecipeLibraryPage() {
           <button type="button" id="recipe-view-tab-favorites" role="tab" aria-controls="recipe-view-panel" aria-selected={favoriteOnly} tabIndex={favoriteOnly ? 0 : -1} onClick={() => setFavoriteOnly(true)}>Favorites</button>
         </TabList>
         <details className="recipe-filter-disclosure">
-          <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeFilters.length ? <b>{activeFilters.length}</b> : null}{sortBy !== "updated" || favoriteOnly ? <b>{([sortBy !== "updated", favoriteOnly].filter(Boolean).length)}</b> : null}<ChevronDown aria-hidden="true" /></summary>
+          <summary><SlidersHorizontal aria-hidden="true" /><span>Refine recipes</span>{activeRefinementCount ? <b>{activeRefinementCount}</b> : null}<ChevronDown aria-hidden="true" /></summary>
           <div className="recipe-filter-disclosure__content">
             <div className="recipe-filter-fields">
               <Field label="Recipe status"><Select value={libraryView} onChange={(event) => setLibraryView(event.target.value as typeof libraryView)}><option value="all">Active recipes</option><option value="ready">Ready to plan</option><option value="attention">Needs attention</option><option value="archived">Archived</option></Select></Field>

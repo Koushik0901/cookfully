@@ -4,6 +4,7 @@ import type {
   AccessTokenCreated,
   AccessTokenWrite,
   DatabaseBackupRequested,
+  DatabaseBackupSettingsWrite,
   DatabaseBackupStatus,
   PasswordChange,
   SessionList,
@@ -94,6 +95,12 @@ export const databaseBackupsApi = {
   request() {
     return apiRequest<DatabaseBackupRequested>("/database-backups/request", {
       method: "POST",
+    });
+  },
+  updateSettings(value: DatabaseBackupSettingsWrite) {
+    return apiRequest<DatabaseBackupStatus>("/database-backups/settings", {
+      method: "PUT",
+      body: JSON.stringify(value),
     });
   },
 };

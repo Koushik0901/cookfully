@@ -51,9 +51,25 @@ class DatabaseBackupRequested(BaseModel):
     status: Literal["queued"]
 
 
+class DatabaseBackupSettingsWrite(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    retention_count: int = Field(alias="retentionCount", ge=1, le=365)
+
+
 def backup_store(request: Request) -> DatabaseBackupStore:
     store: DatabaseBackupStore = request.app.state.database_backups
     return store
+
+
+def _status_response(request: Request, store: DatabaseBackupStore) -> DatabaseBackupStatus:
+    settings = request.app.state.settings
+    return DatabaseBackupStatus.model_validate(
+        store.status(
+            schedule=settings.database_backup_schedule,
+            retention_count=settings.database_backup_retention_count,
+        )
+    )
 
 
 @router.get("", response_model=DatabaseBackupStatus, response_model_by_alias=True)
@@ -62,13 +78,18 @@ def get_database_backups(
     _: Annotated[OwnerAccount, Depends(require_browser_owner)],
     store: Annotated[DatabaseBackupStore, Depends(backup_store)],
 ) -> DatabaseBackupStatus:
-    settings = request.app.state.settings
-    return DatabaseBackupStatus.model_validate(
-        store.status(
-            schedule=settings.database_backup_schedule,
-            retention_count=settings.database_backup_retention_count,
-        )
-    )
+    return _status_response(request, store)
+
+
+@router.put("/settings", response_model=DatabaseBackupStatus, response_model_by_alias=True)
+def update_database_backup_settings(
+    payload: DatabaseBackupSettingsWrite,
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    store: Annotated[DatabaseBackupStore, Depends(backup_store)],
+) -> DatabaseBackupStatus:
+    store.set_retention_count(payload.retention_count)
+    return _status_response(request, store)
 
 
 @router.post(

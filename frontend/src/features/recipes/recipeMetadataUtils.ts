@@ -1,7 +1,8 @@
 import type { Recipe } from "./types";
 
 export type RecipeSummary = Pick<Recipe, "title" | "prepMinutes" | "cookMinutes"> & {
-  nutrition?: Pick<NonNullable<Recipe["nutrition"]>, "caloriesKcal" | "proteinG" | "fatG"> | null;
+  nutritionState?: Recipe["nutritionState"];
+  nutrition?: Pick<NonNullable<Recipe["nutrition"]>, "caloriesKcal" | "proteinG" | "fatG" | "status"> | null;
 };
 
 function display(value: string | null | undefined, digits: number, suffix: string) {

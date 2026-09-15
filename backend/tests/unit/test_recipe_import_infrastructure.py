@@ -126,6 +126,10 @@ def test_cookbook_pdf_replacement_glyphs_keep_recipe_text_readable() -> None:
     assert recipes[0].instructions == ("Bake at 400 - 20 minutes.",)
 
 
+def test_pdf_title_drops_leading_layout_delimiter() -> None:
+    assert RecipeImporter._pdf_title(")Idli Dhokla Sandwich") == "Idli Dhokla Sandwich"
+
+
 def test_two_column_cookbook_pdf_with_uppercase_headings_is_structured() -> None:
     pages = (
         "PANEER TIKKA                                                INSTRUCTIONS\n"
@@ -332,6 +336,68 @@ def test_html_ingredients_stop_at_leaked_metadata_without_merging_rows() -> None
     assert ingredients == ("2-3 finely chopped green", "chilies (or as per your taste)")
     assert sections == (None, None)
     assert titles == ()
+
+
+def test_html_ingredients_stop_at_combined_footer_rows() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: [
+            "1 cup flour",
+            "Accompanied with: green chutney",
+            "Protein: 2.1gm",
+            "Image courtesy/Dish Credit: Author",
+        ],
+        ingredient_groups=lambda: [],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("1 cup flour",)
+    assert sections == (None,)
+    assert titles == ()
+
+
+def test_grouped_html_ingredients_do_not_leak_footer_groups() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: ["1 cup flour"],
+        ingredient_groups=lambda: [
+            SimpleNamespace(purpose="For the dough", ingredients=["1 cup flour"]),
+            SimpleNamespace(
+                purpose=None,
+                ingredients=["Image courtesy/Dish Credit:", "Author Name"],
+            ),
+            SimpleNamespace(purpose=None, ingredients=["Protein", "2.1gm"]),
+        ],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("1 cup flour",)
+    assert sections == (0,)
+    assert titles == ("For the dough",)
+
+
+def test_grouped_html_metadata_component_ends_ingredient_collection() -> None:
+    scraper = SimpleNamespace(
+        ingredients=lambda: ["1 cup flour"],
+        ingredient_groups=lambda: [
+            SimpleNamespace(purpose="For the dough", ingredients=["1 cup flour"]),
+            SimpleNamespace(purpose="Accompanied with", ingredients=["Green chutney"]),
+            SimpleNamespace(purpose=None, ingredients=["Protein", "2.1gm"]),
+        ],
+    )
+    ingredients, sections, titles = RecipeImporter._ingredients_with_sections(scraper)
+    assert ingredients == ("1 cup flour",)
+    assert sections == (0,)
+    assert titles == ("For the dough",)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Accompanied with: green chutney",
+        "Protein: 2.1gm",
+        "Nutrition information per serving",
+        "Image courtesy/Dish Credit: Author Name",
+    ],
+)
+def test_pdf_metadata_guard_handles_collapsed_rows(value: str) -> None:
+    assert RecipeImporter._pdf_ingredient_metadata_start(value)
 
 
 def test_pdf_ingredient_normalization_repairs_ocr_slash_artifacts() -> None:

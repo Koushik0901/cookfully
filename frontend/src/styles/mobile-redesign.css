@@ -1,0 +1,585 @@
+/* Cookfully mobile kitchen
+ *
+ * Phone is a separate interaction model: the recipe, plan, grocery list, and
+ * navigation each get a clear thumb-sized surface instead of inheriting the
+ * desktop grid and merely wrapping it.
+ */
+
+.recipe-mobile-topbar,
+.recipe-mobile-quick-actions,
+.recipe-mobile-serving-control { display: none; }
+
+@media (max-width: 47.99rem) {
+  :root {
+    --mobile-gutter: 1rem;
+    --mobile-bottom-space: calc(6.75rem + env(safe-area-inset-bottom));
+  }
+
+  html { background: var(--color-surface-dim); }
+  body { background: var(--color-surface-dim); }
+
+  .planner-shell { background: var(--color-surface-dim); }
+  .planner-shell:has(.recipe-detail-page) .planner-shell__mobile-brand { display: none; }
+  .planner-shell:has(.recipe-detail-page) .planner-shell__content { min-height: 100dvh; }
+
+  .planner-shell__mobile-brand {
+    height: 4.25rem;
+    padding: max(0.7rem, env(safe-area-inset-top)) var(--mobile-gutter) 0.65rem;
+    border-bottom: 0;
+    background: var(--color-surface);
+  }
+  .planner-shell__mobile-brand .brand-mark { width: 1.75rem; height: 1.75rem; }
+  .planner-shell__mobile-brand strong { font-size: 1.25rem; font-weight: 620; }
+  .planner-shell__mobile-brand > button { width: 3rem; height: 3rem; background: var(--color-surface-bright); }
+  .planner-shell__content { background: var(--color-surface-dim); }
+  .planner-shell__route > .page-shell { animation: none; }
+
+  .page-shell {
+    width: 100%;
+    max-width: none;
+    gap: 1.25rem;
+    padding: 1rem var(--mobile-gutter) var(--mobile-bottom-space);
+  }
+
+  /* A solid floating dock is easier to read than the old blurred strip and
+     keeps every destination in a predictable thumb-sized hit box. */
+  .mobile-nav {
+    right: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: 0.75rem;
+    width: auto;
+    height: 4.5rem;
+    padding: 0.45rem 0.4rem;
+    border: 0;
+    border-radius: 1.5rem;
+    background: var(--color-surface-bright);
+    box-shadow: 0 0.75rem 2.5rem color-mix(in oklch, var(--color-on-surface) 16%, transparent);
+    backdrop-filter: none;
+  }
+  .mobile-nav__link,
+  .mobile-nav__more-trigger {
+    height: 3.65rem;
+    gap: 0.3rem;
+    border-radius: 1.1rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 650;
+  }
+  .mobile-nav__link svg,
+  .mobile-nav__more-trigger svg { width: 1.35rem; height: 1.35rem; stroke-width: 1.8; }
+  .mobile-nav__link--active,
+  .mobile-nav__more--active .mobile-nav__more-trigger { color: var(--color-primary); background: var(--color-primary-container); }
+  .mobile-nav__menu {
+    right: -0.25rem;
+    bottom: calc(100% + 0.85rem);
+    width: min(15rem, calc(100vw - 2rem));
+    border-radius: 1.25rem;
+    padding: 0.55rem;
+    box-shadow: 0 1rem 3rem color-mix(in oklch, var(--color-on-surface) 18%, transparent);
+  }
+  .mobile-nav__menu a,
+  .mobile-nav__menu button { min-height: 3.15rem; border-radius: 0.9rem; font-size: 0.95rem; }
+
+  /* Home: one scan, one decision, then the rest of the kitchen. */
+  .home-page { gap: 1.35rem; padding-top: 1.15rem; }
+  .home-intro { gap: 0.25rem; }
+  .home-intro h1 { font-size: 2.35rem; letter-spacing: -0.04em; }
+  .home-intro > div > p:last-child { max-width: 28ch; color: var(--color-on-surface-variant); font-size: 0.95rem; }
+  .home-tonight {
+    min-height: 30rem;
+    border-radius: 1.5rem 3.5rem 1.5rem 1.5rem;
+    box-shadow: 0 0.75rem 2rem color-mix(in oklch, var(--color-on-surface) 13%, transparent);
+  }
+  .home-tonight__copy { padding: 5rem 1.25rem 1.3rem; }
+  .home-tonight__copy h2 { max-width: 12ch; font-size: 2.15rem; line-height: 0.98; }
+  .home-tonight__facts { gap: 0.3rem 0.75rem; font-size: 0.8rem; }
+  .home-tonight__copy .cf-button { min-height: 3.2rem; }
+  .home-week-card { border-radius: 1.35rem; padding: 1.15rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
+  .home-week-card__heading h2 { font-size: 1.65rem; }
+  .home-week-grid { gap: 0.2rem; }
+  .home-week-day { min-height: 6.6rem; border-radius: 0.9rem; }
+  .home-week-card__next { margin-top: 0.9rem; border-radius: 0.9rem; padding: 0.8rem; background: var(--color-surface-low); }
+  .home-priorities { gap: 1.4rem; }
+  .home-use-soon { border-radius: 1.25rem; padding: 1.1rem; background: var(--color-primary-container); }
+  .home-use-soon__list li { padding-block: 0.7rem; }
+  .home-quick-actions { gap: 0; border-top: 1px solid var(--color-outline-variant); border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.4rem; }
+  .home-quick-actions > .eyebrow { padding-top: 0.5rem; }
+  .home-quick-actions > h2 { font-size: 1.45rem; }
+  .home-quick-actions > a { min-height: 4rem; border: 0; border-radius: 0; border-top: 1px solid var(--color-outline-variant); padding: 0.7rem 0.1rem; }
+  .home-quick-actions > a:first-of-type { margin-top: 0.25rem; }
+  .home-quick-actions > a > svg:first-child { width: 1.25rem; color: var(--color-primary); }
+  .home-for-you__grid { gap: 0.75rem; }
+  .home-recommendation > a,
+  .home-recommendation.is-featured > a { min-height: 7.5rem; grid-template-columns: 6.25rem minmax(0, 1fr); border-radius: 1rem; }
+  .home-recommendation__body { padding: 0.75rem 0.8rem; }
+  .home-recommendation.is-featured h3 { font-size: 1.15rem; }
+  .home-recent__grid { grid-auto-columns: minmax(13.5rem, 72vw); gap: 0.75rem; }
+  .home-grocery { min-height: 15rem; border-radius: 1.25rem 3rem 1.25rem 1.25rem; padding: 1.25rem; }
+
+  /* Recipe detail: photo -> identity -> one-tap shortcuts -> ingredients. */
+  .recipe-detail-page {
+    gap: 0;
+    padding: 0 0 calc(10rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+  }
+  .recipe-mobile-topbar {
+    position: sticky;
+    z-index: 35;
+    top: 0;
+    display: grid;
+    min-height: 4.25rem;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: max(0.7rem, env(safe-area-inset-top)) var(--mobile-gutter) 0.65rem;
+    border-bottom: 1px solid var(--color-outline-variant);
+    background: var(--color-surface);
+    backdrop-filter: none;
+  }
+  .recipe-mobile-topbar strong { overflow: hidden; font-family: var(--font-display); font-size: 1.2rem; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+  .recipe-mobile-topbar__back,
+  .recipe-mobile-topbar__actions a { display: grid; width: 2.9rem; height: 2.9rem; place-items: center; border: 1px solid var(--color-outline-variant); border-radius: 50%; color: var(--color-on-surface); background: var(--color-surface-bright); text-decoration: none; }
+  .recipe-mobile-topbar__back svg,
+  .recipe-mobile-topbar__actions svg { width: 1.2rem; }
+  .recipe-mobile-topbar__actions { display: flex; gap: 0.35rem; }
+  .recipe-detail__topline { display: none; }
+  .recipe-hero { display: block; }
+  .recipe-hero__media { aspect-ratio: 1 / 0.88; max-height: none; border-radius: 0 0 2rem 2rem; box-shadow: none; }
+  .recipe-hero__media::after { border: 0; }
+  .recipe-hero__copy { gap: 0.8rem; padding: 1.25rem var(--mobile-gutter) 0; }
+  .recipe-hero h1 { max-width: 15ch; font-size: 2.55rem; line-height: 0.98; }
+  .recipe-hero__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem 0.8rem; font-size: 0.82rem; }
+  .recipe-hero__facts .recipe-source { grid-column: 1 / -1; min-height: 2.6rem; align-items: center; }
+  .recipe-provenance { font-size: 0.78rem; }
+  .recipe-hero__nutrition-state { margin-top: 0.05rem; }
+  .recipe-hero__actions { display: none; }
+  .portion-scale__label { display: none; }
+  .recipe-mobile-quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 1.25rem var(--mobile-gutter) 0; border-top: 1px solid var(--color-outline-variant); border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.35rem; }
+  .recipe-mobile-quick-actions a,
+  .recipe-mobile-quick-actions button { display: grid; min-height: 3.75rem; align-content: center; justify-items: center; gap: 0.35rem; border: 0; border-radius: 0.75rem; padding: 0.45rem 0.25rem; color: var(--color-on-surface); background: transparent; font: inherit; font-size: 0.72rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+  .recipe-mobile-quick-actions a:active,
+  .recipe-mobile-quick-actions button:active { transform: scale(0.97); }
+  .recipe-mobile-quick-actions svg { width: 1.2rem; color: var(--color-primary); }
+  .recipe-reading-tabs { position: sticky; z-index: 25; top: 4.25rem; display: grid; width: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 1.35rem var(--mobile-gutter) 0; border: 0; border-radius: 999px; padding: 0.25rem; background: var(--color-surface-high); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-outline-variant) 55%, transparent); }
+  .recipe-reading-tabs button { min-height: 2.85rem; justify-content: center; gap: 0.25rem; border: 0; border-radius: 999px; padding-inline: 0.4rem; color: var(--color-on-surface-variant); background: transparent; font-size: 0.82rem; font-weight: 650; }
+  .recipe-reading-tabs button[aria-pressed="true"] { color: var(--color-on-surface); background: var(--color-surface-bright); box-shadow: 0 0.2rem 0.6rem color-mix(in oklch, var(--color-on-surface) 11%, transparent); }
+  .recipe-mobile-serving-control { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem; align-items: center; gap: 0.65rem; margin: 0.8rem var(--mobile-gutter) 0; border: 0; border-radius: 0; padding: 0; background: transparent; }
+  .recipe-mobile-serving-control button { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid var(--color-outline-variant); border-radius: 50%; color: var(--color-on-surface); background: var(--color-surface-low); font: inherit; font-size: 1.35rem; cursor: pointer; }
+  .recipe-mobile-serving-control button:disabled { color: var(--color-on-surface-variant); cursor: not-allowed; opacity: 0.45; }
+  .recipe-mobile-serving-control strong { text-align: center; font-size: 0.92rem; }
+  .recipe-reading-grid { display: block; padding: 1.55rem var(--mobile-gutter) 0; }
+  .recipe-reading-panel { display: none; }
+  .recipe-reading-panel.is-mobile-active { display: block; animation: none; }
+  .recipe-reading-panel > .section-heading { align-items: baseline; margin-bottom: 1rem; border-bottom: 0; padding-bottom: 0; }
+  .recipe-reading-panel > .section-heading h2 { font-size: 1.55rem; }
+  .recipe-reading-panel > .section-heading > span { font-size: 0.78rem; }
+  .ingredient-list { display: grid; gap: 0.45rem; }
+  .ingredient-section { padding: 0; }
+  .ingredient-section h3 { margin: 1rem 0 0.25rem; color: var(--color-primary); font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+  .ingredient-section > ul,
+  .ingredient-list > li:not(.ingredient-section) { display: grid; gap: 0; }
+  .ingredient-section > ul > li,
+  .ingredient-list > li:not(.ingredient-section) { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr); align-items: center; min-height: 4.35rem; border: 0; border-radius: 0.85rem; padding: 0.85rem 0.6rem; background: color-mix(in oklch, var(--color-surface-low) 46%, transparent); }
+  .ingredient-section > ul > li::before,
+  .ingredient-list > li:not(.ingredient-section)::before { width: 1.45rem; height: 1.45rem; border: 2px solid var(--color-outline); border-radius: 50%; content: ""; }
+  .ingredient-text { color: var(--color-on-surface); font-size: 1rem; line-height: 1.5; }
+  .recipe-detail-page--method .instruction-list { display: grid; gap: 0.55rem; counter-reset: cooking-step; }
+  .recipe-detail-page--method .instruction-list > li:not(.instruction-section),
+  .recipe-detail-page--method .instruction-section > ol > li { position: relative; display: block; width: 100%; min-width: 0; border: 0; border-radius: 0.85rem; padding: 1.2rem 0.85rem 1.2rem 3.5rem; color: var(--color-on-surface); background: color-mix(in oklch, var(--color-surface-low) 46%, transparent); font-size: 1rem; line-height: 1.55; overflow-wrap: anywhere; counter-increment: cooking-step; }
+  .recipe-detail-page--method .instruction-list > li:not(.instruction-section)::before,
+  .recipe-detail-page--method .instruction-section > ol > li::before { position: absolute; top: 1.2rem; left: 0.85rem; display: grid; width: 1.85rem; height: 1.85rem; place-items: center; border-radius: 50%; color: var(--color-on-primary); background: var(--color-primary); content: counter(cooking-step); font-family: var(--font-display); font-size: 1rem; font-weight: 680; }
+  .recipe-detail-page--method .instruction-section { display: block; width: 100%; min-width: 0; padding: 0; }
+  .recipe-detail-page--method .instruction-section > ol { display: grid; width: 100%; min-width: 0; gap: 0.55rem; margin: 0; padding: 0; list-style: none; counter-reset: none; }
+  .recipe-detail-page--method .instruction-section h3 { margin: 1rem 0 0.1rem; color: var(--color-primary); font-family: var(--font-body); font-size: 0.75rem; text-transform: uppercase; }
+  .recipe-detail-page--nutrition .recipe-reading-grid { display: none; }
+  .recipe-nutrition-drawer { display: none; margin: 1.25rem var(--mobile-gutter) 0; border: 1px solid var(--color-outline-variant); border-radius: 1.35rem; padding: 1rem; background: var(--color-surface-bright); }
+  .recipe-nutrition-drawer.is-mobile-active { display: block; animation: none; }
+  .recipe-nutrition-drawer > summary { min-height: 3.2rem; }
+  .recipe-nutrition-drawer > summary strong { font-family: var(--font-display); font-size: 1.25rem; }
+  .recipe-nutrition-drawer > summary small { font-size: 0.75rem; }
+  .recipe-detail__nutrition-summary { display: none; }
+  .recipe-saved-moment,
+  .recipe-detail-page > .recipe-processing-status,
+  .recipe-detail-page > .recipe-organization__quick-favorite,
+  .recipe-detail-page > .recipe-organization,
+  .recipe-detail-page > .danger-zone { margin-inline: var(--mobile-gutter); }
+  .recipe-organization { border: 0; border-radius: 0; background: transparent; }
+  .recipe-organization > summary { min-height: 3.5rem; border-top: 1px solid var(--color-outline-variant); border-bottom: 1px solid var(--color-outline-variant); padding: 0.65rem 0; }
+  .recipe-organization__quick-favorite { min-height: 2.75rem; margin-top: 0.25rem; border: 0; border-radius: 0; padding-inline: 0; background: transparent; box-shadow: none; }
+  .recipe-detail-page > .danger-zone { position: relative; z-index: 40; background: var(--color-surface); }
+  .recipe-mobile-cook-action { right: 0.75rem; bottom: calc(5.75rem + env(safe-area-inset-bottom)); left: 0.75rem; width: auto; }
+  .recipe-mobile-cook-action::before { right: -0.75rem; bottom: -0.65rem; left: -0.75rem; height: 4.8rem; background: color-mix(in oklch, var(--color-surface) 96%, transparent); }
+  .recipe-mobile-cook-action .cf-button { width: 100%; min-height: 3.15rem; border-radius: 1rem; padding-inline: 1.15rem; box-shadow: 0 0.75rem 1.6rem color-mix(in oklch, var(--color-primary) 26%, transparent); }
+
+  /* Plan is a vertical agenda on a phone, with the day controls always close. */
+  .planner-page { gap: 1rem; padding-top: 1.15rem; }
+  .planner-mobile-top { grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; }
+  .planner-mobile-top h1 { max-width: 14ch; font-size: 2.05rem; }
+  .planner-mobile-top__actions button { width: 3rem; height: 3rem; border: 1px solid var(--color-outline-variant); background: var(--color-surface-bright); }
+  .planner-toolbar { position: sticky; z-index: 20; top: 0.35rem; display: grid; gap: 0.75rem; padding-block: 0.35rem; background: var(--color-surface-dim); backdrop-filter: none; }
+  .planner-views { width: 100%; }
+  .planner-views button { min-height: 2.9rem; justify-content: center; }
+  .planner-toolbar > .cf-button { width: 100%; }
+  .day-tabs { gap: 0.4rem; overflow-x: auto; padding-bottom: 0.25rem; scrollbar-width: none; }
+  .day-tabs::-webkit-scrollbar { display: none; }
+  .day-tab { min-width: 4.65rem; min-height: 4rem; border-radius: 1rem; }
+  .plan-workspace { gap: 1.25rem; }
+  .planner-day { border-radius: 1.25rem; padding: 1rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
+  .planner-day__heading h2 { font-size: 1.5rem; }
+  .meal-slot { border-radius: 1rem; padding: 0.75rem; }
+  .planner-mobile-add { right: var(--mobile-gutter); bottom: calc(5.75rem + env(safe-area-inset-bottom)); left: var(--mobile-gutter); }
+  .planner-mobile-add::before { right: -0.75rem; bottom: -0.75rem; left: -0.75rem; height: 5rem; background: var(--color-surface-dim); }
+  .planner-mobile-add .cf-button { min-height: 3.45rem; border-radius: 1.1rem; }
+
+  /* Grocery stays dense and calm while moving through a shop. */
+  .grocery-page { gap: 1rem; padding-top: 1.15rem; }
+  .grocery-mobile-top h1 { font-size: 2.05rem; letter-spacing: -0.035em; }
+  .grocery-mobile-build { border: 0; border-radius: 1.25rem 2.75rem 1.25rem 1.25rem; padding: 1.1rem; background: var(--color-primary-container); }
+  .grocery-page .grocery-group > .section-heading h2 { font-size: 0.78rem; }
+  .grocery-page .grocery-item__mobile-row { min-height: 5.6rem; }
+  .grocery-page .grocery-item__mobile-row .grocery-item__content { padding-block: 0.8rem; }
+  .grocery-page .grocery-item__mobile-row h3 { font-size: 1.02rem; }
+
+  /* Library and pantry browse well with one thumb. */
+  .recipe-library-page,
+  .pantry-page { gap: 1.1rem; padding-top: 1.15rem; }
+  .recipe-library-page .page-header h1,
+  .pantry-page .page-header h1 { font-size: 2.15rem; }
+  .recipe-library-page .recipe-discovery { border-radius: 1.15rem; padding: 0.85rem; }
+  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+  /* Keep the card itself and its linked content at the same width. The old
+     card-level column rule made the primary link a 7rem grid item while its
+     media still measured 4:3, leaving a visible strip and misaligned body. */
+  .recipe-library-page .recipe-card { display: block; min-height: 0; border-radius: 1rem; }
+  .recipe-library-page .recipe-card__primary { grid-template-rows: auto 1fr; width: 100%; }
+  .recipe-library-page .recipe-card__media { width: 100%; height: auto; min-height: 0; aspect-ratio: 4 / 3; border-radius: 0; }
+  .recipe-library-page .recipe-card__media img,
+  .recipe-library-page .recipe-card__media .recipe-fallback-art { max-width: none; }
+  .recipe-library-page .recipe-card__body { padding: 0.75rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .recipe-mobile-quick-actions a:active,
+    .recipe-mobile-quick-actions button:active { transform: none; }
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Editorial kitchen reset
+
+   The phone composition should feel like a recipe book, not a control-panel
+   made from nested cards.  Keep the semantic markup above (and therefore all
+   existing actions and tests), but deliberately reduce chrome, borders and
+   competing surfaces at the phone breakpoint.
+   ------------------------------------------------------------------------- */
+@media (max-width: 47.99rem) {
+  html,
+  body,
+  .planner-shell,
+  .planner-shell__content { background: var(--color-surface-bright); }
+
+  .planner-shell__mobile-brand {
+    height: 4.5rem;
+    border-bottom: 1px solid var(--color-outline-variant);
+    background: var(--color-surface-bright);
+  }
+  .planner-shell__mobile-brand .brand-mark { width: 1.55rem; height: 1.55rem; }
+  .planner-shell__mobile-brand strong { color: var(--color-on-surface); font-size: 1.1rem; letter-spacing: -0.02em; }
+  .planner-shell__mobile-brand > button { width: 2.75rem; height: 2.75rem; border: 0; background: transparent; box-shadow: none; }
+
+  .page-shell { padding: 1.45rem var(--mobile-gutter) calc(7.25rem + env(safe-area-inset-bottom)); gap: 1.6rem; }
+
+  .mobile-nav {
+    right: 0.65rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    left: 0.65rem;
+    height: 4.15rem;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 1.35rem;
+    padding: 0.25rem;
+    background: color-mix(in oklch, var(--color-surface-bright) 96%, transparent);
+    box-shadow: var(--shadow-level-1);
+  }
+  .mobile-nav__link,
+  .mobile-nav__more-trigger {
+    height: 3.55rem;
+    border-radius: 1rem;
+    color: var(--color-on-surface-variant);
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+  .mobile-nav__link--active,
+  .mobile-nav__more--active .mobile-nav__more-trigger { color: var(--color-primary); background: var(--color-primary-container); }
+
+  /* Library: feature one recipe, then let the rest read like a collection. */
+  .recipe-library-page { gap: 1.45rem; padding-top: 1.3rem; background: var(--color-surface-bright); }
+  .recipe-library-page > .page-header { align-items: center; gap: 0.75rem; }
+  .recipe-library-page .page-header h1 { font-size: 2.55rem; letter-spacing: -0.055em; }
+  .recipe-library-page .recipe-add-menu > summary {
+    min-height: 2.5rem;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    color: var(--color-primary);
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.86rem;
+  }
+  .recipe-library-page .recipe-add-menu > summary svg:last-child { display: none; }
+  .recipe-library-page .recipe-discovery { gap: 0.9rem; border: 0; border-radius: 0; padding: 0; background: transparent; }
+  .recipe-library-page .recipe-search { border: 0; border-bottom: 1px solid var(--color-outline); border-radius: 0; padding-inline: 0; background: transparent; box-shadow: none; }
+  .recipe-library-page .recipe-view-tabs { width: 100%; border-bottom: 1px solid var(--color-outline-variant); border-radius: 0; padding: 0; background: transparent; }
+  .recipe-library-page .recipe-view-tabs button { min-height: var(--touch-target); border-radius: 0; color: var(--color-on-surface-variant); font-size: 0.9rem; }
+  .recipe-library-page .recipe-view-tabs button[aria-selected="true"] { border-bottom: 2px solid var(--color-primary); color: var(--color-on-surface); background: transparent; box-shadow: none; }
+  .recipe-library-page .recipe-filter-disclosure { margin-top: 0; }
+  .recipe-library-page .recipe-filter-disclosure > summary { min-height: 2.5rem; border: 0; border-radius: 0; padding-inline: 0; color: var(--color-primary); background: transparent; }
+  .recipe-library-page .recipe-filter-disclosure__content { border-top: 1px solid var(--color-outline-variant); border-radius: 0; padding-inline: 0; box-shadow: none; }
+  .recipe-results-heading { align-items: baseline; border-bottom: 0; }
+  .recipe-results-heading h2 { font-size: 1.45rem; letter-spacing: -0.035em; }
+  .recipe-results-heading > span { font-size: 0.8rem; }
+  .recipe-library-page .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; border-top: 1px solid var(--color-outline-variant); }
+  .recipe-library-page .recipe-card { overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .recipe-library-page .recipe-card:hover { box-shadow: none; transform: none; }
+  .recipe-library-page .recipe-card__media { aspect-ratio: 1 / 1; border-radius: 0; background: var(--color-surface-low); }
+  .recipe-library-page .recipe-card__body { gap: 0.35rem; padding: 0.8rem 0 1.35rem; }
+  .recipe-library-page .recipe-card h2 { font-size: 1.05rem; line-height: 1.08; letter-spacing: -0.025em; }
+  .recipe-library-page .recipe-card__summary { display: grid; gap: 0.18rem; }
+  .recipe-library-page .recipe-card__yield { color: var(--color-on-surface); font-size: 0.82rem; font-weight: 560; }
+  .recipe-library-page .recipe-card__state { width: fit-content; border-radius: 0; padding: 0; color: var(--color-on-surface-variant); background: transparent; font-size: 0.74rem; font-weight: 550; }
+  .recipe-library-page .recipe-card__state::before { width: 0.32rem; height: 0.32rem; }
+  .recipe-library-page .recipe-card__context { display: none; }
+  .recipe-library-page .recipe-card .recipe-meta { display: flex; gap: 0.45rem; border: 0; padding: 0; color: var(--color-on-surface-variant); font-size: 0.75rem; }
+  .recipe-library-page .recipe-card .recipe-meta > .recipe-meta__item + .recipe-meta__item::before { display: none; }
+  .recipe-library-page .recipe-card .recipe-meta__item--calories,
+  .recipe-library-page .recipe-card .recipe-meta__item--protein,
+  .recipe-library-page .recipe-card .recipe-meta__item--fat { display: none; }
+  .recipe-library-page .recipe-card__favorite-toggle,
+  .recipe-library-page .recipe-card__menu { top: 0.55rem; width: var(--touch-target); min-width: var(--touch-target); height: var(--touch-target); min-height: var(--touch-target); border: 0; background: var(--color-surface-bright); box-shadow: none; backdrop-filter: none; }
+  .recipe-library-page .recipe-card__favorite-toggle { left: 0.55rem; }
+  .recipe-library-page .recipe-card__menu { right: 0.55rem; }
+
+  /* Make the first recipe a quiet editorial feature instead of an anonymous
+     equal-weight tile.  The grid remains two columns for the existing layout
+     contract; only this card spans the reading width. */
+  .recipe-library-page .recipe-grid > .recipe-card:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--color-outline-variant); }
+  .recipe-library-page .recipe-grid > .recipe-card:first-child .recipe-card__media { aspect-ratio: 16 / 9; }
+  .recipe-library-page .recipe-grid > .recipe-card:first-child .recipe-card__body { gap: 0.45rem; padding-block: 1rem 1.5rem; }
+  .recipe-library-page .recipe-grid > .recipe-card:first-child h2 { max-width: 18ch; font-size: 1.65rem; }
+
+  /* Detail: a dish, its identity, and one route into cooking. */
+  .recipe-detail-page { padding: 0 0 calc(8.5rem + env(safe-area-inset-bottom)); background: var(--color-surface-bright); }
+  .recipe-mobile-topbar { border-bottom: 1px solid var(--color-outline-variant); background: var(--color-surface-bright); backdrop-filter: none; }
+  .recipe-mobile-topbar strong { font-size: 1.05rem; }
+  .recipe-mobile-topbar__back,
+  .recipe-mobile-topbar__actions a { width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: transparent; }
+  .recipe-hero__media { aspect-ratio: 1 / 0.9; border-radius: 0; box-shadow: none; }
+  .recipe-hero__copy { gap: 0.75rem; padding: 1.45rem var(--mobile-gutter) 0; }
+  .recipe-hero h1 { max-width: 13ch; font-size: 2.8rem; line-height: 0.94; letter-spacing: -0.055em; }
+  .recipe-hero__facts { display: flex; flex-wrap: wrap; gap: 0.25rem 0.7rem; color: var(--color-on-surface-variant); font-size: 0.82rem; }
+  .recipe-hero__facts > span { white-space: nowrap; }
+  .recipe-hero__facts .recipe-source { flex-basis: 100%; min-height: 0; margin-top: 0.25rem; border-top: 1px solid var(--color-outline-variant); border-bottom: 0; padding-top: 0.65rem; }
+  .recipe-hero__nutrition-state { width: fit-content; margin-top: 0.15rem; border-radius: 0; padding: 0; color: var(--color-on-surface-variant); background: transparent; font-size: 0.78rem; }
+  .recipe-provenance { color: var(--color-on-surface-variant); font-size: 0.78rem; }
+  .recipe-mobile-quick-actions { gap: 0; margin: 1.3rem var(--mobile-gutter) 0; border-top: 1px solid var(--color-outline-variant); border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.7rem; }
+  .recipe-mobile-quick-actions a { min-height: 4.55rem; gap: 0.35rem; color: var(--color-on-surface); font-size: 0.7rem; font-weight: 600; }
+  .recipe-mobile-quick-actions a svg { display: grid; width: 2.65rem; height: 2.65rem; border: 1px solid var(--color-outline); border-radius: 50%; padding: 0.68rem; color: var(--color-primary); background: var(--color-surface-bright); }
+  .recipe-mobile-quick-actions a:active { transform: none; }
+  .recipe-processing-status { margin-inline: var(--mobile-gutter); border: 0; }
+  .recipe-detail-page > .recipe-organization__quick-favorite { min-height: var(--touch-target); margin: 0 var(--mobile-gutter); padding: 0; border: 0; border-radius: 0; color: var(--color-on-surface-variant); background: transparent; box-shadow: none; font-size: 0.9rem; }
+  .recipe-detail-page > .recipe-organization { margin-inline: var(--mobile-gutter); border: 0; border-radius: 0; background: transparent; }
+  .recipe-organization > summary { min-height: 3.1rem; border: 0; border-radius: 0; padding-inline: 0; }
+  .recipe-reading-tabs { top: 4.25rem; margin: 1.45rem var(--mobile-gutter) 0; border: 1px solid var(--color-outline-variant); border-radius: 999px; background: var(--color-surface-high); box-shadow: none; }
+  .recipe-reading-tabs button { min-height: 2.8rem; border-radius: 999px; font-size: 0.82rem; }
+  .recipe-reading-tabs button[aria-pressed="true"] { box-shadow: var(--shadow-control); }
+  .recipe-mobile-serving-control { margin: 0.9rem var(--mobile-gutter) 0; border: 1px solid var(--color-outline-variant); border-radius: 999px; padding: 0.25rem; }
+  .recipe-mobile-serving-control button { width: var(--touch-target); min-width: var(--touch-target); height: var(--touch-target); min-height: var(--touch-target); border: 0; background: var(--color-surface-low); }
+  .recipe-reading-grid { padding: 1.8rem var(--mobile-gutter) 0; }
+  .recipe-reading-panel > .section-heading { margin-bottom: 0.35rem; }
+  .recipe-reading-panel > .section-heading h2 { font-size: 1.65rem; letter-spacing: -0.04em; }
+  .recipe-reading-panel > .section-heading > span { font-size: 0.78rem; }
+  .ingredient-list { gap: 0; }
+  .ingredient-section h3 { margin: 1.25rem 0 0.1rem; font-size: 0.72rem; }
+  .ingredient-section > ul > li,
+  .ingredient-list > li:not(.ingredient-section) { min-height: 4.8rem; border: 0; border-radius: 0.85rem; padding: 1rem 0.1rem; background: color-mix(in oklch, var(--color-surface-low) 46%, transparent); }
+  .ingredient-section > ul > li::before,
+  .ingredient-list > li:not(.ingredient-section)::before { width: 1.3rem; height: 1.3rem; border: 1.5px solid var(--color-outline); }
+  .ingredient-text { font-size: 1rem; line-height: 1.4; }
+  .recipe-detail-page--method .instruction-list { gap: 0; }
+  .recipe-detail-page--method .instruction-list > li:not(.instruction-section),
+  .recipe-detail-page--method .instruction-section > ol > li { min-height: 6.5rem; border: 0; border-radius: 0.85rem; padding: 1.45rem 0.15rem 1.45rem 3.4rem; background: color-mix(in oklch, var(--color-surface-low) 46%, transparent); font-size: 1.03rem; line-height: 1.5; }
+  .recipe-detail-page--method .instruction-list > li:not(.instruction-section)::before,
+  .recipe-detail-page--method .instruction-section > ol > li::before { top: 1.25rem; left: 0; width: auto; height: auto; border-radius: 0; color: var(--color-on-surface); background: transparent; font-size: 2rem; font-weight: 700; }
+  .recipe-detail-page--method .instruction-section h3 { margin-top: 1.25rem; }
+  .recipe-nutrition-drawer { margin: 1.5rem var(--mobile-gutter) 0; border: 0; border-radius: 0; padding: 0; background: transparent; }
+  .recipe-nutrition-drawer > summary { min-height: 3.4rem; padding-block: 0.75rem; }
+  .recipe-detail-page > .danger-zone { margin-inline: var(--mobile-gutter); border-radius: 0; }
+  .recipe-mobile-cook-action { position: static; width: auto; margin: 1.5rem var(--mobile-gutter) 0; }
+  .recipe-mobile-cook-action::before { display: none; }
+  .recipe-mobile-cook-action .cf-button { width: 100%; min-height: 3.25rem; border-radius: 999px; padding-inline: 1.15rem; box-shadow: 0 0.55rem 1.3rem color-mix(in oklch, var(--color-primary) 20%, transparent); }
+
+  /* The plan and grocery routes share the same quieter, paper-like rhythm. */
+  .planner-page,
+  .grocery-page { background: var(--color-surface-bright); }
+  .planner-day,
+  .grocery-mobile-build,
+  .home-week-card,
+  .home-grocery,
+  .home-use-soon { border: 0; border-block: 1px solid var(--color-outline-variant); border-radius: 0; background: transparent; box-shadow: none; }
+  .planner-day { padding-inline: 0; }
+  .meal-slot { border: 0; border-top: 1px solid var(--color-outline-variant); border-radius: 0; padding-inline: 0; background: transparent; }
+
+  /* Every phone action keeps a real 44px hit area, even when its label is
+     intentionally quiet.  This is especially important for pantry edits,
+     where the action sits beside the card-level trigger. */
+  .pantry-staple__edit-trigger { min-height: var(--touch-target); padding-block: 0.5rem; }
+  .pantry-staple__actions .cf-button { min-height: var(--touch-target); padding-inline: 0.65rem; }
+
+  /* Seven days fit on a phone without a hidden, partially clipped scroller.
+     The short labels remain readable at 320px and the whole week is visible
+     at a glance. */
+  .planner-page .day-tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.15rem; overflow: visible; padding-inline: 0; scrollbar-width: auto; }
+  .planner-page .day-tab { min-width: 0; min-height: 4.25rem; padding-inline: 0.1rem; }
+  .planner-page .day-tab > span { font-size: 0.64rem; }
+  .planner-page .day-tab > strong { font-size: 1.05rem; }
+  .planner-page .day-tab > small { font-size: 0.56rem; }
+
+  /* Keep long settings rails discoverable: a visible, compact scrollbar is a
+     better affordance than silently clipping the next section. */
+  .settings-page .settings-tabs { scrollbar-width: thin; scrollbar-color: var(--color-outline) transparent; }
+  .settings-page .settings-tabs::-webkit-scrollbar { display: block; height: 0.35rem; }
+  .settings-page .settings-tabs::-webkit-scrollbar-thumb { border-radius: var(--radius-full); background: var(--color-outline); }
+  .settings-page .settings-tabs::-webkit-scrollbar-track { background: transparent; }
+
+  /* Opaque surfaces avoid unnecessary compositor layers on low-power phones. */
+  .mobile-nav { background: var(--color-surface-bright); }
+  .planner-toolbar { background: var(--color-surface-dim); backdrop-filter: none; }
+}
+
+/* -------------------------------------------------------------------------
+   Overdrive: three restrained progressive enhancements
+
+   1. Shared recipe media/title morphs use the existing React Router view
+      transition names.
+   2. Cook Mode gets a physical-feeling step settle and ingredient feedback.
+   3. Recipe reading follows the user's scroll with a gentle hero recession and
+      row reveals. Every effect has a no-motion/static path below.
+   ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (view-transition-name: none) {
+    ::view-transition-group(*) {
+      animation-duration: 520ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 520ms;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    ::view-transition-old(recipe-media-*),
+    ::view-transition-new(recipe-media-*) { mix-blend-mode: normal; }
+  }
+
+  @media (max-width: 47.99rem) {
+    .recipe-reading-panel.is-mobile-active { animation: recipe-panel-reveal 360ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .recipe-reading-panel.is-mobile-active .ingredient-list > li,
+    .recipe-reading-panel.is-mobile-active .instruction-list > li { animation: recipe-row-reveal 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .recipe-reading-panel.is-mobile-active .ingredient-list > li:nth-child(2),
+    .recipe-reading-panel.is-mobile-active .instruction-list > li:nth-child(2) { animation-delay: 35ms; }
+    .recipe-reading-panel.is-mobile-active .ingredient-list > li:nth-child(3),
+    .recipe-reading-panel.is-mobile-active .instruction-list > li:nth-child(3) { animation-delay: 70ms; }
+    .recipe-reading-panel.is-mobile-active .ingredient-list > li:nth-child(4),
+    .recipe-reading-panel.is-mobile-active .instruction-list > li:nth-child(4) { animation-delay: 105ms; }
+    .recipe-reading-panel.is-mobile-active .ingredient-list > li:nth-child(n + 5),
+    .recipe-reading-panel.is-mobile-active .instruction-list > li:nth-child(n + 5) { animation-delay: 130ms; }
+
+    .cook-mode__stage--forward { animation: cook-step-settle 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .cook-mode__stage--backward { animation: cook-step-return-soft 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .cook-mode__checked { animation: cook-ingredient-check 280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .cook-mode__progress::-webkit-progress-value {
+      transform-origin: left center;
+      transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1), transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cook-mode__progress::-moz-progress-bar { transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1); }
+  }
+}
+
+/* Scroll-linked hero recession is opt-in only. Browsers without the timeline
+   API keep the hero completely static instead of accidentally applying the
+   end frame of a zero-duration animation. */
+@supports (animation-timeline: scroll(root block)) {
+  @media (max-width: 47.99rem) {
+    .recipe-detail-page .recipe-hero__media {
+      animation: recipe-hero-recede linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 360px;
+      transform-origin: center top;
+    }
+  }
+}
+
+@keyframes recipe-panel-reveal {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes recipe-row-reveal {
+  from { opacity: 0; transform: translateY(0.65rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes recipe-hero-recede {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.86; transform: scale(0.965); }
+}
+
+@keyframes cook-step-settle {
+  0% { opacity: 0; transform: translate3d(1.6rem, 0, 0) scale(0.985); }
+  68% { opacity: 1; transform: translate3d(-0.1rem, 0, 0) scale(1.002); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes cook-step-return-soft {
+  from { opacity: 0; transform: translate3d(-1rem, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes cook-ingredient-check {
+  from { opacity: 0.62; transform: translateX(0); }
+  55% { opacity: 1; transform: translateX(0.2rem); }
+  to { opacity: 0.62; transform: translateX(0); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (max-width: 47.99rem) {
+    .recipe-detail-page .recipe-reading-panel.is-mobile-active .ingredient-section > ul > li,
+    .recipe-detail-page .recipe-reading-panel.is-mobile-active > .instruction-list > li:not(.instruction-section),
+    .recipe-detail-page .recipe-reading-panel.is-mobile-active .instruction-section > ol > li {
+      animation: recipe-row-scroll-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+}
+
+@keyframes recipe-row-scroll-reveal {
+  from { opacity: 0.28; transform: translateY(0.9rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 47.99rem) {
+  .cook-mode__timer-status { color: var(--color-on-herb-subtle); font-size: 0.78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @supports (view-transition-name: none) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) { animation-duration: 0s !important; }
+  }
+  .recipe-reading-panel.is-mobile-active,
+  .recipe-reading-panel.is-mobile-active .ingredient-list > li,
+  .recipe-reading-panel.is-mobile-active .instruction-list > li,
+  .recipe-detail-page .recipe-hero__media,
+  .cook-mode__stage--forward,
+  .cook-mode__stage--backward,
+  .cook-mode__checked { animation: none !important; transform: none !important; opacity: 1 !important; }
+}

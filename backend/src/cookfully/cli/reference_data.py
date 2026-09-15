@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import RawIOBase
@@ -118,14 +118,26 @@ def _dedupe_nutrients(items: Any) -> list[dict[str, Any]]:
     return deduped
 
 
+ProgressCallback = Callable[[int, int | None], None]
+
+
 class _PeekableReader(RawIOBase):
     """Buffered read()/peek() over a non-seekable binary stream (zip members)."""
 
-    def __init__(self, raw: IO[bytes]) -> None:
+    def __init__(
+        self,
+        raw: IO[bytes],
+        *,
+        total_bytes: int | None = None,
+        on_progress: ProgressCallback | None = None,
+    ) -> None:
         super().__init__()
         self._raw = raw
         self._buffer = bytearray()
         self._offset = 0
+        self._consumed = 0
+        self._total_bytes = total_bytes
+        self._on_progress = on_progress
 
     def readable(self) -> bool:
         return True
@@ -143,10 +155,15 @@ class _PeekableReader(RawIOBase):
             self._drain()
             data = bytes(self._buffer[self._offset :])
             self._offset = len(self._buffer)
+            self._consumed += len(data)
+            self._report_progress()
             return data
         self.peek(size)
         data = bytes(self._buffer[self._offset : self._offset + size])
         self._offset += len(data)
+        self._consumed += len(data)
+        self._report_progress()
+        self._compact()
         return data
 
     def readinto(self, buffer: Any) -> int:
@@ -161,9 +178,25 @@ class _PeekableReader(RawIOBase):
                 return
             self._buffer.extend(chunk)
 
+    def _report_progress(self) -> None:
+        if self._on_progress is not None:
+            self._on_progress(self._consumed, self._total_bytes)
 
-def _iter_json_rows(raw: IO[bytes], dataset_type: str | None) -> Iterator[dict[str, Any]]:
-    reader = _PeekableReader(raw)
+    def _compact(self) -> None:
+        if self._offset < 1 << 20 or self._offset < len(self._buffer) // 2:
+            return
+        del self._buffer[: self._offset]
+        self._offset = 0
+
+
+def _iter_json_rows(
+    raw: IO[bytes],
+    dataset_type: str | None,
+    *,
+    total_bytes: int | None = None,
+    on_progress: ProgressCallback | None = None,
+) -> Iterator[dict[str, Any]]:
+    reader = _PeekableReader(raw, total_bytes=total_bytes, on_progress=on_progress)
     first = reader.peek(64 * 1024).lstrip(b" \t\r\n")[:1]
     if first == b"[":
         for item in ijson.items(reader, "item"):
@@ -183,7 +216,12 @@ def _iter_json_rows(raw: IO[bytes], dataset_type: str | None) -> Iterator[dict[s
             yield row
 
 
-def iter_food_rows(path: Path, *, dataset_type: str | None = None) -> Iterator[dict[str, Any]]:
+def iter_food_rows(
+    path: Path,
+    *,
+    dataset_type: str | None = None,
+    on_progress: ProgressCallback | None = None,
+) -> Iterator[dict[str, Any]]:
     """Yield USDA food rows without materializing the whole archive in memory.
 
     Large branded bulk downloads stream their top-level JSON array one item at
@@ -195,10 +233,20 @@ def iter_food_rows(path: Path, *, dataset_type: str | None = None) -> Iterator[d
             names = [name for name in archive.namelist() if name.casefold().endswith(".json")]
             member = _select_json_member(names, dataset_type)
             with archive.open(member) as raw:
-                yield from _iter_json_rows(raw, dataset_type)
+                yield from _iter_json_rows(
+                    raw,
+                    dataset_type,
+                    total_bytes=archive.getinfo(member).file_size,
+                    on_progress=on_progress,
+                )
     else:
         with path.open("rb") as raw:
-            yield from _iter_json_rows(raw, dataset_type)
+            yield from _iter_json_rows(
+                raw,
+                dataset_type,
+                total_bytes=path.stat().st_size,
+                on_progress=on_progress,
+            )
 
 
 def import_release(
@@ -208,6 +256,7 @@ def import_release(
     release_id: str,
     released_on: date,
     source_url: str,
+    progress_callback: ProgressCallback | None = None,
 ) -> ReferenceDataset:
     if dataset_type not in ALLOWED_TYPES:
         raise DomainError(
@@ -215,10 +264,10 @@ def import_release(
             f"Dataset must be one of {', '.join(sorted(ALLOWED_TYPES))}.",
             422,
         )
-    rows = (
-        iter_food_rows(path, dataset_type=dataset_type)
-        if dataset_type == "branded_food"
-        else load_usda_archive(path, dataset_type=dataset_type)
+    rows = iter_food_rows(
+        path,
+        dataset_type=dataset_type,
+        on_progress=progress_callback,
     )
     engine = create_database_engine(get_settings())
     sessions = create_session_factory(engine)

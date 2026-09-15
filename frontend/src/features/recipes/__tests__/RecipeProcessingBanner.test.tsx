@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
 import type { Job } from "../types";
 import { RecipeProcessingBanner } from "../RecipeProcessingBanner";
@@ -25,11 +26,35 @@ const job: Job = {
 };
 
 describe("RecipeProcessingBanner", () => {
+  afterEach(cleanup);
+
   it("explains the current nutrition stage and progress in plain language", () => {
     render(<RecipeProcessingBanner job={job} nutritionState="pending" />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Matching nutrition");
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Matching nutrition");
     expect(screen.getByRole("progressbar")).toHaveAccessibleName("1 of 2 ingredients");
-    expect(screen.getByText(/you can keep using the recipe/i)).toBeVisible();
+    expect(status.textContent?.match(/1 of 2 ingredients/g)).toHaveLength(1);
+    expect(screen.getByText(/working in the background/i)).toBeVisible();
+  });
+
+  it("keeps a failed estimate quiet but gives the owner a clear next action", () => {
+    render(
+      <MemoryRouter>
+        <RecipeProcessingBanner
+          job={{ ...job, status: "failed", failureMessage: "Model unavailable" }}
+          nutritionState="unavailable"
+          reviewHref="/app/recipes/recipe-1/edit#nutrition"
+        />
+      </MemoryRouter>,
+    );
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Nutrition not available");
+    expect(screen.getByRole("link", { name: /review nutrition/i })).toHaveAttribute(
+      "href",
+      "/app/recipes/recipe-1/edit#nutrition",
+    );
+    expect(status).not.toHaveTextContent("Model unavailable");
   });
 });

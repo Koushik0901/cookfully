@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Database, HardDrive, RefreshCw, ShieldCheck } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 
-import { Button, SectionHeading } from "../../components";
+import { Button, Field, SectionHeading } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { databaseBackupsApi } from "./api";
 
@@ -29,6 +30,8 @@ function failureMessage(error: unknown): string | null {
 
 export function BackupTab() {
   const queryClient = useQueryClient();
+  const [retentionDraft, setRetentionDraft] = useState("");
+  const [retentionSaved, setRetentionSaved] = useState(false);
   const backups = useQuery({
     queryKey: ["database-backups"],
     queryFn: databaseBackupsApi.status,
@@ -38,8 +41,27 @@ export function BackupTab() {
     mutationFn: databaseBackupsApi.request,
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["database-backups"] }),
   });
+  const retention = useMutation({
+    mutationFn: () => databaseBackupsApi.updateSettings({ retentionCount: Number(retentionDraft) }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["database-backups"], updated);
+      setRetentionDraft(String(updated.retentionCount));
+      setRetentionSaved(true);
+    },
+  });
   const data = backups.data;
   const error = failureMessage(request.error) ?? failureMessage(backups.error);
+  useEffect(() => {
+    if (data && !retentionDraft) setRetentionDraft(String(data.retentionCount));
+  }, [data, retentionDraft]);
+
+  function saveRetention(event: FormEvent) {
+    event.preventDefault();
+    setRetentionSaved(false);
+    const value = Number(retentionDraft);
+    if (!Number.isInteger(value) || value < 1 || value > 365) return;
+    retention.mutate();
+  }
 
   return (
     <section className="settings-section backup-section" aria-labelledby="backup-title">
@@ -71,6 +93,25 @@ export function BackupTab() {
           <div><dt>Keep</dt><dd>{data ? `${data.retentionCount} recent dumps` : "Checking…"}</dd></div>
           <div><dt>Latest</dt><dd>{formatTime(data?.latest?.createdAt)}</dd></div>
         </dl>
+        <form className="backup-retention" onSubmit={saveRetention}>
+          <Field label="Keep latest backups" hint="Older restore points are pruned automatically after the sidecar applies this change.">
+            <input
+              className="input backup-retention__input"
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              value={retentionDraft}
+              onChange={(event) => { setRetentionDraft(event.target.value); setRetentionSaved(false); }}
+              aria-label="Keep latest backups"
+            />
+          </Field>
+          <Button type="submit" disabled={retention.isPending || !retentionDraft || !Number.isInteger(Number(retentionDraft)) || Number(retentionDraft) < 1 || Number(retentionDraft) > 365}>
+            {retention.isPending ? "Saving retention…" : "Save retention"}
+          </Button>
+          {retentionSaved ? <span className="settings-status" role="status">Retention saved</span> : null}
+        </form>
+        {retention.error instanceof Error ? <p className="error-text" role="alert">{retention.error.message}</p> : null}
         {data?.lastFailure ? <p className="error-text" role="alert">Last attempt: {data.lastFailure.message} ({formatTime(data.lastFailure.occurredAt)}).</p> : null}
         {error ? <p className="error-text" role="alert">{error}</p> : null}
         <div className="backup-card__actions">

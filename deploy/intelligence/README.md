@@ -18,6 +18,11 @@ missing, the service reports `degraded` and Cookfully safely falls back to its
 deterministic paths. Do not mount application media or database directories into
 this service.
 
+The release Compose profile keeps inference single-flight and caps the service at two CPU cores.
+This is intentional for small self-hosted machines: a slow or busy model request returns a safe
+degraded result and the deterministic importer remains available, rather than competing with the
+database and web UI for every host core.
+
 The owner can turn Needle2 and its inline import/repair assistance off or back
 on under **Settings → Intelligence**. The `COOKFULLY_INTELLIGENCE_ENABLED` and
 `COOKFULLY_INTELLIGENCE_INLINE_ENABLED` environment variables remain emergency

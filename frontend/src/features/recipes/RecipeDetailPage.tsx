@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { ArrowLeft, ChefHat, ExternalLink, Pencil } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
 
 import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, SectionHeading, Skeleton } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
@@ -202,7 +202,15 @@ export function RecipeDetailPage() {
   const orderedSections = (recipe.sections ?? []).filter((section) => (ingredientGroups.get(section.id)?.length ?? 0) > 0 || (instructionGroups.get(section.id)?.length ?? 0) > 0);
 
   return (
-    <main className="page-shell recipe-detail-page">
+    <main className={`page-shell recipe-detail-page recipe-detail-page--${mobilePanel}`}>
+      <div className="recipe-mobile-topbar" aria-label="Recipe navigation">
+        <Link className="recipe-mobile-topbar__back" to="/app/recipes" aria-label="Back to recipes"><ArrowLeft aria-hidden="true" /></Link>
+        <strong title={recipe.title}>{recipe.title}</strong>
+        <div className="recipe-mobile-topbar__actions">
+          {recipe.sourceUrl ? <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="Open original source"><ExternalLink aria-hidden="true" /></a> : null}
+          <Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Open recipe editor"><Pencil aria-hidden="true" /></Link>
+        </div>
+      </div>
       <div className="recipe-detail__topline">
         <Button asChild variant="ghost" size="sm"><Link to="/app/recipes"><ArrowLeft aria-hidden="true" />All recipes</Link></Button>
       </div>
@@ -237,8 +245,15 @@ export function RecipeDetailPage() {
         </div>
       </section>
 
+      <nav className="recipe-mobile-quick-actions" aria-label="Recipe shortcuts">
+        <Link to={`/app/recipes/${recipe.id}/edit`}><Pencil aria-hidden="true" /><span>Edit</span></Link>
+        <Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}><CalendarPlus aria-hidden="true" /><span>Plan</span></Link>
+        <Link to={`/app/grocery?recipe=${encodeURIComponent(recipe.id)}`}><ShoppingBasket aria-hidden="true" /><span>Shop</span></Link>
+        <a className="recipe-mobile-quick-action" href="#nutrition" aria-label="Open nutrition details" onClick={(event) => { event.preventDefault(); setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}><Sparkles aria-hidden="true" /><span>Nutrition</span></a>
+      </nav>
+
        {savedRecipeId === recipeId ? <section className="recipe-saved-moment" role="status"><KitchenCompanion moment="success" size="sm" /><div><strong>{coverStatus === "failed" ? "Recipe saved, cover needs another try" : "Recipe saved"}</strong><p>{coverStatus === "attached" ? "Recipe and cover are ready in your kitchen." : coverStatus === "failed" ? "The recipe is safe. You can choose a different cover in Edit recipe." : "It is ready in your kitchen."}</p></div><Button asChild variant="secondary"><Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}>Plan it for dinner</Link></Button></section> : null}
-      <RecipeProcessingBanner job={latestJob} nutritionState={recipe.nutritionState} />
+      <RecipeProcessingBanner job={latestJob} nutritionState={recipe.nutritionState} reviewHref={`/app/recipes/${recipe.id}/edit#nutrition`} />
        {actionError instanceof Error ? <p className="error-text" role="alert">{actionError.message}</p> : null}
 
       <RecipeOrganizationPanel recipe={recipe} onSaved={(value) => queryClient.setQueryData(["recipe", recipeId], value)} />
@@ -248,6 +263,12 @@ export function RecipeDetailPage() {
         <button type="button" aria-pressed={mobilePanel === "method"} onClick={() => setMobilePanel("method")}>Method <span>{recipe.instructions.length}</span></button>
         <button type="button" aria-pressed={mobilePanel === "nutrition"} onClick={() => { setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}>Nutrition</button>
       </nav>
+
+      <div className="recipe-mobile-serving-control" aria-label="Recipe servings">
+        <button type="button" aria-label="Decrease servings" disabled={scale <= 0.25} onClick={() => setScale((value) => Math.max(0.25, value - 0.5))}>−</button>
+        <strong>{Number.isInteger(scale) ? scale : scale.toFixed(1)} {recipe.yieldUnit}</strong>
+        <button type="button" aria-label="Increase servings" onClick={() => setScale((value) => value + 0.5)}>+</button>
+      </div>
 
       <div className="recipe-detail__nutrition-summary">
         <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
