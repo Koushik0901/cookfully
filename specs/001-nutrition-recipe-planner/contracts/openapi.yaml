@@ -2245,28 +2245,28 @@ components:
       required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG]
       properties:
         displayName: { type: string, minLength: 1, maxLength: 500 }
-        brand: { type: string }
+        brand: { type: string, maxLength: 240 }
         caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
         proteinG: { $ref: "#/components/schemas/Decimal6" }
         carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
         fatG: { $ref: "#/components/schemas/Decimal6" }
         basisGrams: { $ref: "#/components/schemas/Decimal6" }
         typicalServingG: { $ref: "#/components/schemas/Decimal6" }
-        typicalServingUnit: { type: string }
+        typicalServingUnit: { type: string, maxLength: 20 }
     OwnerFoodUpdateRequest:
       type: object
       additionalProperties: false
       required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG, expectedVersion]
       properties:
         displayName: { type: string, minLength: 1, maxLength: 500 }
-        brand: { type: string }
+        brand: { type: string, maxLength: 240 }
         caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
         proteinG: { $ref: "#/components/schemas/Decimal6" }
         carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
         fatG: { $ref: "#/components/schemas/Decimal6" }
         basisGrams: { $ref: "#/components/schemas/Decimal6" }
         typicalServingG: { $ref: "#/components/schemas/Decimal6" }
-        typicalServingUnit: { type: string }
+        typicalServingUnit: { type: string, maxLength: 20 }
         expectedVersion: { type: integer, minimum: 1 }
     OwnerFoodSelectionRequest:
       type: object
