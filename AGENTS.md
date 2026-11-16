@@ -61,6 +61,11 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Stricter static checks** — ruff now also enforces security/async/simplification/performance/return/
+  pytest rules (use `require_present()` instead of `assert` in `src`; log instead of `except: pass`), ESLint
+  enforces `jsx-a11y` and promise-handling rules (mark intentional fire-and-forget with `void`; justify any
+  `eslint-disable` inline), the unit job reports changed-line frontend coverage, and `lefthook.yml` provides
+  optional pre-commit/pre-push hooks. See `docs/ci.md`.
 - **CI and coverage overhaul** — Backend and frontend workflows split into parallel jobs with
   concurrency control and timeouts; CI uses the `vchord-postgres` image the tests need; coverage is a
   ratchet (`fail_under`, Vitest thresholds) plus a 85% changed-lines gate; production-only dependency

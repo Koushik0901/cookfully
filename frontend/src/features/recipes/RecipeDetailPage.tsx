@@ -153,7 +153,7 @@ export function RecipeDetailPage() {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: ["recipe", recipeId], exact: true });
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      navigate("/app/recipes", { replace: true });
+      void navigate("/app/recipes", { replace: true });
     },
   });
 

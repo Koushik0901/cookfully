@@ -71,6 +71,30 @@ not a cost of doing business. What keeps them fast without dropping coverage of 
   change (`diff-cover`), so a growing codebase cannot dilute its own coverage.
 - Reports are uploaded as artifacts (`backend-coverage`, `frontend-coverage`) and summarised on the run page.
 
+## Static checks
+
+Lint rules are chosen to catch bugs, not to enforce taste:
+
+- **Backend (ruff):** besides the default correctness and style rules, `S` (security: injection, weak
+  crypto, swallowed exceptions), `ASYNC` (blocking calls in async code), `SIM`, `PERF`, `RET` and `PT`
+  (pytest style). `assert` is allowed in tests only; in `src` use `require_present()` from
+  `cookfully.domain.common`, which still fails under `python -O`. Catch-and-ignore must log.
+- **Frontend (ESLint):** `jsx-a11y` (labels, focusable interactive elements, alt text) and
+  `no-floating-promises` / `no-misused-promises`. Mark deliberate fire-and-forget with `void`. A rule may be
+  disabled on one line only with a reason (`// eslint-disable-next-line rule -- why`).
+- **Changed lines, frontend:** the unit job reports how much of the changed frontend code Vitest covers
+  (`diff-cover`, 85%). It warns instead of failing because Playwright-only coverage is not counted;
+  flip `FRONTEND_DIFF_COVERAGE_BLOCKING` in `frontend.yml` to make it a gate.
+
+### Local hooks (optional)
+
+`lefthook.yml` runs the quick checks on staged files before a commit and the unit tests before a push:
+
+```text
+pnpm --dir frontend install
+pnpm --dir frontend exec lefthook install      # once per clone
+```
+
 ## Dependency vulnerabilities
 
 Advisories change daily, so they must not block unrelated work. Only *production* dependencies gate a
