@@ -111,7 +111,7 @@ export function AgentAccessPage({ embedded = false }: { embedded?: boolean }) {
       {notice ? <p className="notice" role="status">{notice}</p> : null}
 
       {oneTimeToken ? (
-        <section className="one-time-secret" role="region" aria-label="One-time token secret">
+        <section className="one-time-secret" aria-label="One-time token secret">
           <div>
             <p className="eyebrow">Store this now</p>
             <h2>One-time token secret</h2>

@@ -442,9 +442,8 @@ def _apply_items(
         text = item.text.strip()
         if item.action == "keep" and text != original:
             return None
-        if item.action == "normalize":
-            if not text or _tokens(text) != _tokens(original):
-                return None
+        if item.action == "normalize" and (not text or _tokens(text) != _tokens(original)):
+            return None
         if item.action == "merge":
             if (
                 item.merge_into is None

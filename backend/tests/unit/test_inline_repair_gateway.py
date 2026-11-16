@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from cookfully.application.inline_repair import (  # noqa: F401
     InlineRepairGateway,
@@ -65,5 +66,5 @@ def test_unit_literal_enforced():
 
     # valid
     IngredientRowSchema(quantity=1.5, unit="g")
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(ValidationError):
         IngredientRowSchema(quantity=1.5, unit="grm")  # Literal rejects

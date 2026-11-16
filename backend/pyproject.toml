@@ -88,7 +88,7 @@ relative_files = true
 # A ratchet, not an aspiration: keep this just under the measured total so coverage cannot
 # silently regress, and raise it whenever the measured number rises. New and changed lines are
 # held to a higher bar per pull request by diff-cover (see .github/workflows/backend.yml).
-fail_under = 79
+fail_under = 80
 show_missing = true
 skip_covered = true
 exclude_also = [
@@ -105,8 +105,23 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "PTH", "RUF"]
-ignore = ["A005"]
+select = [
+  "E", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "PTH", "RUF",
+  "S",     # security: injection, weak hashing, hard-coded secrets, bare except/pass
+  "ASYNC", # blocking calls inside async code
+  "SIM",   # simplifications that remove branches
+  "PERF",  # avoidable work in loops
+  "RET",   # inconsistent or unreachable returns
+  "PT",    # pytest style: fixtures, parametrize, raises
+]
+ignore = [
+  "A005",
+  "PT018", # "split this assert": a style preference that would only add noise
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use bare `assert` by design and carry fixture credentials.
+"tests/**" = ["S101", "S105", "S106"]
 
 [tool.ruff.format]
 quote-style = "double"

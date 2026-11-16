@@ -211,6 +211,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                     onChange={(event) => setFoodSearch(event.currentTarget.value)}
                     onClear={() => setFoodSearch("")}
                     placeholder="Search foods by name"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open
                     autoFocus
                   />
                   <div className="food-picker__results-heading">
@@ -397,6 +398,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
           </header>
           <form className="pantry-dialog__form" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
             <Field label="Food name" hint="Use the name you would put on a shopping list.">
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open */}
               <input className="input" value={draft.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setDraft((value) => ({ ...value, displayName })); }} placeholder="Brown rice" autoFocus />
             </Field>
             <div className="pantry-dialog__quantity">

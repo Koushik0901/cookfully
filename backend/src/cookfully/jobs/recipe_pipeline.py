@@ -26,7 +26,14 @@ from cookfully.application.recipes import (
     SectionWrite,
     recipe_input_hash,
 )
-from cookfully.domain.common import NUTRIENT_SCALE, DomainError, quantize_decimal, utc_now, uuid7
+from cookfully.domain.common import (
+    NUTRIENT_SCALE,
+    DomainError,
+    quantize_decimal,
+    require_present,
+    utc_now,
+    uuid7,
+)
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
@@ -565,7 +572,7 @@ class RecipePipeline:
                             )
                     job.progress_current = position
                     continue
-                assert match is not None
+                match = require_present(match, "ingredient match")
                 if match.owner_food_id is not None:
                     owner_food = session.get(OwnerFood, match.owner_food_id)
                     if owner_food is None:
@@ -721,8 +728,7 @@ class RecipePipeline:
 
     @staticmethod
     def _recipe_for_job(session: Session, job: ProcessingJob) -> Recipe:
-        recipe = RecipeRepository(session).get(job.aggregate_id, for_update=True)
-        return recipe
+        return RecipeRepository(session).get(job.aggregate_id, for_update=True)
 
     @staticmethod
     def _require_input(job: ProcessingJob, recipe: Recipe) -> None:

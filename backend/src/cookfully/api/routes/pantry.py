@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import date
 from decimal import Decimal
 from typing import Annotated
@@ -24,6 +25,8 @@ from cookfully.application.pantry_deductions import PantryDeductionService
 from cookfully.application.pantry_search import PantrySearchService
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Pantry"])
 
@@ -165,7 +168,7 @@ async def create_pantry_item(
                                 if isinstance(vals, list) and len(vals) == 0:
                                     is_empty = True
                         except Exception:
-                            pass
+                            logger.debug("ignoring unreadable first-window response", exc_info=True)
                     if is_empty:
                         elapsed = _time.perf_counter() - t0
                         remaining = gw._timeout - elapsed
@@ -189,9 +192,9 @@ async def create_pantry_item(
                                 if resp2 is not None and gw._gate(resp2):
                                     resp = resp2
                             except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                                pass
+                                logger.debug("second-window pantry parse timed out")
                             except Exception:
-                                pass
+                                logger.warning("second-window pantry parse failed", exc_info=True)
                 if resp is not None and gw._gate(resp):
                     try:
                         parsed = PantryExtractSchema.model_validate(
@@ -231,10 +234,12 @@ async def create_pantry_item(
                                 },
                             )
                         except Exception:
-                            pass
+                            # The items are already created; only the replay record is lost.
+                            logger.warning("could not store the idempotent response", exc_info=True)
                         return bulk
         except Exception:
-            pass
+            # Optional assistant-assisted parsing: fall back to creating a single item.
+            logger.warning("assisted bulk pantry parse failed; creating one item", exc_info=True)
     try:
         result = service.create(
             owner.id,

@@ -83,5 +83,4 @@ def update_recipe_import_settings(
         value.openrouter_fallback_enabled = payload.openrouter_fallback_enabled
         value.version += 1
         session.flush()
-        response = _response(value, request.app.state.settings)
-    return response
+        return _response(value, request.app.state.settings)

@@ -19,17 +19,17 @@ def test_valid_partial_rect_accepted() -> None:
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    ("kwargs", "message"),
     [
-        {"x": Decimal("-0.1")},
-        {"y": Decimal("1.1")},
-        {"width": Decimal("0")},
-        {"width": Decimal("1.2")},
-        {"height": Decimal("0")},
-        {"x": Decimal("0.75"), "width": Decimal("0.5")},
-        {"y": Decimal("0.75"), "height": Decimal("0.5")},
+        ({"x": Decimal("-0.1")}, "x must be between 0 and 1"),
+        ({"y": Decimal("1.1")}, "y must be between 0 and 1"),
+        ({"width": Decimal("0")}, "width must be between 0 and 1"),
+        ({"width": Decimal("1.2")}, "width must be between 0 and 1"),
+        ({"height": Decimal("0")}, "height must be between 0 and 1"),
+        ({"x": Decimal("0.75"), "width": Decimal("0.5")}, "past the right edge"),
+        ({"y": Decimal("0.75"), "height": Decimal("0.5")}, "past the bottom edge"),
     ],
 )
-def test_invalid_values_rejected(kwargs: dict) -> None:
-    with pytest.raises(ValueError):
+def test_invalid_values_rejected(kwargs: dict, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
         ThumbnailCrop(**kwargs)

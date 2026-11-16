@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from cookfully.api.main import create_app
+from cookfully.api.routes import foods as foods_routes
 from cookfully.infrastructure.config import Settings
+from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 
 
 def recipe_payload(title: str = "Training bowl", servings: str = "2.000") -> dict[str, object]:
@@ -673,3 +679,118 @@ def test_correction_recalculate_and_reset_idempotency_contract(
         assert reset_replay.status_code == 200
         assert reset_replay.json() == reset.json()
         assert client.get(f"/api/v1/recipes/{recipe_id}").json()["version"] == version_after_reset
+
+
+@pytest.fixture
+def unpopulated_semantic_index(
+    isolated_database_url: str, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """Exercise the lexical fallback used until the semantic index has been built.
+
+    The index query relies on pgvector operators that the per-test schemas cannot resolve, so the
+    lookup is stubbed to "nothing indexed", which is exactly what a fresh install returns. The
+    offline hashing embedder keeps every other lookup from trying to download the real model.
+    """
+
+    monkeypatch.setattr(foods_routes, "_indexed_candidates", lambda *args, **kwargs: [])
+    engine = create_engine(isolated_database_url)
+    try:
+        with Session(engine) as session, session.begin():
+            session.add(
+                NutritionIntelligenceSettings(
+                    id=1,
+                    backend="hashing",
+                    model_name="BAAI/bge-small-en-v1.5",
+                    model_revision=None,
+                    last_ready_at=None,
+                )
+            )
+        yield
+    finally:
+        engine.dispose()
+
+
+def _create_house_tofu(client: TestClient, headers: dict[str, str]) -> str:
+    response = client.post(
+        "/api/v1/foods/user",
+        json={
+            "displayName": "House tofu",
+            "caloriesKcal": "120",
+            "proteinG": "12",
+            "carbohydrateG": "4",
+            "fatG": "6",
+            "basisGrams": "100",
+            "typicalServingG": "100",
+            "typicalServingUnit": "gram",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    return str(response.json()["id"])
+
+
+@pytest.mark.usefixtures("unpopulated_semantic_index")
+def test_food_search_offers_the_owners_custom_foods(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        owner_food_id = _create_house_tofu(client, headers)
+
+        found = client.get("/api/v1/foods/search", params={"q": "house tofu"})
+
+        assert found.status_code == 200, found.text
+        candidates = found.json()["candidates"]
+        assert [(c["source"], c["id"], c["description"]) for c in candidates] == [
+            ("owner", owner_food_id, "House tofu")
+        ]
+
+
+@pytest.mark.usefixtures("unpopulated_semantic_index")
+def test_ingredient_candidates_offer_the_owners_custom_foods(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        created = client.post("/api/v1/recipes", json=recipe_payload(), headers=headers)
+        assert created.status_code == 201
+        recipe_id = created.json()["id"]
+        ingredient_id = client.get(f"/api/v1/recipes/{recipe_id}").json()["ingredients"][0]["id"]
+        owner_food_id = _create_house_tofu(client, headers)
+
+        found = client.get(
+            f"/api/v1/recipes/{recipe_id}/ingredients/{ingredient_id}/candidates",
+            params={"q": "house tofu"},
+        )
+
+        assert found.status_code == 200, found.text
+        candidates = found.json()["candidates"]
+        assert [(c["source"], c["id"]) for c in candidates] == [("owner", owner_food_id)]
+
+
+def test_recipe_import_settings_round_trip_and_reject_stale_versions(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        current = client.get("/api/v1/recipe-import/settings")
+        assert current.status_code == 200, current.text
+        version = current.json()["version"]
+
+        saved = client.put(
+            "/api/v1/recipe-import/settings",
+            json={"cleanupEnabled": False, "openrouterFallbackEnabled": True, "version": version},
+            headers=headers,
+        )
+        assert saved.status_code == 200, saved.text
+        assert saved.json()["cleanupEnabled"] is False
+        assert saved.json()["openrouterFallbackEnabled"] is True
+        assert saved.json()["version"] == version + 1
+
+        stale = client.put(
+            "/api/v1/recipe-import/settings",
+            json={"cleanupEnabled": True, "openrouterFallbackEnabled": False, "version": version},
+            headers=headers,
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "recipe_import_settings_stale"

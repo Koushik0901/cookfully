@@ -183,7 +183,7 @@ export function CommandPalette() {
     (to: string) => {
       setOpen(false);
       setQuery("");
-      navigate(to);
+      void navigate(to);
     },
     [navigate],
   );
@@ -253,6 +253,7 @@ export function CommandPalette() {
               <X aria-hidden="true" />
             </Dialog.Close>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus -- APG menu: the items take focus (arrow keys move between them); the container is not a tab stop */}
           <div
             ref={menuRef}
             className="command-results"

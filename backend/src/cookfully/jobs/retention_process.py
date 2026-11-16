@@ -16,7 +16,8 @@ from cookfully.jobs.retention import sweep_retention
 
 logger = logging.getLogger(__name__)
 stop_requested = Event()
-HEARTBEAT_PATH = Path("/tmp/cookfully-retention-heartbeat")
+# The compose healthcheck reads this exact path, and the container's /tmp is private to it.
+HEARTBEAT_PATH = Path("/tmp/cookfully-retention-heartbeat")  # noqa: S108
 
 
 def _stop(_: int, __: FrameType | None) -> None:

@@ -129,7 +129,7 @@ export function RecipeImportDialog({
             // The import is already accepted; onboarding persistence is best-effort.
           }
           setOpen(false);
-          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
+          if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
         } catch {
           setValidation("That page could not be imported. Check the address and try again.");
           setStep("url");
@@ -159,7 +159,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
+        if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
       }
     },
   });
@@ -181,7 +181,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url } });
+        if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url } });
       }
     },
   });
@@ -208,7 +208,7 @@ export function RecipeImportDialog({
         // The recipes already exist; onboarding persistence is optional.
       } finally {
         setOpen(false);
-        navigate("/app/recipes");
+        void navigate("/app/recipes");
       }
     },
   });
@@ -430,7 +430,7 @@ export function RecipeImportDialog({
                   ))}
                   <div className="actions">
                     <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Discard</Button>
-                    <Button type="button" variant="secondary" onClick={() => { setOpen(false); navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>
+                    <Button type="button" variant="secondary" onClick={() => { setOpen(false); void navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>
                       Open existing
                     </Button>
                     <Button type="button" onClick={() => setStep("confirm")}>Keep this import</Button>

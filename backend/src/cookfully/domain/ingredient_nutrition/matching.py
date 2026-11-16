@@ -235,9 +235,12 @@ class FoodMatcher:
         normalized = normalize_food(food.normalized_name)
         candidate_concept = profile_from_text(food.description)
         semantic_identity_bonus = Decimal(0)
-        if concept is not None and concept.canonical_identity:
-            if concept.canonical_identity == candidate_concept.canonical_identity:
-                semantic_identity_bonus = Decimal("0.150000")
+        if (
+            concept is not None
+            and concept.canonical_identity
+            and concept.canonical_identity == candidate_concept.canonical_identity
+        ):
+            semantic_identity_bonus = Decimal("0.150000")
         if query == normalized:
             return Decimal("1.000000")
         query_tokens = _tokens(query)

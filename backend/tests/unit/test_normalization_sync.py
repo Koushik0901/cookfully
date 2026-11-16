@@ -5,7 +5,7 @@ from cookfully.infrastructure.repositories.nutrition import _token_variants
 
 
 @pytest.mark.parametrize(
-    "raw,expected",
+    ("raw", "expected"),
     [
         ("  Crème-Fraîche (Light)  ", "creme fraiche light"),
         ("Bananas, raw", "bananas raw"),

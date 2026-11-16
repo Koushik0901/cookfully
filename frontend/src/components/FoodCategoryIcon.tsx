@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { ImgHTMLAttributes } from "react";
 
 export type Category =
   | "leafy-greens"
@@ -75,13 +74,15 @@ export type FoodCategoryIconProps = {
 export function FoodCategoryIcon({ name, size = "compact", className = "" }: FoodCategoryIconProps) {
   const category = categoryFor(name);
   const asset = ASSET_CATEGORIES[category];
-  const attrs: ImgHTMLAttributes<HTMLImageElement> = {
-    className: `grocery-icon grocery-icon--${category} ${SIZE_CLASS[size]} ${className}`.trim(),
-    src: `/media/grocery-icons/${asset}-64.png`,
-    srcSet: `/media/grocery-icons/${asset}-64.png 64w, /media/grocery-icons/${asset}.png 256w`,
-    sizes: size === "tile" ? "48px" : size === "row" ? "40px" : "32px",
-    alt: "",
-    "aria-hidden": true,
-  };
-  return <img {...attrs} />;
+  // Decorative: the food name is always shown next to the icon, so it has an empty alt.
+  return (
+    <img
+      className={`grocery-icon grocery-icon--${category} ${SIZE_CLASS[size]} ${className}`.trim()}
+      src={`/media/grocery-icons/${asset}-64.png`}
+      srcSet={`/media/grocery-icons/${asset}-64.png 64w, /media/grocery-icons/${asset}.png 256w`}
+      sizes={size === "tile" ? "48px" : size === "row" ? "40px" : "32px"}
+      alt=""
+      aria-hidden="true"
+    />
+  );
 }
