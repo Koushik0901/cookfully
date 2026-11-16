@@ -6,7 +6,7 @@ cancels itself when a newer push supersedes it, and has a job timeout.
 | Workflow | Jobs | Gate |
 | --- | --- | --- |
 | `backend.yml` | **Lint and types** (ruff, mypy); **Tests and coverage** (pytest against the same `vchord-postgres` and Redis images as `deploy/compose.yaml`) | total coverage ≥ `fail_under`; changed lines ≥ 85% |
-| `frontend.yml` | **Lint, types and build** plus a generated-API-client drift check; **Unit tests and coverage** (Vitest); **End-to-end** (Playwright, Chromium and WebKit) | coverage thresholds in `vite.config.ts`; every e2e assertion |
+| `frontend.yml` | **Lint, types and build** plus a generated-API-client drift check; **Unit tests and coverage** (Vitest); **End-to-end** (Playwright on Chromium, with WebKit native-select in its own job) | coverage thresholds in `vite.config.ts`; every e2e assertion |
 | `dependency-audit.yml` | `pip-audit` and `pnpm audit --prod` when a manifest changes; a daily full report | production dependencies only |
 | `containers.yml` | compose files validate; each image builds (nothing is pushed) | when `deploy/**` or a lockfile changes |
 | `publish-containers.yml` | build and push images to GHCR | release tags `v*.*.*` |

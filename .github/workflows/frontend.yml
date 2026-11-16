@@ -76,7 +76,7 @@ jobs:
           if-no-files-found: ignore
 
   e2e:
-    name: End-to-end (Playwright)
+    name: End-to-end (Chromium)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -99,14 +99,13 @@ jobs:
         id: browsers
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # Chromium for the desktop and mobile projects, WebKit for the native-select project.
-      - name: Install browsers and system libraries
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium and system libraries
         if: steps.browsers.outputs.cache-hit != 'true'
-        run: pnpm --dir frontend exec playwright install --with-deps chromium webkit
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
       - name: Install system libraries only
         if: steps.browsers.outputs.cache-hit == 'true'
-        run: pnpm --dir frontend exec playwright install-deps chromium webkit
+        run: pnpm --dir frontend exec playwright install-deps chromium
 
       # Screenshots are rendered per platform. Until Linux baselines are committed (see
       # frontend/e2e/README.md) the behavioural checks still run and gate the change; the
@@ -120,14 +119,43 @@ jobs:
             echo "ignore=1" >> "$GITHUB_OUTPUT"
             echo "::warning title=Visual baselines::No Linux screenshot baselines are committed, so pixel comparisons were skipped. Run the 'Update visual baselines' workflow."
           fi
-      - run: pnpm --dir frontend exec playwright test
+      - run: pnpm --dir frontend exec playwright test --project=desktop-chromium --project=narrow-mobile
         env:
           PLAYWRIGHT_IGNORE_SNAPSHOTS: ${{ steps.visual.outputs.ignore }}
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-chromium
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+
+  # Safari compatibility is checked on its own so a WebKit-only failure is clearly labelled
+  # and does not hide the Chromium results.
+  e2e-webkit:
+    name: End-to-end (WebKit native select)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend build
+      - run: pnpm --dir frontend exec playwright install --with-deps webkit
+      - run: pnpm --dir frontend exec playwright test --project=webkit-native-select
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-webkit
           path: |
             frontend/playwright-report
             frontend/test-results
