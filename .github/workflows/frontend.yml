@@ -60,6 +60,7 @@ jobs:
       - name: Summarise coverage
         if: always()
         run: |
+          # shellcheck disable=SC2016 # the backticks are JavaScript template literals, not shell
           [ -f frontend/coverage/coverage-summary.json ] && node -e '
             const t = require("./frontend/coverage/coverage-summary.json").total;
             const row = (k) => `| ${k} | ${t[k].pct}% | ${t[k].covered}/${t[k].total} |`;

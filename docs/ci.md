@@ -45,7 +45,7 @@ succeeded. Tag `main` after merging; a tag on a feature branch is refused.
 - Every `uses:` is pinned to a commit SHA with the version in a comment; Dependabot keeps them current.
 - Checkouts do not persist credentials (`persist-credentials: false`), except where a job must push.
 - Untrusted values (branch names, PR text) are passed through `env:`, never interpolated into scripts.
-- `zizmor` and `actionlint` run on every change; intentional exceptions live in `.github/zizmor.yml`.
+- `zizmor` and `actionlint` (with shellcheck, `uvx --with shellcheck-py --from actionlint-py actionlint` locally) run on every change; intentional exceptions live in `.github/zizmor.yml`.
 - Enable **push protection** under Settings → Code security so secrets are rejected before they land;
   the gitleaks job is the backstop for commits that get through.
 

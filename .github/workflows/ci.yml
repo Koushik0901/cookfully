@@ -105,8 +105,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
-      # Syntax, expression and shell errors in workflow files.
-      - run: uvx --from actionlint-py==1.7.12.25 actionlint
+      # Syntax, expression and shell errors in workflow files (shellcheck lints the `run:` scripts).
+      - run: uvx --with shellcheck-py==0.11.0.1 --from actionlint-py==1.7.12.25 actionlint
       # Unpinned actions, credential leaks, template injection, excessive permissions.
       - run: uvx zizmor@1.32.0 --format github .github/workflows
         env:
@@ -156,7 +156,7 @@ jobs:
             | { echo "| Check | Result |"; echo "| --- | --- |"; cat; } >> "$GITHUB_STEP_SUMMARY"
           bad=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
           if [ -n "$bad" ]; then
-            echo "::error::Not passing: $(echo $bad)"
+            echo "::error::Not passing: $(echo "$bad" | tr '\n' ' ')"
             exit 1
           fi
       # Pull-request checks should finish in about 6 minutes (see docs/ci.md). Warn, never block,
