@@ -23,6 +23,10 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173",
     // Dates and times render the same on every machine.
     timezoneId: "UTC",
+    // CI serves the production bundle, which registers a service worker. Requests that go
+    // through one bypass `page.route()` mocks in WebKit, so these tests would hit the real
+    // network. The offline/PWA behaviour is covered by unit tests, not by these specs.
+    serviceWorkers: "block",
     trace: "on-first-retry",
   },
   projects: [
