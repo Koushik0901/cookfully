@@ -1,0 +1,133 @@
+population=531 lines, 50 recipes
+
+== deterministic baselines ==
+  as-is           auto=  147 (27.7%) wrong_auto=19.9 (13.5% of auto) review=  384 ( 7.7/recipe)
+  fixed           auto=  193 (36.4%) wrong_auto=23.9 (12.3% of auto) review=  338 ( 6.8/recipe)
+
+== top-1 accuracy on gold food lines (weighted; 'none' counts as wrong) ==
+  as-is  top candidate : 49.6%
+  fixed  top candidate : 68.1%
+  typesafe/jev-1.14                         : 89.9%   | on review-tail lines only: model 83.9% vs fixed-top 52.2%
+  cloudflare/clef                           : 91.5%   | on review-tail lines only: model 86.7% vs fixed-top 52.2%
+  cloudflare/clef-flash                     : 90.2%   | on review-tail lines only: model 86.0% vs fixed-top 52.2%
+  liquid/d1                                 : 89.9%   | on review-tail lines only: model 83.9% vs fixed-top 52.2%
+  jaredpalmer/kev-4b                        : 86.9%   | on review-tail lines only: model 81.9% vs fixed-top 52.2%
+  perplexity/pplx-decider-flash-v1.3:free   : 91.1%   | on review-tail lines only: model 86.0% vs fixed-top 52.2%
+  openai/gpt-6-luna-decisions               : 88.7%   | on review-tail lines only: model 83.4% vs fixed-top 52.2%
+
+== typesafe/jev-1.14 ==
+  t=0.50 model_only auto=  388 (73.1%) wrong_auto= 7.1 ( 1.8% of auto) review=  143 ( 2.9/recipe)
+  t=0.70 model_only auto=  314 (59.1%) wrong_auto= 0.0 ( 0.0% of auto) review=  217 ( 4.3/recipe)
+  t=0.80 model_only auto=  278 (52.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  253 ( 5.1/recipe)
+  t=0.90 model_only auto=  238 (44.7%) wrong_auto= 0.0 ( 0.0% of auto) review=  293 ( 5.9/recipe)
+  t=0.95 model_only auto=  196 (36.9%) wrong_auto= 0.0 ( 0.0% of auto) review=  335 ( 6.7/recipe)
+  t=0.98 model_only auto=  151 (28.4%) wrong_auto= 0.0 ( 0.0% of auto) review=  380 ( 7.6/recipe)
+  t=0.80 tail_only  auto=  321 (60.5%) wrong_auto=23.9 ( 7.4% of auto) review=  210 ( 4.2/recipe)
+  t=0.90 tail_only  auto=  301 (56.6%) wrong_auto=23.9 ( 7.9% of auto) review=  230 ( 4.6/recipe)
+  t=0.95 tail_only  auto=  271 (51.0%) wrong_auto=23.9 ( 8.8% of auto) review=  260 ( 5.2/recipe)
+  t=0.80 veto       auto=  305 (57.5%) wrong_auto=11.9 ( 3.9% of auto) review=  226 ( 4.5/recipe)
+  t=0.90 veto       auto=  293 (55.1%) wrong_auto=15.9 ( 5.4% of auto) review=  238 ( 4.8/recipe)
+  t=0.95 veto       auto=  263 (49.5%) wrong_auto=15.9 ( 6.0% of auto) review=  268 ( 5.4/recipe)
+
+== cloudflare/clef ==
+  t=0.50 model_only auto=  394 (74.1%) wrong_auto=17.2 ( 4.4% of auto) review=  137 ( 2.7/recipe)
+  t=0.70 model_only auto=  285 (53.7%) wrong_auto= 0.0 ( 0.0% of auto) review=  246 ( 4.9/recipe)
+  t=0.80 model_only auto=  224 (42.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  307 ( 6.1/recipe)
+  t=0.90 model_only auto=  125 (23.6%) wrong_auto= 0.0 ( 0.0% of auto) review=  406 ( 8.1/recipe)
+  t=0.95 model_only auto=   60 (11.2%) wrong_auto= 0.0 ( 0.0% of auto) review=  471 ( 9.4/recipe)
+  t=0.98 model_only auto=    5 ( 1.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  526 (10.5/recipe)
+  t=0.80 tail_only  auto=  303 (57.1%) wrong_auto=23.9 ( 7.9% of auto) review=  228 ( 4.6/recipe)
+  t=0.90 tail_only  auto=  232 (43.6%) wrong_auto=23.9 (10.3% of auto) review=  299 ( 6.0/recipe)
+  t=0.95 tail_only  auto=  205 (38.7%) wrong_auto=23.9 (11.6% of auto) review=  326 ( 6.5/recipe)
+  t=0.80 veto       auto=  303 (57.1%) wrong_auto=23.9 ( 7.9% of auto) review=  228 ( 4.6/recipe)
+  t=0.90 veto       auto=  232 (43.6%) wrong_auto=23.9 (10.3% of auto) review=  299 ( 6.0/recipe)
+  t=0.95 veto       auto=  205 (38.7%) wrong_auto=23.9 (11.6% of auto) review=  326 ( 6.5/recipe)
+
+== cloudflare/clef-flash ==
+  t=0.50 model_only auto=  393 (73.9%) wrong_auto=36.6 ( 9.3% of auto) review=  138 ( 2.8/recipe)
+  t=0.70 model_only auto=  278 (52.4%) wrong_auto=22.4 ( 8.0% of auto) review=  253 ( 5.1/recipe)
+  t=0.80 model_only auto=  222 (41.9%) wrong_auto=14.1 ( 6.3% of auto) review=  309 ( 6.2/recipe)
+  t=0.90 model_only auto=   83 (15.7%) wrong_auto= 0.0 ( 0.0% of auto) review=  448 ( 9.0/recipe)
+  t=0.95 model_only auto=   12 ( 2.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  519 (10.4/recipe)
+  t=0.98 model_only auto=    5 ( 1.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  526 (10.5/recipe)
+  t=0.80 tail_only  auto=  309 (58.2%) wrong_auto=34.0 (11.0% of auto) review=  222 ( 4.4/recipe)
+  t=0.90 tail_only  auto=  222 (41.7%) wrong_auto=23.9 (10.8% of auto) review=  309 ( 6.2/recipe)
+  t=0.95 tail_only  auto=  202 (38.0%) wrong_auto=23.9 (11.8% of auto) review=  329 ( 6.6/recipe)
+  t=0.80 veto       auto=  305 (57.5%) wrong_auto=30.0 ( 9.8% of auto) review=  226 ( 4.5/recipe)
+  t=0.90 veto       auto=  222 (41.7%) wrong_auto=23.9 (10.8% of auto) review=  309 ( 6.2/recipe)
+  t=0.95 veto       auto=  202 (38.0%) wrong_auto=23.9 (11.8% of auto) review=  329 ( 6.6/recipe)
+
+== liquid/d1 ==
+  t=0.50 model_only auto=  361 (68.1%) wrong_auto= 5.8 ( 1.6% of auto) review=  170 ( 3.4/recipe)
+  t=0.70 model_only auto=  251 (47.3%) wrong_auto= 4.0 ( 1.6% of auto) review=  280 ( 5.6/recipe)
+  t=0.80 model_only auto=  203 (38.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  328 ( 6.6/recipe)
+  t=0.90 model_only auto=  182 (34.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  349 ( 7.0/recipe)
+  t=0.95 model_only auto=  136 (25.7%) wrong_auto= 0.0 ( 0.0% of auto) review=  395 ( 7.9/recipe)
+  t=0.98 model_only auto=   97 (18.2%) wrong_auto= 0.0 ( 0.0% of auto) review=  434 ( 8.7/recipe)
+  t=0.80 tail_only  auto=  271 (50.9%) wrong_auto=23.9 ( 8.8% of auto) review=  260 ( 5.2/recipe)
+  t=0.90 tail_only  auto=  261 (49.2%) wrong_auto=23.9 ( 9.1% of auto) review=  270 ( 5.4/recipe)
+  t=0.95 tail_only  auto=  239 (45.1%) wrong_auto=23.9 (10.0% of auto) review=  292 ( 5.8/recipe)
+  t=0.80 veto       auto=  263 (49.4%) wrong_auto=19.9 ( 7.6% of auto) review=  268 ( 5.4/recipe)
+  t=0.90 veto       auto=  258 (48.5%) wrong_auto=19.9 ( 7.7% of auto) review=  273 ( 5.5/recipe)
+  t=0.95 veto       auto=  235 (44.3%) wrong_auto=19.9 ( 8.4% of auto) review=  296 ( 5.9/recipe)
+
+== jaredpalmer/kev-4b ==
+  t=0.50 model_only auto=  293 (55.2%) wrong_auto=10.1 ( 3.4% of auto) review=  238 ( 4.8/recipe)
+  t=0.70 model_only auto=  178 (33.6%) wrong_auto= 0.0 ( 0.0% of auto) review=  353 ( 7.1/recipe)
+  t=0.80 model_only auto=  134 (25.3%) wrong_auto= 0.0 ( 0.0% of auto) review=  397 ( 7.9/recipe)
+  t=0.90 model_only auto=   40 ( 7.5%) wrong_auto= 0.0 ( 0.0% of auto) review=  491 ( 9.8/recipe)
+  t=0.95 model_only auto=    0 ( 0.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  531 (10.6/recipe)
+  t=0.98 model_only auto=    0 ( 0.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  531 (10.6/recipe)
+  t=0.80 tail_only  auto=  241 (45.4%) wrong_auto=23.9 ( 9.9% of auto) review=  290 ( 5.8/recipe)
+  t=0.90 tail_only  auto=  205 (38.7%) wrong_auto=23.9 (11.6% of auto) review=  326 ( 6.5/recipe)
+  t=0.95 tail_only  auto=  193 (36.4%) wrong_auto=23.9 (12.3% of auto) review=  338 ( 6.8/recipe)
+  t=0.80 veto       auto=  241 (45.4%) wrong_auto=23.9 ( 9.9% of auto) review=  290 ( 5.8/recipe)
+  t=0.90 veto       auto=  205 (38.7%) wrong_auto=23.9 (11.6% of auto) review=  326 ( 6.5/recipe)
+  t=0.95 veto       auto=  193 (36.4%) wrong_auto=23.9 (12.3% of auto) review=  338 ( 6.8/recipe)
+
+== perplexity/pplx-decider-flash-v1.3:free ==
+  t=0.50 model_only auto=  392 (73.9%) wrong_auto=14.1 ( 3.6% of auto) review=  139 ( 2.8/recipe)
+  t=0.70 model_only auto=  317 (59.7%) wrong_auto= 3.1 ( 1.0% of auto) review=  214 ( 4.3/recipe)
+  t=0.80 model_only auto=  269 (50.6%) wrong_auto= 3.1 ( 1.1% of auto) review=  262 ( 5.2/recipe)
+  t=0.90 model_only auto=  218 (41.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  313 ( 6.3/recipe)
+  t=0.95 model_only auto=  151 (28.4%) wrong_auto= 0.0 ( 0.0% of auto) review=  380 ( 7.6/recipe)
+  t=0.98 model_only auto=   81 (15.2%) wrong_auto= 0.0 ( 0.0% of auto) review=  450 ( 9.0/recipe)
+  t=0.80 tail_only  auto=  324 (61.0%) wrong_auto=26.9 ( 8.3% of auto) review=  207 ( 4.1/recipe)
+  t=0.90 tail_only  auto=  289 (54.4%) wrong_auto=23.9 ( 8.3% of auto) review=  242 ( 4.8/recipe)
+  t=0.95 tail_only  auto=  249 (46.9%) wrong_auto=23.9 ( 9.6% of auto) review=  282 ( 5.6/recipe)
+  t=0.80 veto       auto=  316 (59.5%) wrong_auto=19.0 ( 6.0% of auto) review=  215 ( 4.3/recipe)
+  t=0.90 veto       auto=  281 (52.9%) wrong_auto=15.9 ( 5.7% of auto) review=  250 ( 5.0/recipe)
+  t=0.95 veto       auto=  249 (46.9%) wrong_auto=23.9 ( 9.6% of auto) review=  282 ( 5.6/recipe)
+
+== openai/gpt-6-luna-decisions ==
+  t=0.50 model_only auto=  379 (71.4%) wrong_auto= 0.0 ( 0.0% of auto) review=  152 ( 3.0/recipe)
+  t=0.70 model_only auto=  337 (63.4%) wrong_auto= 0.0 ( 0.0% of auto) review=  194 ( 3.9/recipe)
+  t=0.80 model_only auto=  298 (56.0%) wrong_auto= 0.0 ( 0.0% of auto) review=  233 ( 4.7/recipe)
+  t=0.90 model_only auto=  260 (49.1%) wrong_auto= 0.0 ( 0.0% of auto) review=  271 ( 5.4/recipe)
+  t=0.95 model_only auto=  232 (43.7%) wrong_auto= 0.0 ( 0.0% of auto) review=  299 ( 6.0/recipe)
+  t=0.98 model_only auto=  189 (35.6%) wrong_auto= 0.0 ( 0.0% of auto) review=  342 ( 6.8/recipe)
+  t=0.80 tail_only  auto=  325 (61.3%) wrong_auto=23.9 ( 7.3% of auto) review=  206 ( 4.1/recipe)
+  t=0.90 tail_only  auto=  304 (57.2%) wrong_auto=23.9 ( 7.8% of auto) review=  227 ( 4.5/recipe)
+  t=0.95 tail_only  auto=  287 (54.1%) wrong_auto=23.9 ( 8.3% of auto) review=  244 ( 4.9/recipe)
+  t=0.80 veto       auto=  309 (58.3%) wrong_auto=11.9 ( 3.9% of auto) review=  222 ( 4.4/recipe)
+  t=0.90 veto       auto=  288 (54.2%) wrong_auto=11.9 ( 4.1% of auto) review=  243 ( 4.9/recipe)
+  t=0.95 veto       auto=  275 (51.8%) wrong_auto=15.9 ( 5.8% of auto) review=  256 ( 5.1/recipe)
+
+== calibration: P(top option correct) by confidence bin (weighted) ==
+  typesafe/jev-1.14                          ECE=0.100 | 0.00-0.50: 83% (n=21) | 0.50-0.80: 94% (n=110) | 0.80-0.90: 100% (n=40) | 0.90-0.95: 100% (n=42) | 0.95-0.99: 100% (n=60) | 0.99-1.00: 100% (n=136)
+  cloudflare/clef                            ECE=0.142 | 0.00-0.50: 81% (n=36) | 0.50-0.80: 90% (n=169) | 0.80-0.90: 100% (n=99) | 0.90-0.95: 100% (n=66) | 0.95-0.99: 100% (n=60) | 0.99-1.00: -
+  cloudflare/clef-flash                      ECE=0.129 | 0.00-0.50: 78% (n=56) | 0.50-0.80: 87% (n=170) | 0.80-0.90: 90% (n=139) | 0.90-0.95: 100% (n=71) | 0.95-0.99: 100% (n=12) | 0.99-1.00: -
+  liquid/d1                                  ECE=0.150 | 0.00-0.50: 96% (n=45) | 0.50-0.80: 96% (n=158) | 0.80-0.90: 100% (n=21) | 0.90-0.95: 100% (n=46) | 0.95-0.99: 100% (n=60) | 0.99-1.00: 100% (n=76)
+  jaredpalmer/kev-4b                         ECE=0.228 | 0.00-0.50: 93% (n=110) | 0.50-0.80: 94% (n=159) | 0.80-0.90: 100% (n=95) | 0.90-0.95: 100% (n=40) | 0.95-0.99: - | 0.99-1.00: -
+  perplexity/pplx-decider-flash-v1.3:free    ECE=0.097 | 0.00-0.50: 69% (n=37) | 0.50-0.80: 91% (n=123) | 0.80-0.90: 94% (n=51) | 0.90-0.95: 100% (n=67) | 0.95-0.99: 100% (n=97) | 0.99-1.00: 100% (n=53)
+  openai/gpt-6-luna-decisions                ECE=0.076 | 0.00-0.50: 49% (n=29) | 0.50-0.80: 100% (n=82) | 0.80-0.90: 100% (n=37) | 0.90-0.95: 100% (n=29) | 0.95-0.99: 100% (n=59) | 0.99-1.00: 100% (n=173)
+
+== is_food_ingredient (noul) on the labelled sample ==
+  positives (not a single food line): 15 | negatives (real foods): 125
+  typesafe/jev-1.14                          AUROC=0.985 | flag@0.5: recall 14/15, false-flags 0/125 | flag@0.8: recall 14/15, false-flags 0/125 | flag@0.9: recall 12/15, false-flags 0/125
+  cloudflare/clef                            AUROC=0.946 | flag@0.5: recall 14/15, false-flags 2/125 | flag@0.8: recall 13/15, false-flags 0/125 | flag@0.9: recall 11/15, false-flags 0/125
+  cloudflare/clef-flash                      AUROC=0.984 | flag@0.5: recall 14/15, false-flags 0/125 | flag@0.8: recall 12/15, false-flags 0/125 | flag@0.9: recall 12/15, false-flags 0/125
+  liquid/d1                                  AUROC=0.981 | flag@0.5: recall 14/15, false-flags 0/125 | flag@0.8: recall 14/15, false-flags 0/125 | flag@0.9: recall 14/15, false-flags 0/125
+  jaredpalmer/kev-4b                         AUROC=0.976 | flag@0.5: recall 13/15, false-flags 0/125 | flag@0.8: recall 6/15, false-flags 0/125 | flag@0.9: recall 3/15, false-flags 0/125
+  perplexity/pplx-decider-flash-v1.3:free    AUROC=0.986 | flag@0.5: recall 14/15, false-flags 0/125 | flag@0.8: recall 13/15, false-flags 0/125 | flag@0.9: recall 12/15, false-flags 0/125
+  openai/gpt-6-luna-decisions                AUROC=0.963 | flag@0.5: recall 12/15, false-flags 2/125 | flag@0.8: recall 12/15, false-flags 0/125 | flag@0.9: recall 12/15, false-flags 0/125

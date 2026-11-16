@@ -1,0 +1,1200 @@
+{
+ "106": {
+  "acceptable": [
+   "748608",
+   "1750351",
+   "171413"
+  ],
+  "best": "748608",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "111": {
+  "acceptable": [
+   "170931"
+  ],
+  "best": "170931",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "113": {
+  "acceptable": [
+   "171430"
+  ],
+  "best": "171430",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "114": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "tie"
+ },
+ "120": {
+  "acceptable": [
+   "170931"
+  ],
+  "best": "170931",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "121": {
+  "acceptable": [
+   "172458"
+  ],
+  "best": "172458",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "127": {
+  "acceptable": [
+   "169231"
+  ],
+  "best": "169231",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "134": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "amb_other"
+ },
+ "143": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ },
+ "153": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "unmatched"
+ },
+ "156": {
+  "acceptable": [
+   "169761",
+   "168913",
+   "790146",
+   "168896"
+  ],
+  "best": "790146",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "159": {
+  "acceptable": [
+   "748608",
+   "171413",
+   "1750351"
+  ],
+  "best": "171413",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "169": {
+  "acceptable": [
+   "1750351",
+   "748608",
+   "171413"
+  ],
+  "best": "171413",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "175": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "amb_other"
+ },
+ "183": {
+  "acceptable": [
+   "333281",
+   "170501"
+  ],
+  "best": "333281",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "188": {
+  "acceptable": [
+   "171016"
+  ],
+  "best": "171016",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "19": {
+  "acceptable": [
+   "170187",
+   "2346394"
+  ],
+  "best": "2346394",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "192": {
+  "acceptable": [
+   "169640"
+  ],
+  "best": "169640",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "193": {
+  "acceptable": [
+   "174277",
+   "174278",
+   "174279"
+  ],
+  "best": "174277",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "194": {
+  "acceptable": [
+   "171186",
+   "171187",
+   "171188"
+  ],
+  "best": "171186",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "197": {
+  "acceptable": [
+   "170393",
+   "2258586",
+   "168568"
+  ],
+  "best": "170393",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "198": {
+  "acceptable": [
+   "170005"
+  ],
+  "best": "170005",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "20": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "recovered"
+ },
+ "204": {
+  "acceptable": [
+   "171329"
+  ],
+  "best": "171329",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "205": {
+  "acceptable": [
+   "172884"
+  ],
+  "best": "172884",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "218": {
+  "acceptable": [
+   "174845",
+   "174110",
+   "174843",
+   "173198",
+   "174837",
+   "174849",
+   "173196",
+   "173200"
+  ],
+  "best": "174837",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "222": {
+  "acceptable": [
+   "171077",
+   "2646170",
+   "171509"
+  ],
+  "best": "2646170",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "224": {
+  "acceptable": [
+   "168874"
+  ],
+  "best": "168874",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "227": {
+  "acceptable": [
+   "172421"
+  ],
+  "best": "172421",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "23": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ },
+ "230": {
+  "acceptable": [
+   "170005"
+  ],
+  "best": "170005",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "234": {
+  "acceptable": [
+   "170923"
+  ],
+  "best": "170923",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "235": {
+  "acceptable": [
+   "169997"
+  ],
+  "best": "169997",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "236": {
+  "acceptable": [
+   "748967",
+   "171287",
+   "172186"
+  ],
+  "best": "171287",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "237": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "unmatched"
+ },
+ "238": {
+  "acceptable": [
+   "790577",
+   "170000"
+  ],
+  "best": "790577",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "240": {
+  "acceptable": [
+   "172688"
+  ],
+  "best": "172688",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "242": {
+  "acceptable": [
+   "1750351",
+   "171413",
+   "748608"
+  ],
+  "best": "171413",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "243": {
+  "acceptable": [
+   "1104962",
+   "170000",
+   "170008",
+   "790577",
+   "790646"
+  ],
+  "best": "170000",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "254": {
+  "acceptable": [
+   "2647437",
+   "171284",
+   "170887",
+   "170886"
+  ],
+  "best": "170886",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "267": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "amb_other"
+ },
+ "270": {
+  "acceptable": [
+   "172431",
+   "172433"
+  ],
+  "best": "172431",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "272": {
+  "acceptable": [
+   "169712"
+  ],
+  "best": "169712",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "274": {
+  "acceptable": [
+   "2346404",
+   "168482"
+  ],
+  "best": "168482",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "279": {
+  "acceptable": [
+   "169231"
+  ],
+  "best": "169231",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "28": {
+  "acceptable": [
+   "2261420",
+   "170567"
+  ],
+  "best": "2261420",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "280": {
+  "acceptable": [
+   "170497"
+  ],
+  "best": "170497",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "284": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "unmatched"
+ },
+ "286": {
+  "acceptable": [
+   "173800",
+   "2644288"
+  ],
+  "best": "173800",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "298": {
+  "acceptable": [
+   "169134"
+  ],
+  "best": "169134",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "299": {
+  "acceptable": [
+   "169997"
+  ],
+  "best": "169997",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "30": {
+  "acceptable": [
+   "2346395",
+   "170182",
+   "170183"
+  ],
+  "best": "170182",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "300": {
+  "acceptable": [
+   "1750351",
+   "171413",
+   "748608"
+  ],
+  "best": "748608",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "303": {
+  "acceptable": [
+   "790646",
+   "170008",
+   "170000",
+   "1104962",
+   "790577"
+  ],
+  "best": "170000",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "311": {
+  "acceptable": [
+   "170917"
+  ],
+  "best": "170917",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "317": {
+  "acceptable": [
+   "2261421",
+   "169741"
+  ],
+  "best": "2261421",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "322": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "unmatched"
+ },
+ "323": {
+  "acceptable": [
+   "169761",
+   "790085"
+  ],
+  "best": "169761",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "33": {
+  "acceptable": [
+   "171320"
+  ],
+  "best": "171320",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "337": {
+  "acceptable": [
+   "170005"
+  ],
+  "best": "170005",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "339": {
+  "acceptable": [
+   "171444",
+   "173594",
+   "171037",
+   "171002"
+  ],
+  "best": "173594",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "342": {
+  "acceptable": [
+   "173709",
+   "334194",
+   "171986"
+  ],
+  "best": "173709",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "343": {
+  "acceptable": [
+   "169988"
+  ],
+  "best": "169988",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "35": {
+  "acceptable": [
+   "170926"
+  ],
+  "best": "170926",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "350": {
+  "acceptable": [
+   "1104647"
+  ],
+  "best": "1104647",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "355": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ },
+ "358": {
+  "acceptable": [
+   "169988"
+  ],
+  "best": "169988",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "36": {
+  "acceptable": [
+   "173468",
+   "746775"
+  ],
+  "best": "173468",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "360": {
+  "acceptable": [
+   "171609",
+   "174536",
+   "172888"
+  ],
+  "best": "174536",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "361": {
+  "acceptable": [
+   "326698"
+  ],
+  "best": "326698",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "362": {
+  "acceptable": [
+   "173468"
+  ],
+  "best": "173468",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "363": {
+  "acceptable": [
+   "170931"
+  ],
+  "best": "170931",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "364": {
+  "acceptable": [
+   "171852",
+   "174092",
+   "172666",
+   "174901",
+   "167533"
+  ],
+  "best": "167533",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "366": {
+  "acceptable": [
+   "748967",
+   "171287"
+  ],
+  "best": "171287",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "367": {
+  "acceptable": [
+   "173468"
+  ],
+  "best": "173468",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "37": {
+  "acceptable": [
+   "173474",
+   "173475"
+  ],
+  "best": "173475",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "371": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "tie"
+ },
+ "383": {
+  "acceptable": [
+   "174914",
+   "168013"
+  ],
+  "best": "174914",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "384": {
+  "acceptable": [
+   "172240"
+  ],
+  "best": "172240",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "389": {
+  "acceptable": [
+   "173420",
+   "2259796"
+  ],
+  "best": "2259796",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "395": {
+  "acceptable": [
+   "173468"
+  ],
+  "best": "173468",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "396": {
+  "acceptable": [
+   "172370",
+   "172336"
+  ],
+  "best": "172370",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "40": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "recovered"
+ },
+ "404": {
+  "acceptable": [
+   "171329"
+  ],
+  "best": "171329",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "405": {
+  "acceptable": [
+   "170938",
+   "171328"
+  ],
+  "best": "171328",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "415": {
+  "acceptable": [
+   "174279",
+   "174277",
+   "172473",
+   "174278",
+   "172474"
+  ],
+  "best": "174277",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "417": {
+  "acceptable": [
+   "172336",
+   "169867",
+   "748323"
+  ],
+  "best": "172336",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "419": {
+  "acceptable": [
+   "169231"
+  ],
+  "best": "169231",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "421": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "unmatched"
+ },
+ "428": {
+  "acceptable": [
+   "168930",
+   "169760",
+   "168882",
+   "169712",
+   "168879",
+   "168878",
+   "168880"
+  ],
+  "best": "168878",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "433": {
+  "acceptable": [
+   "171329"
+  ],
+  "best": "171329",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "435": {
+  "acceptable": [
+   "170938",
+   "171328"
+  ],
+  "best": "171328",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "439": {
+  "acceptable": [
+   "1750351",
+   "748608",
+   "171413"
+  ],
+  "best": "748608",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "44": {
+  "acceptable": [
+   "171320"
+  ],
+  "best": "171320",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "440": {
+  "acceptable": [
+   "167747",
+   "167802",
+   "167801",
+   "167748"
+  ],
+  "best": "167747",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "443": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "tie"
+ },
+ "444": {
+  "acceptable": [],
+  "best": null,
+  "kind": "multi",
+  "stratum": "amb_other"
+ },
+ "445": {
+  "acceptable": [
+   "173627"
+  ],
+  "best": "173627",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "449": {
+  "acceptable": [
+   "168879",
+   "169756",
+   "169760"
+  ],
+  "best": "169756",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "450": {
+  "acceptable": [
+   "174536",
+   "172884",
+   "171609",
+   "172888"
+  ],
+  "best": "174536",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "456": {
+  "acceptable": [
+   "173468",
+   "746775"
+  ],
+  "best": "173468",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "458": {
+  "acceptable": [
+   "171430"
+  ],
+  "best": "171430",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "46": {
+  "acceptable": [
+   "173471",
+   "172235",
+   "172236"
+  ],
+  "best": "173471",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "460": {
+  "acceptable": [
+   "2646171",
+   "173627"
+  ],
+  "best": "2646171",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "464": {
+  "acceptable": [
+   "170931"
+  ],
+  "best": "170931",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "475": {
+  "acceptable": [
+   "2259795",
+   "171247",
+   "170848",
+   "173431"
+  ],
+  "best": "171247",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "476": {
+  "acceptable": [
+   "1999632",
+   "168462",
+   "1999633"
+  ],
+  "best": "1999632",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "477": {
+  "acceptable": [
+   "2646170",
+   "2646171"
+  ],
+  "best": "2646171",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "479": {
+  "acceptable": [
+   "169231"
+  ],
+  "best": "169231",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "482": {
+  "acceptable": [
+   "169698"
+  ],
+  "best": "169698",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "484": {
+  "acceptable": [
+   "169103"
+  ],
+  "best": "169103",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "485": {
+  "acceptable": [
+   "2003597",
+   "169100",
+   "169920",
+   "169099",
+   "169102",
+   "2003591"
+  ],
+  "best": "169100",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "486": {
+  "acceptable": [
+   "169698"
+  ],
+  "best": "169698",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "489": {
+  "acceptable": [
+   "746784"
+  ],
+  "best": "746784",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "495": {
+  "acceptable": [
+   "2727585"
+  ],
+  "best": "2727585",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "496": {
+  "acceptable": [
+   "170150",
+   "170151",
+   "169412"
+  ],
+  "best": "170150",
+  "kind": "food",
+  "stratum": "amb_other"
+ },
+ "502": {
+  "acceptable": [
+   "1104647"
+  ],
+  "best": "1104647",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "517": {
+  "acceptable": [
+   "1104647"
+  ],
+  "best": "1104647",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "519": {
+  "acceptable": [
+   "170924"
+  ],
+  "best": "170924",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "52": {
+  "acceptable": [
+   "173471",
+   "172235",
+   "172236"
+  ],
+  "best": "173471",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "56": {
+  "acceptable": [
+   "170568",
+   "2346393",
+   "170567"
+  ],
+  "best": "170568",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "58": {
+  "acceptable": [
+   "2262074",
+   "168603",
+   "170155"
+  ],
+  "best": "2262074",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "59": {
+  "acceptable": [],
+  "best": null,
+  "kind": "none",
+  "stratum": "tie"
+ },
+ "62": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ },
+ "64": {
+  "acceptable": [
+   "171430"
+  ],
+  "best": "171430",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "65": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "tie"
+ },
+ "66": {
+  "acceptable": [
+   "168389",
+   "2710823"
+  ],
+  "best": "168389",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "68": {
+  "acceptable": [
+   "170016"
+  ],
+  "best": "170016",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "70": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "recovered"
+ },
+ "72": {
+  "acceptable": [
+   "173723",
+   "175175",
+   "175174"
+  ],
+  "best": "175175",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "73": {
+  "acceptable": [
+   "172183",
+   "747997",
+   "172203"
+  ],
+  "best": "172183",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "76": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "matched"
+ },
+ "79": {
+  "acceptable": [
+   "167747",
+   "167748",
+   "167802",
+   "167801"
+  ],
+  "best": "167747",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "85": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ },
+ "89": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "tie"
+ },
+ "91": {
+  "acceptable": [
+   "170931"
+  ],
+  "best": "170931",
+  "kind": "food",
+  "stratum": "matched"
+ },
+ "93": {
+  "acceptable": [
+   "171706",
+   "171707",
+   "2710824",
+   "171705"
+  ],
+  "best": "171705",
+  "kind": "food",
+  "stratum": "unmatched"
+ },
+ "95": {
+  "acceptable": [
+   "2710822",
+   "169387"
+  ],
+  "best": "169387",
+  "kind": "food",
+  "stratum": "recovered"
+ },
+ "97": {
+  "acceptable": [
+   "170287"
+  ],
+  "best": "170287",
+  "kind": "food",
+  "stratum": "tie"
+ },
+ "99": {
+  "acceptable": [],
+  "best": null,
+  "kind": "not_food",
+  "stratum": "unmatched"
+ }
+}
