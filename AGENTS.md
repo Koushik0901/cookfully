@@ -61,6 +61,11 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Test quality** — property tests (`tests/unit/test_domain_properties.py`, Hypothesis; pull requests use
+  `--hypothesis-profile=ci`) guard the domain rules, `test_process_job_dispatch.py` covers the Celery
+  dispatcher, and `scripts/coverage-ratchet.py` reports when a coverage floor can be raised. Pantry
+  deductions can no longer go negative; Alembic no longer silences the application's loggers. See
+  `docs/ci.md`.
 - **Real-stack tests** — CI boots the composed app (`deploy/compose.ci.yaml`) and runs a no-mocks browser
   test plus a Schemathesis fuzz of the OpenAPI contract; a request that crashes the API fails the change.
   Client-supplied versions are bounded by `MAX_VERSION`, and database data errors become `422 invalid_value`.

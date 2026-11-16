@@ -304,8 +304,18 @@ def apply_quantity_deduction(
     grocery: PantryQuantity,
 ) -> QuantityDeduction:
     available_in_grocery_units = convert_quantity(pantry.quantity, pantry.unit, grocery.unit)
-    grocery_amount = min(available_in_grocery_units, grocery.quantity)
-    pantry_amount = convert_quantity(grocery_amount, grocery.unit, pantry.unit)
+    pantry_held = quantize_decimal(pantry.quantity, NUTRIENT_SCALE)
+    if grocery.quantity >= available_in_grocery_units:
+        # The pantry is used up. Take exactly what it holds: converting the rounded amount back
+        # can land a hair above or below, leaving a negative or "dust" quantity behind.
+        grocery_amount = available_in_grocery_units
+        pantry_amount = pantry_held
+    else:
+        grocery_amount = grocery.quantity
+        # Rounding must never take more than the pantry has (the database forbids negatives).
+        pantry_amount = min(
+            convert_quantity(grocery_amount, grocery.unit, pantry.unit), pantry_held
+        )
     pantry_after = PantryQuantity(
         quantize_decimal(pantry.quantity - pantry_amount, NUTRIENT_SCALE),
         canonical_pantry_unit(pantry.unit),
