@@ -551,11 +551,15 @@ test("makes a focused recipe-library view easy to understand and clear", async (
   await captureUi(page, testInfo, "recipes");
   await page.getByText("Refine recipes", { exact: true }).click();
   if (testInfo.project.name !== "narrow-mobile") {
-    const sort = await page.getByLabel("Sort recipes").boundingBox();
-    const collection = await page.getByLabel("Collection", { exact: true }).boundingBox();
-    expect(sort).not.toBeNull();
-    expect(collection).not.toBeNull();
-    expect(Math.abs(sort!.y - collection!.y)).toBeLessThanOrEqual(1);
+    // The refine panel animates in, so a single pair of reads can straddle two frames. Poll until
+    // the filters settle; they must end up on the same row.
+    await expect
+      .poll(async () => {
+        const sort = await page.getByLabel("Sort recipes").boundingBox();
+        const collection = await page.getByLabel("Collection", { exact: true }).boundingBox();
+        return sort && collection ? Math.abs(sort.y - collection.y) : Number.POSITIVE_INFINITY;
+      })
+      .toBeLessThanOrEqual(1);
   }
   await captureUi(page, testInfo, "recipes-filters");
   await page.getByText("Manage collections", { exact: true }).click();
