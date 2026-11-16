@@ -46,6 +46,8 @@ export type NutritionIntelligenceSettingsWrite = NutritionIntelligenceEstimateRe
 };
 export type RecipeImportSettings = components["schemas"]["RecipeImportSettings"];
 export type RecipeImportSettingsWrite = components["schemas"]["RecipeImportSettingsWrite"];
+export type OpenRouterSettings = components["schemas"]["OpenRouterSettings"];
+export type OpenRouterSettingsWrite = components["schemas"]["OpenRouterSettingsWrite"];
 export type NutritionIntelligenceEstimate = {
   backend: NutritionBackend;
   modelName: string;

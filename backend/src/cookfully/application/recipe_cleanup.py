@@ -13,6 +13,7 @@ import json
 import logging
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Literal, Protocol
 
@@ -20,6 +21,8 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.openrouter_settings import OpenRouterConfig
+from cookfully.application.openrouter_settings import load_config as load_openrouter_config
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
@@ -241,11 +244,21 @@ class RecipeCleanupService:
         remote: RecipeCleanupProvider | None,
         *,
         total_deadline_seconds: float = 60.0,
+        remote_factory: Callable[[OpenRouterConfig], RecipeCleanupProvider | None] | None = None,
     ) -> None:
         self._sessions = sessions
         self._local = local
         self._remote = remote
+        self._remote_factory = remote_factory
         self._deadline = total_deadline_seconds
+
+    def _remote_provider(self) -> RecipeCleanupProvider | None:
+        """The owner's OpenRouter settings are read per import so UI changes apply at once."""
+
+        if self._remote_factory is None:
+            return self._remote
+        with self._sessions() as session:
+            return self._remote_factory(load_openrouter_config(session))
 
     def _settings(self) -> tuple[RecipeImportSettings, NutritionIntelligenceSettings | None]:
         with self._sessions() as session:
@@ -271,6 +284,7 @@ class RecipeCleanupService:
         settings, intelligence = self._settings()
         if not settings.cleanup_enabled:
             return imported
+        remote = self._remote_provider() if settings.openrouter_fallback_enabled else None
         local_enabled = intelligence is None or intelligence.intelligence_enabled
         started = time.perf_counter()
         if isinstance(imported, ImportedCookbook):
@@ -291,7 +305,7 @@ class RecipeCleanupService:
                         self._cleanup_one(
                             recipe,
                             source_kind,
-                            settings.openrouter_fallback_enabled,
+                            remote,
                             local_enabled=local_enabled,
                         ),
                         timeout=remaining,
@@ -307,7 +321,7 @@ class RecipeCleanupService:
         return await self._cleanup_one(
             imported,
             source_kind,
-            settings.openrouter_fallback_enabled,
+            remote,
             local_enabled=local_enabled,
         )
 
@@ -315,7 +329,7 @@ class RecipeCleanupService:
         self,
         recipe: ImportedRecipe,
         source_kind: Literal["url", "text_pdf"],
-        remote_enabled: bool,
+        remote: RecipeCleanupProvider | None,
         *,
         local_enabled: bool,
     ) -> ImportedRecipe:
@@ -330,8 +344,8 @@ class RecipeCleanupService:
         providers: list[RecipeCleanupProvider] = []
         if local_enabled and self._local is not None:
             providers.append(self._local)
-        if remote_enabled and self._remote is not None:
-            providers.append(self._remote)
+        if remote is not None:
+            providers.append(remote)
         if not providers:
             return recipe
         failures: list[str] = []
@@ -556,8 +570,10 @@ def build_recipe_cleanup_service(
             timeout_ms=resolved.intelligence_inline_timeout_ms,
             threshold=resolved.intelligence_inline_threshold,
         )
-    remote: RecipeCleanupProvider | None = None
-    api_key = resolved.openrouter_api_key.get_secret_value()
-    if api_key and resolved.openrouter_model:
-        remote = OpenRouterRecipeCleanupProvider(api_key, resolved.openrouter_model)
-    return RecipeCleanupService(sessions, local, remote)
+    return RecipeCleanupService(sessions, local, None, remote_factory=_openrouter_cleanup_provider)
+
+
+def _openrouter_cleanup_provider(config: OpenRouterConfig) -> RecipeCleanupProvider | None:
+    if not config.cleanup_configured or config.api_key is None:
+        return None
+    return OpenRouterRecipeCleanupProvider(config.api_key, config.cleanup_model)

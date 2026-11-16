@@ -1224,6 +1224,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/openrouter/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOpenRouterSettings"];
+        put: operations["updateOpenRouterSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/nutrition-intelligence/estimate": {
         parameters: {
             query?: never;
@@ -1575,6 +1591,30 @@ export interface components {
         RecipeImportSettingsWrite: {
             cleanupEnabled: boolean;
             openrouterFallbackEnabled: boolean;
+            version: number;
+        };
+        OpenRouterSettings: {
+            keyConfigured: boolean;
+            /** @description Last four characters of the stored key. */
+            keyHint: string | null;
+            cleanupModel: string;
+            decisionAssistEnabled: boolean;
+            decisionAssistModel: string;
+            decisionAssistToleranceDv: components["schemas"]["Decimal6"];
+            version: number;
+        };
+        OpenRouterSettingsWrite: {
+            /**
+             * Format: password
+             * @description Omit to keep the stored key.
+             */
+            apiKey?: string | null;
+            /** @default false */
+            clearApiKey: boolean;
+            cleanupModel: string;
+            decisionAssistEnabled: boolean;
+            decisionAssistModel: string;
+            decisionAssistToleranceDv: components["schemas"]["Decimal6"];
             version: number;
         };
         NutritionIntelligenceEstimate: {
@@ -4935,6 +4975,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecipeImportSettings"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getOpenRouterSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OpenRouter key status (never the key itself) and model choices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenRouterSettings"];
+                };
+            };
+        };
+    };
+    updateOpenRouterSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenRouterSettingsWrite"];
+            };
+        };
+        responses: {
+            /** @description Updated OpenRouter settings. The API key is stored encrypted and is write-only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenRouterSettings"];
                 };
             };
             409: components["responses"]["Conflict"];

@@ -57,11 +57,14 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   precedence in every code path.
 - Background handlers must be idempotent and reject stale input hashes.
 - Use fixed-precision decimals for stored nutrition and scaled integers for solver inputs.
+- Owner-facing configuration lives in Settings (database-backed, versioned singleton rows), not environment
+  variables; env vars are for deployment infrastructure only. Credentials entered in the UI are encrypted
+  with `SecretBox`, write-only over the API (return a configured flag and last-four hint), and never logged.
 - Follow `DESIGN.md` for UI tokens and verify desktop plus 390x844 behavior, keyboard access, overflow,
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
-- **Decision-model assist** — on by default once an OpenRouter key is set; re-ranks matcher candidates via
+- **Decision-model assist** — configured under Settings → Intelligence → OpenRouter (key stored encrypted, no env vars); re-ranks matcher candidates via
   OpenRouter Decisions and auto-resolves only when expected error is within tolerance in every tracked
   nutrient (`domain/decision_assist.py`); failures keep the deterministic result. See
   `docs/decision-model-assist.md`.

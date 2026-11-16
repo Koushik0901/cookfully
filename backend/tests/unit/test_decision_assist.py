@@ -20,7 +20,6 @@ from cookfully.domain.decision_assist import (
     normalize_probabilities,
 )
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate
-from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.decision_client import OpenRouterDecisionClient
 
 D = Decimal
@@ -291,14 +290,11 @@ def test_client_falls_back_to_single_choice_confidence() -> None:
     assert result == {"c2": 0.8}
 
 
-def test_decision_assist_is_on_by_default_but_needs_a_key() -> None:
-    settings = Settings(_env_file=None)
-    assert settings.decision_assist_enabled is True
-    assert settings.openrouter_api_key.get_secret_value() == ""
-    assert settings.decision_assist_tolerance_dv == 0.02
-
-
 # --- pipeline hook ------------------------------------------------------------------------------
+
+
+def _constant(value: Any) -> Any:
+    return lambda _session: value
 
 
 def _pipeline() -> Any:
@@ -366,18 +362,21 @@ def test_pipeline_does_not_call_the_model_without_candidates() -> None:
     assert decision is original and evidence is None and chooser.calls == []
 
 
-def test_pipeline_builds_the_assist_only_when_enabled_and_keyed(
+def test_pipeline_builds_the_assist_only_with_a_usable_key_and_the_switch_on(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from cookfully.infrastructure import config
+    from cookfully.application.openrouter_settings import OpenRouterConfig
+
+    def config(key: str | None, enabled: bool) -> OpenRouterConfig:
+        return OpenRouterConfig(key, "", enabled, "typesafe/jev-1.14", D("0.03"))
 
     pipeline = _pipeline()
-    for enabled, key, expected in [(False, "k", False), (True, "", False), (True, "k", True)]:
-        settings = Settings(
-            _env_file=None,
-            decision_assist_enabled=enabled,
-            openrouter_api_key=key,  # type: ignore[arg-type]
+    for key, enabled, expected in [(None, True, False), ("k", False, False), ("k", True, True)]:
+        monkeypatch.setattr(
+            "cookfully.jobs.recipe_pipeline.load_openrouter_config",
+            _constant(config(key, enabled)),
         )
-        monkeypatch.setattr("cookfully.jobs.recipe_pipeline.get_settings", lambda s=settings: s)
-        assert (pipeline._decision_assist() is not None) is expected
-    config.get_settings.cache_clear()
+        assist = pipeline._decision_assist(None)
+        assert (assist is not None) is expected
+        if assist is not None:
+            assert assist._tolerance == D("0.03")

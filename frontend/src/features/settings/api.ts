@@ -14,6 +14,8 @@ import type {
   NutritionIntelligenceEstimateRequest,
   NutritionIntelligenceSettings,
   NutritionIntelligenceSettingsWrite,
+  OpenRouterSettings,
+  OpenRouterSettingsWrite,
   RecipeImportSettings,
   RecipeImportSettingsWrite,
 } from "./types";
@@ -82,6 +84,18 @@ export const recipeImportSettingsApi = {
   },
   update(value: RecipeImportSettingsWrite) {
     return apiRequest<RecipeImportSettings>("/recipe-import/settings", {
+      method: "PUT",
+      body: JSON.stringify(value),
+    });
+  },
+};
+
+export const openRouterSettingsApi = {
+  get() {
+    return apiRequest<OpenRouterSettings>("/openrouter/settings");
+  },
+  update(value: OpenRouterSettingsWrite) {
+    return apiRequest<OpenRouterSettings>("/openrouter/settings", {
       method: "PUT",
       body: JSON.stringify(value),
     });
