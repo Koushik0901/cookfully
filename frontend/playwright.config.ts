@@ -9,8 +9,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  // One Vite dev server serves every worker; cap CI so a larger runner cannot
+  // overload it into timeouts.
+  workers: process.env.CI ? 2 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
-  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}",
+  // Baselines are per platform: font rendering differs between Windows dev
+  // machines and Linux CI, so each keeps its own set.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}-{platform}{ext}",
   use: {
     baseURL: "http://127.0.0.1:5173",
     // The browser timezone shows up in the UI (e.g. Settings' timezone hint);

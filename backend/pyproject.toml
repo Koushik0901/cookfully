@@ -103,5 +103,5 @@ packages = ["cookfully"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "recipe_scrapers.*", "ingredient_parser.*", "testcontainers.*", "ijson"]
+module = ["celery.*", "recipe_scrapers.*", "ingredient_parser.*", "testcontainers.*", "ijson", "onnxruntime", "onnxruntime.*"]
 ignore_missing_imports = true
