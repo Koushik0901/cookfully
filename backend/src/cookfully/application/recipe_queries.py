@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.jobs import JobProgress, JobService
-from cookfully.domain.common import DomainError
+from cookfully.domain.common import DomainError, require_present
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
@@ -245,9 +245,7 @@ class RecipeQueryService:
             return self._read(session, recipe, detail=True)
 
     def nutrition(self, recipe_id: UUID) -> NutritionRead:
-        nutrition = self.get(recipe_id).nutrition
-        assert nutrition is not None
-        return nutrition
+        return require_present(self.get(recipe_id).nutrition, "recipe nutrition")
 
     def _read(
         self,

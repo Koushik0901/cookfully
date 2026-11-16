@@ -60,7 +60,7 @@ def test_generated_openapi_preserves_canonical_decimal_strings() -> None:
     generated = create_app().openapi()
     patterns = _patterns(generated["components"]["schemas"])
 
-    assert DECIMAL_PATTERNS <= patterns
+    assert patterns >= DECIMAL_PATTERNS
     assert not any(
         schema.get("type") == "number"
         for schema in generated["components"]["schemas"].values()

@@ -76,6 +76,6 @@ def run(
         required = ("sc001Passed", "sc002Passed", "sc003Passed")
         for scope in ("primary", "full"):
             result = report[scope]
-            assert isinstance(result, dict)
-            if not all(result.get(key) is True for key in required):
+            # A malformed scope cannot have passed.
+            if not isinstance(result, dict) or not all(result.get(key) is True for key in required):
                 raise typer.Exit(1)

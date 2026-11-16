@@ -421,20 +421,20 @@ class GroceryListService:
             recipe = session.get(Recipe, entry.recipe_id)
             if recipe is None:
                 continue
-            for ingredient in recipe.ingredients:
-                values.append(
-                    GroceryIngredient(
-                        meal_plan_entry_id=entry.id,
-                        ingredient_id=ingredient.id,
-                        original_text=ingredient.original_text,
-                        food_name=ingredient.food_name or ingredient.original_text,
-                        quantity=ingredient.quantity_min,
-                        unit_code=ingredient.unit_code,
-                        unit_text=ingredient.unit_text,
-                        planned_servings=entry.servings,
-                        recipe_yield=recipe.yield_quantity,
-                    )
+            values.extend(
+                GroceryIngredient(
+                    meal_plan_entry_id=entry.id,
+                    ingredient_id=ingredient.id,
+                    original_text=ingredient.original_text,
+                    food_name=ingredient.food_name or ingredient.original_text,
+                    quantity=ingredient.quantity_min,
+                    unit_code=ingredient.unit_code,
+                    unit_text=ingredient.unit_text,
+                    planned_servings=entry.servings,
+                    recipe_yield=recipe.yield_quantity,
                 )
+                for ingredient in recipe.ingredients
+            )
         return values
 
     @staticmethod

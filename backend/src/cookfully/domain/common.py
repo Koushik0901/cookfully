@@ -42,6 +42,17 @@ def today_in_timezone(timezone: str, *, now: datetime | None = None) -> date:
     return (now or utc_now()).astimezone(zone).date()
 
 
+def require_present[T](value: T | None, what: str) -> T:
+    """Narrow ``value`` to non-``None``, failing loudly when a caller's invariant is broken.
+
+    Unlike ``assert``, this is never stripped by ``python -O`` and says what was missing.
+    """
+
+    if value is None:
+        raise RuntimeError(f"invariant violated: {what} is missing")
+    return value
+
+
 def require_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("timestamp must be timezone-aware")

@@ -20,6 +20,7 @@ from cookfully.domain.common import (
     DomainError,
     canonical_decimal,
     quantize_decimal,
+    require_present,
     require_version,
     today_in_timezone,
     utc_now,
@@ -555,7 +556,7 @@ class SuggestionService:
         suggested_snapshots: list[PlannedSnapshot] = []
         for position, selection in enumerate(solution.items):
             recipe = recipes[selection.recipe_id]
-            assert recipe.nutrition is not None
+            nutrition = require_present(recipe.nutrition, "recipe nutrition")
             if run.local_date:
                 local_date = run.local_date
             else:
@@ -578,16 +579,19 @@ class SuggestionService:
                     recipe.id,
                     None,
                     recipe.title,
-                    recipe.nutrition.macros,
-                    cast(NutritionReliability, recipe.nutrition.status),
-                    recipe.nutrition.coverage_ratio,
+                    nutrition.macros,
+                    cast(NutritionReliability, nutrition.status),
+                    nutrition.coverage_ratio,
                 ),
                 selection.servings,
             )
-            assert all(
-                getattr(snapshot, field) is not None
+            missing = [
+                field
                 for field in ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
-            )
+                if getattr(snapshot, field) is None
+            ]
+            if missing:
+                raise RuntimeError(f"invariant violated: snapshot is missing {', '.join(missing)}")
             run.items.append(
                 SuggestionItem(
                     recipe_id=recipe.id,

@@ -167,15 +167,17 @@ def compare_compatibility(
     hard_conflict = False
     review = False
 
-    if query.canonical_identity and candidate.canonical_identity:
-        # Only identities from the curated lexicon/aliases are reliable enough to reject a
-        # candidate. Anything else is a last-token guess, and USDA names lead with the food
-        # ("Celery, raw" guesses "raw"), so a mismatch there says nothing about the food.
-        if query.canonical_identity != candidate.canonical_identity and _both_identities_known(
-            query, candidate
-        ):
-            hard_conflict = True
-            reasons.append("identity_conflict")
+    # Only identities from the curated lexicon/aliases are reliable enough to reject a
+    # candidate. Anything else is a last-token guess, and USDA names lead with the food
+    # ("Celery, raw" guesses "raw"), so a mismatch there says nothing about the food.
+    if (
+        query.canonical_identity
+        and candidate.canonical_identity
+        and query.canonical_identity != candidate.canonical_identity
+        and _both_identities_known(query, candidate)
+    ):
+        hard_conflict = True
+        reasons.append("identity_conflict")
 
     if query.category and candidate.category and query.category != candidate.category:
         hard_conflict = True

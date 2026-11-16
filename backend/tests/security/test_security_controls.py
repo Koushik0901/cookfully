@@ -90,7 +90,7 @@ def test_models_do_not_retain_raw_provider_or_prompt_payloads() -> None:
 
 @pytest.mark.parametrize(
     "member",
-    ("../owner.json", "/absolute.json", "media\\..\\secret", "safe/../../secret"),
+    ["../owner.json", "/absolute.json", "media\\..\\secret", "safe/../../secret"],
 )
 def test_export_archive_traversal_is_rejected(member: str) -> None:
     with pytest.raises(DomainError) as error:

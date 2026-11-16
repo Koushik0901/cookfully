@@ -459,9 +459,11 @@ class InlineRepairGateway:
                         window_index=2,
                     )
                 except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                    pass
+                    logger.debug("second-window repair timed out; keeping the first result")
                 except Exception:
-                    pass
+                    logger.warning(
+                        "second-window repair failed; keeping the first result", exc_info=True
+                    )
         return self.merge_recipe(
             legacy,
             resp,
@@ -538,9 +540,11 @@ class InlineRepairGateway:
                         window_index=2,
                     )
                 except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                    pass
+                    logger.debug("second-window repair timed out; keeping the first result")
                 except Exception:
-                    pass
+                    logger.warning(
+                        "second-window repair failed; keeping the first result", exc_info=True
+                    )
         return self.merge_ingredient_row(
             legacy,
             resp,
@@ -620,9 +624,11 @@ class InlineRepairGateway:
                         return merged2
                     return legacy
                 except (asyncio.TimeoutError, TimeoutError):  # noqa: UP041
-                    pass
+                    logger.debug("second-window repair timed out; keeping the first result")
                 except Exception:
-                    pass
+                    logger.warning(
+                        "second-window repair failed; keeping the first result", exc_info=True
+                    )
         # merge_pantry may return list, but repair_pantry legacy is dict; cast
         merged = self.merge_pantry(
             legacy,

@@ -14,7 +14,7 @@ import ijson
 import typer
 from sqlalchemy import select, update
 
-from cookfully.domain.common import DomainError, quantize_decimal, uuid7
+from cookfully.domain.common import DomainError, quantize_decimal, require_present, uuid7
 from cookfully.domain.ingredient_nutrition.normalization import normalize as normalize_food_name
 from cookfully.domain.nutrition import usda_micronutrient_mapping
 from cookfully.infrastructure.config import get_settings
@@ -364,12 +364,12 @@ def import_release(
                 if inserted % 500 == 0:
                     session.flush()
                     session.expunge_all()
-                    refetched = session.get(ReferenceDataset, dataset_id)
-                    assert refetched is not None
-                    dataset = refetched
-            refetched = session.get(ReferenceDataset, dataset_id)
-            assert refetched is not None
-            dataset = refetched
+                    dataset = require_present(
+                        session.get(ReferenceDataset, dataset_id), "reference dataset"
+                    )
+            dataset = require_present(
+                session.get(ReferenceDataset, dataset_id), "reference dataset"
+            )
             dataset.status = "ready"
             session.flush()
             return dataset

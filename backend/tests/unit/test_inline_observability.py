@@ -122,13 +122,15 @@ def test_service_perf_envelope_logged(caplog):
     req = InferenceRequest(
         requestId="svc-1", operation="recipe_extract", prompt="secret prompt should not be logged"
     )
-    with patch.object(Path, "is_file", return_value=True):
-        with caplog.at_level(logging.INFO, logger="cookfully.intelligence"):
-            resp = engine.complete(req)
-            # ensure pass-through for p95 envelope
-            assert resp.prefill_tps == 100.0
-            assert resp.decode_tps == 50.0
-            assert resp.peak_ram_mb == 28.0
+    with (
+        patch.object(Path, "is_file", return_value=True),
+        caplog.at_level(logging.INFO, logger="cookfully.intelligence"),
+    ):
+        resp = engine.complete(req)
+        # ensure pass-through for p95 envelope
+        assert resp.prefill_tps == 100.0
+        assert resp.decode_tps == 50.0
+        assert resp.peak_ram_mb == 28.0
     svc_records = [r for r in caplog.records if "needle_infer" in r.message]
     assert svc_records, "expected needle_infer log"
     r = svc_records[0]

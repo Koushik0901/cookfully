@@ -202,8 +202,7 @@ class GoalService:
                     for position, target in enumerate(validated.meal_targets)
                 )
                 session.flush()
-                result = self._read(goal)
-            return result
+                return self._read(goal)
         except IntegrityError as exc:
             raise DomainError(
                 "goal_period_overlap", "Goal effective dates overlap an existing goal.", 409
