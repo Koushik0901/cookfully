@@ -1,8 +1,7 @@
 version: 2
 
-# Weekly, grouped version updates keep dependencies current so the daily audit
-# (.github/workflows/dependency-audit.yml) has little to report. Security updates are
-# enabled separately in the repository settings.
+# Weekly, grouped updates keep dependencies current, so the audit workflow has little to
+# report. Security updates are enabled separately in the repository settings.
 updates:
   - package-ecosystem: "uv"
     directory: "/backend"
@@ -26,6 +25,16 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/deploy/docker"
     schedule:
       interval: "weekly"
       day: "monday"

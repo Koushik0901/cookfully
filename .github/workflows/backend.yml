@@ -1,20 +1,51 @@
 name: Backend
 
+# Runs once per change: pushes to main and every pull request. (Running on every branch push
+# *and* on pull_request executed the whole suite twice for each PR commit.)
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or PR supersedes the run in progress.
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  UV_FROZEN: "1" # never let CI rewrite uv.lock
+
 jobs:
-  quality:
+  # Independent of the database, so style and type failures surface in about a minute
+  # instead of waiting behind (or hiding) the test suite.
+  static:
+    name: Lint and types
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --project backend --all-extras --dev
+      - run: uv run --directory backend ruff format --check .
+      - run: uv run --directory backend ruff check --output-format=github .
+      - run: uv run --directory backend mypy src
+
+  test:
+    name: Tests and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
-        # Same image as deploy/compose.yaml: migrations and tests need the vchord and
-        # vector extensions, which stock postgres does not ship.
+        # The image deploy/compose.yaml runs. Migrations need the vchord extension and the
+        # tests need pgvector; stock postgres images ship neither.
         image: ghcr.io/tensorchord/vchord-postgres:pg18-v1.1.1
         env:
           POSTGRES_DB: cookfully_test
@@ -37,14 +68,49 @@ jobs:
       COOKFULLY_SECRET_KEY: test-only-secret-key-with-at-least-32-characters
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # diff-cover compares against the base branch
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
           enable-cache: true
-      - run: uv sync --project backend --locked --all-extras --dev
-      - run: uv run --directory backend ruff format --check .
-      - run: uv run --directory backend ruff check .
-      - run: uv run --directory backend mypy src
-      # Dependency vulnerability audits live in dependency-audit.yml so a newly published
-      # advisory cannot block unrelated changes.
-      - run: uv run --directory backend pytest --cov --cov-report=term-missing
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --project backend --all-extras --dev
+
+      # The total must stay above `fail_under` in backend/pyproject.toml.
+      - name: Run tests with coverage
+        run: >-
+          uv run --directory backend pytest
+          --cov --cov-report=term-missing:skip-covered --cov-report=xml
+          --durations=15
+
+      - name: Summarise coverage
+        if: always()
+        run: |
+          {
+            echo "### Backend coverage"
+            echo
+            uv run --directory backend coverage report --format=markdown --skip-covered --fail-under=0
+          } >> "$GITHUB_STEP_SUMMARY" || true
+
+      # Total coverage can hide an untested change in a large codebase, so lines touched by the
+      # pull request are held to a higher bar than the overall ratchet.
+      - name: Require coverage on changed lines
+        if: github.event_name == 'pull_request'
+        run: |
+          # coverage.xml paths are relative to backend/; diff-cover expects repo-relative ones.
+          sed -i 's#filename="#filename="backend/#' backend/coverage.xml
+          uvx diff-cover backend/coverage.xml \
+            --compare-branch="origin/${{ github.base_ref }}" \
+            --include "backend/src/**" \
+            --fail-under=85 \
+            --markdown-report diff-coverage.md
+          cat diff-coverage.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 14
+          if-no-files-found: ignore

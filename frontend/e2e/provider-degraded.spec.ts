@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { editRecipeLink } from "./support/recipe-editor";
 
 const recipeId = "00000000-0000-4000-8000-000000000091";
 const jobId = "00000000-0000-4000-8000-000000000092";
@@ -120,12 +121,18 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await mockDegradedApi(page);
   await page.goto(`/app/recipes/${recipeId}`);
 
-  await expect(page.getByText(/deterministic work was kept/i).first()).toBeVisible();
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
-  else await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") {
+    // Phones show a concise status up front and keep the provider detail in the Nutrition tab.
+    await expect(page.getByRole("status").getByText("Nutrition not available")).toBeVisible();
+    await page.getByRole("button", { name: "Nutrition" }).click();
+  } else {
+    await expect(page.getByText(/deterministic work was kept/i).first()).toBeVisible();
+    await page.getByText("Nutrition details and evidence").click();
+  }
+  await expect(page.getByText(/deterministic work was kept/i).locator("visible=true").first()).toBeVisible();
   await expect(page.getByLabel("Nutrition processing status").getByText("failed")).toBeVisible();
   await expect(page.getByText(/planning aid, not medical advice/i)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Edit recipe" })).toBeVisible();
+  await expect(editRecipeLink(page, testInfo)).toBeVisible();
 
   await page.getByRole("link", { name: "Edit nutrition" }).click();
   await page.getByLabel("Protein (g)").fill("40.000000");
@@ -135,7 +142,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
-  await page.getByRole("link", { name: "Edit recipe" }).click();
+  await editRecipeLink(page, testInfo).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("250 g tofu");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
@@ -143,7 +150,7 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByRole("heading", { name: "Provider-degraded bowl" })).toBeVisible();
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
 
-  await expect(page.getByRole("link", { name: "Plan" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Plan", exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Grocery" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

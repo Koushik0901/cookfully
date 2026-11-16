@@ -1,9 +1,18 @@
 import json
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
 
 from cookfully.cli.main import app
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Typer forces colour under GitHub Actions, which splits flags such as ``--ledger``."""
+
+    return _ANSI.sub("", text)
 
 
 def test_backup_export_and_ledger_operator_commands_are_registered(tmp_path: Path) -> None:
@@ -26,7 +35,7 @@ def test_backup_export_and_ledger_operator_commands_are_registered(tmp_path: Pat
 
     ledger = runner.invoke(app, ["erasure-ledger", "verify", "--help"])
     assert ledger.exit_code == 0
-    assert "--ledger" in ledger.stdout
+    assert "--ledger" in _plain(ledger.stdout)
     verified = runner.invoke(
         app, ["erasure-ledger", "verify", "--ledger", str(tmp_path / "ledger")]
     )

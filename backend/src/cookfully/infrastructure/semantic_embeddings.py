@@ -5,7 +5,7 @@ import math
 import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
 
 Embedding = tuple[float, ...]
 
@@ -25,8 +25,7 @@ def available_accelerator_providers() -> tuple[str, ...]:
     fallback when the semantic extra is not installed.
     """
     try:
-        # The ignore must hold whether or not the optional extra is installed.
-        import onnxruntime  # type: ignore[import-not-found,import-untyped,unused-ignore]
+        import onnxruntime
 
         return tuple(str(provider) for provider in onnxruntime.get_available_providers())
     except Exception:
@@ -88,25 +87,31 @@ class FastEmbedTextEmbedder:
         cache_dir: Path | None = None,
         local_files_only: bool = False,
     ) -> None:
-        from fastembed import TextEmbedding  # type: ignore[import-not-found,unused-ignore]
+        from fastembed import TextEmbedding
 
         selected_provider = select_accelerator_provider()
-        kwargs: dict[str, Any] = {"model_name": model_name}
-        if cache_dir is not None:
-            kwargs["cache_dir"] = str(cache_dir)
-        if local_files_only:
-            kwargs["local_files_only"] = True
-        if selected_provider != "CPUExecutionProvider":
-            kwargs["providers"] = [selected_provider]
+        cache = str(cache_dir) if cache_dir is not None else None
+
+        def build(providers: list[str] | None) -> TextEmbedding:
+            # fastembed accepts extra keyword arguments, so spell the options out
+            # instead of splatting a dict: that keeps the call type-checked.
+            return TextEmbedding(
+                model_name=model_name,
+                cache_dir=cache,
+                providers=providers,
+                local_files_only=local_files_only,
+            )
+
         try:
-            self._model = TextEmbedding(**kwargs)
+            self._model = build(
+                None if selected_provider == "CPUExecutionProvider" else [selected_provider]
+            )
         except Exception:
             # GPU packages/providers are optional. A driver mismatch should
             # degrade to CPU inference, not disable semantic matching.
             if selected_provider == "CPUExecutionProvider":
                 raise
-            kwargs["providers"] = ["CPUExecutionProvider"]
-            self._model = TextEmbedding(**kwargs)
+            self._model = build(["CPUExecutionProvider"])
             selected_provider = "CPUExecutionProvider"
         self.provider = selected_provider
         self.dimensions = 384

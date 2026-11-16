@@ -3,31 +3,41 @@
 Every `captureUi` call is a strict Playwright screenshot assertion. The committed baselines cover the
 desktop Chromium and 390 × 844 touch layouts, using mocked and fixed fixtures from the owning E2E test.
 
-Baselines live under `frontend/e2e/__screenshots__/`, are committed, and use CSS-pixel scale with motion
-and carets disabled. Do not accept a changed image without reviewing the relevant route and state.
+Font rasterisation differs between operating systems, so every platform owns its baselines. The
+platform is part of the file name:
 
-## Baselines are rendered on Linux, in CI
+| Suffix | Rendered on | Used by |
+| --- | --- | --- |
+| `-linux.png` | GitHub Actions (Ubuntu) | CI |
+| `-win32.png` | A Windows developer machine | local `pnpm e2e` on Windows |
+| `-darwin.png` | A Mac | local `pnpm e2e` on macOS |
 
-Pixels depend on the operating system's font rasterisation, so a baseline only matches where it was
-rendered. CI runs on Linux, therefore **the committed baselines are Linux renders** produced by the
-`Update visual baselines` workflow, not images captured on a developer machine.
-
-To regenerate after an intentional, reviewed UI change:
-
-1. Push the branch, then run the `Update visual baselines` workflow on it from the Actions tab (or push a
-   branch named `visual-baselines/<anything>`).
-2. Download and review the images, then commit them:
-
-   ```bash
-   gh run download <run-id> --name visual-baselines --dir frontend/e2e/__screenshots__
-   ```
-
-Running the suite locally on Windows or macOS will report pixel differences that CI will not. To check
-behaviour without pixels, run:
+Run the checks with:
 
 ```powershell
-pnpm --dir frontend exec playwright test --ignore-snapshots
+pnpm --dir frontend e2e
 ```
+
+## Updating baselines
+
+When an intentional, reviewed UI change alters a screenshot:
+
+1. **Linux (CI):** run the **Update visual baselines** workflow from the Actions tab on your branch. It
+   regenerates every `-linux.png` and commits them to the branch. Review the images in that commit.
+2. **Your own machine:** `pnpm --dir frontend e2e:visual:update` regenerates the baselines for your
+   platform only.
+
+Do not accept a changed image without reviewing the relevant route and state.
+
+CI compares pixels only once `-linux.png` baselines exist. Until then it prints a warning and still runs
+every behavioural assertion, so the first run of the workflow above is what switches visual checks on.
+
+## How CI runs these tests
+
+CI serves the production bundle (`vite preview`) after `pnpm build`, with two workers, and uploads the
+Playwright report when a run fails. Locally, the dev server is used. The time zone is pinned to UTC so
+dates render identically everywhere; specs that show "today" must still freeze the clock with
+`page.clock`.
 
 ## Native select policy
 
