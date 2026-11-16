@@ -1,0 +1,185 @@
+name: CI
+
+# The single entry point for every pull request and every push to main. Branch protection requires
+# one check, `ci-ok`, which passes only when everything below passed or was legitimately skipped.
+# Adding a new check means adding its job to `ci-ok.needs`; the required check never changes, so a
+# renamed or new job can no longer silently drop out of the gate.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to a pull request supersedes its run. Pushes to main always finish, so every commit
+# on main has a result (release publishing checks it).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Decides which heavy lanes a change can affect. It only ever *skips* work for changes that
+  # cannot touch it (documentation); anything it does not recognise runs everything, and pushes to
+  # main always run everything, so a mistake here is caught within minutes.
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+      deps: ${{ steps.scope.outputs.deps }}
+      containers: ${{ steps.scope.outputs.containers }}
+    steps:
+      - id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          code=true deps=true containers=true
+          if [ "$EVENT" = pull_request ]; then
+            files=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate \
+              --jq '.[] | .filename, (.previous_filename // empty)')
+            count=$(printf '%s\n' "$files" | grep -c . || true)
+            # The API lists at most 3000 files; with that many (or none), assume everything changed.
+            if [ "$count" -gt 0 ] && [ "$count" -lt 3000 ]; then
+              code=false deps=false containers=false
+              while IFS= read -r f; do
+                case "$f" in
+                  docs/*|*.md|LICENSE) ;; # documentation never affects a build or a test
+                  *) code=true ;;
+                esac
+                case "$f" in
+                  backend/pyproject.toml|backend/uv.lock|frontend/package.json|frontend/pnpm-lock.yaml|.github/workflows/dependency-audit.yml) deps=true ;;
+                esac
+                case "$f" in
+                  deploy/*|backend/pyproject.toml|backend/uv.lock|frontend/package.json|frontend/pnpm-lock.yaml|.dockerignore|.github/workflows/containers.yml) containers=true ;;
+                esac
+              done <<< "$files"
+            fi
+          fi
+          {
+            echo "code=$code"
+            echo "deps=$deps"
+            echo "containers=$containers"
+          } >> "$GITHUB_OUTPUT"
+          echo "code=$code deps=$deps containers=$containers" >> "$GITHUB_STEP_SUMMARY"
+
+  backend:
+    name: Backend
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/backend.yml
+
+  frontend:
+    name: Frontend
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/frontend.yml
+
+  dependency-audit:
+    name: Dependency audit
+    needs: changes
+    if: needs.changes.outputs.deps == 'true'
+    uses: ./.github/workflows/dependency-audit.yml
+
+  containers:
+    name: Containers
+    needs: changes
+    if: needs.changes.outputs.containers == 'true'
+    uses: ./.github/workflows/containers.yml
+
+  # Workflows are code that runs with repository credentials, so they are linted like code.
+  workflows:
+    name: Workflow lint and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      # Syntax, expression and shell errors in workflow files (shellcheck lints the `run:` scripts).
+      - run: uvx --with shellcheck-py==0.11.0.1 --from actionlint-py==1.7.12.25 actionlint
+      # Unpinned actions, credential leaks, template injection, excessive permissions.
+      - run: uvx zizmor@1.32.0 --format github .github/workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Only the commits this change adds are scanned, so an old finding cannot block unrelated
+      # work. Pushes to main scan the pushed commits the same way.
+      - name: Scan new commits for secrets
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          range="-1 $HEAD_SHA"
+          if [ -n "$BASE_SHA" ] && ! [[ "$BASE_SHA" =~ ^0+$ ]] && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            range="$BASE_SHA..$HEAD_SHA"
+          fi
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            git --redact --no-banner --verbose --log-opts="$range" /repo
+
+  # The one required check. `if: always()` so it reports even when something upstream failed;
+  # a skipped job (path filter) counts as passed, a failed or cancelled one does not.
+  ci-ok:
+    name: ci-ok
+    needs: [changes, backend, frontend, dependency-audit, containers, workflows, secrets]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Every check passed or was skipped
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "| \(.key) | \(.value.result) |"' \
+            | { echo "| Check | Result |"; echo "| --- | --- |"; cat; } >> "$GITHUB_STEP_SUMMARY"
+          bad=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
+          if [ -n "$bad" ]; then
+            echo "::error::Not passing: $(echo "$bad" | tr '\n' ' ')"
+            exit 1
+          fi
+      # Pull-request checks should finish in about 6 minutes (see docs/ci.md). Warn, never block,
+      # when a run is slow so creep is visible before it hurts.
+      - name: Report run duration
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --paginate --jq '.jobs[]
+            | select(.completed_at != null)
+            | [.name, ((.completed_at | fromdate) - (.started_at | fromdate))] | @tsv' \
+            | sort -t$'\t' -k2 -nr | head -8 > durations.tsv
+          {
+            echo
+            echo "| Slowest jobs | Seconds |"
+            echo "| --- | --- |"
+            awk -F'\t' '{ printf "| %s | %d |\n", $1, $2 }' durations.tsv
+          } >> "$GITHUB_STEP_SUMMARY"
+          slowest=$(head -1 durations.tsv | cut -f2)
+          if [ "${slowest:-0}" -gt 480 ]; then
+            echo "::warning title=Slow CI::The slowest job took ${slowest}s; the budget is 8 minutes. See docs/ci.md."
+          fi

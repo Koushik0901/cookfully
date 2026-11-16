@@ -1,0 +1,10 @@
+rules:
+  artipacked:
+    ignore:
+      # Commits and pushes regenerated screenshots, so it needs the checkout's credentials.
+      - visual-baselines.yml
+  self-repository:
+    ignore:
+      # `./.github/workflows/x.yml` is the long-standing, documented syntax for local reusable
+      # workflows; the newer `$/` form is not adopted yet.
+      - ci.yml
