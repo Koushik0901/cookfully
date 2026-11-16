@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { captureUi } from "./support/visual-audit";
 import { Buffer } from "node:buffer";
+import { editRecipeLink, expectProcessingNotice } from "./support/recipe-editor";
 
 const recipeId = "00000000-0000-4000-8000-000000000001";
 const jobId = "00000000-0000-4000-8000-000000000002";
@@ -53,7 +54,7 @@ function detail(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function mockApi(page: Page) {
+async function mockApi(page: Page, options: { extraLibraryRecipes?: number } = {}) {
   let recipe = detail();
   let pollCount = 0;
   let releaseImport = false;
@@ -78,7 +79,13 @@ async function mockApi(page: Page) {
       return json({ results: (request.postDataJSON().recipes as Array<{ id: string; version: number }>).map((item) => ({ id: item.id, status: "archived", version: item.version + 1, code: null, message: null })) });
     }
     if (path === "/api/v1/recipes" && method === "GET") {
-      return json({ items: deleted ? [] : [recipe], nextCursor: null });
+      // Extra cards give list layouts something to lay out beside the first (lead) card.
+      const extras = Array.from({ length: options.extraLibraryRecipes ?? 0 }, (_, index) => ({
+        ...recipe,
+        id: `00000000-0000-4000-8000-0000000002${String(index).padStart(2, "0")}`,
+        title: `${recipe.title} ${index + 2}`,
+      }));
+      return json({ items: deleted ? [] : [recipe, ...extras], nextCursor: null });
     }
     if (path === "/api/v1/recipes" && method === "POST") {
       const body = request.postDataJSON();
@@ -347,7 +354,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
   await captureUi(page, testInfo, "recipe-detail");
 
-  await page.getByRole("link", { name: "Edit recipe" }).click();
+  await editRecipeLink(page, testInfo).click();
   await captureUi(page, testInfo, "recipe-editor-edit");
   await page.getByLabel("Yield quantity").fill("3.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
@@ -355,7 +362,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
-  await page.getByRole("link", { name: "Edit recipe" }).click();
+  await editRecipeLink(page, testInfo).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   else await page.getByText("Nutrition values").click();
   await page.getByLabel("Protein (g)").fill("40.000000");
@@ -399,13 +406,18 @@ test("URL import survives reload, exposes bounded retry, and offers stale-yield 
   await captureUi(page, testInfo, "recipe-import-dialog");
   await page.getByLabel("Recipe or cookbook URL").fill("https://example.com/protein-oats");
   await page.getByRole("button", { name: "Start import" }).click();
-  await expect(page.getByText(/calculating nutrition/i)).toBeVisible();
+  await expectProcessingNotice(page, testInfo, /calculating nutrition/i);
 
   api.releaseImport();
   await page.reload();
-  await expect(page.getByText(/nutrition will retry automatically/i)).toBeVisible({ timeout: 5_000 });
-  if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
-  else await page.getByText("Nutrition details and evidence").click();
+  if (testInfo.project.name === "narrow-mobile") {
+    // Phones have no inline nutrition summary: the retry detail lives in the Nutrition tab, and
+    // the mocked job moves on after its first poll, so open the tab straight away.
+    await page.getByRole("button", { name: "Nutrition" }).click();
+  } else {
+    await expect(page.getByText(/nutrition will retry automatically/i)).toBeVisible({ timeout: 5_000 });
+    await page.getByText("Nutrition details and evidence").click();
+  }
   await expect(page.getByText(/attempt 2 of 3/i)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/next retry/i)).toBeVisible();
   await expect(page.getByText(/deadline/i)).toBeVisible();
@@ -445,14 +457,16 @@ test("uses more of the wide desktop canvas for the recipe library", async ({ pag
 
 test("turns the mobile recipe library into a compact visual shelf", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "narrow-mobile", "The compact two-column shelf is mobile-only.");
-  await mockApi(page);
+  await mockApi(page, { extraLibraryRecipes: 3 });
   await page.goto("/app/recipes");
 
   await expect(page.getByRole("heading", { name: "Saved recipes" })).toBeVisible();
   const layout = await page.evaluate(() => {
     const grid = document.querySelector<HTMLElement>(".recipe-grid");
-    const card = document.querySelector<HTMLElement>(".recipe-card");
-    const media = document.querySelector<HTMLElement>(".recipe-card__media");
+    // The first card is a deliberate full-width lead (mobile-redesign.css); measure the shelf
+    // cards that sit two-up beneath it.
+    const card = document.querySelectorAll<HTMLElement>(".recipe-card")[1];
+    const media = card?.querySelector<HTMLElement>(".recipe-card__media");
     if (!grid || !card || !media) return null;
     const gridStyle = getComputedStyle(grid);
     const cardBox = card.getBoundingClientRect();
@@ -474,10 +488,10 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
   expect(layout!.columns).toBe(2);
   expect(layout!.cardWidth).toBeGreaterThan(layout!.viewportWidth * 0.4);
   expect(layout!.cardWidth).toBeLessThan(layout!.viewportWidth * 0.6);
-  expect(layout!.mediaRatio).toBeGreaterThan(1.15);
+  expect(layout!.mediaRatio).toBeCloseTo(1, 1); // square media on mobile (mobile-redesign.css)
   expect(Math.abs(layout!.mediaLeft - layout!.cardLeft)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout!.mediaRight - layout!.cardRight)).toBeLessThanOrEqual(1);
-  expect(layout!.metadataDisplay).toBe("grid");
+  expect(layout!.metadataDisplay).toBe("flex"); // a single wrapping row on mobile, not the desktop grid
   expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
   const textFit = await page.locator(".recipe-card").evaluateAll((cards) => cards.map((card) => {
     const metadata = card.querySelector<HTMLElement>(".recipe-meta");
@@ -596,7 +610,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
-  await page.getByRole("link", { name: "Edit recipe" }).click();
+  await editRecipeLink(page, testInfo).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Remove photo" }).click();
@@ -606,7 +620,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }) => {
+test("import preview shows components, prompts for missing quantities, warns on duplicates, and confirms edits", async ({ page }, testInfo) => {
   const preview = await mockPreviewApi(page);
   await page.goto("/app/recipes");
   await openRecipeImport(page);
@@ -631,11 +645,11 @@ test("import preview shows components, prompts for missing quantities, warns on 
   await page.getByRole("button", { name: "Add to collection" }).click();
 
   // Assert breadcrumb navigation completes
-  await expect(page.getByText("Shawarma bowl")).toBeVisible();
+  await expect(page.getByText("Shawarma bowl").first()).toBeVisible(); // breadcrumb and heading
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
 
   // Assert nutrition is processing (allocation pending)
-  await expect(page.getByText(/nutrition.*calculating/i)).toBeVisible();
+  await expectProcessingNotice(page, testInfo, /nutrition.*calculating/i);
 
   // Assert confirm payload includes quantity override and title
   const posted = preview.posted();
