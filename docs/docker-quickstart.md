@@ -69,6 +69,8 @@ Scanned/image-only PDFs are intentionally rejected; no OCR or vision model is pu
 remote fallback, add your OpenRouter key and a cleanup model under **Settings → Intelligence**, then
 switch the fallback on. The key is stored encrypted and is never shown again.
 
+> Planning to reach this from outside your home network? Follow [secure deployment](secure-deployment.md) first.
+
 ## 3. Choose storage and the web port
 
 `COOKFULLY_DATA_ROOT` is the one host path you choose for Cookfully's durable state. The template

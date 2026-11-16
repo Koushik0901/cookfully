@@ -69,7 +69,8 @@ jobs:
           postgres_password=$(openssl rand -hex 16)
           secret_key=$(openssl rand -hex 32)
           owner_password=$(openssl rand -hex 16)
-          for value in "$postgres_password" "$secret_key" "$owner_password"; do echo "::add-mask::$value"; done
+          intelligence_key=$(openssl rand -hex 32)
+          for value in "$postgres_password" "$secret_key" "$owner_password" "$intelligence_key"; do echo "::add-mask::$value"; done
           {
             echo "COOKFULLY_IMAGE_NAMESPACE=$COOKFULLY_IMAGE_NAMESPACE"
             echo "COOKFULLY_IMAGE_TAG=$COOKFULLY_IMAGE_TAG"
@@ -77,6 +78,7 @@ jobs:
             echo "POSTGRES_PASSWORD=$postgres_password"
             echo "COOKFULLY_SECRET_KEY=$secret_key"
             echo "COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=$owner_password"
+            echo "COOKFULLY_INTELLIGENCE_SERVICE_KEY=$intelligence_key"
           } > "$RUNNER_TEMP/stack.env"
 
       # The API container runs its Alembic migrations before it serves, so a healthy answer through

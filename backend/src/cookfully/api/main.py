@@ -33,6 +33,7 @@ from cookfully.api.routes import (
     reference_data,
     suggestions,
 )
+from cookfully.api.security_headers import security_headers_middleware
 from cookfully.application.access_tokens import AccessTokenService
 from cookfully.application.auth import AuthService
 from cookfully.application.corrections import CorrectionService
@@ -315,8 +316,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "planning aids, not medical advice."
         ),
         lifespan=lifespan,
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        # The interactive docs and schema describe every endpoint to anyone who can reach the
+        # server, so production serves neither.
+        docs_url=None if resolved.environment == "production" else "/api/docs",
+        openapi_url=None if resolved.environment == "production" else "/api/openapi.json",
     )
     app.state.engine = engine
     app.state.redis = redis_client
@@ -327,6 +330,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # or mutation responses.
     app.add_middleware(GZipMiddleware, minimum_size=1_000, compresslevel=5)
     app.middleware("http")(correlation_middleware)
+    app.middleware("http")(security_headers_middleware)
     install_problem_handlers(app)
     versioned = APIRouter(
         prefix="/api/v1",
