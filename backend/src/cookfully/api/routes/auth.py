@@ -51,7 +51,10 @@ def create_session(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     issued = auth.login(
-        payload.email, payload.password, user_agent=request.headers.get("user-agent")
+        payload.email,
+        payload.password,
+        user_agent=request.headers.get("user-agent"),
+        client_address=request.client.host if request.client else None,
     )
     response.set_cookie(
         "cookfully_session",
