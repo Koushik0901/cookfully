@@ -9,6 +9,8 @@ export default defineConfig({
   snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}",
   use: {
     baseURL: "http://127.0.0.1:5173",
+    // CI runs in UTC; pinning it makes local runs render the same dates and times.
+    timezoneId: "UTC",
     trace: "on-first-retry",
   },
   projects: [
