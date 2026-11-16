@@ -3,21 +3,31 @@
 Every `captureUi` call is a strict Playwright screenshot assertion. The committed baselines cover the
 desktop Chromium and 390 × 844 touch layouts, using mocked and fixed fixtures from the owning E2E test.
 
-Run the checks with:
-
-```powershell
-pnpm --dir frontend e2e
-```
-
-When an intentional, reviewed UI change changes a screenshot, regenerate only after verifying it in the
-browser:
-
-```powershell
-pnpm --dir frontend e2e:visual:update
-```
-
 Baselines live under `frontend/e2e/__screenshots__/`, are committed, and use CSS-pixel scale with motion
 and carets disabled. Do not accept a changed image without reviewing the relevant route and state.
+
+## Baselines are rendered on Linux, in CI
+
+Pixels depend on the operating system's font rasterisation, so a baseline only matches where it was
+rendered. CI runs on Linux, therefore **the committed baselines are Linux renders** produced by the
+`Update visual baselines` workflow, not images captured on a developer machine.
+
+To regenerate after an intentional, reviewed UI change:
+
+1. Push the branch, then run the `Update visual baselines` workflow on it from the Actions tab (or push a
+   branch named `visual-baselines/<anything>`).
+2. Download and review the images, then commit them:
+
+   ```bash
+   gh run download <run-id> --name visual-baselines --dir frontend/e2e/__screenshots__
+   ```
+
+Running the suite locally on Windows or macOS will report pixel differences that CI will not. To check
+behaviour without pixels, run:
+
+```powershell
+pnpm --dir frontend exec playwright test --ignore-snapshots
+```
 
 ## Native select policy
 

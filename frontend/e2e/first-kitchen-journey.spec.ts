@@ -241,7 +241,7 @@ test("takes a first kitchen from recipe and cover through shopping and a cooked 
   await expect(page.getByText("Weeknight favourites", { exact: true }).first()).toBeVisible();
 
   await page.goto("/app/plan");
-  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Lemon lentils to Dinner" }).click();
   await expect(page.getByText("Meal added to your plan.")).toBeVisible();

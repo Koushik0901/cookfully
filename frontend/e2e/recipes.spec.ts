@@ -623,7 +623,7 @@ test("import preview shows components, prompts for missing quantities, warns on 
   await page.getByRole("button", { name: "Add to collection" }).click();
 
   // Assert breadcrumb navigation completes
-  await expect(page.getByText("Shawarma bowl")).toBeVisible();
+  await expect(page.getByText("Shawarma bowl").filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
 
   // Assert nutrition is processing (allocation pending)
