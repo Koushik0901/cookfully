@@ -34,10 +34,10 @@ specs/
 uv run --directory backend ruff format --check .
 uv run --directory backend ruff check .
 uv run --directory backend mypy src
-uv run --directory backend pytest
+uv run --directory backend pytest --cov
 pnpm --dir frontend lint
 pnpm --dir frontend typecheck
-pnpm --dir frontend test --run
+pnpm --dir frontend test:coverage
 pnpm --dir frontend build
 pnpm --dir frontend exec playwright test
 ```
@@ -61,6 +61,12 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **CI and coverage overhaul** — Backend and frontend workflows split into parallel jobs with
+  concurrency control and timeouts; CI uses the `vchord-postgres` image the tests need; coverage is a
+  ratchet (`fail_under`, Vitest thresholds) plus a 85% changed-lines gate; production-only dependency
+  audit gates manifest changes while a daily report covers dev tooling; Playwright baselines are
+  per-platform. When you add or change behavior, keep the tests and coverage thresholds current in the
+  same change. See `docs/ci.md`.
 - **Import merge + editor preview + PDF thumbnails** — Import review detects duplicate titles and
   offers a per-duplicate **Merge into existing** action (`POST /recipes/import/merge`) that replaces
   content while preserving id, photo, collections, favorites, source URL, and description; merge is

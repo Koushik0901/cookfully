@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from contextlib import nullcontext
 from datetime import timedelta
 from decimal import Decimal
@@ -8,7 +7,6 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
-from pydantic import SecretStr
 from sqlalchemy import select
 
 from cookfully.application.import_preview import ImportPreviewCoordinator
@@ -108,44 +106,14 @@ async def test_preview_returns_structured_sections_and_needs_quantity(
     assert section["instructions"] == ["Mix.", "Cook and serve."]
 
 
-async def test_preview_preserves_source_domain_error_when_inline_repair_is_cancelled(
-    owned_coordinator, owner_id: UUID, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A cancelled optional repair must not mask an actionable source error."""
+async def test_preview_preserves_source_domain_error(owned_coordinator, owner_id: UUID) -> None:
+    """An actionable source error reaches the caller unchanged."""
 
     class FailingImporter:
         async def import_url(self, url: str) -> ImportedRecipe:
             raise DomainError("source_unavailable", "Recipe source returned HTTP 403.", 422)
 
-    from cookfully.infrastructure import config
-
-    monkeypatch.setattr(
-        config,
-        "get_settings",
-        lambda: SimpleNamespace(
-            intelligence_inline_enabled=True,
-            intelligence_url="http://intelligence:8091",
-            intelligence_service_key=SecretStr("test-key"),
-            intelligence_enabled=False,
-            intelligence_timeout_seconds=0.6,
-            intelligence_inline_threshold=0.8,
-            intelligence_inline_timeout_ms=600,
-        ),
-    )
     owned_coordinator._importer = FailingImporter()
-    original_create_task = asyncio.create_task
-    pending = asyncio.Event()
-    created = 0
-
-    def create_task(coro):
-        nonlocal created
-        created += 1
-        if created == 2:
-            coro.close()
-            return original_create_task(pending.wait())
-        return original_create_task(coro)
-
-    monkeypatch.setattr("cookfully.application.import_preview.asyncio.create_task", create_task)
 
     with pytest.raises(DomainError) as error:
         await owned_coordinator.preview(

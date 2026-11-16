@@ -343,11 +343,11 @@
   .recipe-library-page .recipe-card__body { gap: 0.35rem; padding: 0.8rem 0 1.35rem; }
   .recipe-library-page .recipe-card h2 { font-size: 1.05rem; line-height: 1.08; letter-spacing: -0.025em; }
   .recipe-library-page .recipe-card__summary { display: grid; gap: 0.18rem; }
-  .recipe-library-page .recipe-card__yield { color: var(--color-on-surface); font-size: 0.82rem; font-weight: 560; }
+  .recipe-library-page .recipe-card__yield { color: var(--color-on-surface); font-size: 0.875rem; /* DESIGN.md: never below 14px */ font-weight: 560; }
   .recipe-library-page .recipe-card__state { width: fit-content; border-radius: 0; padding: 0; color: var(--color-on-surface-variant); background: transparent; font-size: 0.74rem; font-weight: 550; }
   .recipe-library-page .recipe-card__state::before { width: 0.32rem; height: 0.32rem; }
   .recipe-library-page .recipe-card__context { display: none; }
-  .recipe-library-page .recipe-card .recipe-meta { display: flex; gap: 0.45rem; border: 0; padding: 0; color: var(--color-on-surface-variant); font-size: 0.75rem; }
+  .recipe-library-page .recipe-card .recipe-meta { display: flex; gap: 0.45rem; border: 0; padding: 0; color: var(--color-on-surface-variant); font-size: var(--text-data-sm); /* DESIGN.md: compact metadata never drops below 14px */ }
   .recipe-library-page .recipe-card .recipe-meta > .recipe-meta__item + .recipe-meta__item::before { display: none; }
   .recipe-library-page .recipe-card .recipe-meta__item--calories,
   .recipe-library-page .recipe-card .recipe-meta__item--protein,
@@ -433,11 +433,11 @@
   .pantry-staple__edit-trigger { min-height: var(--touch-target); padding-block: 0.5rem; }
   .pantry-staple__actions .cf-button { min-height: var(--touch-target); padding-inline: 0.65rem; }
 
-  /* Seven days fit on a phone without a hidden, partially clipped scroller.
-     The short labels remain readable at 320px and the whole week is visible
-     at a glance. */
-  .planner-page .day-tabs { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.15rem; overflow: visible; padding-inline: 0; scrollbar-width: auto; }
-  .planner-page .day-tab { min-width: 0; min-height: 4.25rem; padding-inline: 0.1rem; }
+  /* Seven days fit side by side on a normal phone, so the whole week is visible at a glance.
+     Each tab keeps the 44px touch target; only below ~320px does the strip scroll sideways
+     (with the scrollbar hidden) instead of shrinking the targets. */
+  .planner-page .day-tabs { grid-template-columns: repeat(7, minmax(var(--touch-target), 1fr)); gap: 0.15rem; overflow-x: auto; padding-inline: 0; scrollbar-width: none; }
+  .planner-page .day-tab { min-width: var(--touch-target); min-height: 4.25rem; padding-inline: 0.1rem; }
   .planner-page .day-tab > span { font-size: 0.64rem; }
   .planner-page .day-tab > strong { font-size: 1.05rem; }
   .planner-page .day-tab > small { font-size: 0.56rem; }

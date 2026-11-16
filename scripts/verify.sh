@@ -19,14 +19,14 @@ uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit
 uvx pip-audit -r "$requirements" --strict
 
 docker compose -f "$base_compose" stop api worker outbox retention
-uv run --directory backend pytest
+uv run --directory backend pytest --cov
 uv run --directory backend cookfully nutrition-corpus run --require-pass --output ../artifacts/nutrition-release-report.json
 
 pnpm --dir frontend install --frozen-lockfile
-pnpm --dir frontend audit --audit-level high
+pnpm --dir frontend audit --prod --audit-level high
 pnpm --dir frontend lint
 pnpm --dir frontend typecheck
-pnpm --dir frontend test --run
+pnpm --dir frontend test:coverage
 pnpm --dir frontend build
 pnpm --dir frontend exec playwright test
 

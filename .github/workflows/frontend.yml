@@ -1,31 +1,162 @@
 name: Frontend
 
+# Runs once per change: pushes to main and every pull request.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  quality:
+  static:
+    name: Lint, types and build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.17.0
+          package_json_file: frontend/package.json # version comes from `packageManager`
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm --dir frontend install --frozen-lockfile
-      - run: pnpm --dir frontend audit --audit-level high
       - run: pnpm --dir frontend lint
       - run: pnpm --dir frontend typecheck
-      - run: pnpm --dir frontend test --run
       - run: pnpm --dir frontend build
-      - run: pnpm --dir frontend exec playwright install --with-deps chromium
-      - run: pnpm --dir frontend exec playwright test
+      # The typed API client is generated from the OpenAPI contract; fail when they diverge.
+      - name: Generated API client is up to date
+        run: |
+          pnpm --dir frontend exec openapi-typescript \
+            ../specs/001-nutrition-recipe-planner/contracts/openapi.yaml \
+            --output src/app/api/generated/schema.ts
+          git diff --exit-code -- frontend/src/app/api/generated/schema.ts
+
+  unit:
+    name: Unit tests and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      # Thresholds live in frontend/vite.config.ts and fail this step when coverage regresses.
+      - run: pnpm --dir frontend test:coverage
+      - name: Summarise coverage
+        if: always()
+        run: |
+          [ -f frontend/coverage/coverage-summary.json ] && node -e '
+            const t = require("./frontend/coverage/coverage-summary.json").total;
+            const row = (k) => `| ${k} | ${t[k].pct}% | ${t[k].covered}/${t[k].total} |`;
+            console.log(["### Frontend coverage", "", "| Metric | Covered | Count |", "| --- | --- | --- |",
+              ...["lines", "statements", "functions", "branches"].map(row)].join("\n"));
+          ' >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 14
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend build # Playwright serves this bundle with `vite preview`
+
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --dir frontend exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium and system libraries
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+      - name: Install system libraries only
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --dir frontend exec playwright install-deps chromium
+
+      # Screenshots are rendered per platform. Until Linux baselines are committed (see
+      # frontend/e2e/README.md) the behavioural checks still run and gate the change; the
+      # pixel comparison switches on automatically as soon as `-linux.png` baselines exist.
+      - name: Decide whether visual baselines exist
+        id: visual
+        run: |
+          if find frontend/e2e/__screenshots__ -name '*-linux.png' -print -quit | grep -q .; then
+            echo "ignore=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "ignore=1" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Visual baselines::No Linux screenshot baselines are committed, so pixel comparisons were skipped. Run the 'Update visual baselines' workflow."
+          fi
+      - run: pnpm --dir frontend exec playwright test --project=desktop-chromium --project=narrow-mobile
+        env:
+          PLAYWRIGHT_IGNORE_SNAPSHOTS: ${{ steps.visual.outputs.ignore }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-chromium
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+
+  # Safari compatibility is checked on its own so a WebKit-only failure is clearly labelled
+  # and does not hide the Chromium results.
+  e2e-webkit:
+    name: End-to-end (WebKit native select)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend build
+      - run: pnpm --dir frontend exec playwright install --with-deps webkit
+      - run: pnpm --dir frontend exec playwright test --project=webkit-native-select
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-webkit
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

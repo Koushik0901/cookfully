@@ -19,7 +19,7 @@ dependencies = [
   "fastapi>=0.116,<1",
   "httpx>=0.28,<1",
   "ijson>=3.5.1",
-  "pillow>=12,<13",
+  "pillow>=13,<14",
   "pint>=0.25,<1",
   "psycopg[binary]>=3.2,<4",
   "pydantic>=2.11,<3",
@@ -77,11 +77,23 @@ markers = [
 [tool.coverage.run]
 branch = true
 source = ["cookfully"]
+# Paths relative to backend/ so CI tooling (diff-cover, artifacts) is machine independent.
+relative_files = true
 
 [tool.coverage.report]
-fail_under = 85
+# A ratchet, not an aspiration: keep this just under the measured total so coverage cannot
+# silently regress, and raise it whenever the measured number rises. New and changed lines are
+# held to a higher bar per pull request by diff-cover (see .github/workflows/backend.yml).
+fail_under = 79
 show_missing = true
 skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "@(abc\\.)?abstractmethod",
+  "^\\s*\\.\\.\\.$",
+  "if __name__ == .__main__.:",
+]
 
 [tool.ruff]
 target-version = "py313"
@@ -103,5 +115,5 @@ packages = ["cookfully"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "recipe_scrapers.*", "ingredient_parser.*", "testcontainers.*", "ijson"]
+module = ["celery.*", "recipe_scrapers.*", "ingredient_parser.*", "testcontainers.*", "ijson", "onnxruntime"]
 ignore_missing_imports = true

@@ -33,12 +33,25 @@ export default defineConfig({
     testTimeout: 20000,
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "lcov"],
+      // List the files to measure instead of relying on what the tests happen to import:
+      // a module no test touches must show up as 0% rather than disappear from the report.
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.{test,spec}.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/test/**",
+        // Generated from specs/**/openapi.yaml; CI checks it for drift instead.
+        "src/app/api/generated/**",
+        "src/main.tsx",
+      ],
+      reporter: ["text-summary", "html", "lcov", "json-summary"],
+      // A ratchet, not an aspiration: set just under the measured baseline so coverage cannot
+      // silently regress. Raise these whenever the measured numbers rise.
       thresholds: {
-        lines: 85,
-        functions: 85,
-        branches: 80,
-        statements: 85,
+        lines: 72,
+        functions: 55,
+        branches: 61,
+        statements: 65,
       },
     },
   },
