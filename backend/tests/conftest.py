@@ -12,6 +12,27 @@ from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models import Base
 
 
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Create the shared extensions once, before any xdist worker starts.
+
+    `CREATE EXTENSION IF NOT EXISTS` is not safe to run concurrently: two workers that both see
+    the extension missing collide on the catalog's unique index. Only the controller process
+    (no `workerinput`) runs this; workers then find the extensions already installed.
+    """
+
+    if hasattr(session.config, "workerinput"):
+        return
+    engine = create_engine(Settings().database_url)
+    try:
+        with engine.begin() as connection:
+            for extension in ("citext", "btree_gist", "vector"):
+                connection.execute(text(f'CREATE EXTENSION IF NOT EXISTS "{extension}"'))
+    except Exception:  # no database: the DB-backed tests report their own error
+        pass
+    finally:
+        engine.dispose()
+
+
 @pytest.fixture
 def isolated_database_url() -> Iterator[str]:
     """Use a disposable PostgreSQL schema so tests never mutate the application schema."""

@@ -25,7 +25,7 @@ jobs:
   static:
     name: Lint and types
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -34,6 +34,12 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --project backend --all-extras --dev
+      # mypy re-checks only what changed when its cache is restored (a cold run re-checks every module).
+      - uses: actions/cache@v6
+        with:
+          path: backend/.mypy_cache
+          key: mypy-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}-${{ github.sha }}
+          restore-keys: mypy-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}-
       - run: uv run --directory backend ruff format --check .
       - run: uv run --directory backend ruff check --output-format=github .
       - run: uv run --directory backend mypy src
@@ -41,7 +47,7 @@ jobs:
   test:
     name: Tests and coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     services:
       postgres:
         # The image deploy/compose.yaml runs. Migrations need the vchord extension and the
@@ -77,10 +83,13 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --project backend --all-extras --dev
 
-      # The total must stay above `fail_under` in backend/pyproject.toml.
+      # The total must stay above `fail_under` in backend/pyproject.toml. Tests isolate themselves
+      # in per-test database schemas, so they run on every vCPU of the runner; a hung test fails
+      # after 60 s (`timeout` in pyproject.toml) instead of stalling the job.
       - name: Run tests with coverage
         run: >-
           uv run --directory backend pytest
+          -n 4
           --cov --cov-report=term-missing:skip-covered --cov-report=xml
           --durations=15
 

@@ -6,7 +6,10 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
+  // One retry separates a flake from a real failure; more would multiply a broken run's time.
+  retries: isCI ? 1 : 0,
+  // Backstop below the job timeout so a hang produces a report instead of a cancelled job.
+  globalTimeout: isCI ? 9 * 60 * 1000 : undefined,
   // One dev/preview server backs every worker; more than two starves it on a CI runner.
   workers: isCI ? 2 : undefined,
   reporter: isCI

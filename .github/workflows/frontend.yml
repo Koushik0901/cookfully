@@ -18,7 +18,7 @@ jobs:
   static:
     name: Lint, types and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -44,7 +44,7 @@ jobs:
   unit:
     name: Unit tests and coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -75,10 +75,16 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  # The mocked-API suite is the slowest lane, so it is split across two runners. Playwright
+  # shards by test, so each shard runs about half of every project.
   e2e:
-    name: End-to-end (Chromium)
+    name: End-to-end (Chromium ${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false # a failure in one shard must not hide results from the other
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -119,14 +125,16 @@ jobs:
             echo "ignore=1" >> "$GITHUB_OUTPUT"
             echo "::warning title=Visual baselines::No Linux screenshot baselines are committed, so pixel comparisons were skipped. Run the 'Update visual baselines' workflow."
           fi
-      - run: pnpm --dir frontend exec playwright test --project=desktop-chromium --project=narrow-mobile
+      - run: >-
+          pnpm --dir frontend exec playwright test
+          --project=desktop-chromium --project=narrow-mobile --shard=${{ matrix.shard }}/2
         env:
           PLAYWRIGHT_IGNORE_SNAPSHOTS: ${{ steps.visual.outputs.ignore }}
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report-chromium
+          name: playwright-report-chromium-${{ matrix.shard }}
           path: |
             frontend/playwright-report
             frontend/test-results
@@ -137,7 +145,7 @@ jobs:
   e2e-webkit:
     name: End-to-end (WebKit native select)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

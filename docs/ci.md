@@ -6,7 +6,7 @@ cancels itself when a newer push supersedes it, and has a job timeout.
 | Workflow | Jobs | Gate |
 | --- | --- | --- |
 | `backend.yml` | **Lint and types** (ruff, mypy); **Tests and coverage** (pytest against the same `vchord-postgres` and Redis images as `deploy/compose.yaml`) | total coverage ≥ `fail_under`; changed lines ≥ 85% |
-| `frontend.yml` | **Lint, types and build** plus a generated-API-client drift check; **Unit tests and coverage** (Vitest); **End-to-end** (Playwright on Chromium, with WebKit native-select in its own job) | coverage thresholds in `vite.config.ts`; every e2e assertion |
+| `frontend.yml` | **Lint, types and build** plus a generated-API-client drift check; **Unit tests and coverage** (Vitest); **End-to-end** (Playwright on Chromium in two shards, with WebKit native-select in its own job) | coverage thresholds in `vite.config.ts`; every e2e assertion |
 | `dependency-audit.yml` | `pip-audit` and `pnpm audit --prod` when a manifest changes; a daily full report | production dependencies only |
 | `containers.yml` | compose files validate; each image builds (nothing is pushed) | when `deploy/**` or a lockfile changes |
 | `publish-containers.yml` | build and push images to GHCR | release tags `v*.*.*` |
@@ -14,6 +14,18 @@ cancels itself when a newer push supersedes it, and has a job timeout.
 
 Jobs inside a workflow run in parallel, so a lint or audit failure can no longer hide whether tests
 pass.
+
+## Speed budget
+
+Pull-request checks should finish in about 6 minutes and never take more than 12; a slow check is a bug,
+not a cost of doing business. What keeps them fast without dropping coverage of behaviour:
+
+- **Parallel backend tests.** CI runs `pytest -n 4`. Every database test creates its own schema, so workers
+  never share state. Run `uv run --directory backend pytest -n 4` locally for the same speed-up.
+- **Sharded browser tests.** The Chromium suite is split into two runners (`--shard=N/2`).
+- **Caches.** uv, pnpm, Playwright browsers and the mypy cache are restored between runs.
+- **Hard limits.** Every job has a tight `timeout-minutes`, each backend test has a 60 s `timeout`, and
+  Playwright has a `globalTimeout` and a single retry, so a hang or a flake cannot stretch a run.
 
 ## Coverage policy
 
