@@ -1350,60 +1350,10 @@
 }
 
 /* Grocery — compact, tactile and designed for one-handed checking. */
-.grocery-ready {
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  gap: 0.8rem;
-  border-radius: var(--radius-full);
-  padding: 0.55rem 0.9rem 0.55rem 0.6rem;
-  color: var(--color-on-primary-container);
-  background: var(--color-primary-container);
-}
-
-.grocery-ready > svg { width: 2rem; height: 2rem; padding: 0.45rem; border-radius: 50%; color: var(--color-on-primary); background: var(--color-primary); }
-.grocery-ready > span { display: grid; }
-.grocery-ready small { color: var(--color-on-primary-container); font-size: 0.72rem; }
-
-.grocery-complete { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; border-radius: var(--radius-lg); padding: 1rem 1.25rem; color: var(--color-on-primary-container); background: var(--color-primary-container); }
-.grocery-complete > div { display: grid; gap: 0.2rem; }
-.grocery-complete p { font-size: 0.82rem; }
-.grocery-complete__actions { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
-
-.shopping-stops { display: grid; gap: 0.75rem; border-block: 1px solid var(--color-outline-variant); padding-block: 1rem; }
-.shopping-stops > summary { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.75rem; min-height: 2.75rem; color: var(--color-primary); font-weight: 620; }
-.shopping-stops > summary > span { display: grid; gap: 0.15rem; }
-.shopping-stops > summary small { color: var(--color-on-surface-variant); font-size: 0.75rem; font-weight: 430; }
-.shopping-stops__body { display: grid; gap: 1rem; }
-.shopping-stops__list { display: grid; gap: 0.4rem; padding: 0; list-style: none; }
-.shopping-stops__row { display: grid; grid-template-columns: minmax(12rem, 1fr) repeat(4, auto); gap: 0.35rem; }
-.shopping-stops__add { display: grid; grid-template-columns: minmax(12rem, 1fr) auto; align-items: end; gap: 0.75rem; }
-
-.grocery-group { display: grid; gap: 0.5rem; }
-.grocery-group > .section-heading { border-bottom: 1px solid var(--color-outline); padding-bottom: 0.65rem; }
-.grocery-group > .section-heading h2 { font-size: 1.25rem; }
 .grocery-icon { display: block; object-fit: contain; }
 .grocery-icon--size-compact { width: 2rem; height: 2rem; }
 .grocery-icon--size-row { width: 2.5rem; height: 2.5rem; }
 .grocery-icon--size-tile { width: 3rem; height: 3rem; }
-
-.grocery-items { display: grid; }
-
-.grocery-item {
-  display: grid;
-  gap: 0.55rem;
-  border-bottom: 1px solid var(--color-outline-variant);
-  padding: 0.8rem 0.25rem;
-  transform-origin: center left;
-  transition: opacity var(--motion-state) ease, transform var(--motion-state) var(--ease-out-expo), background-color var(--motion-state) ease;
-}
-
-.grocery-item__heading { display: grid; grid-template-columns: auto 2.75rem minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; }
-.grocery-check { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; cursor: pointer; }
-.grocery-check .cf-checkbox { width: 1.55rem; height: 1.55rem; }
-.grocery-item__heading > div.grocery-item__content { display: grid; gap: 0.1rem; }
-.grocery-item__heading h3 { font-family: var(--font-body); font-size: 1rem; font-weight: 620; letter-spacing: 0; transition: color var(--motion-state) ease, text-decoration-color var(--motion-state) ease; }
-.grocery-item__heading p { color: var(--color-on-surface-variant); font-size: 0.8rem; }
 .item-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
 .review-badge { color: var(--status-warning); background: var(--status-warning-container); }
 
@@ -1459,16 +1409,6 @@
   white-space: normal;
   flex-wrap: wrap;
   max-width: 100%;
-}
-.grocery-item__content .data-value {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-.grocery-item__content .data-value .expiry-badge {
-  max-width: 100%;
-  overflow-wrap: anywhere;
 }
 .expiry-sheet {
   width: min(25rem, calc(100% - 2rem));
@@ -1531,25 +1471,8 @@
     transition-duration: 0.01ms !important;
   }
 }
-.grocery-item > .disclosure { margin-left: 3.25rem; border-block: 0; }
-.grocery-item > .disclosure > summary { width: fit-content; min-height: 2rem; padding: 0; color: var(--color-on-surface-variant); font-size: 0.75rem; font-weight: 560; }
-.grocery-item > div > .cf-button--ghost { min-height: 2rem; padding-inline: 0; font-size: 0.75rem; }
-.grocery-edit { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 0.75rem; padding: 0.75rem 0; }
-.grocery-edit > .cf-button { grid-column: 1 / -1; min-width: 10rem; justify-self: end; }
 .source-list { display: grid; gap: 0.35rem; max-width: 48rem; padding: 0 0 0 3.25rem; list-style: none; }
 .source-list li { display: flex; justify-content: space-between; gap: 1rem; color: var(--color-on-surface-variant); font-size: 0.75rem; }
-.grocery-item > .actions { justify-content: flex-end; margin: 0; }
-
-.grocery-item--checked .grocery-item__heading > :not(.grocery-check) { opacity: 0.62; }
-.grocery-item--checked .grocery-item__heading h3 { color: var(--color-on-surface-variant); text-decoration: line-through; text-decoration-thickness: 1.5px; }
-.grocery-list--completed .grocery-item { pointer-events: none; }
-
-.grocery-manual { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding-inline: 1rem; background: var(--color-surface-bright); }
-.grocery-manual > summary { display: flex; min-height: 4rem; align-items: center; gap: 0.75rem; }
-.grocery-manual > summary > svg { width: 1.25rem; color: var(--color-primary); }
-.grocery-manual > summary > span { display: grid; }
-.grocery-manual small { font-weight: 430; }
-.grocery-finish { position: sticky; z-index: 10; bottom: 1rem; justify-self: center; min-height: 3.25rem; border: 0; border-radius: var(--radius-full); padding-inline: 1.5rem; color: var(--color-on-primary); background: var(--color-primary); box-shadow: var(--shadow-level-2); font-weight: 650; cursor: pointer; }
 
 .pantry-deduction-panel { display: grid; gap: 1rem; border-radius: var(--radius-lg); padding: 1.25rem; background: var(--color-surface-low); }
 .deduction-list { display: grid; }
@@ -1630,20 +1553,8 @@
 .owner-foods-loading span { height: 5rem; border-radius: var(--radius); background: var(--color-surface-high); animation: skeleton-breathe 1.2s ease-in-out infinite alternate; }
 
 @media (max-width: 47.99rem) {
-  .grocery-ready { width: 100%; }
-  .grocery-complete { grid-template-columns: auto 1fr; }
-  .grocery-complete__actions { grid-column: 1 / -1; width: 100%; }
-  .grocery-complete__actions .cf-button { flex: 1 1 10rem; }
-  .grocery-item__heading { grid-template-columns: auto 2.75rem minmax(0, 1fr); }
   .item-badges { grid-column: 2; justify-content: flex-start; }
-  .grocery-edit { grid-template-columns: 1fr; }
-  .grocery-edit > .cf-button { width: 100%; justify-self: stretch; }
   .source-list { padding-left: 0; }
-  .grocery-manual { padding-inline: 0.8rem; }
-  .shopping-stops__row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
-  .shopping-stops__row > .input { grid-column: 1 / -1; }
-  .shopping-stops__row .cf-button { width: 100%; }
-  .shopping-stops__add { grid-template-columns: 1fr; }
   .deduction-row { grid-template-columns: 1fr auto; }
   .deduction-row .cf-button { grid-column: 1 / -1; }
 

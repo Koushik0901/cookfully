@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const isCI = Boolean(process.env.CI);
 
+// Grayscale, unhinted text renders the same whether or not a layer is GPU-composited, so
+// screenshot baselines do not flip between two text renderings.
+const stableChromiumText = { launchOptions: { args: ["--disable-lcd-text", "--font-render-hinting=none"] } };
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -30,11 +34,12 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"], ...stableChromiumText } },
     {
       name: "narrow-mobile",
       use: {
         ...devices["Desktop Chrome"],
+        ...stableChromiumText,
         viewport: { width: 390, height: 844 },
         deviceScaleFactor: 3,
         hasTouch: true,

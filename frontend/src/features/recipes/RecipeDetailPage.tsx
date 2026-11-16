@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Minus, Pencil, Plus, ShoppingBasket, Sparkles } from "lucide-react";
 
 import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, SectionHeading, Skeleton } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
@@ -241,18 +241,14 @@ export function RecipeDetailPage() {
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
           <div className="recipe-hero__actions">
             {recipe.instructions.length > 0 && !isMobile ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
+            {recipe.status !== "archived" ? <Button asChild variant="secondary" className="recipe-hero__plan"><Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}><CalendarPlus aria-hidden="true" />Add to plan</Link></Button> : null}
             <Button asChild variant="secondary"><Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" />Edit recipe</Link></Button>
           </div>
-          <label className="portion-scale__label">
-            <span>Scale to</span>
-            <input className="input portion-scale__input" type="number" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) setScale(value); }} />
-            <span>{recipe.yieldUnit}</span>
-          </label>
         </div>
       </section>
 
       <nav className="recipe-mobile-quick-actions" aria-label="Recipe shortcuts">
-        <Link to={`/app/recipes/${recipe.id}/edit`}><Pencil aria-hidden="true" /><span>Edit</span></Link>
+        <Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" /><span>Edit</span></Link>
         <Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}><CalendarPlus aria-hidden="true" /><span>Plan</span></Link>
         <Link to={`/app/grocery?recipe=${encodeURIComponent(recipe.id)}`}><ShoppingBasket aria-hidden="true" /><span>Shop</span></Link>
         <a className="recipe-mobile-quick-action" href="#nutrition" aria-label="Open nutrition details" onClick={(event) => { event.preventDefault(); setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}><Sparkles aria-hidden="true" /><span>Nutrition</span></a>
@@ -276,13 +272,22 @@ export function RecipeDetailPage() {
         <button type="button" aria-label="Increase servings" onClick={() => setScale((value) => value + 0.5)}>+</button>
       </div>
 
-      <div className="recipe-detail__nutrition-summary">
-        <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
-      </div>
-
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">
-          <SectionHeading id="ingredients-heading" title="Ingredients" meta={`${recipe.ingredients.length} items`} />
+          <SectionHeading
+            id="ingredients-heading"
+            title="Ingredients"
+            action={<>
+              <span className="data-value recipe-reading-panel__count">{recipe.ingredients.length} items</span>
+              {/* Scaling sits beside the quantities it changes. Phones use the
+                  dedicated stepper above the panels instead. */}
+              <div className="recipe-servings" role="group" aria-label="Scale recipe">
+                <button type="button" aria-label="Fewer servings" disabled={scale <= 0.25} onClick={() => setScale((value) => Math.max(0.25, value - (value > 1 ? 1 : 0.25)))}><Minus aria-hidden="true" /></button>
+                <label><span className="sr-only">Scale to</span><input className="portion-scale__input" type="number" inputMode="decimal" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) setScale(value); }} /><span>{recipe.yieldUnit}</span></label>
+                <button type="button" aria-label="More servings" onClick={() => setScale((value) => value + (value >= 1 ? 1 : 0.25))}><Plus aria-hidden="true" /></button>
+              </div>
+            </>}
+          />
           {recipe.ingredients.length ? (
             <ul className="ingredient-list">
               {orderedSections.map((section) => (
@@ -329,6 +334,10 @@ export function RecipeDetailPage() {
           ) : <p className="muted">No instructions were provided.</p>}
         </section>
       </section>
+
+      <div className="recipe-detail__nutrition-summary">
+        <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
+      </div>
 
       <details className={`recipe-nutrition-drawer${mobilePanel === "nutrition" ? " is-mobile-active" : ""}`} id="nutrition-details" open={nutritionDetailsOpen} onToggle={(event) => setNutritionDetailsOpen(event.currentTarget.open)}>
         <summary><span><strong>Nutrition details and evidence</strong><small>Micronutrients, sources, assumptions, and processing status</small></span></summary>

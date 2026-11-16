@@ -17,17 +17,17 @@ const sensors = typeof window !== "undefined" && "PointerEvent" in window
   ? [PointerSensor.configure({ preventActivation: () => false }), KeyboardSensor]
   : [];
 
-function DraggableDayEntry({ entry, weekStart, recipe, readOnly }: { entry: PlannedEntry; weekStart: string; recipe?: Recipe; readOnly: boolean }) {
+function DraggableDayEntry({ entry, weekStart, recipe, readOnly, today }: { entry: PlannedEntry; weekStart: string; recipe?: Recipe; readOnly: boolean; today?: string }) {
   const { ref, isDragging } = useDraggable<MealDragData>({ id: `day-${entry.id}`, data: { kind: "meal", entry }, disabled: !entry.recipeId || readOnly || entry.cookingStatus === "cooked" });
-  return <div ref={ref} className={`day-entry-drag${isDragging ? " is-dragging" : ""}`}><MealPlanEntry entry={entry} weekStart={weekStart} recipe={recipe} readOnly={readOnly} /></div>;
+  return <div ref={ref} className={`day-entry-drag${isDragging ? " is-dragging" : ""}`}><MealPlanEntry entry={entry} weekStart={weekStart} recipe={recipe} readOnly={readOnly} today={today} /></div>;
 }
 
-function DaySlot({ date, slot, weekStart, recipesById, readOnly, renderEmpty }: { date: string; slot: DaySlot; weekStart: string; recipesById: Map<string, Recipe>; readOnly: boolean; renderEmpty: (slot: string, readOnly: boolean) => React.ReactNode }) {
+function DaySlot({ date, slot, weekStart, recipesById, readOnly, renderEmpty, today }: { date: string; slot: DaySlot; weekStart: string; recipesById: Map<string, Recipe>; readOnly: boolean; today?: string; renderEmpty: (slot: string, readOnly: boolean) => React.ReactNode }) {
   const { ref, isDropTarget } = useDroppable<SlotDropData>({ id: `day-slot-${date}-${slot.slot}`, data: { kind: "slot", slot: slot.slot }, disabled: readOnly });
-  return <section ref={ref} className={`meal-slot${isDropTarget ? " is-drop-target" : ""}`}><div className="section-heading"><h3>{slot.label}</h3><span>{slot.entries.length ? `${slot.entries.length} planned` : readOnly ? "Past" : "Open"}</span></div>{slot.entries.length ? <div className="entry-list">{slot.entries.map((entry) => <DraggableDayEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} readOnly={readOnly} />)}</div> : renderEmpty(slot.slot, readOnly)}</section>;
+  return <section ref={ref} className={`meal-slot${isDropTarget ? " is-drop-target" : ""}`}><div className="section-heading"><h3>{slot.label}</h3><span>{slot.entries.length ? `${slot.entries.length} planned` : readOnly ? "Past" : "Open"}</span></div>{slot.entries.length ? <div className="entry-list">{slot.entries.map((entry) => <DraggableDayEntry key={entry.id} entry={entry} weekStart={weekStart} recipe={entry.recipeId ? recipesById.get(entry.recipeId) : undefined} readOnly={readOnly} today={today} />)}</div> : renderEmpty(slot.slot, readOnly)}</section>;
 }
 
-export function DayMealBoard({ date, slots, weekStart, recipesById, readOnly, onMove, onSwap, renderEmpty }: { date: string; slots: DaySlot[]; weekStart: string; recipesById: Map<string, Recipe>; readOnly: boolean; onMove: (entry: PlannedEntry, slot: string, position: number) => void; onSwap: (source: PlannedEntry, target: PlannedEntry) => void; renderEmpty: (slot: string, readOnly: boolean) => React.ReactNode }) {
+export function DayMealBoard({ date, slots, weekStart, recipesById, readOnly, onMove, onSwap, renderEmpty, today }: { today?: string; date: string; slots: DaySlot[]; weekStart: string; recipesById: Map<string, Recipe>; readOnly: boolean; onMove: (entry: PlannedEntry, slot: string, position: number) => void; onSwap: (source: PlannedEntry, target: PlannedEntry) => void; renderEmpty: (slot: string, readOnly: boolean) => React.ReactNode }) {
   const [activeEntry, setActiveEntry] = useState<PlannedEntry | null>(null);
   const [swapCandidate, setSwapCandidate] = useState<{ source: PlannedEntry; target: PlannedEntry } | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -65,7 +65,7 @@ export function DayMealBoard({ date, slots, weekStart, recipesById, readOnly, on
 
   return <DragDropProvider sensors={sensors} onDragStart={dragStart} onDragEnd={dragEnd}>
     <div className="day-meal-board">
-      {slots.map((slot) => <DaySlot key={slot.slot} date={date} slot={slot} weekStart={weekStart} recipesById={recipesById} readOnly={readOnly} renderEmpty={renderEmpty} />)}
+      {slots.map((slot) => <DaySlot key={slot.slot} date={date} slot={slot} weekStart={weekStart} recipesById={recipesById} readOnly={readOnly} renderEmpty={renderEmpty} today={today} />)}
     </div>
     <p className="visually-hidden" aria-live="assertive">{announcement}</p>
     <DragOverlay className="day-meal-overlay"><div>{activeEntry ? <><GripVertical aria-hidden="true" /><strong>{activeEntry.recipeTitle}</strong></> : null}</div></DragOverlay>

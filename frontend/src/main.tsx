@@ -1,4 +1,4 @@
-import "@fontsource-variable/afacad-flux";
+import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/inclusive-sans";
 
 import { StrictMode } from "react";

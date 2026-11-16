@@ -133,7 +133,7 @@ describe("GroceryListPage", () => {
 
   it("groups assigned and unassigned items and offers remembered placement", async () => {
     renderPage();
-    expect(await screen.findByRole("heading", { name: "Everything you need this week" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Grocery" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Market" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Unassigned" })).toBeVisible();
     expect(screen.getByText("Apples")).toBeVisible();
@@ -158,6 +158,44 @@ describe("GroceryListPage", () => {
     await waitFor(() => expect(mocks.get.mock.calls.length).toBeGreaterThan(before));
   });
 
+  it("keeps a tick when a refetch from an earlier edit lands after it", async () => {
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByRole("checkbox", { name: "Oat milk purchased" });
+
+    // Hold the refetch that the stop assignment triggers.
+    let releaseStale: (value: GroceryList) => void = () => undefined;
+    // A response computed before the item moved to the stop.
+    const stale = currentList;
+    mocks.get.mockImplementationOnce(() => new Promise<GroceryList>((resolve) => { releaseStale = resolve; }));
+    // Like the API, moving to a stop returns the item with its stop attached.
+    mocks.update.mockImplementationOnce(async (id: string) => {
+      currentList = { ...currentList, items: currentList.items.map((candidate) => candidate.id === id ? { ...candidate, shoppingStop: stop, version: candidate.version + 1 } : candidate) };
+      return currentList.items.find((candidate) => candidate.id === id)!;
+    });
+    await user.click(screen.getByLabelText("Edit Oat milk"));
+    await user.selectOptions(screen.getByLabelText("Shopping stop for Oat milk"), stop.id);
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("item-unassigned", 1, expect.objectContaining({ shoppingStopId: stop.id })));
+
+    // Hold the tick's own save open so the stale list can land while it is in flight.
+    const realUpdate = mocks.update.getMockImplementation()!;
+    let releaseTick: () => void = () => undefined;
+    mocks.update.mockImplementationOnce((...args: Parameters<typeof realUpdate>) => new Promise((resolve) => {
+      releaseTick = () => resolve(realUpdate(...args));
+    }));
+    await user.click(await screen.findByRole("checkbox", { name: "Oat milk purchased" }));
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledWith("item-unassigned", 2, { checked: true }));
+
+    releaseStale(stale);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // The out-of-date list must not move the item back or undo the tick.
+    expect(screen.queryByRole("heading", { name: "Unassigned" })).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Oat milk purchased" })).toHaveAttribute("aria-checked", "true");
+
+    releaseTick();
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: "Oat milk purchased" })).toHaveAttribute("aria-checked", "true"));
+  });
+
   it("uses a shopping-first phone composition with sheets for secondary actions", async () => {
     vi.stubGlobal("matchMedia", () => ({
       matches: true,
@@ -165,8 +203,10 @@ describe("GroceryListPage", () => {
       removeEventListener: vi.fn(),
     }));
     renderPage();
-    expect(await screen.findByRole("heading", { name: "2 left to pick up" })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Everything you need this week" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Grocery" })).toBeVisible();
+    expect(screen.getByText("2 to pick up · 0 in the basket")).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Add an item" })).toBeVisible();
+    expect(screen.queryByRole("complementary", { name: "About this list" })).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByLabelText("Edit Apples"));
@@ -187,7 +227,7 @@ describe("GroceryListPage", () => {
     renderPage();
     const user = userEvent.setup();
 
-    expect(await screen.findByRole("heading", { name: "Build your grocery list" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Grocery" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "1 planned meal, one shopping list" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Build grocery list" }));
     await waitFor(() => expect(mocks.regenerate).toHaveBeenCalledTimes(1));
@@ -202,12 +242,12 @@ describe("GroceryListPage", () => {
     ]);
     renderPage();
     const user = userEvent.setup();
-    expect(await screen.findByText("All picked up")).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Finish this shopping pass" }));
+    expect(await screen.findByText("Everything is in the basket.", { selector: "p.grocery-intro__summary" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Finish shop" }));
     await user.click(screen.getByRole("button", { name: "Finish shopping pass" }));
     expect(await screen.findByText("This shopping pass is complete")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Reopen list" }));
-    await waitFor(() => expect(screen.getByText("Ready when you are")).toBeVisible());
+    await waitFor(() => expect(screen.getByText("Everything picked up")).toBeVisible());
     expect(mocks.reopen).toHaveBeenCalledWith(expect.any(String), 4);
   });
 });

@@ -132,17 +132,19 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.getByText(/deterministic work was kept/i).locator("visible=true").first()).toBeVisible();
   await expect(page.getByLabel("Nutrition processing status").getByText("failed")).toBeVisible();
   await expect(page.getByText(/planning aid, not medical advice/i)).toBeVisible();
-  await expect(editRecipeLink(page, testInfo)).toBeVisible();
+  await expect(editRecipeLink(page)).toBeVisible();
 
   await page.getByRole("link", { name: "Edit nutrition" }).click();
   await page.getByLabel("Protein (g)").fill("40.000000");
   await page.getByLabel("Source or reason").fill("Package label after provider failure");
   await page.getByRole("button", { name: "Save recipe" }).click();
+  // Wait for the saved recipe page, not the editor (which also has a Nutrition step).
+  await page.waitForURL(/\/app\/recipes\/[^/]+$/);
   if (testInfo.project.name === "narrow-mobile") await page.getByRole("button", { name: "Nutrition" }).click();
   else await page.getByText("Nutrition details and evidence").click();
   await expect(page.getByText("Package label after provider failure")).toBeVisible();
 
-  await editRecipeLink(page, testInfo).click();
+  await editRecipeLink(page).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Ingredients", exact: true }).click();
   await page.getByRole("textbox", { name: "ingredient 1 for main recipe", exact: true }).fill("250 g tofu");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
@@ -151,6 +153,6 @@ test("provider failure stays explicit while edit and manual nutrition recovery r
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
 
   await expect(page.getByRole("link", { name: "Plan", exact: true }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Grocery" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Grocery", exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

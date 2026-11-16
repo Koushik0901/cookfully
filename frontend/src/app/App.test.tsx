@@ -152,11 +152,13 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { name: /^Good (morning|afternoon|evening)$/ })).toBeVisible();
     expect(await screen.findByRole("link", { name: "Plan tonight" })).toHaveAttribute("href", expect.stringMatching(/^\/app\/plan\?date=\d{4}-\d{2}-\d{2}&slot=dinner$/));
-    expect(screen.getByRole("heading", { name: "No meals planned" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Today’s meals" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "This week" })).toBeVisible();
+    expect(screen.getByText("0 of 7 days planned")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Use soon" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Quick actions" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Grocery" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Cook next" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Recently saved" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Add recipe" })).toHaveAttribute("href", "/app/recipes/new");
   });
 
   it("clears a stale server banner when an expected signed-out response arrives", async () => {
