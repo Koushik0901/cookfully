@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
+from cookfully.domain.common import MAX_VERSION, DomainError
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.recipe_import import RecipeImportSettings
@@ -19,7 +20,7 @@ class RecipeImportSettingsResponse(BaseModel):
     local_available: bool = Field(alias="localAvailable")
     openrouter_configured: bool = Field(alias="openrouterConfigured")
     openrouter_model: str | None = Field(alias="openrouterModel")
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class RecipeImportSettingsWrite(BaseModel):
@@ -27,7 +28,7 @@ class RecipeImportSettingsWrite(BaseModel):
 
     cleanup_enabled: bool = Field(alias="cleanupEnabled")
     openrouter_fallback_enabled: bool = Field(alias="openrouterFallbackEnabled")
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 def _get_or_create(request: Request) -> RecipeImportSettings:
@@ -76,8 +77,6 @@ def update_recipe_import_settings(
             session.add(value)
             session.flush()
         if value.version != payload.version:
-            from cookfully.domain.common import DomainError
-
             raise DomainError("recipe_import_settings_stale", "Settings changed elsewhere.", 409)
         value.cleanup_enabled = payload.cleanup_enabled
         value.openrouter_fallback_enabled = payload.openrouter_fallback_enabled
