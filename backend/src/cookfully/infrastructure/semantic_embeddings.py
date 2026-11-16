@@ -5,7 +5,7 @@ import math
 import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 Embedding = tuple[float, ...]
 
@@ -25,7 +25,8 @@ def available_accelerator_providers() -> tuple[str, ...]:
     fallback when the semantic extra is not installed.
     """
     try:
-        import onnxruntime  # type: ignore[import-not-found]
+        # The ignore must hold whether or not the optional extra is installed.
+        import onnxruntime  # type: ignore[import-not-found,import-untyped,unused-ignore]
 
         return tuple(str(provider) for provider in onnxruntime.get_available_providers())
     except Exception:
@@ -87,10 +88,10 @@ class FastEmbedTextEmbedder:
         cache_dir: Path | None = None,
         local_files_only: bool = False,
     ) -> None:
-        from fastembed import TextEmbedding  # type: ignore[import-not-found]
+        from fastembed import TextEmbedding  # type: ignore[import-not-found,unused-ignore]
 
         selected_provider = select_accelerator_provider()
-        kwargs: dict[str, object] = {"model_name": model_name}
+        kwargs: dict[str, Any] = {"model_name": model_name}
         if cache_dir is not None:
             kwargs["cache_dir"] = str(cache_dir)
         if local_files_only:
