@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cookfully.domain.common import MAX_VERSION
+
 
 class OwnerFoodWriteRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -22,7 +24,7 @@ class OwnerFoodWriteRequest(BaseModel):
 
 
 class OwnerFoodUpdateRequest(OwnerFoodWriteRequest):
-    expected_version: Annotated[int, Field(alias="expectedVersion", ge=1)]
+    expected_version: Annotated[int, Field(alias="expectedVersion", ge=1, le=MAX_VERSION)]
 
 
 class OwnerFoodResponse(BaseModel):

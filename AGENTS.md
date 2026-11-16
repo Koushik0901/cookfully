@@ -65,6 +65,10 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   OpenRouter Decisions and auto-resolves only when expected error is within tolerance in every tracked
   nutrient (`domain/decision_assist.py`); failures keep the deterministic result. See
   `docs/decision-model-assist.md`.
+- **Real-stack tests** — CI boots the composed app (`deploy/compose.ci.yaml`) and runs a no-mocks browser
+  test plus a Schemathesis fuzz of the OpenAPI contract; a request that crashes the API fails the change.
+  Client-supplied versions are bounded by `MAX_VERSION`, and database data errors become `422 invalid_value`.
+  See `docs/ci.md`.
 - **Stricter static checks** — ruff now also enforces security/async/simplification/performance/return/
   pytest rules (use `require_present()` instead of `assert` in `src`; log instead of `except: pass`), ESLint
   enforces `jsx-a11y` and promise-handling rules (mark intentional fire-and-forget with `void`; justify any

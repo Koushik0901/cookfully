@@ -17,7 +17,7 @@ from cookfully.application.owner_preferences import OwnerPreferenceService
 from cookfully.application.pantry import PantryService
 from cookfully.application.pantry_search import PantrySearchService
 from cookfully.application.recipe_queries import RecipeQueryService
-from cookfully.domain.common import DomainError, utc_now
+from cookfully.domain.common import MAX_VERSION, DomainError, utc_now
 from cookfully.infrastructure.models.identity import OwnerAccount
 
 router = APIRouter(prefix="/owner", tags=["Owner"])
@@ -71,7 +71,7 @@ class OwnerPreferences(BaseModel):
     timezone: str
     week_starts_on: int = Field(alias="weekStartsOn", ge=1, le=7)
     health_profile: HealthProfile = Field(alias="healthProfile", default_factory=HealthProfile)
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 def _preferences(owner: OwnerAccount) -> OwnerPreferences:
@@ -99,7 +99,7 @@ class OwnerOnboarding(BaseModel):
         alias="referenceDataChoice", default=None
     )
     resolved_at: datetime | None = Field(alias="resolvedAt", default=None)
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class HomeBootstrap(BaseModel):

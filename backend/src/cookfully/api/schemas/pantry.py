@@ -10,7 +10,7 @@ from cookfully.api.schemas.recipes import ApiModel, Decimal6
 from cookfully.application.pantry import PantryItemRead
 from cookfully.application.pantry_deductions import PantryDeductionRead
 from cookfully.application.pantry_search import PantryRecipeScore
-from cookfully.domain.common import canonical_decimal
+from cookfully.domain.common import MAX_VERSION, canonical_decimal
 
 
 class PantryItemWriteRequest(ApiModel):
@@ -83,7 +83,9 @@ class PantryRecipeMatchResponse(ApiModel):
 
 
 class PantryDeductionApplyRequest(ApiModel):
-    expected_grocery_list_version: int = Field(alias="expectedGroceryListVersion", ge=1)
+    expected_grocery_list_version: int = Field(
+        alias="expectedGroceryListVersion", ge=1, le=MAX_VERSION
+    )
     grocery_item_ids: tuple[UUID, ...] | None = Field(alias="groceryItemIds", default=None)
 
 

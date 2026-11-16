@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DataError
 
 from cookfully.domain.common import DomainError
+
+logger = logging.getLogger(__name__)
 
 
 def problem_response(
@@ -63,4 +67,21 @@ def install_problem_handlers(app: FastAPI) -> None:
             code="validation_error",
             title="One or more fields are invalid.",
             field_errors=fields,
+        )
+
+    @app.exception_handler(DataError)
+    async def handle_unstorable_value(request: Request, exc: DataError) -> JSONResponse:
+        """The database refused a value it could not store.
+
+        That is input the request validators did not bound (a NUL byte in text, a number beyond
+        the column's range), so it is the client's mistake, not a server fault. Validators should
+        still reject known cases early; this is the safety net for the ones nobody thought of.
+        """
+
+        logger.warning("rejected an unstorable value on %s %s", request.method, request.url.path)
+        return problem_response(
+            request,
+            status=422,
+            code="invalid_value",
+            title="A value is out of range or contains characters that cannot be stored.",
         )
