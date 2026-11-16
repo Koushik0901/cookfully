@@ -56,6 +56,13 @@ test("WebKit preserves Cookfully's native select contract", async ({ page }, tes
   await page.getByRole("tab", { name: "Intelligence" }).click();
 
   const backend = page.getByLabel("Matching backend");
+  // When the field never appears, say what the page showed instead of only "not found".
+  await backend.waitFor({ timeout: 10_000 }).catch(async (error: unknown) => {
+    const panel = await page.locator("main").innerText().catch(() => "(no <main>)");
+    throw new Error(
+      `"Matching backend" never rendered. Page text:\n${panel.slice(0, 1500)}\nCause: ${String(error)}`,
+    );
+  });
   await expect(backend).toHaveAttribute("data-slot", "select");
   await expect(backend).toHaveJSProperty("tagName", "SELECT");
   await expect(backend).toHaveValue("hashing");

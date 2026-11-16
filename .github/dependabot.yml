@@ -1,0 +1,51 @@
+version: 2
+
+# Weekly, grouped updates keep dependencies current, so the audit workflow has little to
+# report. Security updates are enabled separately in the repository settings.
+updates:
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      node-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/deploy/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    # The images must track the runtimes the project declares and tests, not the newest tag:
+    # backend/pyproject.toml has `requires-python = ">=3.13,<3.14"` and frontend/package.json has
+    # `engines.node = ">=22 <23"`. Moving to Python 3.14+ or Node 23+ is a deliberate migration
+    # (Node 25+ images no longer ship corepack, which web.Dockerfile uses), so Dependabot must not
+    # propose it. Patch updates within these lines still arrive.
+    ignore:
+      - dependency-name: "python"
+        versions: [">=3.14"]
+      - dependency-name: "node"
+        versions: [">=23"]

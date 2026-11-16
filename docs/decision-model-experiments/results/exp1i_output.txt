@@ -1,0 +1,12 @@
+=== Residual error per nutrient (share of gold total), Jev 1.14, weighted to 531 lines / 50 recipes ===
+  (review count here counts lines with no catalog entry as review; the conservative convention)
+  deterministic fixed (auto when `matched`)      review  6.8/recipe | residual error  kcal: 6.7% protein: 7.1% fat: 4.8% carbs: 9.6% sodium: 9.0% vitC: 0.1%
+  Jev confidence >= 0.9                          review  5.9/recipe | residual error  kcal: 0.5% protein: 0.2% fat: 0.7% carbs: 1.1% sodium: 2.6% vitC:12.1%
+  Jev expected KCAL error <= 5                   review  4.2/recipe | residual error  kcal: 0.2% protein: 1.5% fat: 0.3% carbs: 0.2% sodium: 0.6% vitC: 0.1%
+  Jev kcal rule + skip predicted-negligible-kcal review  2.9/recipe | residual error  kcal: 0.5% protein: 1.7% fat: 0.4% carbs: 0.7% sodium: 8.2% vitC:35.9%
+  Jev nutrient-aware, every nutrient <= 1% DV    review  5.2/recipe | residual error  kcal: 0.3% protein: 0.3% fat: 0.4% carbs: 0.2% sodium: 0.6% vitC: 0.1%
+  Jev nutrient-aware, every nutrient <= 2% DV    review  4.5/recipe | residual error  kcal: 0.3% protein: 0.3% fat: 0.4% carbs: 0.2% sodium: 0.6% vitC: 0.1%
+  Jev nutrient-aware, every nutrient <= 5% DV    review  3.6/recipe | residual error  kcal: 1.2% protein: 0.5% fat: 1.6% carbs: 1.2% sodium: 3.5% vitC:12.1%
+
+Daily values used: kcal 2000, protein 50 g, fat 78 g, carbs 275 g, sodium 2300 mg, vitamin C 90 mg.
+Tolerance of 1% DV = 20 kcal, 0.5 g protein, 0.8 g fat, 2.8 g carbs, 23 mg sodium, 0.9 mg vitamin C per line.

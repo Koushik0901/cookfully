@@ -1,6 +1,10 @@
 /* The 2026 interaction pass sits after legacy feature CSS so route-level
    compositions can evolve without weakening shared state and domain styling. */
 
+/* The page header animates in, and its transform makes it a stacking context, so the menu's
+   z-index only ranks it inside the header. Lift the header above the sections that follow;
+   otherwise the search panel paints over the open menu and its items cannot be clicked. */
+.recipe-library-page > .page-header { position: relative; z-index: 3; }
 .recipe-add-menu { position: relative; }
 .recipe-add-menu > summary { list-style: none; cursor: pointer; }
 .recipe-add-menu > summary::-webkit-details-marker { display: none; }

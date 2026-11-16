@@ -1,0 +1,72 @@
+=== A. Where do the calories live? (531 lines, kcal of the line as written, reference = pinned food) ===
+  negligible <10   lines 205 (38.6%)   share of all recipe kcal  0.5%
+  small 10-50      lines  94 (17.7%)   share of all recipe kcal  2.9%
+  moderate 50-200  lines 115 (21.7%)   share of all recipe kcal 15.5%
+  large >200       lines 117 (22.0%)   share of all recipe kcal 81.1%
+  of the 326 lines the (fixed) matcher sends to review: negligible <10: 139, small 10-50: 49, moderate 50-200: 66, large >200: 72
+
+=== B. Model-predicted calorie bucket from line text only (no USDA data) vs reference ===
+  typesafe/jev-1.14                          exact bucket 74.6% | within 1 bucket 93.2% | flag material(>=50kcal) recall 84.1% precision 85.9% | kcal in lines NOT flagged: 8.2% of total
+  cloudflare/clef                            exact bucket 51.6% | within 1 bucket 94.7% | flag material(>=50kcal) recall 75.0% precision 86.1% | kcal in lines NOT flagged: 10.8% of total
+  openai/gpt-6-luna-decisions                exact bucket 64.8% | within 1 bucket 94.7% | flag material(>=50kcal) recall 83.6% precision 85.1% | kcal in lines NOT flagged: 8.0% of total
+  perplexity/pplx-decider-flash-v1.3:free    exact bucket 55.9% | within 1 bucket 93.4% | flag material(>=50kcal) recall 63.8% precision 91.4% | kcal in lines NOT flagged: 15.4% of total
+
+=== C. Impact-aware triage on the gold sample (weighted to 531 lines; truth = gold-best food kcal) ===
+  deterministic fixed (auto only when `matched`)       review  338 lines ( 6.8/recipe)   residual kcal error 6.66% of recipe kcal
+  accept fixed top-1 for every line, no review         review   36 lines ( 0.7/recipe)   residual kcal error 49.52% of recipe kcal
+  jev-1.14: confidence >= 0.8                          review  253 lines ( 5.1/recipe)   residual kcal error 0.91% of recipe kcal
+  jev-1.14: confidence >= 0.9                          review  293 lines ( 5.9/recipe)   residual kcal error 0.45% of recipe kcal
+  jev-1.14: expected kcal error <= 2 kcal              review  252 lines ( 5.0/recipe)   residual kcal error 0.17% of recipe kcal
+  jev-1.14: expected kcal error <= 5 kcal              review  211 lines ( 4.2/recipe)   residual kcal error 0.24% of recipe kcal
+  jev-1.14: expected kcal error <= 10 kcal             review  194 lines ( 3.9/recipe)   residual kcal error 0.39% of recipe kcal
+  jev-1.14: expected kcal error <= 25 kcal             review  172 lines ( 3.4/recipe)   residual kcal error 0.86% of recipe kcal
+  jev-1.14: skip if predicted <0.5 bucket, else <=5 kcal review  154 lines ( 3.1/recipe)   residual kcal error 0.50% of recipe kcal
+  jev-1.14: skip if predicted <1.0 bucket, else <=5 kcal review  143 lines ( 2.9/recipe)   residual kcal error 0.50% of recipe kcal
+  jev-1.14: skip if predicted <1.0 bucket, else <=10 kcal review  126 lines ( 2.5/recipe)   residual kcal error 0.65% of recipe kcal
+  clef: confidence >= 0.8                              review  307 lines ( 6.1/recipe)   residual kcal error 4.27% of recipe kcal
+  clef: confidence >= 0.9                              review  406 lines ( 8.1/recipe)   residual kcal error 0.87% of recipe kcal
+  clef: expected kcal error <= 2 kcal                  review  361 lines ( 7.2/recipe)   residual kcal error 0.00% of recipe kcal
+  clef: expected kcal error <= 5 kcal                  review  294 lines ( 5.9/recipe)   residual kcal error 0.04% of recipe kcal
+  clef: expected kcal error <= 10 kcal                 review  250 lines ( 5.0/recipe)   residual kcal error 0.13% of recipe kcal
+  clef: expected kcal error <= 25 kcal                 review  191 lines ( 3.8/recipe)   residual kcal error 0.42% of recipe kcal
+  clef: skip if predicted <0.5 bucket, else <=5 kcal   review  258 lines ( 5.2/recipe)   residual kcal error 0.29% of recipe kcal
+  clef: skip if predicted <1.0 bucket, else <=5 kcal   review  242 lines ( 4.8/recipe)   residual kcal error 0.30% of recipe kcal
+  clef: skip if predicted <1.0 bucket, else <=10 kcal  review  201 lines ( 4.0/recipe)   residual kcal error 0.39% of recipe kcal
+  gpt-6-luna-decisions: confidence >= 0.8              review  233 lines ( 4.7/recipe)   residual kcal error 0.74% of recipe kcal
+  gpt-6-luna-decisions: confidence >= 0.9              review  271 lines ( 5.4/recipe)   residual kcal error 0.22% of recipe kcal
+  gpt-6-luna-decisions: expected kcal error <= 2 kcal  review  265 lines ( 5.3/recipe)   residual kcal error 0.01% of recipe kcal
+  gpt-6-luna-decisions: expected kcal error <= 5 kcal  review  237 lines ( 4.7/recipe)   residual kcal error 0.05% of recipe kcal
+  gpt-6-luna-decisions: expected kcal error <= 10 kcal review  210 lines ( 4.2/recipe)   residual kcal error 0.34% of recipe kcal
+  gpt-6-luna-decisions: expected kcal error <= 25 kcal review  189 lines ( 3.8/recipe)   residual kcal error 0.48% of recipe kcal
+  gpt-6-luna-decisions: skip if predicted <0.5 bucket, else <=5 kcal review  182 lines ( 3.6/recipe)   residual kcal error 0.31% of recipe kcal
+  gpt-6-luna-decisions: skip if predicted <1.0 bucket, else <=5 kcal review  180 lines ( 3.6/recipe)   residual kcal error 0.31% of recipe kcal
+  gpt-6-luna-decisions: skip if predicted <1.0 bucket, else <=10 kcal review  155 lines ( 3.1/recipe)   residual kcal error 0.60% of recipe kcal
+  pplx-decider-flash-v1.3:free: confidence >= 0.8      review  262 lines ( 5.2/recipe)   residual kcal error 1.76% of recipe kcal
+  pplx-decider-flash-v1.3:free: confidence >= 0.9      review  313 lines ( 6.3/recipe)   residual kcal error 0.87% of recipe kcal
+  pplx-decider-flash-v1.3:free: expected kcal error <= 2 kcal review  299 lines ( 6.0/recipe)   residual kcal error 0.01% of recipe kcal
+  pplx-decider-flash-v1.3:free: expected kcal error <= 5 kcal review  275 lines ( 5.5/recipe)   residual kcal error 0.01% of recipe kcal
+  pplx-decider-flash-v1.3:free: expected kcal error <= 10 kcal review  207 lines ( 4.1/recipe)   residual kcal error 0.22% of recipe kcal
+  pplx-decider-flash-v1.3:free: expected kcal error <= 25 kcal review  159 lines ( 3.2/recipe)   residual kcal error 2.73% of recipe kcal
+  pplx-decider-flash-v1.3:free: skip if predicted <0.5 bucket, else <=5 kcal review  206 lines ( 4.1/recipe)   residual kcal error 0.27% of recipe kcal
+  pplx-decider-flash-v1.3:free: skip if predicted <1.0 bucket, else <=5 kcal review  198 lines ( 4.0/recipe)   residual kcal error 0.27% of recipe kcal
+  pplx-decider-flash-v1.3:free: skip if predicted <1.0 bucket, else <=10 kcal review  144 lines ( 2.9/recipe)   residual kcal error 0.48% of recipe kcal
+
+=== D. End-to-end per-recipe calories vs PUBLISHED values (50 recipes, all 531 lines; independent of my labels) ===
+  corpus-pinned foods (reproduces repo benchmark)            median err  17.9%  mean  22.3%  within 20%:  54%
+  as-is matcher, auto-matched lines only (rest counted 0)    median err  72.9%  mean  67.4%  within 20%:   6%
+  fixed matcher, auto-matched lines only (rest counted 0)    median err  67.5%  mean  60.7%  within 20%:  12%
+  fixed matcher top-1 for every line (accept defaults)       median err  42.3%  mean  69.7%  within 20%:  22%
+  jev-1.14: top-1 for every line                             median err  19.6%  mean  25.2%  within 20%:  52%
+  jev-1.14: top-1 if conf>=0.8 else fixed matcher top-1      median err  22.6%  mean  30.2%  within 20%:  44%
+  clef: top-1 for every line                                 median err  21.4%  mean  25.3%  within 20%:  48%
+  clef: top-1 if conf>=0.8 else fixed matcher top-1          median err  20.3%  mean  32.1%  within 20%:  48%
+  gpt-6-luna-decisions: top-1 for every line                 median err  19.9%  mean  25.3%  within 20%:  50%
+  gpt-6-luna-decisions: top-1 if conf>=0.8 else fixed matcher top-1 median err  25.5%  mean  34.4%  within 20%:  44%
+  pplx-decider-flash-v1.3:free: top-1 for every line         median err  23.3%  mean  26.2%  within 20%:  46%
+  pplx-decider-flash-v1.3:free: top-1 if conf>=0.8 else fixed matcher top-1 median err  27.6%  mean  36.4%  within 20%:  36%
+
+=== E. Deterministic rule: exact-score ties whose kcal barely differs (no model needed) ===
+  fixed-matcher exact ties: 197 lines
+  tie kcal spread <=  2 kcal on the line:  51 of 197 (25.9%) could auto-resolve with no model
+  tie kcal spread <=  5 kcal on the line:  63 of 197 (32.0%) could auto-resolve with no model
+  tie kcal spread <= 10 kcal on the line:  70 of 197 (35.5%) could auto-resolve with no model

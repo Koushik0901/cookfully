@@ -1,0 +1,76 @@
+name: Containers
+
+# Images are only published when a release tag is pushed, so without this check a broken
+# Dockerfile or compose file would first surface during a release.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/**"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".dockerignore"
+      - ".github/workflows/containers.yml"
+  pull_request:
+    paths:
+      - "deploy/**"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".dockerignore"
+      - ".github/workflows/containers.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: containers-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    name: Compose files are valid
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Base stack
+        run: docker compose --env-file .env.example -f deploy/compose.yaml config --quiet
+      - name: Production overlay
+        env:
+          COOKFULLY_COOKIE_SECURE: "true"
+          COOKFULLY_PUBLIC_BASE_URL: https://planner.example.test
+          COOKFULLY_API_BASE_URL: https://planner.example.test
+          COOKFULLY_TRUSTED_PROXY_CIDRS: 172.31.250.10/32
+        run: docker compose --env-file .env.example -f deploy/compose.yaml -f deploy/compose.production.yaml config --quiet
+
+  build:
+    name: Build ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: cookfully-api
+            dockerfile: deploy/docker/backend.Dockerfile
+          - image: cookfully-web
+            dockerfile: deploy/docker/web.Dockerfile
+          - image: cookfully-intelligence
+            dockerfile: deploy/docker/intelligence.Dockerfile
+          - image: cookfully-backup
+            dockerfile: deploy/docker/backup.Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

@@ -81,9 +81,14 @@ def coordinator(session_factory, tmp_path):
     return coord
 
 
-async def test_preview_gateway_enriches_when_enabled(
+async def test_preview_gateway_does_not_enrich_inline_even_when_enabled(
     session_factory, owner_id, coordinator, monkeypatch
 ):
+    """Needle repair moved to ``RecipeCleanupService``; the coordinator only persists.
+
+    Enabling inline repair must not make the coordinator call the intelligence client: cleanup
+    runs through the injected cleanup service (covered in ``test_recipe_cleanup``).
+    """
     from cookfully.infrastructure import config as config_mod
     from cookfully.intelligence import client as client_mod
 
@@ -95,16 +100,17 @@ async def test_preview_gateway_enriches_when_enabled(
         intelligence_inline_timeout_ms=600,
     )
     monkeypatch.setattr(config_mod, "get_settings", lambda: settings)
-    monkeypatch.setattr(
-        client_mod.IntelligenceClient, "infer", lambda self, req, timeout_seconds=None: _needle_ok()
-    )
+
+    def _fail(self, req, timeout_seconds=None):
+        raise AssertionError("the coordinator must not call the intelligence client")
+
+    monkeypatch.setattr(client_mod.IntelligenceClient, "infer", _fail)
 
     result = await coordinator.preview(
         "https://example.com/sparse", owner_id=owner_id, trace_id="t"
     )
     ingredients = [i["original_text"] for i in result["sections"][0]["ingredients"]]
-    assert ingredients == ["1 cup flour", "1 tsp salt"]
-    assert result["sections"][0]["instructions"] == ["Mix"]
+    assert ingredients == ["1 cup flour"]
 
 
 async def test_preview_gateway_disabled_no_enrich(

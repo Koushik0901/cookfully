@@ -61,8 +61,14 @@ export function RecipeDetailPage() {
 
   useEffect(() => {
     if (!savedRecipeId) return;
-    navigate(location.pathname, { replace: true, state: routeJobId || coverStatus ? { jobId: routeJobId, coverStatus } : null });
-  }, [coverStatus, location.pathname, navigate, routeJobId, savedRecipeId]);
+    // Drop the one-shot `recipeSaved` flag so a reload does not replay the confirmation. Edit
+    // `history.state` directly instead of calling `navigate(..., { replace: true })`: that creates
+    // a new `location.key`, and the app shell keys each route by it, so the page would remount
+    // and the confirmation would vanish the moment it appeared.
+    const current = window.history.state as { usr?: unknown } | null;
+    if (!current || !("usr" in current)) return;
+    window.history.replaceState({ ...current, usr: routeJobId || coverStatus ? { jobId: routeJobId, coverStatus } : null }, "");
+  }, [coverStatus, routeJobId, savedRecipeId]);
 
   const shouldRecoverJob = Boolean(
     recipeId

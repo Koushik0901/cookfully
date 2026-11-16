@@ -89,17 +89,21 @@ class FastEmbedTextEmbedder:
     ) -> None:
         from fastembed import TextEmbedding
 
-        def load(providers: list[str] | None) -> TextEmbedding:
+        selected_provider = select_accelerator_provider()
+        cache = str(cache_dir) if cache_dir is not None else None
+
+        def build(providers: list[str] | None) -> TextEmbedding:
+            # fastembed accepts extra keyword arguments, so spell the options out
+            # instead of splatting a dict: that keeps the call type-checked.
             return TextEmbedding(
                 model_name=model_name,
-                cache_dir=str(cache_dir) if cache_dir is not None else None,
+                cache_dir=cache,
                 providers=providers,
                 local_files_only=local_files_only,
             )
 
-        selected_provider = select_accelerator_provider()
         try:
-            self._model = load(
+            self._model = build(
                 None if selected_provider == "CPUExecutionProvider" else [selected_provider]
             )
         except Exception:
@@ -107,7 +111,7 @@ class FastEmbedTextEmbedder:
             # degrade to CPU inference, not disable semantic matching.
             if selected_provider == "CPUExecutionProvider":
                 raise
-            self._model = load(["CPUExecutionProvider"])
+            self._model = build(["CPUExecutionProvider"])
             selected_provider = "CPUExecutionProvider"
         self.provider = selected_provider
         self.dimensions = 384

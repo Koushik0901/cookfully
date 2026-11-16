@@ -87,6 +87,7 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
   await expect(page.getByRole("tab", { name: "Day", exact: true })).toHaveAttribute("aria-selected", "true");
   if (!mobile) {
+    // Phones show only the Day tab; the Week switch is desktop-only.
     await page.getByRole("tab", { name: "Week" }).click();
     await captureUi(page, testInfo, "planner-week-empty");
     await page.getByRole("tab", { name: "Day", exact: true }).click();

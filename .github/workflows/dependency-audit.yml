@@ -1,0 +1,90 @@
+name: Dependency audit
+
+# Advisory databases change daily, so audits live apart from the build and test workflows: a
+# newly published advisory must not block an unrelated change.
+#   * pull requests and pushes that touch a manifest or lockfile are gated on *production*
+#     dependencies, the ones that ship in the images;
+#   * a daily run audits everything, development tooling included, and reports it.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/dependency-audit.yml"
+  pull_request:
+    paths:
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/dependency-audit.yml"
+
+concurrency:
+  group: dependency-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+      - run: uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file "$RUNNER_TEMP/requirements.txt"
+      - run: uvx pip-audit -r "$RUNNER_TEMP/requirements.txt" --strict
+
+  node:
+    name: Node production dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend audit --prod --audit-level high
+
+  node-dev-tooling:
+    name: Node development tooling (report only)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      # Build-time tooling never ships, so findings here inform Dependabot rather than gate
+      # changes. They are listed in the run summary for triage.
+      - name: Audit everything
+        run: |
+          {
+            echo "### pnpm audit (all dependencies)"
+            echo '```'
+            pnpm --dir frontend audit --audit-level high || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,22 @@
+=== 2b. Import cleanup: is this line really an ingredient? (126-line mixed real/synthetic set) ===
+  lines: 58 real ingredients, 62 junk (14 real parser fragments, 48 synthetic)
+  importer's deterministic detectors: junk caught 5/62 (8%), real ingredients falsely flagged 0/58
+  typesafe/jev-1.14                          AUROC 1.000 | exact kind 99.2% | P(junk)>=0.5: caught 62/62, real dropped 0/58 | P(junk)>=0.8: caught 61/62, real dropped 0/58 | P(junk)>=0.9: caught 59/62, real dropped 0/58
+  cloudflare/clef                            AUROC 1.000 | exact kind 97.5% | P(junk)>=0.5: caught 62/62, real dropped 0/58 | P(junk)>=0.8: caught 60/62, real dropped 0/58 | P(junk)>=0.9: caught 58/62, real dropped 0/58
+  cloudflare/clef-flash                      AUROC 0.998 | exact kind 95.0% | P(junk)>=0.5: caught 60/62, real dropped 0/58 | P(junk)>=0.8: caught 59/62, real dropped 0/58 | P(junk)>=0.9: caught 55/62, real dropped 0/58
+  liquid/d1                                  AUROC 1.000 | exact kind 94.2% | P(junk)>=0.5: caught 62/62, real dropped 0/58 | P(junk)>=0.8: caught 60/62, real dropped 0/58 | P(junk)>=0.9: caught 60/62, real dropped 0/58
+  openai/gpt-6-luna-decisions                AUROC 1.000 | exact kind 97.5% | P(junk)>=0.5: caught 61/62, real dropped 0/58 | P(junk)>=0.8: caught 59/62, real dropped 0/58 | P(junk)>=0.9: caught 58/62, real dropped 0/58
+  perplexity/pplx-decider-flash-v1.3:free    AUROC 1.000 | exact kind 95.0% | P(junk)>=0.5: caught 61/62, real dropped 0/58 | P(junk)>=0.8: caught 59/62, real dropped 0/58 | P(junk)>=0.9: caught 58/62, real dropped 0/58
+
+=== 3. Duplicate recipe detection (24 positives [synthetic retitles], 32 negatives [24 hard]) ===
+  exact normalised title (today's merge key) AUROC 0.500 | best threshold 0.05: recall 0%, false-merge 0%
+  title-token Jaccard                        AUROC 1.000 | best threshold 0.65: recall 100%, false-merge 0%
+  ingredient-token Jaccard                   AUROC 1.000 | best threshold 0.55: recall 100%, false-merge 0%
+  typesafe/jev-1.14                          AUROC 1.000 | t=0.5: recall 22/24, false-merge 0/32 | t=0.8: recall 20/24, false-merge 0/32 | t=0.95: recall 8/24, false-merge 0/32 | hard-neg max P(same)=0.13
+  cloudflare/clef                            AUROC 1.000 | t=0.5: recall 23/24, false-merge 0/32 | t=0.8: recall 23/24, false-merge 0/32 | t=0.95: recall 18/24, false-merge 0/32 | hard-neg max P(same)=0.12
+  cloudflare/clef-flash                      AUROC 1.000 | t=0.5: recall 24/24, false-merge 0/32 | t=0.8: recall 24/24, false-merge 0/32 | t=0.95: recall 20/24, false-merge 0/32 | hard-neg max P(same)=0.25
+  liquid/d1                                  AUROC 1.000 | t=0.5: recall 23/24, false-merge 0/32 | t=0.8: recall 21/24, false-merge 0/32 | t=0.95: recall 13/24, false-merge 0/32 | hard-neg max P(same)=0.36
+  openai/gpt-6-luna-decisions                AUROC 1.000 | t=0.5: recall 24/24, false-merge 0/32 | t=0.8: recall 23/24, false-merge 0/32 | t=0.95: recall 12/24, false-merge 0/32 | hard-neg max P(same)=0.13
+  perplexity/pplx-decider-flash-v1.3:free    AUROC 1.000 | t=0.5: recall 24/24, false-merge 0/32 | t=0.8: recall 24/24, false-merge 0/32 | t=0.95: recall 22/24, false-merge 0/32 | hard-neg max P(same)=0.34
+
+ calls=1056 cache_hits=0 spent=$0.1795 cap=$3.00

@@ -4,10 +4,12 @@ import { captureUi } from "./support/visual-audit";
 
 const recipeId = "00000000-0000-4000-8000-000000000701";
 
+// A fixed instant keeps the greeting, weekday and week strip identical on every run.
+const FIXED_NOW = new Date("2026-03-11T18:00:00Z");
+
 async function mockHome(page: Page) {
-  // A fixed day keeps the greeting, date line and week strip stable in screenshots.
-  const today = "2026-03-11";
-  await page.clock.install({ time: new Date(`${today}T18:00:00Z`) });
+  await page.clock.install({ time: FIXED_NOW });
+  const today = FIXED_NOW.toISOString().slice(0, 10);
   const dateAfter = (days: number) => new Date(Date.parse(`${today}T00:00:00Z`) + (days * 86_400_000)).toISOString().slice(0, 10);
   await page.context().addCookies([{ name: "cookfully_csrf", value: "home-csrf", domain: "127.0.0.1", path: "/" }]);
   await page.route("**/api/v1/**", async (route) => {

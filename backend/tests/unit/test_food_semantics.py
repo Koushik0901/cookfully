@@ -93,6 +93,36 @@ def test_lemongrass_cannot_satisfy_lemon_identity() -> None:
     assert "identity_conflict" in result.reasons
 
 
+def test_unlisted_foods_are_not_rejected_by_a_guessed_identity() -> None:
+    # USDA descriptions lead with the food, so the last-token identity guess for
+    # "Celery, raw" is "raw". That guess must not veto a candidate.
+    for query, description in (
+        ("celery", "Celery, raw"),
+        ("blueberries", "Blueberries, raw"),
+        ("walnuts", "Nuts, walnuts, english"),
+        ("ground nutmeg", "Spices, nutmeg, ground"),
+        ("asparagus", "Asparagus, raw"),
+    ):
+        result = compare_compatibility(profile_from_text(query), profile_from_text(description))
+
+        assert result.compatibility is not Compatibility.CONTRADICTORY, (query, result.reasons)
+
+
+def test_known_identity_conflicts_still_reject_even_next_to_unlisted_foods() -> None:
+    assert (
+        compare_compatibility(
+            profile_from_text("buttermilk"), profile_from_text("Milk, whole, 3.25% milkfat")
+        ).compatibility
+        is Compatibility.CONTRADICTORY
+    )
+    assert (
+        compare_compatibility(
+            profile_from_text("rice flour"), profile_from_text("Rice, brown, long-grain, raw")
+        ).compatibility
+        is Compatibility.CONTRADICTORY
+    )
+
+
 def test_signature_is_stable_for_remembered_match_scope() -> None:
     first = profile_from_text("Tandoori chicken (300g)")
     second = profile_from_text("300 g chicken, tandoori")
