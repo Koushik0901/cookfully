@@ -71,7 +71,7 @@
   --macro-carbohydrate-ink: color-mix(in oklch, var(--macro-carbohydrate) 56%, var(--color-on-surface));
   --macro-fat-ink: color-mix(in oklch, var(--macro-fat) 50%, var(--color-on-surface));
 
-  --font-display: "Afacad Flux Variable", "Afacad Flux", sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", sans-serif;
   --font-body: "Inclusive Sans Variable", "Inclusive Sans", sans-serif;
   --font-data: var(--font-body);
 

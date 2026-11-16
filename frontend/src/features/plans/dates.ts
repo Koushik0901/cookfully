@@ -31,3 +31,16 @@ export function longDate(value: string): string {
   );
 }
 
+
+export function weekdayName(value: string): string {
+  return new Intl.DateTimeFormat("en-CA", { weekday: "long", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+/** "9 – 15 March", or "30 Mar – 5 Apr" when the week spans two months. */
+export function weekRangeLabel(weekStart: string): string {
+  const first = new Date(`${weekStart}T00:00:00Z`);
+  const last = new Date(`${addDays(weekStart, 6)}T00:00:00Z`);
+  const month = (date: Date, style: "long" | "short") => new Intl.DateTimeFormat("en-CA", { month: style, timeZone: "UTC" }).format(date);
+  if (first.getUTCMonth() === last.getUTCMonth()) return `${first.getUTCDate()} – ${last.getUTCDate()} ${month(last, "long")}`;
+  return `${first.getUTCDate()} ${month(first, "short")} – ${last.getUTCDate()} ${month(last, "short")}`;
+}

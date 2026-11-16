@@ -145,7 +145,7 @@ test("keeps a missing grocery list focused on one useful choice", async ({ page 
   await expect(page.getByText("Use what you have", { exact: true })).toBeVisible();
   await expect(page.getByText("Shop and check off")).toBeVisible();
   await page.getByRole("button", { name: "Start an empty list" }).click();
-  await expect(page.getByRole("heading", { name: mobile ? "Build your grocery list" : "Nothing to pick up yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? "2 planned meals, one shopping list" : "Nothing to pick up yet" })).toBeVisible();
   if (mobile) await expect(page.getByRole("button", { name: "Build grocery list" })).toBeVisible();
   await captureUi(page, testInfo, "grocery-missing");
 });
@@ -154,7 +154,7 @@ test("does not call an empty grocery list ready to shop", async ({ page }, testI
   const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page, { empty: true });
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: mobile ? "Build your grocery list" : "Nothing to pick up yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? "2 planned meals, one shopping list" : "Nothing to pick up yet" })).toBeVisible();
   await expect(page.getByText("Ready to shop")).toHaveCount(0);
   await expect(page.getByText("Shop by stop", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Back to meal plan" })).toHaveCount(0);
@@ -176,15 +176,23 @@ test("regenerates, traces, edits, checks, adds, and removes grocery items", asyn
   const mobile = testInfo.project.name === "narrow-mobile";
   await mockGroceryApi(page);
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: mobile ? "2 left to pick up" : "Everything you need this week" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Grocery" })).toBeVisible();
+  await expect(page.getByText("2 to pick up · 0 in the basket")).toBeVisible();
   await captureUi(page, testInfo, "grocery-active");
   await expect(page.getByText(/meal plan changed.*refresh/i)).toBeVisible();
   if (mobile) await page.getByRole("button", { name: "Update grocery list" }).click();
   else await page.getByRole("button", { name: "Refresh from plan" }).click();
   if (!mobile) await expect(page.getByText("Ready to shop")).toBeVisible();
 
-  await expect(page.getByText("Sheet-pan tofu bowls")).toBeVisible();
-  await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
+  await expect(page.getByRole("link", { name: "Sheet-pan tofu bowls" }).first()).toBeVisible();
+  // A ticked item moves into the collapsed "In basket" group, so tick with one
+  // click and assert the outcome; check() would re-click the moving row.
+  await page.getByRole("checkbox", { name: "Red onion purchased" }).click();
+  await expect(page.getByText(/· 1 in the basket/)).toBeVisible();
+  // Checked items fold into the "In basket" group.
+  await expect(page.getByText("In basket", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Edit Red onion")).not.toBeVisible();
+  await page.getByText("In basket", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeChecked();
 
   await page.getByLabel("Edit Red onion").click();
@@ -231,9 +239,11 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await page.getByLabel("Edit Red onion").click();
   await page.getByLabel(mobile ? "Shopping stop" : "Shopping stop for Red onion").selectOption({ label: "Market" });
   await expect(page.getByRole("heading", { name: "Market" })).toBeVisible();
-  await page.getByRole("checkbox", { name: "Red onion purchased" }).check();
-  await page.getByRole("checkbox", { name: "Salt to taste purchased" }).check();
-  await page.getByRole("button", { name: "Finish this shopping pass" }).click();
+  await page.getByRole("checkbox", { name: "Red onion purchased" }).click();
+  await expect(page.getByText(/· 1 in the basket/)).toBeVisible();
+  await page.getByRole("checkbox", { name: "Salt to taste purchased" }).click();
+  await expect(page.getByText("Everything is in the basket.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Finish shop", exact: true }).click();
   await page.getByRole("button", { name: "Finish shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
   await expect(page.locator('.grocery-complete [data-companion-moment="milestone"]')).toBeVisible();
@@ -244,7 +254,7 @@ test("groups a shopping pass by personal stops, then finishes and reopens it", a
   await expect(page.getByRole("checkbox", { name: "Red onion purchased" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Refresh from plan" })).toHaveCount(0);
   await page.getByRole("button", { name: "Reopen list" }).click();
-  if (!mobile) await expect(page.getByText("Ready to shop")).toBeVisible();
-  else await expect(page.getByRole("heading", { name: "Shopping complete" })).toBeVisible();
+  if (!mobile) await expect(page.getByText("Everything picked up")).toBeVisible();
+  else await expect(page.getByText("Everything is in the basket.").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

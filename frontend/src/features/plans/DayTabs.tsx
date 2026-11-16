@@ -22,7 +22,7 @@ export function DayTabs({ dates, selected, onSelect, totals, entryCounts = {}, t
         const total = totals[date];
         const count = entryCounts[date] ?? (total ? 1 : 0);
         const past = Boolean(today && date < today);
-        return <button key={date} ref={(node) => { refs.current[index] = node; }} className={`day-tab ${date === selected ? "day-tab--active" : ""}${past ? " day-tab--past" : ""}`} role="tab" aria-selected={date === selected} aria-label={`${dayLabel(date)}${past ? " (past)" : ""}`} tabIndex={date === selected ? 0 : -1} onKeyDown={(event) => keyDown(event, index)} onClick={() => onSelect(date)}><span>{new Intl.DateTimeFormat("en-CA", { weekday: "short", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`))}</span><strong>{date.slice(-2)}</strong><small>{past ? "Past" : count ? `${count} ${count === 1 ? "meal" : "meals"}` : "Open"}</small></button>;
+        return <button key={date} ref={(node) => { refs.current[index] = node; }} className={`day-tab ${date === selected ? "day-tab--active" : ""}${past ? " day-tab--past" : ""}${count ? " day-tab--planned" : ""}${date === today ? " day-tab--today" : ""}`} role="tab" aria-selected={date === selected} aria-label={`${dayLabel(date)}${past ? " (past)" : ""}`} tabIndex={date === selected ? 0 : -1} onKeyDown={(event) => keyDown(event, index)} onClick={() => onSelect(date)}><span>{new Intl.DateTimeFormat("en-CA", { weekday: "short", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`))}</span><strong>{date.slice(-2)}</strong><small>{past ? "Past" : count ? `${count} ${count === 1 ? "meal" : "meals"}` : "Open"}</small></button>;
       })}
     </div>
   );

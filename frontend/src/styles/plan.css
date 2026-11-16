@@ -1,0 +1,207 @@
+/* Plan: a calm weekly agenda. Phone first — a sticky day strip, one day at a
+   time as plain bordered rows, the primary action under the thumb. Wider
+   screens get the same pieces with a week board and a quiet nutrition column.
+   Loaded after redesign/mobile-redesign/recipes so it can settle older rules. */
+
+/* ---------- Header + week stepper ---------- */
+.planner-page { gap: 1.5rem; padding-top: 2.5rem; }
+.plan-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; }
+.plan-head h1 { font-size: 2.5rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.week-stepper { flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--color-outline-variant); border-radius: var(--radius); background: var(--color-surface-bright); }
+.week-stepper button { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 0; border-radius: var(--radius); color: var(--color-on-surface); background: transparent; cursor: pointer; touch-action: manipulation; }
+.week-stepper button:hover { background: var(--color-surface-low); }
+.week-stepper button:active { background: var(--color-surface-high); }
+.week-stepper button svg { width: 1rem; height: 1rem; }
+.week-stepper__label { padding-inline: 0.5rem; font-size: 0.9375rem; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Toolbar (views + suggest) ---------- */
+.planner-toolbar { position: static; border-block: 0; padding-block: 0; background: transparent; }
+
+/* ---------- Day strip ---------- */
+.day-tabs { position: static; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.5rem; overflow: visible; border: 0; background: transparent; padding: 0; }
+.day-tab { position: relative; display: grid; min-width: 0; min-height: 4.75rem; place-items: center; align-content: center; gap: 0.1rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius); padding: 0.4rem 0.25rem; color: var(--color-on-surface-variant); background: var(--color-surface-bright); font: inherit; cursor: pointer; touch-action: manipulation; }
+.day-tab::after { display: none; }
+.day-tab:hover { border-color: var(--color-outline); }
+.day-tab > span { font-size: 0.8125rem; font-weight: 500; }
+.day-tab > strong { color: var(--color-on-surface); font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.day-tab > small { font-size: 0.75rem; }
+.day-tab--today:not(.day-tab--active) { border-color: var(--color-primary); }
+.day-tab--active,
+.day-tab--active:hover { border-color: var(--color-primary); color: var(--color-on-primary); background: var(--color-primary); }
+.day-tab--active > strong,
+.day-tab--active > span,
+.day-tab--active > small { color: var(--color-on-primary); }
+.day-tab--active > small { opacity: 0.85; }
+.day-tab--past { opacity: 0.6; }
+.day-tab--past.day-tab--active { opacity: 1; background: var(--color-on-surface-variant); border-color: var(--color-on-surface-variant); }
+.day-tab:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* ---------- Day panel ---------- */
+.plan-workspace { gap: 2.5rem; margin-top: 1.5rem; }
+.planner-day__heading { align-items: baseline; padding-bottom: 0.75rem; }
+.planner-day__heading > div { gap: 0.1rem; }
+.planner-day__weekday { color: var(--color-primary); font-size: 0.875rem; font-weight: 600; }
+.planner-day__heading h2 { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.01em; }
+.planner-day__heading > span { font-size: 0.9375rem; }
+.planner-day__feedback { border: 1px solid var(--color-outline-variant); border-radius: var(--radius); padding: 0.65rem 0.9rem; background: var(--color-surface-bright); }
+.planner-day__gap-action { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 1rem 1.1rem; background: var(--color-surface-bright); margin-top: 1rem; }
+.planner-day__gap-action a { min-height: 2.75rem; }
+
+.day-meal-board { gap: 0; }
+.meal-slot { gap: 0.5rem; border-top: 0; padding-block: 0.75rem; }
+.meal-slot > .section-heading { align-items: baseline; }
+.meal-slot > .section-heading h3 { font-size: 1.0625rem; font-weight: 600; }
+.meal-slot > .section-heading span { color: var(--color-on-surface-variant); font-size: 0.875rem; }
+.meal-slot__empty { min-height: 0; padding: 0; background: transparent; }
+.meal-slot__empty .cf-button { width: 100%; min-height: 3.25rem; justify-content: center; border: 1.5px dashed var(--color-outline); border-radius: var(--radius-md); color: var(--color-on-surface); background: transparent; font-weight: 500; box-shadow: none; }
+.meal-slot__empty .cf-button:hover { border-color: var(--color-primary); color: var(--color-primary); background: color-mix(in oklch, var(--color-primary-container) 30%, transparent); }
+.meal-slot__past { min-height: 3rem; border-radius: var(--radius); font-size: 0.875rem; }
+.entry-list { gap: 0.5rem; }
+
+/* ---------- Meal card ---------- */
+.plan-entry { gap: 0.5rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 0.75rem; background: var(--color-surface-bright); box-shadow: none; transform: none; }
+.plan-entry:hover { box-shadow: none; transform: none; }
+.plan-entry--cooked { border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-outline-variant)); }
+.plan-entry__main { grid-template-columns: 4.5rem minmax(0, 1fr); gap: 0.85rem; align-items: center; }
+.plan-entry__media { width: 4.5rem; height: 4.5rem; border-radius: var(--radius-md); }
+.plan-entry__body { gap: 0.25rem; }
+.plan-entry__heading { display: grid; gap: 0.1rem; }
+.plan-entry__title h4 { font-size: 1.0625rem; font-weight: 600; line-height: 1.25; }
+.plan-entry__title h4 a { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.plan-entry__nutrition { gap: 0.15rem 0.75rem; font-size: 0.875rem; }
+/* Nutrition stays supporting: servings, time and energy only on the card. */
+.plan-entry .recipe-meta__item--protein,
+.plan-entry .recipe-meta__item--fat { display: none; }
+.plan-entry .nutrition-confidence--meal { font-size: 0.8125rem; }
+.plan-entry .nutrition-confidence--meal > summary { display: inline-flex; min-height: 1.5rem; align-items: center; color: var(--color-on-surface-variant); cursor: pointer; }
+.plan-entry__cooking-state { padding: 0.15rem 0.6rem; font-size: 0.8125rem; }
+
+.plan-entry__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; border-top: 1px solid var(--color-outline-variant); padding-top: 0.5rem; }
+.plan-entry__actions > .cf-button,
+.plan-entry__adjust > summary { white-space: nowrap; display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.4rem; border-radius: var(--radius); padding-inline: 0.85rem; font-size: 0.9375rem; font-weight: 600; }
+.plan-entry__actions > .cf-button:first-child:not([disabled]) { flex: 1 1 auto; }
+.plan-entry__adjust { flex: 0 1 auto; }
+.plan-entry__adjust > summary { border: 1px solid var(--color-outline-variant); color: var(--color-on-surface); list-style: none; cursor: pointer; }
+.plan-entry__adjust > summary::-webkit-details-marker { display: none; }
+.plan-entry__adjust > summary:hover { background: var(--color-surface-low); }
+.plan-entry__adjust > summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.plan-entry__adjust[open] { order: 9; flex: 1 1 100%; }
+.plan-entry__adjust[open] > summary { width: 100%; background: var(--color-surface-low); }
+.entry-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.65rem; }
+.plan-entry__adjust-actions { gap: 0.5rem; }
+.plan-entry__adjust-actions .cf-button { min-height: 2.75rem; }
+
+/* ---------- Nutrition column (quiet) ---------- */
+.plan-nutrition { gap: 1rem; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 1.25rem; background: var(--color-surface-bright); }
+.plan-nutrition__intro h2 { font-size: 1.25rem; font-weight: 600; }
+.plan-nutrition__intro p:last-child { font-size: 0.875rem; }
+
+/* ---------- Week board ---------- */
+.week-overview { gap: 1rem; }
+.week-board { gap: 0.75rem; }
+.week-day { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); background: var(--color-surface-bright); box-shadow: none; }
+.week-day--selected { border-color: var(--color-primary); background: var(--color-surface-bright); }
+.week-day__header { min-height: 3.5rem; border-bottom: 1px solid var(--color-outline-variant); cursor: pointer; }
+.week-day__header:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.week-day__date > span { font-size: 0.8125rem; }
+.week-day__date strong { font-family: var(--font-display); }
+.week-day--selected .week-day__header { background: color-mix(in oklch, var(--color-primary-container) 55%, transparent); }
+.week-slot > header span { color: var(--color-on-surface-variant); font-size: 0.8125rem; font-weight: 600; }
+.week-slot__add { border-radius: var(--radius); }
+
+/* Desktop week board: meals x days, rows aligned across the seven days. */
+@media (min-width: 64rem) {
+  .week-board { grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-flow: row; gap: 0 0.5rem; }
+  .week-day { display: grid; grid-row: span 5; grid-template-rows: subgrid; min-width: 0; }
+  .week-day__header { min-height: 3.25rem; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.1rem; padding: 0.5rem 0.6rem; }
+  .week-day__date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.35rem; }
+  .week-day__date strong { font-size: 0.9375rem; }
+  .week-day__header > small { font-size: 0.75rem; }
+  .week-day__slots { display: grid; grid-row: 2 / span 4; grid-template-rows: subgrid; padding: 0 0.4rem 0.4rem; }
+  .week-slot { min-height: 0; align-content: start; gap: 0.3rem; padding-block: 0.4rem; }
+  .week-slot > header { padding-inline: 0.15rem; }
+  .week-slot > header span { font-size: 0.75rem; }
+  .week-meal__body { grid-template-columns: minmax(0, 1fr); padding: 0.45rem 0.4rem; gap: 0.2rem; }
+  .week-meal__media,
+  .week-meal .recipe-meta { display: none; }
+  .week-meal__copy strong { -webkit-line-clamp: 3; font-size: 0.8125rem; line-height: 1.25; overflow-wrap: anywhere; }
+  .week-meal__copy > span { font-size: 0.75rem; }
+  .week-slot__add { min-height: 2.5rem; }
+  .week-slot__add { gap: 0.2rem; padding-inline: 0.2rem; }
+  .week-slot__add span { overflow: hidden; font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+  .week-slot__past { min-height: 2.5rem; }
+}
+
+/* ---------- Mobile add button ---------- */
+.planner-mobile-add { display: none; }
+
+/* ---------- Tablet (compact rail): day strip stays a full row ---------- */
+@media (max-width: 63.99rem) {
+  .plan-workspace { grid-template-columns: 1fr; }
+  .plan-nutrition { position: static; }
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 47.99rem) {
+  .planner-page { gap: 0.75rem; padding: 1rem 1rem calc(9rem + env(safe-area-inset-bottom)); background: var(--color-surface); }
+  .plan-head { flex-wrap: nowrap; justify-content: space-between; gap: 0.75rem; }
+  .plan-head h1 { max-width: none; font-size: 1.875rem; }
+  .week-stepper__label { padding-inline: 0.25rem; font-size: 0.9375rem; }
+
+  /* Day and Prep are a compact switch; Week is the day strip itself. */
+  .planner-toolbar { position: static; display: flex; align-items: center; gap: 0.5rem; margin: 0; padding: 0; }
+  .planner-views { display: flex; width: auto; flex: 1 1 auto; }
+  .planner-views button { min-height: 2.75rem; flex: 1 1 0; justify-content: center; }
+  .planner-toolbar > .cf-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 2.9rem; width: 2.9rem; min-width: 0; min-height: 2.9rem; padding: 0; }
+  .planner-toolbar__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .planner-page #planner-panel-prep { display: block; }
+  .planner-page #planner-panel-week { display: none; }
+
+  /* Sticky strip: switch days from anywhere in the list, one thumb. */
+  .planner-page .day-tabs { width: auto; max-width: none; position: sticky; z-index: 30; top: 4.5rem; grid-template-columns: repeat(7, minmax(2.75rem, 1fr)); gap: 0.25rem; overflow-x: auto; margin-inline: -1rem; border-radius: 0; border-bottom: 1px solid var(--color-outline-variant); padding: 0.5rem 1rem; background: var(--color-surface); scrollbar-width: none; scroll-padding-inline: 1rem; }
+  .planner-page .day-tabs::-webkit-scrollbar { display: none; }
+  .planner-page .day-tab { min-width: 2.75rem; min-height: 4rem; gap: 0; padding: 0.25rem 0; border-color: transparent; background: transparent; scroll-margin-block-start: 0; }
+  .planner-page .day-tab > span { font-size: 0.75rem; }
+  .planner-page .day-tab > strong { font-size: 1.125rem; }
+  .planner-page .day-tab > small { display: none; }
+  /* A small mark under days that already have meals. */
+  .planner-page .day-tab--planned::after { position: static; display: block; width: 0.3125rem; height: 0.3125rem; margin-top: 0.2rem; border-radius: 50%; background: var(--color-primary); transform: none; content: ""; }
+  .planner-page .day-tab--planned:not(.day-tab--active)::after { opacity: 0.55; }
+  .planner-page .day-tab--active::after { background: var(--color-on-primary); }
+  .planner-page .day-tab--today:not(.day-tab--active) { border-color: var(--color-primary); }
+  .planner-page .day-tab--active { border-color: var(--color-primary); background: var(--color-primary); }
+
+  .plan-workspace { margin-top: 0.75rem; gap: 1.5rem; }
+  .planner-page .planner-day__heading { display: flex; padding-bottom: 0.25rem; }
+  .planner-day__heading h2 { font-size: 1.5rem; }
+  .planner-page .plan-nutrition { display: block; border: 0; padding: 0; background: transparent; }
+  .plan-nutrition__intro { display: none; }
+  .planner-page .meal-slot { padding-block: 0.5rem; }
+
+  .plan-entry { padding: 0.65rem; }
+  .plan-entry__main { grid-template-columns: 3.5rem minmax(0, 1fr); gap: 0.75rem; }
+  .plan-entry__media { width: 3.5rem; height: 3.5rem; border-radius: var(--radius); }
+  .plan-entry__actions { flex-direction: row; align-items: center; }
+  .plan-entry__actions > .cf-button:first-child { flex: 1 1 0; }
+  .plan-entry__adjust { flex: 1 1 0; }
+  .plan-entry__adjust > summary { width: 100%; }
+  .plan-entry__actions > .cf-button:not(:first-child) { flex: 0 0 2.75rem; width: 2.75rem; padding-inline: 0; }
+  .plan-entry__copy-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .entry-controls { grid-template-columns: 1fr; }
+  .plan-entry__adjust-actions .cf-button { flex: 1 1 auto; }
+
+  /* The primary action sits just above the nav bar, in thumb reach. */
+  .planner-mobile-add { position: fixed; z-index: 25; right: 1rem; bottom: calc(5rem + env(safe-area-inset-bottom)); left: 1rem; display: block; pointer-events: none; }
+  .planner-mobile-add::before { display: none; }
+  .planner-mobile-add .cf-button { width: 100%; min-height: 3.25rem; border-radius: var(--radius-lg); font-size: 1rem; pointer-events: auto; box-shadow: 0 6px 18px oklch(0.218 0.038 148 / 18%); }
+}
+
+@media (max-width: 20rem) {
+  .plan-head h1 { font-size: 1.625rem; }
+  .week-stepper__label { font-size: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-tab,
+  .week-stepper button { transition: none; }
+}

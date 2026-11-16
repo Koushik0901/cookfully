@@ -122,6 +122,36 @@ describe("recipe library density", () => {
     expect(screen.queryByRole("checkbox", { name: "Select Roasted salmon bowl" })).not.toBeInTheDocument();
   });
 
+  it("labels pantry matches and filters to what can be cooked now", async () => {
+    vi.stubGlobal("fetch", vi.fn((input) => {
+      const path = String(input);
+      if (path.includes("/owner-onboarding")) return json({ state: "completed", version: 1 });
+      if (path.endsWith("/recipes/collections")) return json([]);
+      if (path.includes("/pantry/recipe-matches")) {
+        return json([
+          { recipeId: firstId, recipeTitle: "Roasted salmon bowl", availability: "full", coverageRatio: "1.000000", missingIngredients: [] },
+          { recipeId: secondId, recipeTitle: "Citrus grain salad", availability: "partial", coverageRatio: "0.600000", missingIngredients: ["orange", "farro"] },
+        ]);
+      }
+      if (path.includes("/recipes")) return json(page);
+      return json({}, 404);
+    }));
+    renderPage();
+    const user = userEvent.setup();
+    const chip = await screen.findByRole("button", { name: /Can make now\s*1/ });
+    expect(chip).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("2 to buy")).toBeVisible();
+    expect(screen.getAllByText("Can make now").some((node) => node.classList.contains("recipe-card__pantry"))).toBe(true);
+
+    await user.click(chip);
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("Citrus grain salad")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Roasted salmon bowl").length).toBeGreaterThan(0);
+
+    await user.click(chip);
+    expect(await screen.findAllByText("Citrus grain salad")).not.toHaveLength(0);
+  });
+
   it("shows partial nutrition recipes in the attention grouping", async () => {
     vi.stubGlobal("fetch", vi.fn((input) => {
       const path = String(input);

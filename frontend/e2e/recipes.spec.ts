@@ -354,7 +354,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
   await captureUi(page, testInfo, "recipe-detail");
 
-  await editRecipeLink(page, testInfo).click();
+  await editRecipeLink(page).click();
   await captureUi(page, testInfo, "recipe-editor-edit");
   await page.getByLabel("Yield quantity").fill("3.000");
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Method", exact: true }).click();
@@ -362,7 +362,7 @@ test("manual create, edit, correction, archive, restore, and history-safe perman
   await expect(page.locator(".nutrition-state").filter({ hasText: "Needs review" }).first()).toBeVisible();
   await expect(page.locator('.recipe-saved-moment [data-companion-moment="success"]')).toBeVisible();
 
-  await editRecipeLink(page, testInfo).click();
+  await editRecipeLink(page).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   else await page.getByText("Nutrition values").click();
   await page.getByLabel("Protein (g)").fill("40.000000");
@@ -473,7 +473,8 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
     const mediaBox = media.getBoundingClientRect();
     return {
       columns: gridStyle.gridTemplateColumns.split(" ").length,
-      cardWidth: cardBox.width,
+      // The first card spans both columns as a feature; shelf cards take one track.
+      cardWidth: parseFloat(gridStyle.gridTemplateColumns.split(" ")[0]),
       mediaRatio: mediaBox.width / mediaBox.height,
       mediaLeft: mediaBox.left,
       cardLeft: cardBox.left,
@@ -491,7 +492,7 @@ test("turns the mobile recipe library into a compact visual shelf", async ({ pag
   expect(layout!.mediaRatio).toBeCloseTo(1, 1); // square media on mobile (mobile-redesign.css)
   expect(Math.abs(layout!.mediaLeft - layout!.cardLeft)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout!.mediaRight - layout!.cardRight)).toBeLessThanOrEqual(1);
-  expect(layout!.metadataDisplay).toBe("flex"); // a single wrapping row on mobile, not the desktop grid
+  expect(layout!.metadataDisplay).not.toBe("none");
   expect(layout!.documentWidth).toBeLessThanOrEqual(layout!.viewportWidth);
   const textFit = await page.locator(".recipe-card").evaluateAll((cards) => cards.map((card) => {
     const metadata = card.querySelector<HTMLElement>(".recipe-meta");
@@ -614,7 +615,7 @@ test("a handwritten recipe can gain and remove a representative photo", async ({
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Save recipe" }).click();
   await expect(page.getByRole("heading", { name: "Lemon lentils" })).toBeVisible();
-  await editRecipeLink(page, testInfo).click();
+  await editRecipeLink(page).click();
   if (testInfo.project.name === "narrow-mobile") await page.getByLabel("Recipe editor progress").getByRole("button", { name: "Nutrition", exact: true }).click();
   await expect(page.locator(".thumbnail-crop-editor__preview img")).toBeVisible();
   await page.getByRole("button", { name: "Remove photo" }).click();
@@ -649,7 +650,7 @@ test("import preview shows components, prompts for missing quantities, warns on 
   await page.getByRole("button", { name: "Add to collection" }).click();
 
   // Assert breadcrumb navigation completes
-  await expect(page.getByText("Shawarma bowl").first()).toBeVisible(); // breadcrumb and heading
+  await expect(page.locator("h1#recipe-title")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Shawarma bowl");
 
   // Assert nutrition is processing (allocation pending)

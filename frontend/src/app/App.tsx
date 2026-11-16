@@ -82,7 +82,7 @@ const WORKFLOW = [
 ];
 
 const PRIMARY_NAVIGATION = [
-  { to: "/app", label: "Home", Icon: Home, end: true },
+  { to: "/app", label: "Today", Icon: Home, end: true },
   { to: "/app/recipes", label: "Recipes", Icon: BookOpenText },
   { to: "/app/plan", label: "Plan", Icon: CalendarDays },
   { to: "/app/grocery", label: "Grocery", Icon: ShoppingBasket },
@@ -159,7 +159,8 @@ function PlannerShell() {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const atHome = location.pathname.replace(/\/$/, "") === "/app";
+  const commandShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K";
+  const openCommand = useCallback(() => window.dispatchEvent(new Event("cookfully:open-command")), []);
   const moreIsActive = [
     "/app/pantry",
     ...SECONDARY_NAVIGATION.map(({ to }) => to),
@@ -211,11 +212,23 @@ function PlannerShell() {
       <aside className="planner-nav">
         <NavLink className="planner-nav__brand" to="/app" end>
           <BrandMark className="planner-nav__brandmark" />
+          <span className="planner-nav__wordmark" aria-hidden="true">Cookfully</span>
           <span className="visually-hidden">Cookfully home</span>
         </NavLink>
+        <button type="button" className="planner-nav__search" aria-label="Search" aria-keyshortcuts="Control+K Meta+K" onClick={openCommand}>
+          <Search aria-hidden="true" /><span>Search</span><kbd aria-hidden="true">{commandShortcut}</kbd>
+        </button>
         <nav aria-label="Kitchen">
           {PRIMARY_NAVIGATION.map(({ to, label, Icon, ...item }) => (
             <NavLink key={to} to={to} end={"end" in item ? item.end : undefined} title={label} onMouseEnter={() => navigationIntent(to)} onFocus={() => navigationIntent(to)} onPointerDown={() => navigationIntent(to)} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
+              <Icon aria-hidden="true" /><span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <nav aria-label="Library" className="planner-nav__library">
+          <p className="planner-nav__group-label" aria-hidden="true">Library</p>
+          {SECONDARY_NAVIGATION.map(({ to, label, Icon }) => (
+            <NavLink key={to} to={to} title={label} onMouseEnter={() => navigationIntent(to)} onFocus={() => navigationIntent(to)} onPointerDown={() => navigationIntent(to)} className={({ isActive }) => isActive ? "planner-nav__link planner-nav__link--active" : "planner-nav__link"}>
               <Icon aria-hidden="true" /><span>{label}</span>
             </NavLink>
           ))}
@@ -235,7 +248,7 @@ function PlannerShell() {
       </aside>
       <div className="planner-shell__mobile-brand">
         <NavLink to="/app" aria-label="Cookfully home"><BrandMark /><strong>Cookfully</strong></NavLink>
-        {atHome ? null : <button type="button" aria-label="Open quick search" onClick={() => window.dispatchEvent(new Event("cookfully:open-command"))}><Search aria-hidden="true" /></button>}
+        <button type="button" aria-label="Open quick search" onClick={openCommand}><Search aria-hidden="true" /></button>
       </div>
       <nav className="mobile-nav" aria-label="Primary navigation">
         {MOBILE_NAVIGATION.map(({ to, label, Icon, ...item }) => (
@@ -279,7 +292,9 @@ function PlannerShell() {
       </nav>
       <CommandPalette />
       <main id="planner-content" className="planner-shell__content">
-        <div className="planner-shell__route" key={location.key} data-route={location.pathname}>
+        {/* Remount (and replay the arrival motion) per page, not per history entry:
+            in-page replace navigations must not reset page state. */}
+        <div className="planner-shell__route" key={location.pathname} data-route={location.pathname}>
           <Suspense fallback={<div className="page-shell"><Skeleton label="Loading kitchen" lines={6} /></div>}>
             <Routes>
             <Route index element={<HomePage />} />
