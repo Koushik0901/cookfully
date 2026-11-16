@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -126,6 +127,14 @@ class _FakeOwner:
         self.id = uuid4()
 
 
+def _request(*, inline_enabled: bool = True) -> SimpleNamespace:
+    """Minimal ``Request`` stand-in exposing the runtime nutrition-intelligence settings."""
+
+    configured = SimpleNamespace(intelligence_enabled=True, inline_enabled=inline_enabled)
+    state = SimpleNamespace(nutrition_intelligence=SimpleNamespace(get=lambda: configured))
+    return SimpleNamespace(app=SimpleNamespace(state=state))
+
+
 @pytest.mark.asyncio
 async def test_bulk_returns_list(monkeypatch):
     # monkeypatch InlineRepairGateway._gate -> True with 3 items
@@ -172,7 +181,9 @@ async def test_bulk_returns_list(monkeypatch):
     owner = _FakeOwner()
     key = "bulk-live-0001-12345678"
 
-    result = await pantry_route.create_pantry_item(payload, service, idempotency, owner, key)
+    result = await pantry_route.create_pantry_item(
+        _request(), payload, service, idempotency, owner, key
+    )
     # before fix: single PantryItemResponse without items; after fix: BulkPantryCreateResponse
     data = result.model_dump(by_alias=True) if hasattr(result, "model_dump") else {}
     # brief expects items len 3 and created 3
@@ -210,7 +221,9 @@ async def test_nonbulk_still_single(monkeypatch):
     owner = _FakeOwner()
     key = "bulk-live-single-0001-12345678"
 
-    result = await pantry_route.create_pantry_item(payload, service, idempotency, owner, key)
+    result = await pantry_route.create_pantry_item(
+        _request(), payload, service, idempotency, owner, key
+    )
     data = result.model_dump(by_alias=True) if hasattr(result, "model_dump") else {}
     assert "displayName" in data or "display_name" in data or "name" in data or "id" in data
     assert "items" not in data

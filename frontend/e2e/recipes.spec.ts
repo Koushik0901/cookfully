@@ -507,9 +507,17 @@ test("makes a focused recipe-library view easy to understand and clear", async (
     const discovery = document.querySelector<HTMLElement>(".recipe-discovery");
     const results = document.querySelector<HTMLElement>(".recipe-results-heading");
     const root = getComputedStyle(document.documentElement);
+    // `--color-primary` is returned as authored, while `color` is serialised by the browser
+    // (and differently per Chromium version). Resolve the token through a probe element so
+    // both sides use the same serialisation.
+    const probe = document.createElement("span");
+    probe.style.color = root.getPropertyValue("--color-primary").trim();
+    document.body.append(probe);
+    const primaryColor = getComputedStyle(probe).color;
+    probe.remove();
     return {
       favoriteColor: favorite ? getComputedStyle(favorite).color : "",
-      primaryColor: root.getPropertyValue("--color-primary").trim(),
+      primaryColor,
       discoveryBorders: discovery ? [getComputedStyle(discovery).borderTopWidth, getComputedStyle(discovery).borderBottomWidth] : [],
       resultsBorder: results ? getComputedStyle(results).borderBottomWidth : "",
     };

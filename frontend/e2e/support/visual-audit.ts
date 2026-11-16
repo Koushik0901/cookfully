@@ -26,6 +26,8 @@ export async function captureUi(
           await new Promise<void>((resolve) => {
             image.addEventListener("load", () => resolve(), { once: true });
             image.addEventListener("error", () => resolve(), { once: true });
+            // A stalled request must not hang the capture until the test times out.
+            setTimeout(resolve, 5000);
           });
         }
         if (image.naturalWidth) await image.decode().catch(() => undefined);

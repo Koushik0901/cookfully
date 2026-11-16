@@ -3,21 +3,41 @@
 Every `captureUi` call is a strict Playwright screenshot assertion. The committed baselines cover the
 desktop Chromium and 390 × 844 touch layouts, using mocked and fixed fixtures from the owning E2E test.
 
+Font rasterisation differs between operating systems, so every platform owns its baselines. The
+platform is part of the file name:
+
+| Suffix | Rendered on | Used by |
+| --- | --- | --- |
+| `-linux.png` | GitHub Actions (Ubuntu) | CI |
+| `-win32.png` | A Windows developer machine | local `pnpm e2e` on Windows |
+| `-darwin.png` | A Mac | local `pnpm e2e` on macOS |
+
 Run the checks with:
 
 ```powershell
 pnpm --dir frontend e2e
 ```
 
-When an intentional, reviewed UI change changes a screenshot, regenerate only after verifying it in the
-browser:
+## Updating baselines
 
-```powershell
-pnpm --dir frontend e2e:visual:update
-```
+When an intentional, reviewed UI change alters a screenshot:
 
-Baselines live under `frontend/e2e/__screenshots__/`, are committed, and use CSS-pixel scale with motion
-and carets disabled. Do not accept a changed image without reviewing the relevant route and state.
+1. **Linux (CI):** run the **Update visual baselines** workflow from the Actions tab on your branch. It
+   regenerates every `-linux.png` and commits them to the branch. Review the images in that commit.
+2. **Your own machine:** `pnpm --dir frontend e2e:visual:update` regenerates the baselines for your
+   platform only.
+
+Do not accept a changed image without reviewing the relevant route and state.
+
+CI compares pixels only once `-linux.png` baselines exist. Until then it prints a warning and still runs
+every behavioural assertion, so the first run of the workflow above is what switches visual checks on.
+
+## How CI runs these tests
+
+CI serves the production bundle (`vite preview`) after `pnpm build`, with two workers, and uploads the
+Playwright report when a run fails. Locally, the dev server is used. The time zone is pinned to UTC so
+dates render identically everywhere; specs that show "today" must still freeze the clock with
+`page.clock`.
 
 ## Native select policy
 
