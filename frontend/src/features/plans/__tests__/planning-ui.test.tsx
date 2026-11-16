@@ -189,7 +189,7 @@ describe("goal and weekly planning UI", () => {
     });
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
-    expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: /^plan$/i })).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "Week" }));
     expect(screen.getByRole("heading", { name: "Your week at a glance" })).toBeVisible();
     expect(screen.getByRole("button", { name: /open day view for monday.*march 9/i })).toBeVisible();
@@ -223,7 +223,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: /week of march 9/i });
+    await screen.findByRole("heading", { name: /^plan$/i });
     expect(screen.getByRole("tab", { name: "Week" })).toHaveAttribute("aria-controls", "planner-panel-week");
     await user.click(screen.getByRole("tab", { name: "Day" }));
 
@@ -240,7 +240,7 @@ describe("goal and weekly planning UI", () => {
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
 
-    await screen.findByRole("heading", { name: /week of march 9/i });
+    await screen.findByRole("heading", { name: /^plan$/i });
     await user.click(screen.getByRole("tab", { name: "Week" }));
     expect(document.querySelectorAll(".week-day--past")).toHaveLength(2);
     await user.click(screen.getByRole("tab", { name: "Day" }));
@@ -300,7 +300,7 @@ describe("goal and weekly planning UI", () => {
 
     renderPage(<WeeklyPlannerPage />);
     const user = userEvent.setup();
-    expect(await screen.findByRole("heading", { name: /week of march 9/i })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: /^plan$/i })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Add nutrition guide" })).toHaveLength(1);
 

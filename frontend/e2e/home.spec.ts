@@ -5,7 +5,9 @@ import { captureUi } from "./support/visual-audit";
 const recipeId = "00000000-0000-4000-8000-000000000701";
 
 async function mockHome(page: Page) {
-  const today = new Date().toISOString().slice(0, 10);
+  // A fixed day keeps the greeting, date line and week strip stable in screenshots.
+  const today = "2026-03-11";
+  await page.clock.install({ time: new Date(`${today}T18:00:00Z`) });
   const dateAfter = (days: number) => new Date(Date.parse(`${today}T00:00:00Z`) + (days * 86_400_000)).toISOString().slice(0, 10);
   await page.context().addCookies([{ name: "cookfully_csrf", value: "home-csrf", domain: "127.0.0.1", path: "/" }]);
   await page.route("**/api/v1/**", async (route) => {
@@ -139,61 +141,59 @@ async function mockHome(page: Page) {
   });
 }
 
-test("Home opens on tonight, the week, recent recipes, and focused quick search", async ({ page }, testInfo) => {
+test("Today opens on tonight, the day, the week, and focused quick search", async ({ page }, testInfo) => {
   await mockHome(page);
   await page.goto("/app");
 
   await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening)$/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Start cooking" })).toHaveAttribute("href", new RegExp(`^/app/recipes/${recipeId}/cook\\?entry=00000000-0000-4000-8000-000000000703&week=\\d{4}-\\d{2}-\\d{2}$`));
-  await expect(page.getByRole("heading", { name: "Two meals planned" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View recipe" })).toHaveAttribute("href", `/app/recipes/${recipeId}`);
   await expect(page.getByText("620 kcal")).toBeVisible();
-  await expect(page.locator(".home-for-you .recipe-meta__item--calories").first()).toBeVisible();
-  await expect(page.locator(".home-for-you .recipe-meta__item--protein").first()).toBeVisible();
+  await expect(page.getByText("Still needed: lemon.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Today’s meals" })).toBeVisible();
+  await expect(page.locator(".home-today__list > li")).toHaveCount(2);
+  await expect(page.locator(".home-today__list > li.is-focus")).toContainText("Dinner · up next");
+  await expect(page.getByText("930 kcal planned today · 47 g protein")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "This week" })).toBeVisible();
+  await expect(page.getByText("1 of 7 days planned")).toBeVisible();
   await expect(page.locator(".home-week-grid")).toHaveAttribute("aria-label", "1 of 7 days have planned meals");
   await expect(page.locator(".home-week-day")).toHaveCount(7);
+  await expect(page.locator(".home-week-day.is-today")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Use soon" })).toBeVisible();
   await expect(page.getByText("Spinach")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Quick actions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Grocery" })).toBeVisible();
+  await expect(page.getByText("2 things to pick up")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cook next" })).toBeVisible();
   await expect(page.getByText("Everything you need is in your pantry")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "2 things to pick up" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Recently saved" })).toBeVisible();
-  await expect(page.locator(".home-recent-recipe .recipe-fallback-art")).toHaveCount(4);
+  await expect(page.locator(".home-for-you .recipe-meta__item--calories").first()).toBeVisible();
+  await expect(page.locator(".home-for-you .recipe-meta__item--protein").first()).toBeVisible();
+  await expect(page.locator(".home-recommendation .recipe-fallback-art")).toHaveCount(3);
 
-  const mediaHeights = await page.locator(".home-recent-recipe__media").evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+  const mediaHeights = await page.locator(".home-recommendation__media").evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
   expect(Math.max(...mediaHeights) - Math.min(...mediaHeights)).toBeLessThanOrEqual(1);
   if (testInfo.project.name === "desktop-chromium") {
+    await expect(page.getByRole("link", { name: "Add recipe" })).toHaveAttribute("href", "/app/recipes/new");
+    await expect(page.getByRole("link", { name: "Grocery item" })).toHaveAttribute("href", "/app/grocery?add=1");
+    await expect(page.locator(".planner-nav").getByRole("link", { name: "Foods" })).toBeVisible();
+    await expect(page.locator(".planner-nav").getByRole("link", { name: "Goals" })).toBeVisible();
+    await expect(page.locator(".planner-nav").getByRole("button", { name: "Search" })).toBeVisible();
     await page.setViewportSize({ width: 1934, height: 1272 });
     const home = await page.locator(".home-page").boundingBox();
     const canvas = await page.locator(".planner-shell__content").boundingBox();
     expect(home).not.toBeNull();
     expect(canvas).not.toBeNull();
     expect(home!.width / canvas!.width).toBeGreaterThan(0.9);
-    expect(await page.locator(".home-page").evaluate((element) => element.scrollHeight)).toBeGreaterThan(1100);
     expect(await page.locator(".home-for-you__grid").evaluate((element) => element.getBoundingClientRect().height)).toBeLessThan(500);
-    const priorities = await page.locator(".home-priorities").evaluate((element) => {
-      const useSoon = element.querySelector<HTMLElement>(".home-use-soon")?.getBoundingClientRect();
-      const quickActions = element.querySelector<HTMLElement>(".home-quick-actions")?.getBoundingClientRect();
-      return { useSoonHeight: useSoon?.height ?? 0, quickActionsHeight: quickActions?.height ?? 0 };
-    });
-    expect(Math.abs(priorities.useSoonHeight - priorities.quickActionsHeight)).toBeLessThanOrEqual(24);
   }
   if (testInfo.project.name === "narrow-mobile") {
-    const recentShelf = page.locator(".home-recent__grid");
-    const shelfGeometry = await recentShelf.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        clientWidth: element.clientWidth,
-        scrollWidth: element.scrollWidth,
-        overflowX: style.overflowX,
-        scrollbarWidth: style.scrollbarWidth,
-        webkitScrollbarDisplay: getComputedStyle(element, "::-webkit-scrollbar").display,
-      };
-    });
-    expect(shelfGeometry.overflowX).toBe("auto");
-    expect(shelfGeometry.scrollWidth).toBeGreaterThan(shelfGeometry.clientWidth);
-    expect(shelfGeometry.scrollbarWidth).toBe("none");
-    expect(shelfGeometry.webkitScrollbarDisplay).toBe("none");
+    const weekDays = await page.locator(".home-week-day").evaluateAll((items) => items.map((item) => {
+      const box = item.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    }));
+    for (const day of weekDays) {
+      expect(day.width).toBeGreaterThanOrEqual(44);
+      expect(day.height).toBeGreaterThanOrEqual(44);
+    }
   }
 
   await page.keyboard.press("Control+K");

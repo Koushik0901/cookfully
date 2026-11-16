@@ -9,15 +9,18 @@ import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import type { MealPlanEntry as Entry, RecipePage } from "./types";
 import { nutritionConfidenceLabel } from "./nutritionConfidence";
 import { useMealPlanMutations } from "./useMealPlanMutations";
-import { addDays } from "./dates";
+import { addDays, weekDates } from "./dates";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 
 type Recipe = RecipePage["items"][number];
 
-export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false }: { entry: Entry; weekStart: string; recipe?: Recipe; readOnly?: boolean }) {
+export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false, today }: { entry: Entry; weekStart: string; recipe?: Recipe; readOnly?: boolean; today?: string }) {
   const [servings, setServings] = useState(formatCookingInput(entry.servings));
   const [mealSlot, setMealSlot] = useState(entry.mealSlot);
+  const [localDate, setLocalDate] = useState(entry.localDate);
+  useEffect(() => setLocalDate(entry.localDate), [entry.localDate]);
+  const dayOptions = weekDates(weekStart).filter((day) => day === entry.localDate || !today || day >= today);
   useEffect(() => setServings(formatCookingInput(entry.servings)), [entry.servings]);
   const mutations = useMealPlanMutations(weekStart);
   const canCopyToNextDay = entry.localDate < addDays(weekStart, 6);
@@ -25,7 +28,7 @@ export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false }: { 
   const disabled = !entry.recipeId || readOnly || cooked;
   const cookUrl = entry.recipeId ? `/app/recipes/${entry.recipeId}/cook?entry=${entry.id}&week=${weekStart}` : "";
   const payload = (refreshNutrition = false) => ({
-    localDate: entry.localDate,
+    localDate,
     mealSlot,
     recipeId: entry.recipeId!,
     servings,
@@ -64,10 +67,10 @@ export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false }: { 
           {entry.recipeId ? <Button variant={entry.cookingStatus === "cooking" ? "secondary" : "ghost"} asChild><Link to={cookUrl} aria-label={`${entry.cookingStatus === "cooking" ? "Resume cooking" : cooked ? "Review cooked" : "Start cooking"} ${entry.recipeTitle}`}><ChefHat aria-hidden="true" />{entry.cookingStatus === "cooking" ? "Resume" : cooked ? "Cooked" : "Cook"}</Link></Button> : null}
           {!cooked ? <details className="plan-entry__adjust">
             <summary>Adjust meal</summary>
-            <div className="entry-controls"><Field label={`${entry.recipeTitle} servings`}><DecimalInput value={servings} disabled={disabled} onInput={(event) => setServings(event.currentTarget.value)} /></Field><Field label={`${entry.recipeTitle} meal slot`}><Select value={mealSlot} disabled={disabled} onChange={(event) => setMealSlot(event.target.value)}>{SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</Select></Field></div>
+            <div className="entry-controls"><Field label={`${entry.recipeTitle} day`}><Select value={localDate} disabled={disabled} onChange={(event) => setLocalDate(event.target.value)}>{dayOptions.map((day) => <option key={day} value={day}>{new Intl.DateTimeFormat("en-CA", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${day}T00:00:00Z`))}</option>)}</Select></Field><Field label={`${entry.recipeTitle} servings`}><DecimalInput value={servings} disabled={disabled} onInput={(event) => setServings(event.currentTarget.value)} /></Field><Field label={`${entry.recipeTitle} meal slot`}><Select value={mealSlot} disabled={disabled} onChange={(event) => setMealSlot(event.target.value)}>{SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}</Select></Field></div>
             <div className="plan-entry__adjust-actions"><Button variant="secondary" disabled={disabled || mutations.update.isPending} onClick={() => mutations.update.mutate({ entry, value: payload() })}>Save changes</Button><Button variant="ghost" disabled={disabled} onClick={() => mutations.update.mutate({ entry, value: payload(true), action: "refresh" })}><RefreshCw aria-hidden="true" />Refresh nutrition</Button><ConfirmDialog trigger={<Button variant="ghost" className="plan-entry__remove" disabled={mutations.remove.isPending}><Trash2 aria-hidden="true" />Remove</Button>} title={`Remove ${entry.recipeTitle} from your plan?`} description="This also marks the grocery list for refresh. The meal will be removed from its current day." confirmLabel="Remove meal" onConfirm={() => mutations.remove.mutate(entry)} />{mutations.conflict ? <Button onClick={() => void mutations.reload()}>Reload plan</Button> : null}</div>
           </details> : null}
-          {!cooked ? <Button variant="ghost" disabled={disabled || !canCopyToNextDay} title={canCopyToNextDay ? "Copy to next day" : "The next day is outside this planning week"} onClick={() => mutations.copy.mutate(entry)}><Copy aria-hidden="true" />{canCopyToNextDay ? "Copy to next day" : "Next day outside week"}</Button> : null}
+          {!cooked ? <Button variant="ghost" disabled={disabled || !canCopyToNextDay} title={canCopyToNextDay ? "Copy to next day" : "The next day is outside this planning week"} onClick={() => mutations.copy.mutate(entry)}><Copy aria-hidden="true" /><span className="plan-entry__copy-label">{canCopyToNextDay ? "Copy to next day" : "Next day outside week"}</span></Button> : null}
         </div>
       )}
     </article>

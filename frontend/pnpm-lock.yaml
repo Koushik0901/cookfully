@@ -14,7 +14,7 @@ importers:
       '@dnd-kit/react':
         specifier: ^0.5.0
         version: 0.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@fontsource-variable/afacad-flux':
+      '@fontsource-variable/bricolage-grotesque':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource-variable/inclusive-sans':
@@ -567,8 +567,8 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fontsource-variable/afacad-flux@5.3.0':
-    resolution: {integrity: sha512-XBeFAkFZBN8vr19276iJCzGQu2/eHXW0HfdZNx0+4L+WbuNHnzN+zAUOx/Pl/Y1tBv1zIfciWViH226kZ3SVug==}
+  '@fontsource-variable/bricolage-grotesque@5.3.0':
+    resolution: {integrity: sha512-TLi9Q4hJjS2UvoTMRSS2nHu6c4R56lAw60NR9QYtVRCHn0XtsFpiEhNffZ8Glsoxu6wEEwLKBP8lb94J52PNBA==}
 
   '@fontsource-variable/inclusive-sans@5.3.0':
     resolution: {integrity: sha512-e2b24zDvG6WMA+QVTc2ZoFU+wNA5NilcFfuhlzG44TbvpNrW3V9zLJmpFuEv0wJlYvWNH+goYDXY59lAiEU0Pg==}
@@ -4466,7 +4466,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fontsource-variable/afacad-flux@5.3.0': {}
+  '@fontsource-variable/bricolage-grotesque@5.3.0': {}
 
   '@fontsource-variable/inclusive-sans@5.3.0': {}
 

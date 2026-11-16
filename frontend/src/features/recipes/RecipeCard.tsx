@@ -17,11 +17,13 @@ import { recipesApi } from "./api";
 import { servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
 import type { Recipe } from "./types";
+import type { PantryRecipeMatch } from "../pantry/types";
 
 const EMPTY_COLLECTIONS: NonNullable<Recipe["collections"]> = [];
 
 export function RecipeCard({
   recipe,
+  pantryMatch,
   onArchive,
   onRestore,
   onDelete,
@@ -31,6 +33,7 @@ export function RecipeCard({
   onSelectedChange,
 }: {
   recipe: Recipe;
+  pantryMatch?: PantryRecipeMatch;
   onArchive: (id: string, version: number) => void;
   onRestore: (id: string, version: number) => void;
   onDelete: (id: string, version: number) => void;
@@ -49,6 +52,11 @@ export function RecipeCard({
     setFavorite(Boolean(recipe.favorite));
     setMembership(recipeCollections.map((item) => item.id));
   }, [recipe.favorite, recipeCollections]);
+  const missingCount = pantryMatch?.missingIngredients.length ?? 0;
+  const pantryLabel = recipe.status === "archived" || !pantryMatch ? null
+    : pantryMatch.availability === "full" ? "Can make now"
+    : pantryMatch.availability === "partial" && missingCount > 0 && missingCount <= 3 ? `${missingCount} to buy`
+    : null;
   const nutrition = recipe.nutrition;
   const displayedNutritionState = ["stale", "pending", "failed"].includes(recipe.nutritionState)
     ? recipe.nutritionState
@@ -96,6 +104,7 @@ export function RecipeCard({
           <div className="recipe-card__summary">
             <span className="recipe-card__yield data-value">Makes {servingLabel(recipe.yieldQuantity, recipe.yieldUnit)}</span>
             <span className={`recipe-card__state recipe-card__state--${statePresentation.key}`} title={statePresentation.description}>{statePresentation.label}</span>
+            {pantryLabel ? <span className={`recipe-card__pantry${pantryMatch?.availability === "full" ? " is-ready" : ""}`} title={missingCount ? `Still needed: ${pantryMatch?.missingIngredients.join(", ")}` : "Everything is in your pantry"}>{pantryLabel}</span> : null}
           </div>
           <div className={`recipe-card__context${recipeCollections.length ? "" : " recipe-card__context--empty"}`} aria-hidden={!recipeCollections.length}>
             {recipeCollections.length ? <><span className="recipe-card__collection">{recipeCollections[0].name}</span>{recipeCollections.length > 1 ? <span className="recipe-card__collection">+{recipeCollections.length - 1}</span> : null}</> : null}

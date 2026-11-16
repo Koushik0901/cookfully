@@ -82,14 +82,14 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  await expect(page.getByRole("heading", { name: mobile ? /march 11/i : /week of march 9/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: mobile ? /march 11/i : /^plan$/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Plan the food now. Add your guide when you’re ready." })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
-  await expect(page.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Day", exact: true })).toHaveAttribute("aria-selected", "true");
   if (!mobile) {
     await page.getByRole("tab", { name: "Week" }).click();
     await captureUi(page, testInfo, "planner-week-empty");
-    await page.getByRole("tab", { name: "Day" }).click();
+    await page.getByRole("tab", { name: "Day", exact: true }).click();
   }
   await expect(page.getByRole("link", { name: "Guide my ideas" })).toHaveCount(0);
   await expect(page.locator(".plan-nutrition")).toHaveCount(0);
@@ -196,7 +196,7 @@ test("only stages an occupied-slot swap after the card is released", async ({ pa
   await mockPlanningApi(page);
   await page.goto("/app/plan");
 
-  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Protein oats to Dinner" }).click();
   await page.getByRole("button", { name: "Add a recipe to Lunch" }).click();
@@ -256,8 +256,8 @@ test("creates a goal, fills the remaining days, adjusts, copies, moves, and refr
   if (testInfo.project.name === "narrow-mobile") {
     await expect(page.getByRole("heading", { name: "March 11" })).toBeVisible();
   } else {
-    await expect(page.getByRole("heading", { name: /week of march 9/i })).toBeVisible();
-    await page.getByRole("tab", { name: "Day" }).click();
+    await expect(page.getByRole("heading", { name: /^plan$/i })).toBeVisible();
+    await page.getByRole("tab", { name: "Day", exact: true }).click();
   }
   const dayTabs = page.getByRole("tablist", { name: "Days in planning week" }).getByRole("tab");
   await expect(dayTabs).toHaveCount(7);

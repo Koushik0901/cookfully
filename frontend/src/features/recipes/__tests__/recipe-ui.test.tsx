@@ -645,7 +645,7 @@ describe("recipe UI", () => {
     expect(screen.getByText(/next retry/i)).toBeVisible();
     expect(screen.getByText(/deadline/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /recalculate nutrition/i })).toBeVisible();
-    expect(screen.getByRole("link", { name: /edit recipe/i })).toBeVisible();
+    expect(screen.getAllByRole("link", { name: /edit recipe/i })[0]).toBeVisible();
   });
 
   it("archives and restores using the current quoted version", async () => {

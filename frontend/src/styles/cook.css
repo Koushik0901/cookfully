@@ -1,0 +1,270 @@
+/* Cook mode redesign — see DESIGN.md "Cook mode". Loaded last, so it overrides the older cook-mode rules in features.css.
+   Phone portrait (390x844) is the primary target: one step at a time, controls pinned at the bottom in thumb reach,
+   ingredients one tap away in a sheet. Desktop adds a side panel. */
+
+.cook-mode {
+  --cook-bg: var(--color-herb-950);
+  --cook-panel: var(--color-herb-900);
+  --cook-panel-raised: var(--color-herb-800);
+  --cook-line: var(--color-on-dark-line-strong);
+  --cook-text: var(--color-on-primary);
+  --cook-muted: var(--color-on-herb-muted);
+  --cook-accent: var(--color-accent);
+  --cook-pad: clamp(1rem, 3vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--cook-text);
+  background: var(--cook-bg);
+}
+
+.cook-mode :focus-visible {
+  outline: 3px solid var(--cook-accent);
+  outline-offset: 2px;
+}
+
+/* Header ---------------------------------------------------------------- */
+.cook-mode__header {
+  position: relative;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  flex: none;
+  min-height: 4rem;
+  gap: 0.75rem;
+  padding: max(0.5rem, env(safe-area-inset-top)) var(--cook-pad) 0.5rem;
+  border-bottom: 1px solid var(--cook-line);
+}
+.cook-mode__back {
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  border: 1px solid var(--cook-line);
+  border-radius: var(--radius);
+  padding-inline: 0.9rem;
+  color: var(--cook-text);
+  font-size: 1rem;
+}
+.cook-mode__identity { justify-items: start; text-align: left; }
+.cook-mode__identity p { color: var(--cook-muted); font-size: 0.8rem; font-weight: 500; }
+.cook-mode__title {
+  max-width: 100%;
+  color: var(--cook-text);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.cook-mode__meta strong { color: var(--cook-text); font-size: 0.85rem; font-weight: 600; }
+.cook-mode__meta span { color: var(--cook-muted); font-size: 0.8rem; }
+
+/* Body: step column + ingredients ---------------------------------------- */
+.cook-mode__body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  grid-template-rows: minmax(0, 1fr);
+}
+.cook-mode__steps {
+  order: 1;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 0;
+}
+.cook-mode__ingredients {
+  order: 2;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 0;
+  border-left: 1px solid var(--cook-line);
+  padding: 1.25rem 1.5rem;
+  background: var(--cook-panel);
+}
+.cook-mode__ingredients details > summary {
+  min-height: 3.5rem;
+  cursor: pointer;
+  list-style: none;
+}
+.cook-mode__ingredients details > summary::-webkit-details-marker { display: none; }
+.cook-mode__ingredients summary strong { color: var(--cook-text); font-size: 1.05rem; font-weight: 600; }
+.cook-mode__ingredients small { color: var(--cook-muted); font-size: 0.85rem; }
+.cook-mode__ingredients-toggle {
+  border: 1px solid var(--cook-line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  color: var(--cook-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.cook-mode__ingredient-list { grid-template-columns: 1fr; margin-top: 0.5rem; }
+.cook-mode__ingredient { min-height: 3.5rem; font-size: 1.05rem; line-height: 1.35; }
+.cook-mode__checked { color: var(--color-on-herb-subtle); }
+
+/* Stage ------------------------------------------------------------------ */
+.cook-mode__stage {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  overflow-y: auto;
+  padding: clamp(1.25rem, 4vw, 3rem) var(--cook-pad);
+}
+.cook-mode__progress {
+  order: -2;
+  width: 100%;
+  height: 0.4rem;
+  flex: none;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-on-dark-line);
+  overflow: hidden;
+}
+.cook-mode__progress::-webkit-progress-bar { border-radius: var(--radius-full); background: var(--color-on-dark-line); }
+.cook-mode__progress::-webkit-progress-value { border-radius: var(--radius-full); background: var(--cook-accent); }
+.cook-mode__progress::-moz-progress-bar { border-radius: var(--radius-full); background: var(--cook-accent); }
+.cook-mode__stage-heading { order: -1; align-items: baseline; }
+.cook-mode__stage-heading .eyebrow { flex: none; white-space: nowrap; }
+.cook-mode__stage-heading .eyebrow { color: var(--cook-accent); font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
+.cook-mode__stage-heading span { color: var(--cook-muted); font-size: 0.85rem; }
+.cook-mode__step { display: block; }
+.cook-mode__step-number { display: none; }
+.cook-mode__step-text {
+  max-width: 30ch;
+  color: var(--cook-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.2vw + 0.6rem, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.22;
+  text-wrap: pretty;
+}
+.cook-mode__quick-timer {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 3.5rem;
+  align-items: center;
+  border: 1px solid var(--cook-accent);
+  border-radius: var(--radius);
+  padding-inline: 1.25rem;
+  color: var(--cook-accent);
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cook-mode__quick-timer:hover { background: var(--color-on-dark-hover); }
+.cook-mode__timer-status {
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  color: var(--cook-text);
+  background: var(--cook-panel);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Controls: pinned to the bottom edge ------------------------------------ */
+.cook-mode__step-controls {
+  position: static;
+  z-index: 2;
+  display: flex;
+  gap: 0.75rem;
+  border-top: 1px solid var(--cook-line);
+  padding: 0.75rem var(--cook-pad) max(0.75rem, env(safe-area-inset-bottom));
+  background: var(--cook-bg);
+}
+.cook-mode__step-controls .cf-button {
+  min-height: 4rem;
+  flex: 1 1 0;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+.cook-mode__step-controls .cf-button:last-child { flex: 2 1 0; }
+.cook-mode__step-controls .cf-button svg { width: 1.4rem; height: 1.4rem; }
+.cook-mode__step-controls .cf-button--secondary {
+  border: 1px solid var(--cook-line);
+  color: var(--cook-text);
+  background: transparent;
+}
+.cook-mode__step-controls .cf-button--secondary:disabled { opacity: 0.45; }
+.cook-mode__step-controls .cf-button--primary { color: var(--cook-bg); background: var(--cook-accent); }
+
+/* Finish / complete / empty screens: keep scrollable inside the fixed shell */
+.cook-mode__complete,
+.cook-mode__finish,
+.cook-mode__empty { flex: 1; min-height: 0; overflow-y: auto; }
+.cook-mode__complete-media { border-radius: var(--radius-xl); }
+.cook-mode__finish-form { border-radius: var(--radius-xl); box-shadow: none; }
+
+.cook-mode__sync-status,
+.cook-mode__sync-error { top: 4.5rem; box-shadow: none; border: 1px solid var(--cook-line); }
+
+/* Compact: phones and tablets. Ingredients become a sheet under the header. */
+@media (max-width: 63.99rem) {
+  .cook-mode__body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .cook-mode__ingredients {
+    position: relative;
+    z-index: 6;
+    order: 0;
+    overflow: visible;
+    border-left: 0;
+    border-bottom: 1px solid var(--cook-line);
+    padding: 0 var(--cook-pad);
+  }
+  .cook-mode__steps { order: 1; }
+  .cook-mode__ingredients details[open] > .cook-mode__ingredient-list {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    max-height: min(60dvh, 30rem);
+    overflow-y: auto;
+    margin: 0;
+    border-bottom: 1px solid var(--cook-line);
+    padding: 0.25rem var(--cook-pad);
+    background: var(--cook-panel);
+  }
+  .cook-mode__all-checked { margin: 0 0 0.5rem; font-size: 0.9rem; }
+  .cook-mode__ingredients details[open] > .cook-mode__ingredient-list { border-bottom: 2px solid var(--cook-line); }
+  .cook-mode__ingredients summary { padding-block: 0.25rem; }
+  .cook-mode__header { grid-template-columns: auto minmax(0, 1fr); }
+  .cook-mode__meta { display: none; }
+  .cook-mode__stage-heading > span { display: none; }
+  .cook-mode__stage-heading > .cook-mode__offline-ready { display: inline; }
+  .cook-mode__step-text { font-size: clamp(1.7rem, 6.4vw, 2.4rem); }
+  .cook-mode__steps { min-height: 0; padding: 0; }
+  .cook-mode__stage { padding: 1.25rem var(--cook-pad); }
+  .cook-mode__step-controls { padding-top: 0.75rem; background: var(--cook-bg); }
+}
+
+/* Short landscape phones: shrink chrome, keep the controls reachable at the sides. */
+@media (max-height: 30rem) and (orientation: landscape) {
+  .cook-mode__header { min-height: 3rem; padding-block: 0.25rem; }
+  .cook-mode__back { min-height: 2.75rem; }
+  .cook-mode__identity p { display: none; }
+  .cook-mode__title { font-size: 1rem; }
+  .cook-mode__stage { gap: 0.6rem; padding-block: 0.6rem; }
+  .cook-mode__step-text { max-width: 60ch; font-size: clamp(1.25rem, 3.4vw, 1.7rem); }
+  .cook-mode__stage-heading .eyebrow { font-size: 0.85rem; }
+  .cook-mode__quick-timer { min-height: 2.75rem; }
+  .cook-mode__step-controls { padding-block: 0.4rem; }
+  .cook-mode__step-controls .cf-button { min-height: 3.25rem; }
+  .cook-mode__ingredients summary { min-height: 2.75rem; }
+  .cook-mode__ingredients details > summary { min-height: 2.75rem; }
+}
+
+@media (min-width: 64rem) {
+  .cook-mode__header { min-height: 5rem; }
+  .cook-mode__identity { justify-items: start; }
+  .cook-mode__title { font-size: 1.35rem; }
+  .cook-mode__stage { justify-content: center; padding-inline: clamp(2rem, 6vw, 5rem); }
+  .cook-mode__step-controls { padding-inline: clamp(2rem, 6vw, 5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cook-mode__stage--forward,
+  .cook-mode__stage--backward { animation: none; }
+}

@@ -241,13 +241,13 @@ test("takes a first kitchen from recipe and cover through shopping and a cooked 
   await expect(page.getByText("Weeknight favourites", { exact: true }).first()).toBeVisible();
 
   await page.goto("/app/plan");
-  await page.getByRole("tab", { name: "Day" }).click();
+  await page.getByRole("tab", { name: "Day", exact: true }).click();
   await page.getByRole("button", { name: "Add a recipe to Dinner" }).click();
   await page.getByRole("button", { name: "Add Lemon lentils to Dinner" }).click();
   await expect(page.getByText("Meal added to your plan.")).toBeVisible();
 
   await page.goto("/app/grocery");
-  await expect(page.getByRole("heading", { name: "Everything you need this week" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Grocery", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Refresh from plan" }).click();
   await expect(page.getByText("Ready to shop")).toBeVisible();
   await page.getByText("Shop by stop", { exact: true }).click();
@@ -256,7 +256,7 @@ test("takes a first kitchen from recipe and cover through shopping and a cooked 
   await page.getByLabel("Edit Red lentils").click();
   await page.getByLabel("Shopping stop for Red lentils").selectOption({ label: "Market" });
   await page.getByRole("checkbox", { name: "Red lentils purchased" }).check();
-  await page.getByRole("button", { name: "Finish this shopping pass" }).click();
+  await page.getByRole("button", { name: "Finish shop", exact: true }).click();
   await page.getByRole("button", { name: "Finish shopping pass" }).click();
   await expect(page.getByText("This shopping pass is complete")).toBeVisible();
 

@@ -1,0 +1,171 @@
+/* Recipes library and recipe detail.
+ *
+ * Loaded last so it settles the layered recipe rules in one place. Phone
+ * layouts keep their dedicated composition from mobile-redesign.css; the
+ * rules here that restructure a page are scoped to tablet and desktop.
+ */
+
+/* The Add recipe menu hangs below the header, over the search field. */
+.recipe-library-page > .page-header { position: relative; z-index: 30; }
+
+/* Quick filter: one tap to the question people actually ask — "what can I
+   cook with what I have?" It only appears when the pantry can answer. */
+.recipe-quick-filter {
+  display: inline-flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-self: start;
+  gap: 0.5rem;
+  border: 1px solid var(--color-outline-strong);
+  border-radius: var(--radius-full);
+  padding-inline: 1rem;
+  color: var(--color-on-surface);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, color var(--motion-fast) ease;
+}
+.recipe-quick-filter span { color: var(--color-on-surface-variant); font-variant-numeric: tabular-nums; }
+.recipe-quick-filter:hover { border-color: var(--color-primary); }
+.recipe-quick-filter[aria-pressed="true"] { border-color: var(--color-primary); color: var(--color-on-primary); background: var(--color-primary); }
+.recipe-quick-filter[aria-pressed="true"] span { color: inherit; }
+
+/* Pantry availability reads as a plain sentence beside the serving yield. */
+.recipe-card__pantry { color: var(--color-on-surface-variant); font-size: 0.8125rem; }
+.recipe-card__pantry.is-ready { color: var(--color-primary); font-weight: 600; }
+
+/* Servings stepper: lives in the Ingredients heading, next to the
+   quantities it rescales. */
+.recipe-servings {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.recipe-servings button {
+  display: grid;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  color: var(--color-on-surface);
+  background: transparent;
+  cursor: pointer;
+}
+.recipe-servings button:hover:not(:disabled) { background: var(--color-surface-low); }
+.recipe-servings button:disabled { cursor: default; opacity: 0.4; }
+.recipe-servings button svg { width: 1rem; height: 1rem; }
+.recipe-servings label { display: flex; align-items: center; gap: 0.25rem; padding-inline: 0.25rem; color: var(--color-on-surface-variant); font-size: 0.9375rem; }
+.recipe-servings .portion-scale__input {
+  width: 3rem;
+  min-height: var(--touch-target);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  color: var(--color-on-surface);
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: center;
+  appearance: textfield;
+}
+.recipe-servings .portion-scale__input::-webkit-inner-spin-button,
+.recipe-servings .portion-scale__input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+.recipe-reading-panel > .section-heading { flex-wrap: wrap; align-items: center; row-gap: 0.75rem; }
+.recipe-reading-panel > .section-heading .section-heading__action { display: flex; align-items: center; gap: 0.75rem; }
+
+@media (max-width: 47.99rem) {
+  /* Phones read nutrition in its own tab, but an in-flight or failed
+     calculation must stay explicit on the main view. */
+  .recipe-detail__nutrition-summary:has([role="status"], [role="alert"]) { display: block; }
+  /* The Nutrition tab already offers editing; avoid a second identical link. */
+  .recipe-detail__nutrition-summary .text-link { display: none; }
+
+  /* Shelf facts stay at a readable 14px on phones. */
+  .recipe-library-page .recipe-card__yield,
+  .recipe-library-page .recipe-card .recipe-meta { font-size: 0.875rem; }
+
+  .recipe-servings,
+  .recipe-hero__plan { display: none; }
+}
+
+@media (min-width: 48rem) {
+  .recipe-reading-panel__count { display: none; }
+
+  /* Library: search, then one row of view tabs and the quick filter, with
+     Refine sitting at the end of that row. */
+  .recipe-library-page .recipe-discovery { grid-template-columns: max-content max-content minmax(0, 1fr); align-items: center; column-gap: 0.75rem; }
+  .recipe-library-page .recipe-discovery > * { grid-column: 1 / -1; }
+  .recipe-library-page .recipe-discovery > .recipe-view-tabs { grid-column: 1; }
+  .recipe-library-page .recipe-discovery > .recipe-quick-filter { grid-column: 2; }
+
+  /* Cards: the dish is the card. No frame, no shadow, no divider — image,
+     name, then two quiet lines of facts. */
+  .recipe-library-page .recipe-card { overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .recipe-library-page .recipe-card:hover { box-shadow: none; transform: none; }
+  .recipe-library-page .recipe-card__media { border-radius: 1.25rem; }
+  .recipe-library-page .recipe-card__primary { align-content: start; }
+  .recipe-library-page .recipe-card__primary:focus-visible { outline-offset: 0.25rem; }
+  .recipe-library-page .recipe-card__body { gap: 0.375rem; padding: 0.875rem 0.125rem 0; }
+  .recipe-library-page .recipe-card__heading { min-height: 0; }
+  .recipe-library-page .recipe-card h2 { font-size: 1.1875rem; font-weight: 600; line-height: 1.2; }
+  .recipe-library-page .recipe-card__summary { min-height: 0; gap: 0.125rem 0.625rem; }
+  .recipe-library-page .recipe-card__yield { color: var(--color-on-surface-variant); font-size: 0.875rem; font-weight: 400; }
+  .recipe-library-page .recipe-card__state { border-radius: 0; padding: 0; color: var(--color-on-surface-variant); background: transparent; font-size: 0.8125rem; font-weight: 400; }
+  .recipe-library-page .recipe-card__context { min-height: 0; }
+  .recipe-library-page .recipe-card__context--empty { display: none; }
+  .recipe-library-page .recipe-card__collection { color: var(--color-on-surface-variant); font-size: 0.8125rem; }
+  .recipe-library-page .recipe-card .recipe-meta { display: flex; gap: 0.125rem 0.75rem; border-top: 0; padding-top: 0; }
+  .recipe-library-page .recipe-card .recipe-meta__item { overflow: visible; font-size: 0.875rem; }
+
+  /* Detail: favourite and the organise disclosure share one quiet row. */
+  .recipe-detail-page { grid-template-columns: max-content minmax(0, 1fr); gap: 2rem 1rem; }
+  .recipe-detail-page > * { grid-column: 1 / -1; }
+  .recipe-detail-page > .recipe-organization__quick-favorite { grid-column: 1; align-self: start; }
+  .recipe-detail-page > .recipe-organization { min-width: 0; grid-column: 2; }
+  .recipe-detail-page > .recipe-organization > summary { min-height: var(--touch-target); padding-block: 0; }
+
+  .recipe-hero__media { border-radius: 1.5rem; box-shadow: none; }
+  .recipe-hero__media::after { border-color: var(--color-outline-variant); }
+  .recipe-hero h1 { max-width: 18ch; font-size: clamp(2.25rem, 1.5rem + 2vw, 3.25rem); font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+  .recipe-hero__facts { font-size: 0.9375rem; }
+  .recipe-hero__actions { margin-top: 0.25rem; }
+
+  .recipe-detail-page .recipe-detail__nutrition-summary { margin-top: 0; border-top: 1px solid var(--color-outline-variant); padding-top: 1.5rem; }
+}
+
+/* With the wider sidebar the hero needs real room before it splits. */
+@media (min-width: 48rem) and (max-width: 71.99rem) {
+  .recipe-hero { grid-template-columns: 1fr; align-items: start; }
+  .recipe-hero__media { max-height: 24rem; aspect-ratio: 16 / 9; }
+}
+
+@media (min-width: 72rem) {
+  /* Words first: the name, the facts, and the next action lead; the photo
+     supports them on the right. */
+  .recipe-hero { grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.9fr); align-items: stretch; gap: clamp(1.5rem, 3vw, 3rem); }
+  .recipe-hero__media { order: 2; width: 100%; min-width: 0; align-self: center; max-height: 26rem; aspect-ratio: 4 / 3; }
+  .recipe-hero__copy { order: 1; align-content: center; gap: 1rem; }
+}
+
+@media (min-width: 64rem) {
+  /* Ingredients stay in view as a card while the method scrolls beside it. */
+  .recipe-reading-grid { grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr); gap: clamp(1.5rem, 3vw, 3rem); padding-top: 0; }
+  .recipe-reading-panel--ingredients {
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100vh - 3rem);
+    overflow: auto;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    background: var(--color-surface-bright);
+  }
+  .recipe-detail-page .recipe-reading-panel--ingredients .ingredient-list > li { border-bottom: 1px solid var(--color-surface-high); padding-block: 0.7rem; }
+  .recipe-detail-page .recipe-reading-panel--ingredients .ingredient-list > li:last-child { border-bottom: 0; }
+  .recipe-reading-panel--method { max-width: 44rem; }
+}
