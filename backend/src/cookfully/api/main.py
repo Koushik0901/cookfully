@@ -25,6 +25,7 @@ from cookfully.api.routes import (
     meal_plans,
     media,
     nutrition_intelligence,
+    openrouter,
     owner,
     pantry,
     recipe_import,
@@ -164,6 +165,8 @@ _OPERATION_IDS = {
     "update_settings": "updateNutritionIntelligenceSettings",
     "get_recipe_import_settings": "getRecipeImportSettings",
     "update_recipe_import_settings": "updateRecipeImportSettings",
+    "get_openrouter_settings": "getOpenRouterSettings",
+    "update_openrouter_settings": "updateOpenRouterSettings",
     "infer_intelligence": "inferIntelligence",
     "create_draft": "createIntelligenceDraft",
     "get_draft": "getIntelligenceDraft",
@@ -337,6 +340,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(jobs.router)
     versioned.include_router(recipes.router)
     versioned.include_router(recipe_import.router)
+    versioned.include_router(openrouter.router)
     versioned.include_router(goals.router)
     versioned.include_router(meal_plans.router)
     versioned.include_router(grocery.router)

@@ -1818,6 +1818,33 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /openrouter/settings:
+    get:
+      tags: [Nutrition Intelligence]
+      operationId: getOpenRouterSettings
+      responses:
+        "200":
+          description: OpenRouter key status (never the key itself) and model choices.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenRouterSettings" }
+    put:
+      tags: [Nutrition Intelligence]
+      operationId: updateOpenRouterSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OpenRouterSettingsWrite" }
+      responses:
+        "200":
+          description: Updated OpenRouter settings. The API key is stored encrypted and is write-only.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenRouterSettings" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /nutrition-intelligence/estimate:
     post:
       tags: [Nutrition Intelligence]
@@ -2328,6 +2355,30 @@ components:
       properties:
         cleanupEnabled: { type: boolean }
         openrouterFallbackEnabled: { type: boolean }
+        version: { type: integer, minimum: 1 }
+    OpenRouterSettings:
+      type: object
+      additionalProperties: false
+      required: [keyConfigured, keyHint, cleanupModel, decisionAssistEnabled, decisionAssistModel, decisionAssistToleranceDv, version]
+      properties:
+        keyConfigured: { type: boolean }
+        keyHint: { type: [string, "null"], description: Last four characters of the stored key. }
+        cleanupModel: { type: string }
+        decisionAssistEnabled: { type: boolean }
+        decisionAssistModel: { type: string }
+        decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
+        version: { type: integer, minimum: 1 }
+    OpenRouterSettingsWrite:
+      type: object
+      additionalProperties: false
+      required: [cleanupModel, decisionAssistEnabled, decisionAssistModel, decisionAssistToleranceDv, version]
+      properties:
+        apiKey: { type: [string, "null"], format: password, minLength: 8, maxLength: 256, description: Omit to keep the stored key. }
+        clearApiKey: { type: boolean, default: false }
+        cleanupModel: { type: string, maxLength: 120 }
+        decisionAssistEnabled: { type: boolean }
+        decisionAssistModel: { type: string, minLength: 1, maxLength: 120 }
+        decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
         version: { type: integer, minimum: 1 }
     NutritionIntelligenceEstimate:
       type: object

@@ -27,6 +27,7 @@ from cookfully.infrastructure.models.nutrition import (
     NutritionEstimate,
 )
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
+from cookfully.infrastructure.models.openrouter import OpenRouterSettings
 from cookfully.infrastructure.models.owner_foods import OwnerFood
 from cookfully.infrastructure.models.pantry import PantryDeduction, PantryItem
 from cookfully.infrastructure.models.plans import (
@@ -78,6 +79,7 @@ __all__ = [
     "NutritionCorrection",
     "NutritionEstimate",
     "NutritionIntelligenceSettings",
+    "OpenRouterSettings",
     "OutboxEvent",
     "OwnerAccount",
     "OwnerFood",

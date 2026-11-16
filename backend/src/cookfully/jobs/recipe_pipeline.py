@@ -20,6 +20,12 @@ from cookfully.application.decision_assist import AssistLine, DecisionAssist
 from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
+from cookfully.application.openrouter_settings import (
+    DECISION_MAX_OPTIONS,
+    DECISION_TIMEOUT_SECONDS,
+    DECISIONS_URL,
+)
+from cookfully.application.openrouter_settings import load_config as load_openrouter_config
 from cookfully.application.recipes import (
     IngredientWrite,
     InstructionWrite,
@@ -402,7 +408,7 @@ class RecipePipeline:
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
-            assist = self._decision_assist()
+            assist = self._decision_assist(session)
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -490,23 +496,23 @@ class RecipePipeline:
             )
             return next_job
 
-    def _decision_assist(self) -> DecisionAssist | None:
-        """Build the optional decision assist; ``None`` unless the operator opted in."""
+    @staticmethod
+    def _decision_assist(session: Session) -> DecisionAssist | None:
+        """Build the decision assist from the owner's Settings; ``None`` without a usable key."""
 
-        settings = get_settings()
-        api_key = settings.openrouter_api_key.get_secret_value()
-        if not settings.decision_assist_enabled or not api_key:
+        config = load_openrouter_config(session)
+        if not config.decision_assist_active or config.api_key is None:
             return None
         chooser = OpenRouterDecisionClient(
-            api_key=api_key,
-            model=settings.decision_assist_model,
-            url=settings.decision_assist_url,
-            timeout_seconds=settings.decision_assist_timeout_seconds,
+            api_key=config.api_key,
+            model=config.decision_assist_model,
+            url=DECISIONS_URL,
+            timeout_seconds=DECISION_TIMEOUT_SECONDS,
         )
         return DecisionAssist(
             chooser,
-            tolerance_dv=Decimal(str(settings.decision_assist_tolerance_dv)),
-            max_options=settings.decision_assist_max_options,
+            tolerance_dv=config.decision_assist_tolerance_dv,
+            max_options=DECISION_MAX_OPTIONS,
         )
 
     def _assisted(
