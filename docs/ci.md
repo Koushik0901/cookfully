@@ -11,7 +11,6 @@ other workflows as reusable workflows. Every job has a timeout.
 | `frontend.yml` | **Lint, types and build** plus a generated-API-client drift check; **Unit tests and coverage** (Vitest); **End-to-end** (Playwright on Chromium in two shards, with WebKit native-select in its own job) | coverage thresholds in `vite.config.ts`; every e2e assertion |
 | `dependency-audit.yml` | `pip-audit` and `pnpm audit --prod` when a manifest changes; a daily full report | production dependencies only |
 | `containers.yml` | compose files validate; each image builds (nothing is pushed) | when `deploy/**` or a lockfile changes |
-| `codeql.yml` | CodeQL for Python, TypeScript and the workflows; weekly too | its own required checks |
 | `publish-containers.yml` | build and push images to GHCR | release tags `v*.*.*`, only for a commit on `main` whose `ci-ok` passed |
 | `visual-baselines.yml` | regenerate and commit Linux screenshot baselines | manual |
 
@@ -26,8 +25,10 @@ status checks to pass*), and *Require branches to be up to date*:
 - **`ci-ok`**: passes only when every job in `ci.yml` passed or was skipped on purpose. Add a new
   check by putting its job in `ci-ok.needs`; the required name never changes, so a renamed or removed job
   cannot silently drop out of the gate.
-- **`Analyze (python)`**, **`Analyze (javascript-typescript)`**, **`Analyze (actions)`**: the CodeQL jobs
-  (a separate workflow, so they cannot be part of `ci-ok`).
+- **`Analyze (python)`**, **`Analyze (javascript-typescript)`**, **`Analyze (actions)`**: CodeQL. It runs
+  from GitHub's *default setup* (Settings → Code security → Code scanning), not from a workflow file, on
+  pull requests, pushes to `main` and weekly. Do not add a `codeql.yml`: GitHub rejects results from an
+  advanced workflow while default setup is on. Require these checks once they appear on a pull request.
 
 Remove the per-job entries (`Lint and types`, `Tests and coverage`, …) once `ci-ok` is required.
 
