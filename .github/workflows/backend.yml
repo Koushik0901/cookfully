@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18-alpine
+        # Same image as deploy/compose.yaml: migrations and tests need the vchord and
+        # vector extensions, which stock postgres does not ship.
+        image: ghcr.io/tensorchord/vchord-postgres:pg18-v1.1.1
         env:
           POSTGRES_DB: cookfully_test
           POSTGRES_USER: cookfully
@@ -43,6 +45,6 @@ jobs:
       - run: uv run --directory backend ruff format --check .
       - run: uv run --directory backend ruff check .
       - run: uv run --directory backend mypy src
-      - run: uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file /tmp/cookfully-requirements.txt
-      - run: uvx pip-audit -r /tmp/cookfully-requirements.txt --strict
+      # Dependency vulnerability audits live in dependency-audit.yml so a newly published
+      # advisory cannot block unrelated changes.
       - run: uv run --directory backend pytest --cov --cov-report=term-missing

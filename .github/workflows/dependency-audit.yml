@@ -1,0 +1,56 @@
+name: Dependency audit
+
+# Vulnerability databases change daily, so these audits are kept out of the build and test
+# workflows: a newly published advisory should not block an unrelated change. They run
+#   * every day, so new advisories surface on their own (and notify the repository owner),
+#   * on demand, and
+#   * on any change to a dependency manifest or lockfile, so dependency changes stay gated.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/dependency-audit.yml"
+  pull_request:
+    paths:
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/dependency-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: uv export --project backend --locked --all-extras --no-dev --no-hashes --no-emit-project --output-file /tmp/cookfully-requirements.txt
+      - run: uvx pip-audit -r /tmp/cookfully-requirements.txt --strict
+
+  node:
+    name: Node (pnpm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: pnpm --dir frontend audit --audit-level high
