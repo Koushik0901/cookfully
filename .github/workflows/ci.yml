@@ -83,6 +83,12 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/frontend.yml
 
+  real-stack:
+    name: Real stack
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    uses: ./.github/workflows/real-stack.yml
+
   dependency-audit:
     name: Dependency audit
     needs: changes
@@ -140,7 +146,7 @@ jobs:
   # a skipped job (path filter) counts as passed, a failed or cancelled one does not.
   ci-ok:
     name: ci-ok
-    needs: [changes, backend, frontend, dependency-audit, containers, workflows, secrets]
+    needs: [changes, backend, frontend, real-stack, dependency-audit, containers, workflows, secrets]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

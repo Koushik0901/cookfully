@@ -1,0 +1,28 @@
+# Overlay for the real-stack CI job (.github/workflows/real-stack.yml):
+#
+#   docker compose --env-file .env.ci -f deploy/compose.yaml -f deploy/compose.ci.yaml \
+#     up -d --wait --no-build api worker-interactive outbox web
+#
+# It starts only what the smoke tests exercise (web edge, API, one worker, outbox, PostgreSQL,
+# Redis) and leaves out the local-model service, backups and the retention sweep, which need
+# large downloads or long timers. Everything else is the production definition, including the
+# images' own healthchecks and the Alembic migrations that run when the API starts.
+services:
+  api:
+    # The base file also waits for the intelligence service; this stack does not run it.
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: &ci-environment
+      COOKFULLY_INTELLIGENCE_ENABLED: "false"
+      COOKFULLY_INTELLIGENCE_INLINE_ENABLED: "false"
+      # The built-in hashing embedder: no model download in CI.
+      COOKFULLY_SEMANTIC_MATCHING_BACKEND: hashing
+
+  worker-interactive:
+    environment: *ci-environment
+
+  outbox:
+    environment: *ci-environment

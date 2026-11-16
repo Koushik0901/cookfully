@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from cookfully.api.dependencies.auth import require_browser_owner
 from cookfully.api.schemas.recipes import Decimal6
 from cookfully.application import openrouter_settings as service
+from cookfully.domain.common import MAX_VERSION
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.openrouter import OpenRouterSettings
 
@@ -24,7 +25,7 @@ class OpenRouterSettingsResponse(BaseModel):
     decision_assist_enabled: bool = Field(alias="decisionAssistEnabled")
     decision_assist_model: str = Field(alias="decisionAssistModel")
     decision_assist_tolerance_dv: Decimal6 = Field(alias="decisionAssistToleranceDv")
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class OpenRouterSettingsWrite(BaseModel):
@@ -44,7 +45,7 @@ class OpenRouterSettingsWrite(BaseModel):
     decision_assist_tolerance_dv: Decimal6 = Field(
         alias="decisionAssistToleranceDv", gt=0, le=Decimal("0.1")
     )
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
     @field_validator("api_key")
     @classmethod
