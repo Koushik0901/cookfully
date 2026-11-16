@@ -39,7 +39,7 @@ from cookfully.application.recipes import (
     RecipeWrite,
     SectionWrite,
 )
-from cookfully.domain.common import canonical_decimal, quantize_decimal
+from cookfully.domain.common import MAX_VERSION, canonical_decimal, quantize_decimal
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
@@ -219,7 +219,7 @@ class RecipePhotoStageResponse(ApiModel):
 
 class RecipeBulkArchiveItem(ApiModel):
     id: UUID
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class RecipeBulkArchiveRequest(ApiModel):
@@ -229,7 +229,7 @@ class RecipeBulkArchiveRequest(ApiModel):
 class RecipeBulkArchiveResult(ApiModel):
     id: UUID
     status: Literal["archived", "already_archived", "failed"]
-    version: int | None = Field(default=None, ge=1)
+    version: int | None = Field(default=None, ge=1, le=MAX_VERSION)
     code: str | None = None
     message: str | None = None
 
@@ -260,7 +260,7 @@ class ImportPreviewSection(ApiModel):
 class DuplicateSummary(ApiModel):
     id: UUID
     title: str
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class ImportRecipePreview(ApiModel):
@@ -348,7 +348,7 @@ class ImportConfirmRequest(ApiModel):
 class ImportMergeRequest(ApiModel):
     recipe_id: UUID = Field(alias="recipeId")
     parse_id: str = Field(alias="parseId", max_length=64)
-    expected_version: int = Field(alias="expectedVersion", ge=1)
+    expected_version: int = Field(alias="expectedVersion", ge=1, le=MAX_VERSION)
     title: str | None = Field(default=None, min_length=1, max_length=240)
     yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
     components: tuple[ImportConfirmComponent, ...] = ()
@@ -685,7 +685,7 @@ class RecipeResponse(ApiModel):
     archived_from_status: str | None = Field(alias="archivedFromStatus", default=None)
     nutrition_state: str = Field(alias="nutritionState")
     nutrition: ResolvedNutritionResponse | None = None
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
     updated_at: datetime = Field(alias="updatedAt")
     favorite: bool = False
     collections: tuple[RecipeCollectionSummaryResponse, ...] = ()

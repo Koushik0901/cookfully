@@ -135,6 +135,7 @@ def test_rejects_stale_versions_and_invalid_input(
             _write(version, decisionAssistToleranceDv="0.5"),
             _write(version, decisionAssistModel="bad model!"),
             _write(version, unknownField=1),
+            _write(2**40),
         ):
             response = client.put("/api/v1/openrouter/settings", json=bad, headers=headers)
             assert response.status_code == 422, bad

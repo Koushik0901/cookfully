@@ -20,7 +20,7 @@ from cookfully.application.meal_plans import (
     MealPlanRead,
     MealTargetWrite,
 )
-from cookfully.domain.common import canonical_decimal, display_calories, display_macro
+from cookfully.domain.common import MAX_VERSION, canonical_decimal, display_calories, display_macro
 from cookfully.domain.plan_totals import PeriodTotal
 
 
@@ -100,7 +100,7 @@ class UserGoalResponse(ApiModel):
         default=None,
         pattern=r"^-?(0|[1-9][0-9]*)(\.[0-9]{1,6})?$",
     )
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
     @classmethod
     def from_read(cls, value: GoalRead) -> UserGoalResponse:
@@ -147,7 +147,7 @@ class MealPlanEntryWriteRequest(ApiModel):
 
 class MealPlanEntrySwapRequest(ApiModel):
     target_entry_id: UUID = Field(alias="targetEntryId")
-    target_version: int = Field(alias="targetVersion", ge=1)
+    target_version: int = Field(alias="targetVersion", ge=1, le=MAX_VERSION)
 
 
 class MealCookingProgressRequest(ApiModel):
