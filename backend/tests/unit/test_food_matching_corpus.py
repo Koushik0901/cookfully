@@ -311,6 +311,24 @@ def test_natural_language_chicken_keeps_breast_and_thigh_as_review_candidates() 
     }
 
 
+def test_foods_outside_the_semantic_lexicon_still_resolve() -> None:
+    cases = [
+        ("celery", "celery", "Celery, raw", "Spices, celery seed"),
+        ("blueberries", "blueberries", "Blueberries, raw", "Blueberries, dried, sweetened"),
+        ("broccoli", "broccoli", "Broccoli, raw", "Broccoli raab, raw"),
+        ("asparagus", "asparagus", "Asparagus, raw", "Asparagus, canned, drained solids"),
+    ]
+    for query, key, winner, other in cases:
+        matcher = FoodMatcher(  # type: ignore[arg-type]
+            FoodRepositoryStub([food(f"{key}-other", other), food(f"{key}-winner", winner)])
+        )
+
+        decision = matcher.decide(query)
+
+        assert decision.status == "matched", f"{query} should resolve (got {decision.status})"
+        assert best_food_id(decision) == f"{key}-winner", f"{query} picked the wrong candidate"
+
+
 def test_lemongrass_is_not_a_semantic_match_for_lemon() -> None:
     matcher = FoodMatcher(  # type: ignore[arg-type]
         FoodRepositoryStub([food("lemongrass", "Lemon grass (citronella), raw")])

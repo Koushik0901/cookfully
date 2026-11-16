@@ -1,0 +1,28 @@
+gold food lines: 115; with an acceptable food among shown options: 106 (92.2% raw sample)
+
+== accuracy when the right food WAS shown (unweighted, raw sample) ==
+  typesafe/jev-1.14                          103/106 = 97.2%
+  cloudflare/clef                            105/106 = 99.1%
+  cloudflare/clef-flash                      103/106 = 97.2%
+  liquid/d1                                  103/106 = 97.2%
+  jaredpalmer/kev-4b                         100/106 = 94.3%
+  perplexity/pplx-decider-flash-v1.3:free    104/106 = 98.1%
+  openai/gpt-6-luna-decisions                102/106 = 96.2%
+  fixed deterministic top-1                  77/106 = 72.6%
+
+== stratified bootstrap (1000x): auto-resolved share of 531 lines and wrong-auto rate, 95% CI ==
+  fixed deterministic                  auto 36.4% [33.5%-40.0%]  wrong-of-auto 12.3% [4.1%-21.9%]
+  jev-1.14 t=0.8                       auto 52.3% [44.8%-59.7%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  jev-1.14 t=0.9                       auto 44.7% [37.2%-52.4%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  gpt-6-luna-decisions t=0.8           auto 56.0% [48.7%-63.9%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  gpt-6-luna-decisions t=0.9           auto 49.1% [41.3%-57.0%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  pplx-decider-flash-v1.3:free t=0.8   auto 50.6% [43.2%-58.6%]  wrong-of-auto  1.1% [0.0%-3.7%]
+  pplx-decider-flash-v1.3:free t=0.9   auto 41.0% [33.2%-49.0%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  d1 t=0.8                             auto 38.3% [31.7%-45.2%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  d1 t=0.9                             auto 34.3% [27.7%-41.0%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  clef t=0.8                           auto 42.3% [34.4%-50.5%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  clef t=0.9                           auto 23.6% [17.9%-29.4%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  agree(jev,luna) t=0.8                auto 46.4% [39.0%-54.2%]  wrong-of-auto  0.0% [0.0%-0.0%]
+  agree(jev,pplx) t=0.8                auto 44.9% [37.4%-52.3%]  wrong-of-auto  0.0% [0.0%-0.0%]
+
+raw sample behind Jev t=0.8: 74 auto-resolved lines, wrong=0 (rule-of-three 95% upper bound on wrong rate ~ 4.1%)

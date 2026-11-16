@@ -2,8 +2,11 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { captureUi } from "./support/visual-audit";
 
+// A fixed date keeps dates in the captured UI identical on every run.
+const FIXED_TODAY = "2026-03-11";
+
 async function mockFoodIconsApi(page: Page) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = FIXED_TODAY;
   const dateAfter = (days: number) =>
     new Date(Date.parse(`${today}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
