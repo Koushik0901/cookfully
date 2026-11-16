@@ -13,6 +13,9 @@ export default defineConfig({
   snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}",
   use: {
     baseURL: "http://127.0.0.1:5173",
+    // The browser timezone shows up in the UI (e.g. Settings' timezone hint);
+    // pin it so screenshots don't depend on the machine running the suite.
+    timezoneId: "UTC",
     trace: "on-first-retry",
   },
   projects: [
