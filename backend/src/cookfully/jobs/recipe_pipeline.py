@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.decision_assist import AssistLine, DecisionAssist
 from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
@@ -34,8 +35,9 @@ from cookfully.domain.common import (
     utc_now,
     uuid7,
 )
-from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
 from cookfully.domain.nutrition import (
+    CORE_NUTRIENT_CODES,
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
     IngredientNutrition,
@@ -51,6 +53,7 @@ from cookfully.domain.units import IngredientMeasure, coverage_ratio, to_grams
 from cookfully.domain.volume_assumptions import density_for
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
+from cookfully.infrastructure.decision_client import OpenRouterDecisionClient
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -98,12 +101,6 @@ NEXT_KIND = {
     "recipe_import": "ingredient_parse",
     "ingredient_parse": "nutrition_match",
     "nutrition_match": "nutrition_rollup",
-}
-CORE_NUTRIENT_CODES = {
-    "calories_kcal": ("208", "1008", "2047", "2048"),
-    "protein_g": ("203", "1003"),
-    "carbohydrate_g": ("205", "1005"),
-    "fat_g": ("204", "1004"),
 }
 
 
@@ -405,6 +402,7 @@ class RecipePipeline:
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
+            assist = self._decision_assist()
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -451,6 +449,11 @@ class RecipePipeline:
                     continue
                 remembered = remembered_choice.food_reference if remembered_choice else None
                 decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
+                assist_evidence: dict[str, object] | None = None
+                if assist is not None and decision.method != "memory":
+                    decision, assist_evidence = self._assisted(
+                        assist, decision, ingredient, recipe.title
+                    )
                 candidate = decision.candidate
                 density = (
                     density_for(candidate.food.description)
@@ -477,6 +480,7 @@ class RecipePipeline:
                         ),
                         input_hash=recipe.input_hash,
                         active=True,
+                        candidate_evidence=[assist_evidence] if assist_evidence else None,
                     )
                 )
                 job.progress_current = position
@@ -485,6 +489,56 @@ class RecipePipeline:
                 session, job.id, next_kind=NEXT_KIND[job.kind]
             )
             return next_job
+
+    def _decision_assist(self) -> DecisionAssist | None:
+        """Build the optional decision assist; ``None`` unless the operator opted in."""
+
+        settings = get_settings()
+        api_key = settings.openrouter_api_key.get_secret_value()
+        if not settings.decision_assist_enabled or not api_key:
+            return None
+        chooser = OpenRouterDecisionClient(
+            api_key=api_key,
+            model=settings.decision_assist_model,
+            url=settings.decision_assist_url,
+            timeout_seconds=settings.decision_assist_timeout_seconds,
+        )
+        return DecisionAssist(
+            chooser,
+            tolerance_dv=Decimal(str(settings.decision_assist_tolerance_dv)),
+            max_options=settings.decision_assist_max_options,
+        )
+
+    def _assisted(
+        self,
+        assist: DecisionAssist,
+        decision: MatchDecision,
+        ingredient: Ingredient,
+        recipe_title: str,
+    ) -> tuple[MatchDecision, dict[str, object] | None]:
+        candidates = (
+            (decision.candidate,) if decision.candidate is not None else ()
+        ) + decision.alternatives
+        if not candidates:
+            return decision, None
+        density = density_for(candidates[0].food.description)
+        grams_min, _, _, _ = self._grams(ingredient, density_g_per_ml=density)
+        outcome = assist.resolve(
+            AssistLine(
+                ingredient.original_text,
+                ingredient.food_name or "",
+                recipe_title,
+                grams_min,
+            ),
+            candidates,
+        )
+        if outcome is None:
+            return decision, None
+        rest = tuple(item for item in candidates if item is not outcome.candidate)
+        return (
+            MatchDecision("matched", "decision_assist", outcome.candidate, rest),
+            outcome.evidence,
+        )
 
     def _session_embedder(self, session: Session) -> TextEmbedder:
         # A non-null embedder with no key is an explicit test/integration

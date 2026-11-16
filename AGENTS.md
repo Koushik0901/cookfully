@@ -61,6 +61,10 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Decision-model assist** — on by default once an OpenRouter key is set; re-ranks matcher candidates via
+  OpenRouter Decisions and auto-resolves only when expected error is within tolerance in every tracked
+  nutrient (`domain/decision_assist.py`); failures keep the deterministic result. See
+  `docs/decision-model-assist.md`.
 - **Real-stack tests** — CI boots the composed app (`deploy/compose.ci.yaml`) and runs a no-mocks browser
   test plus a Schemathesis fuzz of the OpenAPI contract; a request that crashes the API fails the change.
   Client-supplied versions are bounded by `MAX_VERSION`, and database data errors become `422 invalid_value`.

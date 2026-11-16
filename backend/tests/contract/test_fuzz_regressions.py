@@ -117,3 +117,72 @@ def test_today_in_timezone_rejects_malformed_names_with_a_value_error(timezone: 
 
     with pytest.raises(ValueError, match="invalid timezone"):
         today_in_timezone(timezone)
+
+
+def _food(**overrides: object) -> dict[str, object]:
+    return {
+        "displayName": "House oats",
+        "caloriesKcal": "380",
+        "proteinG": "13",
+        "carbohydrateG": "67",
+        "fatG": "7",
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"carbohydrateG": "1" + "0" * 30},
+        {"caloriesKcal": "100000001"},
+        {"proteinG": "1E+40"},
+        {"fatG": "99999999999999999999.5"},
+        {"basisGrams": "1" + "0" * 25},
+        {"typicalServingG": "1" + "0" * 25},
+        {"typicalServingG": "0"},
+        {"typicalServingG": "-5"},
+        {"brand": "b" * 241},
+        {"typicalServingUnit": "u" * 21},
+    ],
+)
+def test_owner_foods_outside_the_storable_range_are_rejected_not_crashed(
+    isolated_database_url: str, tmp_path: Path, overrides: dict[str, object]
+) -> None:
+    """Amounts beyond NUMERIC(20, 6) (and over-long text) used to raise inside quantize/INSERT."""
+
+    with _client(isolated_database_url, tmp_path) as client:
+        headers = _sign_in(client)
+        created = client.post("/api/v1/foods/user", json=_food(), headers=headers)
+        assert created.status_code == 201, created.text
+        food_id = created.json()["id"]
+
+        rejected_create = client.post(
+            "/api/v1/foods/user", json=_food(**overrides), headers=headers
+        )
+        rejected_update = client.put(
+            f"/api/v1/foods/user/{food_id}",
+            json={**_food(**overrides), "expectedVersion": 1},
+            headers=headers,
+        )
+
+        assert rejected_create.status_code == 422, rejected_create.text
+        assert rejected_update.status_code == 422, rejected_update.text
+
+
+def test_owner_foods_at_the_range_limits_are_still_accepted(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with _client(isolated_database_url, tmp_path) as client:
+        headers = _sign_in(client)
+        response = client.post(
+            "/api/v1/foods/user",
+            json=_food(
+                caloriesKcal="100000000",
+                basisGrams="100000000",
+                typicalServingG="100000000",
+                brand="b" * 240,
+                typicalServingUnit="u" * 20,
+            ),
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
