@@ -95,10 +95,10 @@ class Settings(BaseSettings):
     intelligence_inline_timeout_ms: Annotated[int, Field(ge=100, le=5000)] = 600
     openrouter_api_key: SecretStr = SecretStr("")
     openrouter_model: str = ""
-    # Optional decision-model assist for ingredient matching. Off by default: enabling it sends
-    # ingredient lines, recipe titles and candidate food names to OpenRouter. Thresholds are tuned
-    # per model, so changing the model means re-checking the tolerance.
-    decision_assist_enabled: bool = False
+    # Decision-model assist for ingredient matching. Active whenever an OpenRouter key is set; it
+    # sends ingredient lines, recipe titles and candidate food names to OpenRouter. Thresholds are
+    # tuned per model, so changing the model means re-checking the tolerance.
+    decision_assist_enabled: bool = True
     decision_assist_model: str = "typesafe/jev-1.14"
     decision_assist_url: str = "https://openrouter.ai/api/alpha/decisions"
     decision_assist_tolerance_dv: Annotated[float, Field(gt=0, le=0.1)] = 0.02

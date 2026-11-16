@@ -1,6 +1,6 @@
 # Decision-model assist for ingredient matching
 
-Optional, **off by default**. Implements recommendation 2 of
+On by default; it does nothing until `COOKFULLY_OPENROUTER_API_KEY` is set. Implements recommendation 2 of
 [`decision-model-experiments`](decision-model-experiments/README.md). Deterministic matching always
 runs first; this layer can only *replace* its result when it is safe to.
 
@@ -24,7 +24,7 @@ runs first; this layer can only *replace* its result when it is safe to.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `COOKFULLY_DECISION_ASSIST_ENABLED` | `false` | Also needs `COOKFULLY_OPENROUTER_API_KEY`. |
+| `COOKFULLY_DECISION_ASSIST_ENABLED` | `true` | Also needs `COOKFULLY_OPENROUTER_API_KEY`. |
 | `COOKFULLY_DECISION_ASSIST_MODEL` | `typesafe/jev-1.14` | Thresholds are per model; re-tune if you change it. The research advises against Clef Flash and Kev 4B for auto-resolution. |
 | `COOKFULLY_DECISION_ASSIST_TOLERANCE_DV` | `0.02` | Share of daily value, 0 < x <= 0.1. |
 | `COOKFULLY_DECISION_ASSIST_TIMEOUT_SECONDS` | `8` | Per line; failure keeps the deterministic result. |
@@ -34,7 +34,6 @@ descriptions to OpenRouter. No account data is sent. The Decisions endpoint is a
 
 ## Not done yet
 
-- Owner toggle under Settings > Intelligence (today the switch is an operator environment setting).
 - Review-screen ordering by nutrition at stake and the one-tap "looks right" confirmation.
 - Re-measuring on the live app; the research numbers came from an offline harness with a stub repository.
 - Import-cleanup gate and the Extractions API (research sections 5 and 6).

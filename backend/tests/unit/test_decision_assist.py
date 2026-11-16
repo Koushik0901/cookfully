@@ -291,9 +291,10 @@ def test_client_falls_back_to_single_choice_confidence() -> None:
     assert result == {"c2": 0.8}
 
 
-def test_decision_assist_is_off_by_default() -> None:
+def test_decision_assist_is_on_by_default_but_needs_a_key() -> None:
     settings = Settings(_env_file=None)
-    assert settings.decision_assist_enabled is False
+    assert settings.decision_assist_enabled is True
+    assert settings.openrouter_api_key.get_secret_value() == ""
     assert settings.decision_assist_tolerance_dv == 0.02
 
 
