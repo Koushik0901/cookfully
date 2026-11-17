@@ -837,6 +837,73 @@ def report_substitutions(harness: Harness) -> str:
     return "\n".join(out)
 
 
+def report_hard_injection(harness: Harness) -> str:
+    pages = _gold("injection_hard")["pages"]
+    guard = _import_guard(harness, PANELS["jev+clef"])
+    out = [f"{len(pages)} pages ({sum(p['injection'] for p in pages)} hostile)", ""]
+    caught = missed = false_alarm = 0
+    rows = []
+    for page in pages:
+        result = guard.screen(page["title"], page["ingredients"], page["steps"])
+        rows.append((page, result))
+        if page["injection"] and result.injection:
+            caught += 1
+        elif page["injection"]:
+            missed += 1
+        elif result.injection:
+            false_alarm += 1
+    out.append(f"hostile caught {caught}/{caught + missed}   benign flagged {false_alarm}")
+    for page, result in rows:
+        flag = ""
+        if page["injection"] != result.injection:
+            flag = "  <-- MISS" if page["injection"] else "  <-- FALSE ALARM"
+        out.append(f"  {page['id']:<30} p={result.evidence.get('injection', '-'):<8}"
+                   f" unscreened={result.unscreened}{flag}")
+    return "\n".join(out)
+
+
+def report_hard_hidden(harness: Harness) -> str:
+    from cookfully.application.hidden_ingredients import THRESHOLD, HiddenLine, check_hidden
+    from uuid import uuid4
+
+    pairs = _gold("hidden_hard")["pairs"]
+    engine = harness.engine(Purpose.HIDDEN_INGREDIENTS, PANELS["jev+clef"])
+    tp = fn = fp = tn = 0
+    misses = []
+    for pair in pairs:
+        line = HiddenLine(uuid4(), pair["line"])
+        result = check_hidden(engine, recipe_title="Dinner", lines=[line], avoid=[pair["avoid"]])
+        flagged = bool(result.flags)
+        if pair["may_contain"] and flagged:
+            tp += 1
+        elif pair["may_contain"]:
+            fn += 1
+            misses.append(f"MISSED: {pair['line']} / {pair['avoid']}")
+        elif flagged:
+            fp += 1
+            misses.append(f"false alarm: {pair['line']} / {pair['avoid']}")
+        else:
+            tn += 1
+    out = [f"{len(pairs)} line/avoid pairs (threshold {THRESHOLD}, most cautious model)", ""]
+    out.append(f"found {tp}/{tp + fn} real hidden items; false alarms {fp}/{fp + tn}")
+    out += ["  " + m for m in misses]
+    return "\n".join(out)
+
+
+def report_hard_gate(harness: Harness) -> str:
+    lines = _gold("gate_hard")["lines"]
+    guard = _import_guard(harness, PANELS["jev+clef"])
+    moved = {m.index for m in guard.gate_lines("Dinner", [row["text"] for row in lines])}
+    real_moved = [lines[i]["text"] for i in moved if lines[i]["ingredient"]]
+    junk_kept = [row["text"] for i, row in enumerate(lines) if not row["ingredient"] and i not in moved]
+    junk = sum(1 for row in lines if not row["ingredient"])
+    out = [f"{len(lines)} lines ({junk} junk)", ""]
+    out.append(f"junk moved {junk - len(junk_kept)}/{junk}; REAL INGREDIENTS WRONGLY MOVED {len(real_moved)}")
+    out += ["  wrongly moved: " + t for t in real_moved]
+    out += ["  junk kept: " + t for t in junk_kept]
+    return "\n".join(out)
+
+
 def report_label_confidence(harness: Harness, usda_dir: Path) -> str:
     from cookfully.domain import food_labels
 
@@ -883,6 +950,9 @@ EVALUATORS: dict[str, Evaluator] = {
     "diet": lambda harness, _args: report_diet(harness),
     "clean-pages": lambda harness, _args: report_clean_pages(harness),
     "substitutions": lambda harness, _args: report_substitutions(harness),
+    "hard-injection": lambda harness, _args: report_hard_injection(harness),
+    "hard-hidden": lambda harness, _args: report_hard_hidden(harness),
+    "hard-gate": lambda harness, _args: report_hard_gate(harness),
     "label-confidence": lambda harness, args: report_label_confidence(harness, args.usda_dir),
 }
 

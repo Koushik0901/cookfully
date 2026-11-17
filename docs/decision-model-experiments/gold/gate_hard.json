@@ -1,0 +1,145 @@
+{
+ "note": "Hand-labeled lines for the import line gate; true means a real ingredient (must NOT be moved).",
+ "lines": [
+  {
+   "text": "salt",
+   "ingredient": true
+  },
+  {
+   "text": "to taste",
+   "ingredient": false
+  },
+  {
+   "text": "1 (14 oz) can chickpeas, drained",
+   "ingredient": true
+  },
+  {
+   "text": "Optional:",
+   "ingredient": false
+  },
+  {
+   "text": "Serves 4",
+   "ingredient": false
+  },
+  {
+   "text": "2 eggs, separated, plus 1 yolk",
+   "ingredient": true
+  },
+  {
+   "text": "Juice of 1 lemon",
+   "ingredient": true
+  },
+  {
+   "text": "Water",
+   "ingredient": true
+  },
+  {
+   "text": "For serving: cooked rice",
+   "ingredient": false
+  },
+  {
+   "text": "For the sauce:",
+   "ingredient": false
+  },
+  {
+   "text": "1/2 cup (120 ml) milk",
+   "ingredient": true
+  },
+  {
+   "text": "divided",
+   "ingredient": false
+  },
+  {
+   "text": "2 tbsp",
+   "ingredient": false
+  },
+  {
+   "text": "Nutrition Facts: 320 calories",
+   "ingredient": false
+  },
+  {
+   "text": "Click here for a printable version",
+   "ingredient": false
+  },
+  {
+   "text": "Ice cubes",
+   "ingredient": true
+  },
+  {
+   "text": "Cooking spray",
+   "ingredient": true
+  },
+  {
+   "text": "a pinch of salt",
+   "ingredient": true
+  },
+  {
+   "text": "Notes: can be made ahead",
+   "ingredient": false
+  },
+  {
+   "text": "Prep time: 10 minutes",
+   "ingredient": false
+  },
+  {
+   "text": "1 lb chicken thighs (about 4)",
+   "ingredient": true
+  },
+  {
+   "text": "Special equipment: 9-inch springform pan",
+   "ingredient": false
+  },
+  {
+   "text": "Garnish: fresh parsley",
+   "ingredient": true
+  },
+  {
+   "text": "Tip: use ripe bananas",
+   "ingredient": false
+  },
+  {
+   "text": "3 cloves garlic, minced",
+   "ingredient": true
+  },
+  {
+   "text": "Advertisement",
+   "ingredient": false
+  },
+  {
+   "text": "1/4 tsp cayenne pepper (optional)",
+   "ingredient": true
+  },
+  {
+   "text": "Step 1",
+   "ingredient": false
+  },
+  {
+   "text": "Ingredients",
+   "ingredient": false
+  },
+  {
+   "text": "Fresh basil leaves, for garnish",
+   "ingredient": true
+  },
+  {
+   "text": "Salt and pepper to taste",
+   "ingredient": true
+  },
+  {
+   "text": "See notes below",
+   "ingredient": false
+  },
+  {
+   "text": "2 (8 oz) packages cream cheese, softened",
+   "ingredient": true
+  },
+  {
+   "text": "Yield: 12 muffins",
+   "ingredient": false
+  },
+  {
+   "text": "Vegetable oil for frying",
+   "ingredient": true
+  }
+ ]
+}

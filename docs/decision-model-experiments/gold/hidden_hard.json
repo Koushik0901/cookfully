@@ -1,0 +1,220 @@
+{
+ "note": "Hand-labeled: could a typical version of this line contain the avoided item? Truth is judgment on typical store-bought versions.",
+ "pairs": [
+  {
+   "line": "1 tbsp Worcestershire sauce",
+   "avoid": "fish",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup Caesar dressing",
+   "avoid": "fish",
+   "may_contain": true
+  },
+  {
+   "line": "2 tbsp oyster sauce",
+   "avoid": "shellfish",
+   "may_contain": true
+  },
+  {
+   "line": "1/4 cup pesto",
+   "avoid": "tree nuts",
+   "may_contain": true
+  },
+  {
+   "line": "1/4 cup pesto",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup vegan mayonnaise",
+   "avoid": "egg",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp mayonnaise",
+   "avoid": "egg",
+   "may_contain": true
+  },
+  {
+   "line": "4 marshmallows",
+   "avoid": "pork",
+   "may_contain": true
+  },
+  {
+   "line": "1 packet gelatin",
+   "avoid": "pork",
+   "may_contain": true
+  },
+  {
+   "line": "1 naan",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "2 tbsp ghee",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp soy sauce",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp tamari (gluten free)",
+   "avoid": "gluten",
+   "may_contain": false
+  },
+  {
+   "line": "1 cup beer",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup cider",
+   "avoid": "gluten",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp miso",
+   "avoid": "soy",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup oat milk",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup almond milk",
+   "avoid": "tree nuts",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup coconut milk",
+   "avoid": "tree nuts",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp hoisin sauce",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp hoisin sauce",
+   "avoid": "soy",
+   "may_contain": true
+  },
+  {
+   "line": "1 jar marinara sauce",
+   "avoid": "gluten",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp fish sauce",
+   "avoid": "shellfish",
+   "may_contain": false
+  },
+  {
+   "line": "1 cup chicken broth",
+   "avoid": "dairy",
+   "may_contain": false
+  },
+  {
+   "line": "1 bouillon cube",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp curry paste",
+   "avoid": "shellfish",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp curry powder",
+   "avoid": "shellfish",
+   "may_contain": false
+  },
+  {
+   "line": "1 cup vegetable stock",
+   "avoid": "fish",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp fresh lemon juice",
+   "avoid": "dairy",
+   "may_contain": false
+  },
+  {
+   "line": "2 slices white bread",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "2 slices white bread",
+   "avoid": "egg",
+   "may_contain": false
+  },
+  {
+   "line": "1 cup chocolate chips",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup dark chocolate (70%)",
+   "avoid": "tree nuts",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp sriracha",
+   "avoid": "fish",
+   "may_contain": false
+  },
+  {
+   "line": "1 tsp baking powder",
+   "avoid": "gluten",
+   "may_contain": false
+  },
+  {
+   "line": "1 cup store-bought pie crust",
+   "avoid": "dairy",
+   "may_contain": true
+  },
+  {
+   "line": "1 can refried beans",
+   "avoid": "pork",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp mustard",
+   "avoid": "fish",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp barbecue sauce",
+   "avoid": "gluten",
+   "may_contain": true
+  },
+  {
+   "line": "1 cup rice",
+   "avoid": "peanuts",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp sesame oil",
+   "avoid": "peanuts",
+   "may_contain": false
+  },
+  {
+   "line": "1 tbsp pad thai sauce",
+   "avoid": "fish",
+   "may_contain": true
+  },
+  {
+   "line": "1 tbsp pad thai sauce",
+   "avoid": "peanuts",
+   "may_contain": true
+  }
+ ]
+}
