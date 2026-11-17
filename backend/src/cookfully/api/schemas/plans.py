@@ -20,7 +20,7 @@ from cookfully.application.meal_plans import (
     MealPlanRead,
     MealTargetWrite,
 )
-from cookfully.domain.common import canonical_decimal, display_calories, display_macro
+from cookfully.domain.common import MAX_VERSION, canonical_decimal, display_calories, display_macro
 from cookfully.domain.plan_totals import PeriodTotal
 
 
@@ -100,7 +100,7 @@ class UserGoalResponse(ApiModel):
         default=None,
         pattern=r"^-?(0|[1-9][0-9]*)(\.[0-9]{1,6})?$",
     )
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
     @classmethod
     def from_read(cls, value: GoalRead) -> UserGoalResponse:
@@ -147,7 +147,7 @@ class MealPlanEntryWriteRequest(ApiModel):
 
 class MealPlanEntrySwapRequest(ApiModel):
     target_entry_id: UUID = Field(alias="targetEntryId")
-    target_version: int = Field(alias="targetVersion", ge=1)
+    target_version: int = Field(alias="targetVersion", ge=1, le=MAX_VERSION)
 
 
 class MealCookingProgressRequest(ApiModel):
@@ -305,6 +305,13 @@ class PeriodTotalResponse(ApiModel):
         )
 
 
+class PlanAvoidWarningResponse(ApiModel):
+    """Avoid-list items that a planned recipe's ingredients name."""
+
+    recipe_id: UUID = Field(alias="recipeId")
+    items: tuple[str, ...]
+
+
 class MealPlanResponse(ApiModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
@@ -317,6 +324,7 @@ class MealPlanResponse(ApiModel):
     week_total: PeriodTotalResponse = Field(alias="weekTotal")
     grocery_status: str = Field(alias="groceryStatus", default="absent")
     version: int
+    avoid_warnings: tuple[PlanAvoidWarningResponse, ...] = Field(alias="avoidWarnings", default=())
 
     @classmethod
     def from_read(cls, value: MealPlanRead) -> MealPlanResponse:
@@ -333,4 +341,10 @@ class MealPlanResponse(ApiModel):
             week_total=PeriodTotalResponse.from_total(value.totals.week_total),
             grocery_status=value.grocery_status,
             version=value.version,
+            avoid_warnings=tuple(
+                PlanAvoidWarningResponse(recipe_id=recipe_id, items=items)
+                for recipe_id, items in sorted(
+                    value.avoid_warnings.items(), key=lambda kv: str(kv[0])
+                )
+            ),
         )

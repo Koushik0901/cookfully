@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/{recipeId}/ingredients/{ingredientId}/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Substitutes for one ingredient, from a fixed table, ranked for this recipe by decision models. */
+        get: operations["getIngredientSubstitutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -498,6 +515,22 @@ export interface paths {
         get: operations["getFoodEmbeddingSummary"];
         put?: never;
         post: operations["runFoodEmbeddingIndex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/food-labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFoodLabelSummary"];
+        put?: never;
+        post: operations["runFoodLabels"];
         delete?: never;
         options?: never;
         head?: never;
@@ -822,6 +855,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateGroceryShoppingStop"];
+        trace?: never;
+    };
+    "/grocery-items/{itemId}/keep-separate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a synonym merge on this item for good and regenerate the list. */
+        post: operations["keepGroceryItemSeparate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/grocery-items/{itemId}": {
@@ -1224,6 +1274,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/openrouter/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getOpenRouterSettings"];
+        put: operations["updateOpenRouterSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/nutrition-intelligence/estimate": {
         parameters: {
             query?: never;
@@ -1577,6 +1643,40 @@ export interface components {
             openrouterFallbackEnabled: boolean;
             version: number;
         };
+        OpenRouterSettings: {
+            keyConfigured: boolean;
+            /** @description Last four characters of the stored key. */
+            keyHint: string | null;
+            cleanupModel: string;
+            decisionAssistToleranceDv: components["schemas"]["Decimal6"];
+            /** @description Every decision-model feature, in a stable order. */
+            decisionFeatures: components["schemas"]["DecisionFeature"][];
+            monthlyCapUsd: components["schemas"]["Decimal6"];
+            spentThisMonthUsd: components["schemas"]["Decimal6"];
+            version: number;
+        };
+        /** @enum {string} */
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life";
+        DecisionFeature: {
+            purpose: components["schemas"]["DecisionPurpose"];
+            enabled: boolean;
+            models: string[];
+        };
+        OpenRouterSettingsWrite: {
+            /**
+             * Format: password
+             * @description Omit to keep the stored key.
+             */
+            apiKey?: string | null;
+            /** @default false */
+            clearApiKey: boolean;
+            cleanupModel: string;
+            decisionAssistToleranceDv: components["schemas"]["Decimal6"];
+            /** @description Features to change; features left out keep their settings. */
+            decisionFeatures?: components["schemas"]["DecisionFeature"][];
+            monthlyCapUsd: components["schemas"]["Decimal6"];
+            version: number;
+        };
         NutritionIntelligenceEstimate: {
             /** @enum {string} */
             backend: "hashing" | "fastembed";
@@ -1740,11 +1840,16 @@ export interface components {
             matchStatus?: "candidate" | "matched" | "ambiguous" | "unmatched" | "manual";
             /** @enum {string|null} */
             resolutionKind?: "confirmed" | "provisional" | "unresolved" | null;
-            candidateEvidence?: Record<string, never>[];
+            /** @description Provenance for the match. Entries of kind `match_referee` carry `action`, `reason`, `models`, `toleranceDv`, `impactDv` (largest nutrient error at stake as a share of daily value, or null), `pick` (`foodReferenceId`, `description`, `probability`, or null), `noneProbability`, `lineState` and `probabilities`. */
+            candidateEvidence?: {
+                [key: string]: unknown;
+            }[];
             provisionalMacros?: Record<string, never> | null;
             assumptions?: string[];
             /** Format: uuid */
             sectionId?: string | null;
+            /** @description The substitution table has swaps for this line. */
+            substitutable?: boolean;
         };
         SectionWrite: {
             title: string;
@@ -1838,6 +1943,12 @@ export interface components {
             updatedAt?: string;
             thumbnailCrop: components["schemas"]["ThumbnailCrop"];
             originKind: components["schemas"]["RecipeOrigin"];
+            /** @description Tags decision models gave the recipe, each with a probability: diets (vegetarian, vegan, gluten_free, dairy_free; removed when the ingredients contradict them), cuisine:*, meal:*, effort:minimal|moderate|involved, time:under_15|15_30|30_60|over_60, keeps_4_days, freezes_well, reheats_well, needs_oven and weeknight. */
+            facets?: components["schemas"]["RecipeFacet"][];
+        };
+        RecipeFacet: {
+            key: string;
+            probability: components["schemas"]["Decimal6"];
         };
         RecipeDetail: components["schemas"]["Recipe"] & {
             description?: string | null;
@@ -1845,6 +1956,43 @@ export interface components {
             instructions: components["schemas"]["Instruction"][];
             sections?: components["schemas"]["Section"][];
             activeJob?: components["schemas"]["Job"] | null;
+            /** @description Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list. */
+            avoidWarnings?: components["schemas"]["AvoidWarning"][];
+            /**
+             * @description Whether decision models checked this recipe for avoid-list items its ingredients may contain without naming them. `not_checked` is never a promise of safety.
+             * @enum {string}
+             */
+            hiddenIngredientCheck?: "checked" | "not_checked" | "no_avoid_list";
+        };
+        IngredientSubstitutes: {
+            /** Format: uuid */
+            ingredientId: string;
+            originalText: string;
+            /** @description True when decision models ranked the list. */
+            ranked: boolean;
+            substitutes: {
+                name: string;
+                amount: string;
+                note: string;
+                probability?: components["schemas"]["Decimal6"] | null;
+            }[];
+        };
+        AvoidWarning: {
+            /** Format: uuid */
+            ingredientId: string;
+            /** @description The avoid-list entry as the owner wrote it. */
+            item: string;
+            /**
+             * @description `ingredient` when the line names it; `model` when a decision model suspects it.
+             * @enum {string}
+             */
+            source: "ingredient" | "model";
+            probability?: components["schemas"]["Decimal6"] | null;
+        };
+        PlanAvoidWarning: {
+            /** Format: uuid */
+            recipeId: string;
+            items: string[];
         };
         RecipePage: {
             items: components["schemas"]["Recipe"][];
@@ -1895,6 +2043,13 @@ export interface components {
             waiting: number;
             missing: number;
             pollAfterSeconds: number | null;
+        };
+        FoodLabelSummary: {
+            labelled: number;
+            total: number;
+            active: number;
+            waiting: number;
+            pollAfterSeconds?: number | null;
         };
         JobAccepted: {
             /** Format: uuid */
@@ -2159,6 +2314,8 @@ export interface components {
             /** @enum {string} */
             groceryStatus?: "current" | "dirty" | "generating" | "failed" | "absent";
             version: number;
+            /** @description Planned recipes whose ingredients name an item on the owner's avoid list. */
+            avoidWarnings?: components["schemas"]["PlanAvoidWarning"][];
         };
         GroceryItemWrite: {
             displayName?: string;
@@ -2169,6 +2326,13 @@ export interface components {
             /** Format: uuid */
             shoppingStopId?: string | null;
             rememberPlacement?: boolean;
+            /**
+             * @description Store aisle; set by decision models unless the owner chose one, which is remembered for the food.
+             * @enum {string|null}
+             */
+            aisle?: "produce" | "meat_seafood" | "dairy_eggs" | "bakery" | "pantry" | "spices" | "frozen" | "drinks" | "other" | null;
+            /** @description "Probably have" mark; the owner's choice is remembered for the food. */
+            likelyStaple?: boolean;
         };
         GroceryShoppingStopWrite: {
             name?: string;
@@ -2196,6 +2360,8 @@ export interface components {
                 quantityContribution?: components["schemas"]["Decimal6"] | null;
             }[];
             version: number;
+            /** @description Other names decision models merged into this item as the same food. */
+            mergedFrom?: string[];
         };
         GroceryList: {
             /** Format: uuid */
@@ -2672,6 +2838,8 @@ export interface operations {
                 favorite?: boolean;
                 collectionId?: string;
                 mealRole?: "breakfast" | "lunch" | "dinner" | "snack";
+                /** @description Only recipes carrying every listed decision-model tag (see Recipe.facets). */
+                facet?: string[];
             };
             header?: never;
             path?: never;
@@ -2918,6 +3086,38 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationError"];
+        };
+    };
+    getIngredientSubstitutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+                ingredientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Substitutes (empty when the table has none). Unranked when no model answered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngredientSubstitutes"];
+                };
+            };
+            /** @description Recipe or ingredient not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getRecipe: {
@@ -3476,6 +3676,55 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getFoodLabelSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many active USDA foods carry decision-model labels, and the job queue state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodLabelSummary"];
+                };
+            };
+        };
+    };
+    runFoodLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Food labelling job accepted; it labels only new or changed foods. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Decision models are not set up (no key, or Food labels switched off). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };
@@ -4118,6 +4367,37 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    keepGroceryItemSeparate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The regenerated grocery list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryList"];
+                };
+            };
+            /** @description Item not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     deleteGroceryItem: {
@@ -4935,6 +5215,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecipeImportSettings"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getOpenRouterSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OpenRouter key status (never the key itself) and model choices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenRouterSettings"];
+                };
+            };
+        };
+    };
+    updateOpenRouterSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenRouterSettingsWrite"];
+            };
+        };
+        responses: {
+            /** @description Updated OpenRouter settings. The API key is stored encrypted and is write-only. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenRouterSettings"];
                 };
             };
             409: components["responses"]["Conflict"];

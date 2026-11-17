@@ -7,6 +7,9 @@ export const groceryApi = {
   get(weekStart: string) {
     return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list`);
   },
+  keepSeparate(itemId: string) {
+    return apiRequest<GroceryList>(`/grocery-items/${itemId}/keep-separate`, { method: "POST" });
+  },
   regenerate(weekStart: string) {
     return apiRequest<GroceryList>(`/meal-plans/${weekStart}/grocery-list`, {
       method: "POST",

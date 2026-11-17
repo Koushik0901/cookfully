@@ -19,7 +19,7 @@ from cookfully.api.schemas.foods import (
 from cookfully.application.food_embedding_index import embedding_storage_key
 from cookfully.application.food_match_memories import remembered_food_choice_for_name
 from cookfully.application.ingredient_engine import engine
-from cookfully.domain.common import DomainError, require_present
+from cookfully.domain.common import MAX_VERSION, DomainError, require_present
 from cookfully.domain.food_semantics import (
     Compatibility,
     CompatibilityResult,
@@ -397,7 +397,7 @@ def update_user_food(
 )
 def delete_user_food(
     food_id: Annotated[UUID, Path(alias="foodId")],
-    expected_version: Annotated[int, Query(alias="expectedVersion", ge=1)],
+    expected_version: Annotated[int, Query(alias="expectedVersion", ge=1, le=MAX_VERSION)],
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> None:

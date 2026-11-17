@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 
 import { Button, ErrorRecovery, Field, SectionHeading, Select, Skeleton } from "../../components";
 import { nutritionIntelligenceApi, recipeImportSettingsApi } from "./api";
+import { OpenRouterCard } from "./OpenRouterCard";
 
 const DEFAULT_MODEL = "BAAI/bge-small-en-v1.5";
 
@@ -189,7 +190,7 @@ export function NutritionIntelligenceTab() {
             </Field>
             <Field
               label="OpenRouter fallback"
-              hint={recipeImportSettings.data?.openrouterConfigured ? `Configured model: ${recipeImportSettings.data.openrouterModel}` : "Configure an OpenRouter key and model on the server first."}
+              hint={recipeImportSettings.data?.openrouterConfigured ? `Configured model: ${recipeImportSettings.data.openrouterModel}` : "Add an OpenRouter key and cleanup model in the OpenRouter section below first."}
             >
               <label className="settings-checkbox">
                 <input
@@ -212,6 +213,8 @@ export function NutritionIntelligenceTab() {
           </div>
         </section>
       )}
+
+      <OpenRouterCard />
 
       <div className="form-grid">
         <Field label="Matching backend">

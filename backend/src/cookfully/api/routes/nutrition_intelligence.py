@@ -13,6 +13,7 @@ from cookfully.application.nutrition_intelligence import (
     estimate_resources,
     fetch_model_metadata,
 )
+from cookfully.domain.common import MAX_VERSION
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
 
@@ -28,7 +29,7 @@ class NutritionIntelligenceSettingsResponse(BaseModel):
     model_name: str = Field(alias="modelName")
     model_revision: str | None = Field(alias="modelRevision")
     concurrency: int = Field(ge=1, le=4)
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
     runtime_status: Literal["ready", "configured", "downloading", "failed"] = Field(
         alias="runtimeStatus"
     )
@@ -71,7 +72,7 @@ class NutritionIntelligenceEstimateResponse(BaseModel):
 
 
 class NutritionIntelligenceSettingsWrite(NutritionIntelligenceEstimateRequest):
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
     estimate_hash: str = Field(alias="estimateHash", min_length=64, max_length=64)
     intelligence_enabled: bool | None = Field(default=None, alias="intelligenceEnabled")
     inline_enabled: bool | None = Field(default=None, alias="inlineEnabled")

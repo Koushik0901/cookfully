@@ -109,8 +109,9 @@ the confidence gate passes; model enrichment never silently overwrites reviewed 
 Recipe import cleanup uses the same local Needle2 timeout but a separate strict contract. It runs
 once per URL/text-PDF recipe, sequentially for cookbooks, and never logs source text. Invalid,
 unsupported, or timed-out output keeps the deterministic candidate. Optional OpenRouter fallback is
-disabled by default, requires server-side `COOKFULLY_OPENROUTER_API_KEY` plus
-`COOKFULLY_OPENROUTER_MODEL`, and is enabled only by the owner under Settings → Intelligence.
+disabled by default and is enabled by the owner under Settings → Intelligence, where the OpenRouter
+key and cleanup model are entered. The key is stored encrypted (derived from `COOKFULLY_SECRET_KEY`)
+and never returned by the API; changing the secret key means re-entering it.
 Scanned/image-only PDFs remain unsupported; no OCR or vision service is started.
 
 ## Offline owner erasure

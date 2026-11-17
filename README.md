@@ -83,8 +83,8 @@ backup, or worker-tuning knobs.
 Recipe URL imports and text-based cookbook PDFs also receive one conservative cleanup pass before
 the review screen. It can remove leaked nutrition/footer text and repair bounded formatting errors;
 it never invents recipe rows. Scanned or image-only PDFs remain unsupported. Optional OpenRouter
-fallback is disabled by default and requires server-side `COOKFULLY_OPENROUTER_API_KEY` and
-`COOKFULLY_OPENROUTER_MODEL`, then an explicit switch under **Settings → Intelligence**.
+fallback is disabled by default; add the OpenRouter key and model, then switch it on, under
+**Settings → Intelligence**.
 
 PowerShell users can use `Invoke-WebRequest` instead of `curl`; the complete copy-and-start
 instructions, what to try, and troubleshooting are in

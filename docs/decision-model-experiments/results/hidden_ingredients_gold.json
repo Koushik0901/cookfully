@@ -1,0 +1,275 @@
+{
+ "note": "Hand-labelled for typical store-bought versions; ambiguous pairs left out.",
+ "cases": [
+  {
+   "line": "2 tbsp Worcestershire sauce",
+   "item": "fish",
+   "contains": true
+  },
+  {
+   "line": "1/4 cup basil pesto",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "1/4 cup basil pesto",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp soy sauce",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "1/2 cup mayonnaise",
+   "item": "egg",
+   "contains": true
+  },
+  {
+   "line": "1 tbsp fish sauce",
+   "item": "shellfish",
+   "contains": false
+  },
+  {
+   "line": "2 tbsp ghee",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "100 g marzipan",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "3 tbsp hoisin sauce",
+   "item": "soy",
+   "contains": true
+  },
+  {
+   "line": "1/2 cup Caesar dressing",
+   "item": "fish",
+   "contains": true
+  },
+  {
+   "line": "1/2 cup Caesar dressing",
+   "item": "egg",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp red curry paste",
+   "item": "shellfish",
+   "contains": true
+  },
+  {
+   "line": "1 cup kimchi",
+   "item": "fish",
+   "contains": true
+  },
+  {
+   "line": "1 cup mini marshmallows",
+   "item": "pork",
+   "contains": true
+  },
+  {
+   "line": "1/2 cup ranch dressing",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "1 bottle beer",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "200 g soba noodles",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp Nutella",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "100 g milk chocolate",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "1 cup almond milk",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp oyster sauce",
+   "item": "shellfish",
+   "contains": true
+  },
+  {
+   "line": "1 cup panko",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "1 tbsp miso paste",
+   "item": "soy",
+   "contains": true
+  },
+  {
+   "line": "1/4 cup tzatziki",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "1 cup egg noodles",
+   "item": "egg",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp tahini",
+   "item": "sesame",
+   "contains": true
+  },
+  {
+   "line": "1 tbsp sambal oelek",
+   "item": "shellfish",
+   "contains": false
+  },
+  {
+   "line": "2 tbsp olive oil",
+   "item": "dairy",
+   "contains": false
+  },
+  {
+   "line": "juice of 1 lemon",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "1 tsp salt",
+   "item": "shellfish",
+   "contains": false
+  },
+  {
+   "line": "3 cloves garlic",
+   "item": "nuts",
+   "contains": false
+  },
+  {
+   "line": "1 can coconut milk",
+   "item": "dairy",
+   "contains": false
+  },
+  {
+   "line": "200 g rice noodles",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "8 corn tortillas",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "2 tbsp canola oil",
+   "item": "nuts",
+   "contains": false
+  },
+  {
+   "line": "1 cup sugar",
+   "item": "egg",
+   "contains": false
+  },
+  {
+   "line": "1 tsp vanilla extract",
+   "item": "nuts",
+   "contains": false
+  },
+  {
+   "line": "2 tbsp honey",
+   "item": "egg",
+   "contains": false
+  },
+  {
+   "line": "1 tsp baking soda",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "1 cup vegetable broth",
+   "item": "shellfish",
+   "contains": false
+  },
+  {
+   "line": "2 cups white rice",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "1 cucumber",
+   "item": "soy",
+   "contains": false
+  },
+  {
+   "line": "1/2 cup salsa",
+   "item": "dairy",
+   "contains": false
+  },
+  {
+   "line": "1 tbsp Dijon mustard",
+   "item": "egg",
+   "contains": false
+  },
+  {
+   "line": "2 tbsp maple syrup",
+   "item": "nuts",
+   "contains": false
+  },
+  {
+   "line": "1 cup chickpeas",
+   "item": "soy",
+   "contains": false
+  },
+  {
+   "line": "1 tbsp apple cider vinegar",
+   "item": "gluten",
+   "contains": false
+  },
+  {
+   "line": "1 avocado",
+   "item": "fish",
+   "contains": false
+  },
+  {
+   "line": "1/4 cup pine nuts",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "1 cup granola",
+   "item": "nuts",
+   "contains": true
+  },
+  {
+   "line": "2 tbsp gochujang",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "1 cup cream of mushroom soup",
+   "item": "dairy",
+   "contains": true
+  },
+  {
+   "line": "4 hot dog buns",
+   "item": "gluten",
+   "contains": true
+  },
+  {
+   "line": "1 cup potato chips",
+   "item": "dairy",
+   "contains": false
+  }
+ ]
+}

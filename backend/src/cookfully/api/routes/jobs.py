@@ -7,6 +7,7 @@ from cookfully.api.dependencies.auth import require_browser_owner
 from cookfully.api.schemas.jobs import (
     FoodEmbeddingRunRequest,
     FoodEmbeddingSummaryResponse,
+    FoodLabelSummaryResponse,
     JobAcceptedResponse,
     JobResponse,
     RecipeProcessingSummaryResponse,
@@ -15,6 +16,7 @@ from cookfully.application.food_embedding_index import (
     accept_food_embedding_job,
     food_embedding_summary,
 )
+from cookfully.application.food_labels import accept_food_label_job, food_label_summary
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import DomainError
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -52,6 +54,43 @@ def run_food_embeddings(
         request.app.state.sessions,
         scope=body.scope,
         trace_id=request.headers.get("x-request-id", "food-embedding-index"),
+    )
+    return JobAcceptedResponse(job_id=job_id, status="queued")
+
+
+@router.get(
+    "/food-labels",
+    operation_id="getFoodLabelSummary",
+    response_model=FoodLabelSummaryResponse,
+    response_model_by_alias=True,
+)
+def get_food_label_summary(
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> FoodLabelSummaryResponse:
+    summary = food_label_summary(request.app.state.sessions)
+    return FoodLabelSummaryResponse(
+        labelled=summary.labelled,
+        total=summary.total,
+        active=summary.active,
+        waiting=summary.waiting,
+        poll_after_seconds=2 if summary.active or summary.waiting else None,
+    )
+
+
+@router.post(
+    "/food-labels",
+    operation_id="runFoodLabels",
+    response_model=JobAcceptedResponse,
+    response_model_by_alias=True,
+)
+def run_food_labels(
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> JobAcceptedResponse:
+    job_id = accept_food_label_job(
+        request.app.state.sessions,
+        trace_id=request.headers.get("x-request-id", "food-labels"),
     )
     return JobAcceptedResponse(job_id=job_id, status="queued")
 

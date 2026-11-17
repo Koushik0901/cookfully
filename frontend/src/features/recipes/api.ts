@@ -1,5 +1,6 @@
 import type {
   ImportConfirmWrite,
+  IngredientSubstitutes,
   ImportMergeWrite,
   ImportPreview,
   Job,
@@ -29,7 +30,10 @@ export async function apiRequest<T>(path: string, options: KitchenRequestOptions
 }
 
 export const recipesApi = {
-  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string } = {}, cursor?: string, limit = 30, signal?: AbortSignal) {
+  substitutes(recipeId: string, ingredientId: string) {
+    return apiRequest<IngredientSubstitutes>(`/recipes/${recipeId}/ingredients/${ingredientId}/substitutes`);
+  },
+  list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string; facets?: string[] } = {}, cursor?: string, limit = 30, signal?: AbortSignal) {
     const params = new URLSearchParams();
     if (filters.query) params.set("query", filters.query);
     if (filters.nutritionState) params.set("nutritionState", filters.nutritionState);
@@ -37,6 +41,7 @@ export const recipesApi = {
     if (filters.favorite) params.set("favorite", "true");
     if (filters.collectionId) params.set("collectionId", filters.collectionId);
     if (filters.mealRole) params.set("mealRole", filters.mealRole);
+    for (const facet of filters.facets ?? []) params.append("facet", facet);
     params.set("limit", String(limit));
     if (cursor) params.set("cursor", cursor);
     const suffix = params.size ? `?${params.toString()}` : "";

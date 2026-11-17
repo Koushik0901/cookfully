@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -147,7 +148,12 @@ def get_engine() -> ModelEngine:
 def require_service_key(
     value: str | None = Header(default=None, alias="x-cookfully-intelligence-key"),
 ) -> None:
-    if SERVICE_KEY and value != SERVICE_KEY:
+    # Fail closed: a service started without a key must not accept unauthenticated inference.
+    if not SERVICE_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Service key not configured."
+        )
+    if value is None or not hmac.compare_digest(value.encode(), SERVICE_KEY.encode()):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid service key.")
 
 
