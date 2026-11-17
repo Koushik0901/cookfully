@@ -139,4 +139,19 @@ should start with: "Does this help someone plan, cook, and eat better food with 
 - Do not presume either this repository or an inspiration project has the best design. Challenge both
   sets of assumptions, account for their different scale/persona/history, and validate adopted patterns
   through this project's contracts and tests.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `Koushik0901/cookfully`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+`wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` plus `docs/adr/`, created lazily. See `docs/agents/domain.md`.
 <!-- MANUAL ADDITIONS END -->
