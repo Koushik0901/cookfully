@@ -373,6 +373,20 @@ class GroceryListService:
             session.flush()
             return self._item_read(item)
 
+    def _warm_expiry_answer(self, owner_id: UUID, item_id: UUID, values: dict[str, Any]) -> None:
+        """Ask the shelf-life question before the item row is locked, so the locked section hits
+        the answer cache instead of waiting on a remote call. Best effort."""
+
+        if not values.get("checked"):
+            return
+        try:
+            with self._session_factory() as session:
+                item = GroceryRepository(session).get_item(owner_id, item_id)
+                name = str(values.get("display_name") or item.display_name).strip()
+            model_expiry(self._session_factory, name, utc_now().date())
+        except Exception:
+            logger.exception("Shelf-life warm-up failed; asking while saving instead.")
+
     def update(
         self,
         owner_id: UUID,
@@ -381,6 +395,7 @@ class GroceryListService:
         *,
         expected_version: int,
     ) -> GroceryItemRead:
+        self._warm_expiry_answer(owner_id, item_id, values)
         with self._session_factory.begin() as session:
             item = GroceryRepository(session).get_item(owner_id, item_id, for_update=True)
             self._ensure_active(item.grocery_list)

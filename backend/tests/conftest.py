@@ -4,6 +4,7 @@ from io import BytesIO
 from uuid import uuid4
 
 import pytest
+from hypothesis import settings
 from PIL import Image
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
@@ -11,6 +12,14 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models import Base
+
+# Property tests: a hung example fails the test, never the machine's clock, so no per-example
+# deadline. Pull requests use `--hypothesis-profile=ci`, which replays the same examples every
+# time (a rare random failure must not block unrelated work); pushes to main and local runs
+# explore fresh ones, and Hypothesis prints the failing example so it can be pinned as a test.
+settings.register_profile("default", deadline=None)
+settings.register_profile("ci", deadline=None, derandomize=True, print_blob=True)
+settings.load_profile("default")
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:

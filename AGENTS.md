@@ -68,6 +68,11 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Test quality** — property tests (`tests/unit/test_domain_properties.py`, Hypothesis; pull requests use
+  `--hypothesis-profile=ci`) guard the domain rules, `test_process_job_dispatch.py` covers the Celery
+  dispatcher, and `scripts/coverage-ratchet.py` reports when a coverage floor can be raised. Pantry
+  deductions can no longer go negative; Alembic no longer silences the application's loggers. See
+  `docs/ci.md`.
 - **Decision-model assist** — configured under Settings → Intelligence → OpenRouter (key stored encrypted, no env vars); re-ranks matcher candidates via
   OpenRouter Decisions and auto-resolves only when expected error is within tolerance in every tracked
   nutrient (`domain/decision_assist.py`); failures keep the deterministic result. See

@@ -147,6 +147,6 @@ def plan_week_dates(week_start: date) -> tuple[date, ...]:
 def local_midnight(value: date, timezone: str) -> datetime:
     try:
         zone = ZoneInfo(timezone)
-    except ZoneInfoNotFoundError as exc:
+    except (ZoneInfoNotFoundError, ValueError) as exc:  # "" and "../x" raise ValueError
         raise DomainError("invalid_timezone", "Select a valid IANA timezone.", 422) from exc
     return datetime.combine(value, time.min, tzinfo=zone)
