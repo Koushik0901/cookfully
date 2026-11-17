@@ -3,30 +3,8 @@ name: Containers
 # Images are only published when a release tag is pushed, so without this check a broken
 # Dockerfile or compose file would first surface during a release.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "deploy/**"
-      - "backend/pyproject.toml"
-      - "backend/uv.lock"
-      - "frontend/package.json"
-      - "frontend/pnpm-lock.yaml"
-      - ".dockerignore"
-      - ".github/workflows/containers.yml"
-  pull_request:
-    paths:
-      - "deploy/**"
-      - "backend/pyproject.toml"
-      - "backend/uv.lock"
-      - "frontend/package.json"
-      - "frontend/pnpm-lock.yaml"
-      - ".dockerignore"
-      - ".github/workflows/containers.yml"
+  workflow_call: # ci.yml calls this when deploy files, a lockfile or this workflow changes
   workflow_dispatch:
-
-concurrency:
-  group: containers-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -37,7 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Base stack
         run: docker compose --env-file .env.example -f deploy/compose.yaml config --quiet
       - name: Production overlay
@@ -65,9 +45,11 @@ jobs:
           - image: cookfully-backup
             dockerfile: deploy/docker/backup.Dockerfile
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}

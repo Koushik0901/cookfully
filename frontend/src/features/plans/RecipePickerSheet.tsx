@@ -67,6 +67,7 @@ export function RecipePickerSheet({
             <DialogCloseButton label="Close recipe picker" />
           </div>
 
+          {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open */}
           <SearchField autoFocus className="recipe-picker__search" label="Search recipes" value={query} onChange={(event) => setQuery(event.target.value)} onClear={() => setQuery("")} placeholder="Search your recipes" />
 
           {error ? <p className="error-text" role="alert">{error}</p> : null}

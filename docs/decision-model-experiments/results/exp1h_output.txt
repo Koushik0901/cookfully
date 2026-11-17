@@ -1,0 +1,16 @@
+=== Review effort per imported recipe (weighted estimate; assumptions in file header) ===
+  deterministic matcher (fixed), review the tail review items/recipe  6.8 | one-tap confirms  2.6 | manual picks  4.1 | ~19.1 actions, ~ 70 s per recipe
+  Jev, auto at confidence >= 0.9, review the rest review items/recipe  5.9 | one-tap confirms  3.2 | manual picks  2.7 | ~13.8 actions, ~ 49 s per recipe
+  Jev, skip negligible + expected-kcal rule (<=5 kcal) review items/recipe  2.4 | one-tap confirms  1.6 | manual picks  0.8 | ~ 4.7 actions, ~ 17 s per recipe
+
+=== Worked example: NR-048 (9 gold-labelled lines) ===
+  line                                            kcal  deterministic         Jev gated policy
+  600g/1.2 lb boneless skinless chicken thighs     864  review        ->  review
+  1/2 tsp finely grated ginger (, optional)          1  review        ->  skip
+  3/4 cup cornflour / cornstarch (- for crispy     366  review        ->  review
+  2 tsp orange zest (, from 1 orange)                7  review        ->  skip
+  1 cup orange juice (, either squeeze oranges      82  review        ->  auto
+  1 1/2 tbsp cornflour / cornstarch                 46  review        ->  auto
+  1/3 cup + 2 tbsp white sugar                     241  review        ->  review
+  1 green onion (, finely sliced - optional ga       4  review        ->  skip
+  White sesame seeds - optional garnish              0  review        ->  skip

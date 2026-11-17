@@ -80,42 +80,6 @@
   .mobile-nav__menu a,
   .mobile-nav__menu button { min-height: 3.15rem; border-radius: 0.9rem; font-size: 0.95rem; }
 
-  /* Home: one scan, one decision, then the rest of the kitchen. */
-  .home-page { gap: 1.35rem; padding-top: 1.15rem; }
-  .home-intro { gap: 0.25rem; }
-  .home-intro h1 { font-size: 2.35rem; letter-spacing: -0.04em; }
-  .home-intro > div > p:last-child { max-width: 28ch; color: var(--color-on-surface-variant); font-size: 0.95rem; }
-  .home-tonight {
-    min-height: 30rem;
-    border-radius: 1.5rem 3.5rem 1.5rem 1.5rem;
-    box-shadow: 0 0.75rem 2rem color-mix(in oklch, var(--color-on-surface) 13%, transparent);
-  }
-  .home-tonight__copy { padding: 5rem 1.25rem 1.3rem; }
-  .home-tonight__copy h2 { max-width: 12ch; font-size: 2.15rem; line-height: 0.98; }
-  .home-tonight__facts { gap: 0.3rem 0.75rem; font-size: 0.8rem; }
-  .home-tonight__copy .cf-button { min-height: 3.2rem; }
-  .home-week-card { border-radius: 1.35rem; padding: 1.15rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); }
-  .home-week-card__heading h2 { font-size: 1.65rem; }
-  .home-week-grid { gap: 0.2rem; }
-  .home-week-day { min-height: 6.6rem; border-radius: 0.9rem; }
-  .home-week-card__next { margin-top: 0.9rem; border-radius: 0.9rem; padding: 0.8rem; background: var(--color-surface-low); }
-  .home-priorities { gap: 1.4rem; }
-  .home-use-soon { border-radius: 1.25rem; padding: 1.1rem; background: var(--color-primary-container); }
-  .home-use-soon__list li { padding-block: 0.7rem; }
-  .home-quick-actions { gap: 0; border-top: 1px solid var(--color-outline-variant); border-bottom: 1px solid var(--color-outline-variant); padding-block: 0.4rem; }
-  .home-quick-actions > .eyebrow { padding-top: 0.5rem; }
-  .home-quick-actions > h2 { font-size: 1.45rem; }
-  .home-quick-actions > a { min-height: 4rem; border: 0; border-radius: 0; border-top: 1px solid var(--color-outline-variant); padding: 0.7rem 0.1rem; }
-  .home-quick-actions > a:first-of-type { margin-top: 0.25rem; }
-  .home-quick-actions > a > svg:first-child { width: 1.25rem; color: var(--color-primary); }
-  .home-for-you__grid { gap: 0.75rem; }
-  .home-recommendation > a,
-  .home-recommendation.is-featured > a { min-height: 7.5rem; grid-template-columns: 6.25rem minmax(0, 1fr); border-radius: 1rem; }
-  .home-recommendation__body { padding: 0.75rem 0.8rem; }
-  .home-recommendation.is-featured h3 { font-size: 1.15rem; }
-  .home-recent__grid { grid-auto-columns: minmax(13.5rem, 72vw); gap: 0.75rem; }
-  .home-grocery { min-height: 15rem; border-radius: 1.25rem 3rem 1.25rem 1.25rem; padding: 1.25rem; }
-
   /* Recipe detail: photo -> identity -> one-tap shortcuts -> ingredients. */
   .recipe-detail-page {
     gap: 0;
@@ -232,13 +196,6 @@
   .planner-mobile-add .cf-button { min-height: 3.45rem; border-radius: 1.1rem; }
 
   /* Grocery stays dense and calm while moving through a shop. */
-  .grocery-page { gap: 1rem; padding-top: 1.15rem; }
-  .grocery-mobile-top h1 { font-size: 2.05rem; letter-spacing: -0.035em; }
-  .grocery-mobile-build { border: 0; border-radius: 1.25rem 2.75rem 1.25rem 1.25rem; padding: 1.1rem; background: var(--color-primary-container); }
-  .grocery-page .grocery-group > .section-heading h2 { font-size: 0.78rem; }
-  .grocery-page .grocery-item__mobile-row { min-height: 5.6rem; }
-  .grocery-page .grocery-item__mobile-row .grocery-item__content { padding-block: 0.8rem; }
-  .grocery-page .grocery-item__mobile-row h3 { font-size: 1.02rem; }
 
   /* Library and pantry browse well with one thumb. */
   .recipe-library-page,
@@ -417,13 +374,8 @@
   .recipe-mobile-cook-action .cf-button { width: 100%; min-height: 3.25rem; border-radius: 999px; padding-inline: 1.15rem; box-shadow: 0 0.55rem 1.3rem color-mix(in oklch, var(--color-primary) 20%, transparent); }
 
   /* The plan and grocery routes share the same quieter, paper-like rhythm. */
-  .planner-page,
-  .grocery-page { background: var(--color-surface-bright); }
-  .planner-day,
-  .grocery-mobile-build,
-  .home-week-card,
-  .home-grocery,
-  .home-use-soon { border: 0; border-block: 1px solid var(--color-outline-variant); border-radius: 0; background: transparent; box-shadow: none; }
+  .planner-page { background: var(--color-surface-bright); }
+  .planner-day { border: 0; border-block: 1px solid var(--color-outline-variant); border-radius: 0; background: transparent; box-shadow: none; }
   .planner-day { padding-inline: 0; }
   .meal-slot { border: 0; border-top: 1px solid var(--color-outline-variant); border-radius: 0; padding-inline: 0; background: transparent; }
 

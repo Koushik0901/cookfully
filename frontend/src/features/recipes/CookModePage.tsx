@@ -285,7 +285,7 @@ export function CookModePage() {
   if (recipe.isError || !recipe.data)
     return (
       <PageState>
-        <ErrorRecovery title="Could not load recipe" onRetry={() => recipe.refetch()} />
+        <ErrorRecovery title="Could not load recipe" onRetry={() => void recipe.refetch()} />
       </PageState>
     );
   const currentRecipe = recipe.data;

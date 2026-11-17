@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
-import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
-import { CalendarDays, MoreHorizontal, PackageCheck, Plus, RefreshCw, ShoppingBasket, X } from "lucide-react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { CalendarDays, ChevronDown, ListPlus, MoreHorizontal, PackageCheck, Plus, RefreshCw, ShoppingBasket, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Button, ConfirmDialog, DecimalInput, DialogCloseButton, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, SectionHeading, Select, Skeleton } from "../../components";
+import { Button, ConfirmDialog, DecimalInput, DialogCloseButton, EmptyState, ErrorRecovery, Field, KitchenCompanion, PageHeader, PageState, Select, Skeleton } from "../../components";
 import { FoodCategoryIcon } from "../../components/FoodCategoryIcon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { pantryApi } from "../pantry/api";
@@ -17,6 +17,8 @@ import { formatCookingInput, formatCookingNumber } from "../recipes/formatCookin
 import { groceryApi } from "./api";
 import { ShoppingStopManager } from "./ShoppingStopManager";
 import type { GroceryItem, GroceryItemCreate, GroceryItemWrite, GroceryList, GroceryShoppingStop } from "./types";
+import { AISLE_LABELS } from "./aisles";
+import { GroceryTidyLine } from "./GroceryTidyLine";
 
 type SourceMeal = { recipeId: string | null; recipeTitle: string };
 
@@ -55,8 +57,15 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
     if (item.needsExpiryDate) setShowExpirySheet(true);
   }, [item.needsExpiryDate]);
   const badge = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
+  const keepSeparate = useMutation({
+    mutationFn: () => groceryApi.keepSeparate(item.id),
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] }); },
+  });
   const update = useMutation({
     mutationFn: (value: GroceryItemWrite) => groceryApi.update(item.id, item.version, value),
+    // A refetch started by an earlier edit must not land after this one and
+    // undo it (e.g. ticking an item right after moving it to a stop).
+    onMutate: () => queryClient.cancelQueries({ queryKey: ["grocery-list", weekStart] }),
     onSuccess: (saved, value) => {
       if (value.displayName != null) setName(value.displayName);
       if ("quantity" in value) setQuantity(formatCookingInput(value.quantity));
@@ -102,27 +111,30 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
     update.mutate({ checked: next }, { onError: () => setChecked(!next) });
   };
 
-  const itemDetail = <><h3>{title}</h3><p className="data-value">{item.quantity ? formatCookingNumber(item.quantity) : "As needed"}{item.unit ? ` ${item.unit}` : ""}{badge ? <button type="button" aria-label={`Expires ${item.expiresOn}`} className={`expiry-badge expiry-badge--${badge.tone}`} onClick={() => setShowExpirySheet(true)}>{badge.label}</button> : null}</p>{sourceMeals.length ? <p className="grocery-item__uses"><span>For</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p> : item.sources.length ? <p className="grocery-item__uses"><span>For planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}</>;
+  const quantityLabel = item.quantity ? `${formatCookingNumber(item.quantity)}${item.unit ? ` ${item.unit}` : ""}` : item.unit ?? "As needed";
+  const itemDetail = <>
+    <h3>{title}</h3>
+    <p className="grocery-item__amount data-value">{quantityLabel}{badge ? <button type="button" aria-label={`Expires ${item.expiresOn}`} className={`expiry-badge expiry-badge--${badge.tone}`} onClick={() => setShowExpirySheet(true)}>{badge.label}</button> : null}</p>
+    {sourceMeals.length
+      ? <p className="grocery-item__uses"><span>For</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p>
+      : item.sources.length ? <p className="grocery-item__uses"><span>For planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}
+    {item.needsReview ? <span className="review-badge grocery-item__review" title="Check this item's quantity or recipe sources">Check item</span> : null}
+    <GroceryTidyLine item={item} title={title} readOnly={readOnly} busy={update.isPending} onStaple={(likelyStaple) => update.mutate({ likelyStaple })} onKeepSeparate={() => keepSeparate.mutate()} />
+  </>;
+  const checkbox = <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={checkOff} /></label>;
+  const icon = <span className="grocery-item__icon"><FoodCategoryIcon name={title} size={isMobile ? "compact" : "row"} /></span>;
 
   return (
     <article className={`grocery-item ${checked ? "grocery-item--checked" : ""}`}>
-      {isMobile ? <>
-        <div className="grocery-item__mobile-row">
-          <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={checkOff} /></label>
-          <span className="grocery-item__icon"><FoodCategoryIcon name={title} size="compact" /></span>
-          <div className="grocery-item__content">{itemDetail}{item.needsReview ? <span className="review-badge grocery-item__mobile-review">Check item</span> : null}</div>
-          {!readOnly ? <button type="button" className="grocery-item__mobile-more" aria-label={`Edit ${title}`} onClick={() => setMobileEditOpen(true)}><MoreHorizontal aria-hidden="true" /></button> : null}
-        </div>
-        {!readOnly ? <Dialog.Root open={mobileEditOpen} onOpenChange={setMobileEditOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-mobile-sheet" aria-describedby="grocery-mobile-sheet-description"><span className="grocery-mobile-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Grocery item</p><Dialog.Title>{title}</Dialog.Title><Dialog.Description id="grocery-mobile-sheet-description" className="muted">Update this item without losing its meal context.</Dialog.Description></div><DialogCloseButton label="Close item editor" /></header><form className="grocery-edit" onSubmit={(event) => { save(event); setMobileEditOpen(false); }}><Field label="Item"><input className="input" disabled={remove.isPending} value={name} onChange={(event) => setName(event.target.value)} /></Field><div className="grocery-mobile-sheet__measure"><Field label="Quantity"><DecimalInput value={quantity} onInput={(event) => setQuantity(event.currentTarget.value)} /></Field><Field label="Unit"><input className="input" disabled={remove.isPending} value={unit} onChange={(event) => setUnit(event.target.value)} /></Field></div><Field label="Shopping stop"><Select value={item.shoppingStop?.id ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ shoppingStopId: event.target.value || null })}><option value="">Unassigned</option>{stops.map((stop) => <option value={stop.id} key={stop.id}>{stop.name}</option>)}</Select></Field><Button type="submit" disabled={!name.trim() || update.isPending || remove.isPending}>Save changes</Button></form><ConfirmDialog trigger={<Button variant="ghost" className="grocery-mobile-sheet__remove" disabled={remove.isPending || update.isPending}>Remove from list</Button>} title={`Remove ${title} from your list?`} description="This removes the item from this shopping pass." confirmLabel="Remove item" onConfirm={() => remove.mutate()} /></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
-      </> : <>
-      <div className="grocery-item__heading">
-        <span className="grocery-item__icon"><FoodCategoryIcon name={title} size="tile" /></span>
-        <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={(value) => { if (readOnly || update.isPending || remove.isPending) return; const next = value === true; setChecked(next); update.mutate({ checked: next }, { onError: () => setChecked(!next) }); }} /></label>
+      <div className="grocery-item__main">
+        {checkbox}
+        {icon}
         <div className="grocery-item__content">{itemDetail}</div>
-        <div className="grocery-item__controls">{item.needsReview ? <span className="review-badge" title="Check this item's quantity or recipe sources">Check item</span> : null}{!readOnly ? <ConfirmDialog trigger={<button className="grocery-item__remove" type="button" aria-label={`Remove ${title}`} title={`Remove ${title}`} disabled={remove.isPending || update.isPending}><X aria-hidden="true" /></button>} title={`Remove ${title} from your list?`} description={sourceMeals.length ? "This removes the item and its recipe-source context from this shopping pass." : "This removes the item from this shopping pass."} confirmLabel="Remove item" onConfirm={() => remove.mutate()} /> : null}</div>
+        {isMobile && !readOnly ? <button type="button" className="grocery-item__more" aria-label={`Edit ${title}`} onClick={() => setMobileEditOpen(true)}><MoreHorizontal aria-hidden="true" /></button> : null}
+        {!isMobile && !readOnly ? <div className="grocery-item__controls"><ConfirmDialog trigger={<button className="grocery-item__remove" type="button" aria-label={`Remove ${title}`} title={`Remove ${title}`} disabled={remove.isPending || update.isPending}><X aria-hidden="true" /></button>} title={`Remove ${title} from your list?`} description={sourceMeals.length ? "This removes the item and its recipe-source context from this shopping pass." : "This removes the item from this shopping pass."} confirmLabel="Remove item" onConfirm={() => remove.mutate()} /></div> : null}
       </div>
-      {!readOnly ? <details className="grocery-item__edit"><summary aria-label={`Edit ${title}`} title={`Edit ${title}`}><MoreHorizontal aria-hidden="true" /></summary><form className="grocery-edit" onSubmit={save}><Field label={`${title} name`}><input className="input" disabled={remove.isPending} value={name} onChange={(event) => setName(event.target.value)} /></Field><Field label={`${title} quantity`}><DecimalInput value={quantity} onInput={(event) => setQuantity(event.currentTarget.value)} /></Field><Field label={`${title} unit`}><input className="input" disabled={remove.isPending} value={unit} onChange={(event) => setUnit(event.target.value)} /></Field><Field label={`Shopping stop for ${title}`}><Select value={item.shoppingStop?.id ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ shoppingStopId: event.target.value || null })}><option value="">Unassigned</option>{stops.map((stop) => <option value={stop.id} key={stop.id}>{stop.name}</option>)}</Select></Field>{item.origin === "generated" && !item.needsReview && item.shoppingStop ? <label className="check-label"><Checkbox disabled={remove.isPending || update.isPending} onCheckedChange={(value) => { if (value === true) update.mutate({ rememberPlacement: true }); }} />Always put {title} at this stop</label> : null}<Button variant="secondary" type="submit" disabled={!name.trim() || update.isPending || remove.isPending}>Save changes</Button></form></details> : null}
-      </>}
+      {isMobile && !readOnly ? <Dialog.Root open={mobileEditOpen} onOpenChange={setMobileEditOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-sheet" aria-describedby="grocery-mobile-sheet-description"><span className="grocery-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Grocery item</p><Dialog.Title>{title}</Dialog.Title><Dialog.Description id="grocery-mobile-sheet-description" className="muted">Update this item without losing its meal context.</Dialog.Description></div><DialogCloseButton label="Close item editor" /></header><form className="grocery-edit" onSubmit={(event) => { save(event); setMobileEditOpen(false); }}><Field label="Item"><input className="input" disabled={remove.isPending} value={name} onChange={(event) => setName(event.target.value)} /></Field><div className="grocery-sheet__measure"><Field label="Quantity"><DecimalInput value={quantity} onInput={(event) => setQuantity(event.currentTarget.value)} /></Field><Field label="Unit"><input className="input" disabled={remove.isPending} value={unit} onChange={(event) => setUnit(event.target.value)} /></Field></div><Field label="Shopping stop"><Select value={item.shoppingStop?.id ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ shoppingStopId: event.target.value || null })}><option value="">Unassigned</option>{stops.map((stop) => <option value={stop.id} key={stop.id}>{stop.name}</option>)}</Select></Field><Field label="Aisle"><Select value={item.aisle ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ aisle: (event.target.value || null) as GroceryItemWrite["aisle"] })}><option value="">No aisle</option>{Object.entries(AISLE_LABELS).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</Select></Field><Button type="submit" disabled={!name.trim() || update.isPending || remove.isPending}>Save changes</Button></form><ConfirmDialog trigger={<Button variant="ghost" className="grocery-sheet__remove" disabled={remove.isPending || update.isPending}>Remove from list</Button>} title={`Remove ${title} from your list?`} description="This removes the item from this shopping pass." confirmLabel="Remove item" onConfirm={() => remove.mutate()} /></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
+      {!isMobile && !readOnly ? <details className="grocery-item__edit"><summary aria-label={`Edit ${title}`} title={`Edit ${title}`}><MoreHorizontal aria-hidden="true" /></summary><form className="grocery-edit" onSubmit={save}><Field label={`${title} name`}><input className="input" disabled={remove.isPending} value={name} onChange={(event) => setName(event.target.value)} /></Field><Field label={`${title} quantity`}><DecimalInput value={quantity} onInput={(event) => setQuantity(event.currentTarget.value)} /></Field><Field label={`${title} unit`}><input className="input" disabled={remove.isPending} value={unit} onChange={(event) => setUnit(event.target.value)} /></Field><Field label={`Shopping stop for ${title}`}><Select value={item.shoppingStop?.id ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ shoppingStopId: event.target.value || null })}><option value="">Unassigned</option>{stops.map((stop) => <option value={stop.id} key={stop.id}>{stop.name}</option>)}</Select></Field><Field label={`Aisle for ${title}`}><Select value={item.aisle ?? ""} disabled={remove.isPending || update.isPending} onChange={(event) => update.mutate({ aisle: (event.target.value || null) as GroceryItemWrite["aisle"] })}><option value="">No aisle</option>{Object.entries(AISLE_LABELS).map(([key, label]) => <option value={key} key={key}>{label}</option>)}</Select></Field>{item.origin === "generated" && !item.needsReview && item.shoppingStop ? <label className="check-label"><Checkbox disabled={remove.isPending || update.isPending} onCheckedChange={(value) => { if (value === true) update.mutate({ rememberPlacement: true }); }} />Always put {title} at this stop</label> : null}<Button variant="secondary" type="submit" disabled={!name.trim() || update.isPending || remove.isPending}>Save changes</Button></form></details> : null}
       {error instanceof Error ? <p className="error-text" role="alert">{conflict ? "This item changed elsewhere. Reload the list before trying again." : error.message}</p> : null}
       {conflict ? <div className="actions"><Button onClick={() => void refresh()}>Reload list</Button></div> : null}
       <Dialog.Root open={showExpirySheet} onOpenChange={setShowExpirySheet}>
@@ -162,17 +174,20 @@ export function GroceryListPage() {
   const [weekStart, setWeekStart] = useState("");
   const [newItem, setNewItem] = useState<GroceryItemCreate>({ displayName: "", quantity: null, unit: null });
   const [deductions, setDeductions] = useState<PantryDeduction[]>([]);
-  const [manualOpen, setManualOpen] = useState(searchParams.get("add") === "1");
+  // On a phone the add-item field is always on screen; the sheet is only the
+  // "with quantity" path, so ?add=1 focuses the field instead of opening it.
+  const [manualOpen, setManualOpen] = useState(searchParams.get("add") === "1" && !isMobile);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [basketOpen, setBasketOpen] = useState<boolean | null>(null);
   useEffect(() => {
     if (!preferences.data || weekStart) return;
     setWeekStart(weekStartFor(todayInTimezone(preferences.data.timezone), preferences.data.weekStartsOn));
   }, [preferences.data, weekStart]);
   useEffect(() => {
     if (searchParams.get("add") !== "1") return;
-    setManualOpen(true);
+    if (!isMobile) setManualOpen(true);
     window.requestAnimationFrame(() => manualItemRef.current?.focus());
-  }, [searchParams]);
+  }, [searchParams, isMobile]);
   const list = useQuery({
     queryKey: ["grocery-list", weekStart],
     queryFn: () => groceryApi.get(weekStart),
@@ -252,54 +267,124 @@ export function GroceryListPage() {
     </main>
   );
 
+
   const activeItems = list.data.items.filter((item) => !item.checked);
-  const isListEmpty = list.data.items.length === 0;
-  const plannedMealCount = plan.data?.entries.length ?? 0;
-  const readOnly = list.data.status === "completed";
-  const sourceMealsByEntry = new Map(plan.data?.entries.map((entry) => [entry.id, { recipeId: entry.recipeId, recipeTitle: entry.recipeTitle }]) ?? []);
   const purchasedItems = list.data.items.filter((item) => item.checked);
+  const isListEmpty = list.data.items.length === 0;
+  const plannedEntries = plan.data?.entries ?? [];
+  const plannedMealCount = plannedEntries.length;
+  const readOnly = list.data.status === "completed";
+  const status = list.data.status;
+  const sourceMealsByEntry = new Map(plannedEntries.map((entry) => [entry.id, { recipeId: entry.recipeId, recipeTitle: entry.recipeTitle }]));
   const progress = list.data.items.length ? Math.round((purchasedItems.length / list.data.items.length) * 100) : 0;
   const today = preferences.data ? todayInTimezone(preferences.data.timezone) : todayInTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const groups = [
+  const summary = isListEmpty
+    ? "Nothing on the list yet"
+    : activeItems.length ? `${activeItems.length} to pick up · ${purchasedItems.length} in the basket` : "Everything is in the basket.";
+  const stopGroups = [
     ...((stops.data ?? []).map((stop) => [stop.name, activeItems.filter((item) => item.shoppingStop?.id === stop.id)] as const)),
     ["Unassigned", activeItems.filter((item) => !item.shoppingStop)] as const,
-    ["Purchased", list.data.items.filter((item) => item.checked)] as const,
   ].filter(([, items]) => items.length);
-  const headerActions = readOnly ? undefined : isListEmpty
-    ? <Button variant="secondary" onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button>
-    : <><Button asChild variant="secondary"><Link to="/app/plan">Back to meal plan</Link></Button><Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button><ConfirmDialog trigger={<Button variant="secondary" disabled={anyMutationPending}><PackageCheck aria-hidden="true" />Use pantry stock</Button>} title="Use what is already in your pantry?" description="Cookfully will only subtract reviewed matches with compatible units. You can inspect and reverse every deduction below." confirmLabel="Use pantry stock" onConfirm={() => applyDeductions.mutate()} /></>;
+  const basketIsOpen = basketOpen ?? activeItems.length === 0;
+  const renderRow = (item: GroceryItem) => <GroceryRow key={item.id} item={item} weekStart={weekStart} stops={stops.data ?? []} readOnly={readOnly} sourceMealsByEntry={sourceMealsByEntry} today={today} />;
+  const addFormFields = <>
+    <Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field>
+    <Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field>
+    <Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field>
+    <Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button>
+  </>;
+  const desktopAdd = !readOnly && !isMobile
+    ? <details className="grocery-manual" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>Staples and extras that are not part of a planned recipe</small></span></summary><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>{addFormFields}</form></details>
+    : null;
+  const finishDialog = (variant: "primary" | "secondary") => <ConfirmDialog trigger={<Button variant={variant === "primary" ? "default" : "secondary"} disabled={anyMutationPending}>{complete.isPending ? "Finishing…" : "Finish shop"}</Button>} title="Finish this shopping pass?" description={activeItems.length ? `${activeItems.length} unchecked ${activeItems.length === 1 ? "item stays" : "items stay"} on the list as a record. The list becomes read-only until you reopen it.` : "This keeps the checked list as a record and makes it read-only until you reopen it."} confirmLabel="Finish shopping pass" onConfirm={() => complete.mutate()} />;
+  const pantryDialog = <ConfirmDialog trigger={<Button variant="secondary" disabled={anyMutationPending}><PackageCheck aria-hidden="true" />Use pantry stock</Button>} title="Use what is already in your pantry?" description="Cookfully will only subtract reviewed matches with compatible units. You can inspect and reverse every deduction below." confirmLabel="Use pantry stock" onConfirm={() => applyDeductions.mutate()} />;
+  const canFinish = !readOnly && !isListEmpty;
+
+  const statusNotice = status === "completed" ? (
+    <section className="grocery-complete" role="status"><KitchenCompanion moment="milestone" size="sm" /><div><strong>This shopping pass is complete</strong><p>Your ingredients are ready. Open today’s plan when you are ready to cook.</p></div><div className="grocery-complete__actions"><Button asChild><Link to="/app/plan">See today’s plan</Link></Button><Button variant="secondary" onClick={() => reopen.mutate()} disabled={anyMutationPending}>Reopen list</Button></div></section>
+  ) : status === "generating" ? <p className="notice grocery-notice" role="status">Building your grocery list from the latest plan…</p> : null;
+
+  const stalePanel = !readOnly && status === "dirty" && !isListEmpty ? (
+    <section className="grocery-stale" aria-labelledby="grocery-stale-title">
+      <h2 id="grocery-stale-title">Your plan changed</h2>
+      <p>Your meal plan changed. Refresh the list to update quantities without losing checked items or things you added yourself.</p>
+      <Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Updating…" : isMobile ? "Update grocery list" : "Refresh from plan"}</Button>
+    </section>
+  ) : null;
+
+  const buildCard = isMobile && !readOnly && isListEmpty && status !== "generating" ? (
+    <section className="grocery-build" aria-labelledby="grocery-build-title">
+      <div><p className="eyebrow">From your meal plan</p><h2 id="grocery-build-title">{plannedMealCount ? `${plannedMealCount} planned meal${plannedMealCount === 1 ? "" : "s"}, one shopping list` : "Start with one planned meal"}</h2><p>{plannedMealCount ? "Cookfully gathers the ingredients, then you can edit anything before you shop." : "Pick a recipe you want to cook. The grocery list will be ready when you come back."}</p></div>
+      {plannedMealCount ? <Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Building…" : "Build grocery list"}</Button> : <Button asChild><Link to="/app/plan">Open meal plan</Link></Button>}
+    </section>
+  ) : null;
+
+  const header = (
+    <header className="grocery-intro">
+      <div className="grocery-intro__copy">
+        <p className="grocery-intro__week">Week of {longDate(list.data.weekStart)}</p>
+        <h1>Grocery</h1>
+        <p className="grocery-intro__summary" aria-live="polite">{summary}</p>
+        {isMobile && !isListEmpty ? <div className="grocery-progress"><progress value={purchasedItems.length} max={list.data.items.length} aria-label={`${progress}% complete`} /><span>{progress}%</span></div> : null}
+      </div>
+      <div className="grocery-intro__actions">
+        {isMobile
+          ? <>{!readOnly ? <button type="button" className="grocery-icon-button" aria-label="More grocery actions" onClick={() => setMobileActionsOpen(true)}><MoreHorizontal aria-hidden="true" /></button> : null}{canFinish ? finishDialog(activeItems.length === 0 ? "primary" : "secondary") : null}</>
+          : readOnly ? null
+          : isListEmpty ? <Button variant="secondary" onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button>
+          : <><Button asChild variant="secondary"><Link to="/app/plan">Back to meal plan</Link></Button>{pantryDialog}{finishDialog(activeItems.length === 0 ? "primary" : "secondary")}</>}
+      </div>
+    </header>
+  );
+
+  const aside = !isMobile && !isListEmpty ? (
+    <aside className="grocery-aside" aria-label="About this list">
+      {stalePanel ?? (!readOnly ? <section className="grocery-panel grocery-panel--status">
+        <div className="grocery-ready" role="status"><PackageCheck aria-hidden="true" /><span><strong>{activeItems.length ? "Ready to shop" : "Everything picked up"}</strong><small>{activeItems.length ? `${activeItems.length} ${activeItems.length === 1 ? "item" : "items"} left to pick up` : "Finish the shop when you are out the door."}</small></span></div>
+        <Button variant="secondary" onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button>
+      </section> : null)}
+      <section className="grocery-panel" aria-labelledby="grocery-progress-title">
+        <h2 id="grocery-progress-title">Progress</h2>
+        <div className="grocery-progress" aria-label={`${progress}% of this shopping pass complete`}><progress value={purchasedItems.length} max={list.data.items.length} aria-hidden="true" /><span>{progress}%</span></div>
+        <p className="grocery-panel__caption">{purchasedItems.length} of {list.data.items.length} picked up</p>
+      </section>
+      {plannedEntries.length ? <section className="grocery-panel" aria-labelledby="grocery-for-title">
+        <h2 id="grocery-for-title">Shopping for</h2>
+        <ul className="grocery-for">{plannedEntries.map((entry) => {
+          const count = list.data.items.filter((item) => item.sources.some((source) => source.mealPlanEntryId === entry.id)).length;
+          return <li key={entry.id}>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : <span>{entry.recipeTitle}</span>}<small><span>{entry.mealSlot}</span> · {count ? `${count} item${count === 1 ? "" : "s"}` : "nothing to buy"}</small></li>;
+        })}</ul>
+        <Link className="grocery-panel__link" to="/app/plan">Open plan</Link>
+      </section> : null}
+    </aside>
+  ) : null;
+
+  const deductionPanel = deductions.length ? <section className="pantry-deduction-panel" aria-labelledby="deduction-heading"><div><h2 id="deduction-heading">Pantry deductions from this action</h2><p className="muted">Conversions are recorded on both sides. Reverse newer deductions first if quantities overlap.</p></div><div className="deduction-list">{deductions.map((deduction) => <article key={deduction.id} className="deduction-row"><div><strong>{deduction.groceryQuantity} {deduction.groceryUnit} removed from groceries</strong><p className="data-value">Pantry change: {deduction.pantryQuantity} {deduction.pantryUnit}</p><small>{deduction.assumption}</small></div><span className="reliability-badge">{deduction.status}</span>{deduction.status === "applied" ? <ConfirmDialog trigger={<Button variant="secondary" disabled={reverseDeduction.isPending}>Reverse deduction</Button>} title="Reverse this pantry deduction?" description="Cookfully will restore the grocery quantity and undo the matching pantry change. Newer deductions may need to be reversed first." confirmLabel="Reverse deduction" onConfirm={() => reverseDeduction.mutate(deduction)} /> : null}</article>)}</div></section> : null;
+
+  const listCard = !isListEmpty ? (
+    <section className="grocery-list" aria-label="Items for this week">
+      {stopGroups.map(([label, items]) => <section className="grocery-group" key={label}><div className="grocery-group__title"><h2>{label}</h2><small>{items.length}</small></div><div className="grocery-items">{items.map(renderRow)}</div></section>)}
+      {!stopGroups.length && !readOnly ? <p className="grocery-list__done">Everything is in the basket. Finish the shop when you are ready.</p> : null}
+      {purchasedItems.length ? <details className="grocery-basket" open={basketIsOpen} onToggle={(event) => { if (event.currentTarget.open !== basketIsOpen) setBasketOpen(event.currentTarget.open); }}><summary><span>In basket</span><small>{purchasedItems.length}</small><ChevronDown aria-hidden="true" /></summary><div className="grocery-items">{purchasedItems.map(renderRow)}</div></details> : null}
+    </section>
+  ) : null;
+
   return (
-    <main className={`page-shell grocery-page${readOnly ? " grocery-list--completed" : ""}`}>
-      {isMobile ? <header className="grocery-mobile-top"><div><p className="eyebrow">Grocery · {longDate(list.data.weekStart)}</p><h1>{isListEmpty ? "Build your grocery list" : activeItems.length ? `${activeItems.length} left to pick up` : "Shopping complete"}</h1><p>{isListEmpty ? plannedMealCount ? "Turn this week’s meals into one editable list." : "Plan a meal first, then turn it into a clear list." : purchasedItems.length ? `${purchasedItems.length} already in your basket` : "Tap items as they land in your basket."}</p></div>{!readOnly ? <div className="grocery-mobile-top__actions"><button type="button" className="grocery-mobile-top__more" aria-label="More grocery actions" onClick={() => setMobileActionsOpen(true)}><MoreHorizontal aria-hidden="true" /></button><button type="button" className="grocery-mobile-top__add" aria-label="Add grocery item" onClick={() => setManualOpen(true)}><Plus aria-hidden="true" /></button></div> : null}{!isListEmpty ? <div className="grocery-mobile-progress"><progress value={purchasedItems.length} max={list.data.items.length} aria-label={`${progress}% complete`} /><span>{progress}%</span></div> : null}</header> : <PageHeader eyebrow={`Week of ${longDate(list.data.weekStart)}`} title="Everything you need this week" description="Built from the meals and servings in your plan. Check items off as they land in your basket." actions={headerActions} />}
-      {isMobile && !readOnly && (isListEmpty || list.data.status === "dirty") ? <section className="grocery-mobile-build" aria-labelledby="grocery-mobile-build-title"><div><p className="eyebrow">From your meal plan</p><h2 id="grocery-mobile-build-title">{plannedMealCount ? `${plannedMealCount} planned meal${plannedMealCount === 1 ? "" : "s"}, one shopping list` : "Start with one planned meal"}</h2><p>{plannedMealCount ? "Cookfully gathers the ingredients, then you can edit anything before you shop." : "Pick a recipe you want to cook. The grocery list will be ready when you come back."}</p></div>{plannedMealCount ? <Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Building…" : isListEmpty ? "Build grocery list" : "Update grocery list"}</Button> : <Button asChild><Link to="/app/plan">Open meal plan</Link></Button>}</section> : null}
-      {list.data.status === "completed" ? <section className="grocery-complete" role="status"><KitchenCompanion moment="milestone" size="sm" /><div><strong>This shopping pass is complete</strong><p>Your ingredients are ready. Open today’s plan when you are ready to cook.</p></div><div className="grocery-complete__actions"><Button asChild><Link to="/app/plan">See today’s plan</Link></Button><Button variant="secondary" onClick={() => reopen.mutate()} disabled={anyMutationPending}>Reopen list</Button></div></section> : list.data.status === "dirty" ? <p className="notice grocery-notice">Your meal plan changed. Refresh the list to update quantities without losing checked items or things you added yourself.</p> : list.data.status === "generating" ? <p className="notice grocery-notice" role="status">Building your grocery list from the latest plan…</p> : !isListEmpty && !isMobile ? <section className="grocery-hero" aria-labelledby="grocery-hero-title">
-        <div className="grocery-hero__lead">
-          <span className="grocery-hero__mark" aria-hidden="true"><ShoppingBasket /></span>
-          <p className="eyebrow">Shopping pass</p>
-          <h2 id="grocery-hero-title">Ready when you are</h2>
-          <p className="grocery-hero__description">Everything here came from this week’s meals. Check items as they land in your basket.</p>
-          <div className="grocery-ready" role="status"><PackageCheck aria-hidden="true" /><span><strong>Ready to shop</strong><small>{activeItems.length} items left to pick up</small></span></div>
-          <div className="grocery-progress" aria-label={`${progress}% of this shopping pass complete`}><span style={{ "--progress-scale": progress / 100 } as CSSProperties} /></div>
-          <div className="grocery-progress__caption"><span>{progress}% complete</span><span>{purchasedItems.length} picked up</span></div>
+    <main className={`page-shell grocery-page${readOnly ? " grocery-list--completed" : ""}${isMobile ? " grocery-page--mobile" : ""}`}>
+      {header}
+      {statusNotice}
+      {isMobile ? <>{stalePanel}{buildCard}</> : null}
+      {isListEmpty && status !== "generating" && status !== "completed" && !isMobile ? <EmptyState title="Nothing to pick up yet" description="Plan a meal, then build the list from the ingredients you need." action={<><Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Building…" : "Build grocery list"}</Button><Button variant="secondary" asChild><Link to="/app/plan">Open meal plan</Link></Button></>} /> : null}
+      {isListEmpty && !isMobile ? desktopAdd : null}
+      {!isListEmpty ? <div className="grocery-layout">
+        <div className="grocery-main">
+          {!readOnly && !isMobile ? <ShoppingStopManager /> : null}
+          {desktopAdd}
+          {deductionPanel}
+          {listCard}
         </div>
-        <dl className="grocery-hero__stats">
-          <div><dt>Still to pick up</dt><dd>{activeItems.length}</dd></div>
-          <div><dt>Already in your basket</dt><dd>{purchasedItems.length}</dd></div>
-          <div><dt>Plan coverage</dt><dd>{list.data.items.length} items</dd></div>
-        </dl>
-      </section> : null}
-      {isListEmpty && list.data.status !== "generating" && list.data.status !== "completed" && !isMobile ? <EmptyState title="Nothing to pick up yet" description="Plan a meal, then build the list from the ingredients you need." action={<><Button onClick={() => regenerate.mutate()} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Building…" : "Build grocery list"}</Button><Button variant="secondary" asChild><Link to="/app/plan">Open meal plan</Link></Button></>} /> : null}
-      {!isListEmpty ? <section className="grocery-list-stage" aria-labelledby="grocery-items-heading">
-        <div className="grocery-list-stage__heading"><div><p className="eyebrow">Your shop</p><h2 id="grocery-items-heading">Items for this week</h2><p>Grouped by the places you visit, with the recipe context kept close by.</p></div><span>{activeItems.length ? `${activeItems.length} to pick up` : "All picked up"}</span></div>
-        {list.data.status !== "completed" && !isMobile ? <ShoppingStopManager /> : null}
-        {!readOnly && !isMobile ? <details className="manual-item grocery-manual" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>Staples and extras that are not part of a planned recipe</small></span></summary><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}><Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></details> : null}
-      {deductions.length ? <section className="pantry-deduction-panel" aria-labelledby="deduction-heading"><div><h2 id="deduction-heading">Pantry deductions from this action</h2><p className="muted">Conversions are recorded on both sides. Reverse newer deductions first if quantities overlap.</p></div><div className="deduction-list">{deductions.map((deduction) => <article key={deduction.id} className="deduction-row"><div><strong>{deduction.groceryQuantity} {deduction.groceryUnit} removed from groceries</strong><p className="data-value">Pantry change: {deduction.pantryQuantity} {deduction.pantryUnit}</p><small>{deduction.assumption}</small></div><span className="reliability-badge">{deduction.status}</span>{deduction.status === "applied" ? <ConfirmDialog trigger={<Button variant="secondary" disabled={reverseDeduction.isPending}>Reverse deduction</Button>} title="Reverse this pantry deduction?" description="Cookfully will restore the grocery quantity and undo the matching pantry change. Newer deductions may need to be reversed first." confirmLabel="Reverse deduction" onConfirm={() => reverseDeduction.mutate(deduction)} /> : null}</article>)}</div></section> : null}
-        <div className="grocery-groups">{groups.map(([label, items]) => <section className="grocery-group" key={label}><SectionHeading title={label} meta={`${items.length} item${items.length === 1 ? "" : "s"}`} /><div className="grocery-items">{items.map((item) => <GroceryRow key={item.id} item={item} weekStart={weekStart} stops={stops.data ?? []} readOnly={readOnly} sourceMealsByEntry={sourceMealsByEntry} today={today} />)}</div></section>)}</div>
-      </section> : null}
-      {isListEmpty && !readOnly && !isMobile ? <details className="manual-item grocery-manual grocery-manual--empty" open={manualOpen} onToggle={(event) => setManualOpen(event.currentTarget.open)}><summary><Plus aria-hidden="true" /><span><strong>Add something else</strong><small>Staples and extras that are not part of a planned recipe</small></span></summary><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}><Field label="Item"><input ref={manualItemRef} className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value; setNewItem((value) => ({ ...value, unit })); }} /></Field><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></details> : null}
-      {isMobile && !readOnly ? <Dialog.Root open={manualOpen} onOpenChange={setManualOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-mobile-sheet grocery-mobile-sheet--add" aria-describedby="grocery-add-description"><span className="grocery-mobile-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Grocery</p><Dialog.Title>Add an item</Dialog.Title><Dialog.Description id="grocery-add-description" className="muted">A quick extra for this shopping pass.</Dialog.Description></div><DialogCloseButton label="Close add item" /></header><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); setManualOpen(false); }}><Field label="Item"><input ref={manualItemRef} autoFocus className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><div className="grocery-mobile-sheet__measure"><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field></div><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
-      {isMobile && !readOnly ? <Dialog.Root open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-mobile-sheet grocery-mobile-sheet--actions" aria-describedby="grocery-actions-description"><span className="grocery-mobile-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Shopping pass</p><Dialog.Title>List actions</Dialog.Title><Dialog.Description id="grocery-actions-description" className="muted">Keep list maintenance out of the way while you shop.</Dialog.Description></div><DialogCloseButton label="Close grocery actions" /></header><div className="grocery-mobile-actions">{!isListEmpty && list.data.status !== "dirty" ? <Button variant="secondary" onClick={() => { regenerate.mutate(); setMobileActionsOpen(false); }} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button> : null}{!isListEmpty ? <ConfirmDialog trigger={<Button variant="secondary" disabled={anyMutationPending}><PackageCheck aria-hidden="true" />Use pantry stock</Button>} title="Use what is already in your pantry?" description="Cookfully will only subtract reviewed matches with compatible units." confirmLabel="Use pantry stock" onConfirm={() => applyDeductions.mutate()} /> : null}<ShoppingStopManager /></div></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
-      {list.data.status !== "completed" && list.data.items.length > 0 && activeItems.length === 0 ? <ConfirmDialog trigger={<Button className="grocery-finish" disabled={anyMutationPending}>{complete.isPending ? "Finishing…" : "Finish this shopping pass"}</Button>} title="Finish this shopping pass?" description="This keeps the checked list as a record and makes it read-only until you reopen it." confirmLabel="Finish shopping pass" onConfirm={() => complete.mutate()} /> : null}
+        {aside}
+      </div> : deductionPanel}
       {regenerate.error instanceof Error ? <p className="error-text" role="alert">{regenerate.error.message} <Button variant="ghost" onClick={() => regenerate.mutate()} disabled={anyMutationPending}>Retry</Button></p> : null}
       {create.error instanceof Error ? <p className="error-text" role="alert">{create.error.message} <Button variant="ghost" onClick={() => create.mutate()} disabled={anyMutationPending}>Retry</Button></p> : null}
       {applyDeductions.error instanceof Error ? <p className="error-text" role="alert">{applyDeductions.error.message} <Button variant="ghost" onClick={() => applyDeductions.mutate()} disabled={anyMutationPending}>Retry</Button></p> : null}
@@ -308,6 +393,14 @@ export function GroceryListPage() {
       {reopen.error instanceof Error ? <p className="error-text" role="alert">{reopen.error.message} <Button variant="ghost" onClick={reloadList}>Reload list</Button></p> : null}
       {plan.isError ? <div className="notice grocery-notice" role="alert">Recipe context is temporarily unavailable. <Button variant="ghost" onClick={() => void plan.refetch()}>Retry context</Button></div> : null}
       {stops.isError ? <div className="notice grocery-notice" role="alert">Shopping stops could not be loaded. Items remain safe and can be assigned after you retry. <Button variant="ghost" onClick={() => void stops.refetch()}>Retry stops</Button></div> : null}
+      {isMobile && !readOnly ? <form className="grocery-quickadd" onSubmit={(event) => { event.preventDefault(); if (newItem.displayName.trim()) create.mutate(); }}>
+        <label className="grocery-quickadd__field"><Plus aria-hidden="true" /><span className="sr-only">Add an item</span><input ref={manualItemRef} type="text" enterKeyHint="done" autoComplete="off" placeholder="Add an item" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></label>
+        <button type="submit" className="grocery-quickadd__submit" disabled={!newItem.displayName.trim() || create.isPending}>Add</button>
+        <button type="button" className="grocery-icon-button" aria-label="Add grocery item" title="Add with quantity" onClick={() => setManualOpen(true)}><ListPlus aria-hidden="true" /></button>
+      </form> : null}
+      {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open */}
+      {isMobile && !readOnly ? <Dialog.Root open={manualOpen} onOpenChange={setManualOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-sheet" aria-describedby="grocery-add-description"><span className="grocery-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Grocery</p><Dialog.Title>Add an item</Dialog.Title><Dialog.Description id="grocery-add-description" className="muted">A quick extra for this shopping pass.</Dialog.Description></div><DialogCloseButton label="Close add item" /></header><form className="grocery-edit" onSubmit={(event) => { event.preventDefault(); create.mutate(); setManualOpen(false); }}><Field label="Item"><input autoFocus className="input" value={newItem.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setNewItem((value) => ({ ...value, displayName })); }} /></Field><div className="grocery-sheet__measure"><Field label="Quantity"><DecimalInput value={newItem.quantity ?? ""} onInput={(event) => { const quantity = event.currentTarget.value || null; setNewItem((value) => ({ ...value, quantity })); }} /></Field><Field label="Unit"><input className="input" value={newItem.unit ?? ""} onChange={(event) => { const unit = event.currentTarget.value || null; setNewItem((value) => ({ ...value, unit })); }} /></Field></div><Button type="submit" disabled={!newItem.displayName.trim() || create.isPending}>Add to list</Button></form></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
+      {isMobile && !readOnly ? <Dialog.Root open={mobileActionsOpen} onOpenChange={setMobileActionsOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog grocery-sheet grocery-sheet--actions" aria-describedby="grocery-actions-description"><span className="grocery-sheet__handle" aria-hidden="true" /><header><div><p className="eyebrow">Shopping pass</p><Dialog.Title>List actions</Dialog.Title><Dialog.Description id="grocery-actions-description" className="muted">Keep list maintenance out of the way while you shop.</Dialog.Description></div><DialogCloseButton label="Close grocery actions" /></header><div className="grocery-mobile-actions">{!isListEmpty && status !== "dirty" ? <Button variant="secondary" onClick={() => { regenerate.mutate(); setMobileActionsOpen(false); }} disabled={anyMutationPending}><RefreshCw aria-hidden="true" />{regenerate.isPending ? "Refreshing…" : "Refresh from plan"}</Button> : null}{!isListEmpty ? <ConfirmDialog trigger={<Button variant="secondary" disabled={anyMutationPending}><PackageCheck aria-hidden="true" />Use pantry stock</Button>} title="Use what is already in your pantry?" description="Cookfully will only subtract reviewed matches with compatible units." confirmLabel="Use pantry stock" onConfirm={() => applyDeductions.mutate()} /> : null}<ShoppingStopManager /></div></Dialog.Content></Dialog.Portal></Dialog.Root> : null}
     </main>
   );
 }

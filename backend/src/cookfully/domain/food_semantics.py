@@ -167,10 +167,17 @@ def compare_compatibility(
     hard_conflict = False
     review = False
 
-    if query.canonical_identity and candidate.canonical_identity:
-        if query.canonical_identity != candidate.canonical_identity:
-            hard_conflict = True
-            reasons.append("identity_conflict")
+    # Only identities from the curated lexicon/aliases are reliable enough to reject a
+    # candidate. Anything else is a last-token guess, and USDA names lead with the food
+    # ("Celery, raw" guesses "raw"), so a mismatch there says nothing about the food.
+    if (
+        query.canonical_identity
+        and candidate.canonical_identity
+        and query.canonical_identity != candidate.canonical_identity
+        and _both_identities_known(query, candidate)
+    ):
+        hard_conflict = True
+        reasons.append("identity_conflict")
 
     if query.category and candidate.category and query.category != candidate.category:
         hard_conflict = True
@@ -225,6 +232,16 @@ from cookfully.domain.ingredient_nutrition.normalization import normalize as _co
 
 def _normalize(value: str) -> str:
     return _core_normalize(value)
+
+
+_KNOWN_IDENTITIES = frozenset(_CATEGORY_BY_IDENTITY) | frozenset(_IDENTITY_ALIASES.values())
+
+
+def _both_identities_known(query: FoodSemanticProfile, candidate: FoodSemanticProfile) -> bool:
+    return (
+        query.canonical_identity in _KNOWN_IDENTITIES
+        and candidate.canonical_identity in _KNOWN_IDENTITIES
+    )
 
 
 def _identity(text: str) -> str | None:

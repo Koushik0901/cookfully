@@ -1,0 +1,962 @@
+[
+ {
+  "id": "real-19",
+  "text": "walnuts 10.00 halved",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-005",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-30",
+  "text": "pecans 1.00 tbsp chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-006",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-35",
+  "text": "ground ginger 0.13 tsp",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-007",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-37",
+  "text": "fresh mint 1.00 sprig for garnish",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-007",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-46",
+  "text": "vanilla extract 0.25 tsp",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-008",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-56",
+  "text": "blanched almonds 0.50 cup roughly chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-010",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-64",
+  "text": "nonstick cooking spray 1.00 1 spray",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-68",
+  "text": "fresh or frozen peas 1.50 cup",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-73",
+  "text": "egg whites 6.00 large or 3/4 cup egg substitute",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-91",
+  "text": "black pepper 0.25 tsp",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-012",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-95",
+  "text": "arugula 1.00 cup",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-012",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-106",
+  "text": "Extra Virgin Olive Oil 1.00 tbsp",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-013",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-113",
+  "text": "nonstick cooking spray 1.00 whole 1 spray",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-013",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-121",
+  "text": "reduced-fat peanut butter 0.33 cup",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-014",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-156",
+  "text": "500g strong bread flour plus extra for dusting",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-017",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-169",
+  "text": "1 tbsp olive oil",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-019",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-188",
+  "text": "2 tbsp sesame oil",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-021",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-193",
+  "text": "3 tbsp soy sauce",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-021",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-197",
+  "text": "2 large carrots peeled and cut into matchsticks",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-021",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-204",
+  "text": "1 tbsp sweet paprika",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-022",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-218",
+  "text": "300ml white wine",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-023",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-224",
+  "text": "100g quinoa",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-024",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-230",
+  "text": "1 bunch spring onions chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-024",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-235",
+  "text": "small bunch coriander chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-025",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-238",
+  "text": "1 medium red onion ½ diced, ½ sliced",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-025",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-242",
+  "text": "1 tbsp olive oil",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-026",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-254",
+  "text": "natural yogurt to serve",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-026",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-272",
+  "text": "cooked rice",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-027",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-279",
+  "text": "thumb-sized piece of ginger finely grated",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-028",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-286",
+  "text": "2 x 400g can chickpeas drained",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-028",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-299",
+  "text": "2 large handfuls coriander roughly chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-029",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-303",
+  "text": "4 onions finely chopped",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-030",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-317",
+  "text": "1 cup oat flour (plus more for dusting if needed*)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-031",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-337",
+  "text": "1 tbsp chopped scallions",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-034",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-342",
+  "text": "1 5 ounce can light tuna in water (drained)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-035",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-350",
+  "text": "3-4 cloves garlic (cut into thin slivers)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-036",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-360",
+  "text": "2 tablespoons chicken broth (optional)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-037",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-362",
+  "text": "1/2 teaspoon seasoned salt",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-037",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-364",
+  "text": "1 batch homemade bagels",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-038",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-367",
+  "text": "salt and pepper (to taste)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-038",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-384",
+  "text": "2 tbsp red wine vinegar",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-040",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-395",
+  "text": "3/4 tsp cooking salt / kosher salt",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-041",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-404",
+  "text": "1 tsp paprika",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-042",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-415",
+  "text": "1 tbsp soy sauce (, light or all purpose (Note 2))",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-043",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-419",
+  "text": "6 slices ginger (, ~3mm / 1/8\" thick (Note 2))",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-044",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-433",
+  "text": "1 tbsp paprika (, regular/sweet (not spicy), smoked great too)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-045",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-439",
+  "text": "3 tbsp extra virgin olive oil",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-045",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-445",
+  "text": "5 bone in chicken thigh fillets, peel skin OFF (, (Note 1))",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-046",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-450",
+  "text": "1 1/2 cups (375 ml) chicken broth/stock (, hot (I microwave))",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-046",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-458",
+  "text": "Oil spray",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-046",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-464",
+  "text": "1/4 tsp black pepper",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-047",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-476",
+  "text": "100g / 3.5oz baby spinach (, or a few big handfuls torn kale)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-047",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-479",
+  "text": "1/2 tsp finely grated ginger (, optional)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-048",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-484",
+  "text": "2 tsp orange zest (, from 1 orange)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-048",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-486",
+  "text": "1 1/2 tbsp cornflour / cornstarch",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-048",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-495",
+  "text": "1 green onion (, finely sliced - optional garnish)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-048",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-502",
+  "text": "3 garlic cloves (, finely minced or minced using garlic crusher)",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-049",
+  "baseline_junk": false
+ },
+ {
+  "id": "real-519",
+  "text": "2 1/2 tbsp curry powder (, mild - just regular ones like Clives, Keens (feel free to use HOT for spicy!))",
+  "label": "ingredient",
+  "source": "real",
+  "recipe": "NR-050",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-20",
+  "text": "20 pieces total 10 whole",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-005",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-23",
+  "text": "halved and cored",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-006",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-40",
+  "text": "1.00 small ripe",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-008",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-62",
+  "text": "0.25 tsp",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-010",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-65",
+  "text": "0.25 g",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-70",
+  "text": "chopped",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-76",
+  "text": "reduced sodium",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-011",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-85",
+  "text": "divided",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-012",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-89",
+  "text": "0.25 g",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-012",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-99",
+  "text": "divided",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-013",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-114",
+  "text": "0.25 g",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-013",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-134",
+  "text": "diced",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-015",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-143",
+  "text": "melted",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-015",
+  "baseline_junk": false
+ },
+ {
+  "id": "frag-355",
+  "text": "meat thermometer",
+  "label": "fragment",
+  "source": "real-artifact",
+  "recipe": "NR-036",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-0",
+  "text": "For the sauce:",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-1",
+  "text": "FOR THE DOUGH",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-2",
+  "text": "Marinade",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-3",
+  "text": "To serve",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-4",
+  "text": "Topping:",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-5",
+  "text": "Filling",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-6",
+  "text": "For the salad dressing",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-section_heading-7",
+  "text": "Optional extras",
+  "label": "section_heading",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-0",
+  "text": "Note: can be made up to 2 days ahead",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-1",
+  "text": "Tip: use a sharp knife for cleaner slices",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-2",
+  "text": "See notes below",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-3",
+  "text": "(see recipe notes)",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-4",
+  "text": "Image courtesy of the author",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": true
+ },
+ {
+  "id": "syn-note-5",
+  "text": "Photo by Jane Smith",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-6",
+  "text": "Recipe adapted from a family cookbook",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-note-7",
+  "text": "Leftovers keep in the fridge for 3 days",
+  "label": "note",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-nutrition_info-0",
+  "text": "Protein 25g",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": true
+ },
+ {
+  "id": "syn-nutrition_info-1",
+  "text": "Per serving: 320 kcal",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-nutrition_info-2",
+  "text": "Carbs 40 g fat 12 g",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-nutrition_info-3",
+  "text": "Calories: 450",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": true
+ },
+ {
+  "id": "syn-nutrition_info-4",
+  "text": "Fiber 6g",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": true
+ },
+ {
+  "id": "syn-nutrition_info-5",
+  "text": "Nutrition information per serving",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": true
+ },
+ {
+  "id": "syn-nutrition_info-6",
+  "text": "Sodium 480mg",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-nutrition_info-7",
+  "text": "Net carbs 9g",
+  "label": "nutrition_info",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-0",
+  "text": "Preheat the oven to 180C/160C fan",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-1",
+  "text": "Cook for 10 minutes until golden",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-2",
+  "text": "Whisk until smooth and set aside",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-3",
+  "text": "Season to taste and serve warm",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-4",
+  "text": "Bring a large pot of water to a boil",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-5",
+  "text": "Fold the egg whites in gently",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-6",
+  "text": "Bake for 25 minutes",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-instruction-7",
+  "text": "Stir everything together and let rest for 5 minutes",
+  "label": "instruction",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-0",
+  "text": "Equipment: 9-inch springform pan",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-1",
+  "text": "You will need a stand mixer",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-2",
+  "text": "Special equipment: piping bag",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-3",
+  "text": "large non-stick frying pan",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-4",
+  "text": "wooden skewers, soaked in water",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-5",
+  "text": "kitchen string",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-6",
+  "text": "instant read thermometer",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-equipment-7",
+  "text": "baking parchment",
+  "label": "equipment",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-0",
+  "text": "Serves 4",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-1",
+  "text": "Prep time: 15 minutes",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-2",
+  "text": "Total time 45 mins",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-3",
+  "text": "Makes 12 muffins",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-4",
+  "text": "Difficulty: easy",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-5",
+  "text": "Yield: 6 servings",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-6",
+  "text": "Cuisine: Italian",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ },
+ {
+  "id": "syn-recipe_meta-7",
+  "text": "Cook time 20 min",
+  "label": "recipe_meta",
+  "source": "synthetic",
+  "recipe": "NR-001",
+  "baseline_junk": false
+ }
+]

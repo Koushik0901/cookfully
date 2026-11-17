@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterator
+from contextlib import suppress
 from io import BytesIO
 from uuid import uuid4
 
@@ -10,6 +11,26 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models import Base
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    """Create the shared extensions once, before any xdist worker starts.
+
+    `CREATE EXTENSION IF NOT EXISTS` is not safe to run concurrently: two workers that both see
+    the extension missing collide on the catalog's unique index. Only the controller process
+    (no `workerinput`) runs this; workers then find the extensions already installed.
+    """
+
+    if hasattr(session.config, "workerinput"):
+        return
+    engine = create_engine(Settings().database_url)
+    try:
+        # Without a database the DB-backed tests report their own, clearer, error.
+        with suppress(Exception), engine.begin() as connection:
+            for extension in ("citext", "btree_gist", "vector"):
+                connection.execute(text(f'CREATE EXTENSION IF NOT EXISTS "{extension}"'))
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture

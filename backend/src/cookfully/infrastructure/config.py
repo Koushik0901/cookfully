@@ -93,8 +93,6 @@ class Settings(BaseSettings):
     intelligence_inline_enabled: bool = True
     intelligence_inline_threshold: Annotated[float, Field(ge=0, le=1)] = 0.80
     intelligence_inline_timeout_ms: Annotated[int, Field(ge=100, le=5000)] = 600
-    openrouter_api_key: SecretStr = SecretStr("")
-    openrouter_model: str = ""
 
     @model_validator(mode="after")
     def build_database_url_from_postgres_credentials(self) -> "Settings":

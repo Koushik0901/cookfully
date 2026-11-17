@@ -5,10 +5,12 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Final
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+# Versions are PostgreSQL integers; anything larger can only be a bad request, never a real row.
+MAX_VERSION: Final = 2_147_483_647
 NUTRIENT_SCALE = Decimal("0.000001")
 SERVING_SCALE = Decimal("0.001")
 DISPLAY_MACRO_SCALE = Decimal("0.1")
@@ -37,9 +39,20 @@ def today_in_timezone(timezone: str, *, now: datetime | None = None) -> date:
 
     try:
         zone = ZoneInfo(timezone)
-    except ZoneInfoNotFoundError as exc:
+    except (ZoneInfoNotFoundError, ValueError) as exc:  # "" and "../x" raise ValueError
         raise ValueError(f"invalid timezone: {timezone}") from exc
     return (now or utc_now()).astimezone(zone).date()
+
+
+def require_present[T](value: T | None, what: str) -> T:
+    """Narrow ``value`` to non-``None``, failing loudly when a caller's invariant is broken.
+
+    Unlike ``assert``, this is never stripped by ``python -O`` and says what was missing.
+    """
+
+    if value is None:
+        raise RuntimeError(f"invariant violated: {what} is missing")
+    return value
 
 
 def require_utc(value: datetime) -> datetime:

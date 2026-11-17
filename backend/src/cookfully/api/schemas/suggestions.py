@@ -12,7 +12,7 @@ from cookfully.application.suggestions import (
     SuggestionRead,
     SuggestionWrite,
 )
-from cookfully.domain.common import canonical_decimal, display_calories, display_macro
+from cookfully.domain.common import MAX_VERSION, canonical_decimal, display_calories, display_macro
 from cookfully.domain.suggestion_solver import SuggestionTarget
 
 
@@ -144,7 +144,7 @@ class SuggestionResultResponse(ApiModel):
     unmet_constraint_count: int | None = Field(alias="unmetConstraintCount")
     objective_score: str | None = Field(alias="objectiveScore")
     distance_components: SuggestionDistanceResponse | None = Field(alias="distanceComponents")
-    plan_version: int = Field(alias="planVersion", ge=1)
+    plan_version: int = Field(alias="planVersion", ge=1, le=MAX_VERSION)
     failure_code: str | None = Field(alias="failureCode")
     ranking: str = "fewest-unmet,weighted-4-3-1-1-2-5,fewer-entries,ordered-recipe-ids"
     planning_notice: str = Field(
@@ -196,4 +196,4 @@ def cast_decimal(value: Decimal | int) -> Decimal:
 
 class SuggestionAcceptanceRequest(ApiModel):
     selected_item_ids: tuple[UUID, ...] = Field(alias="selectedItemIds", min_length=1)
-    expected_plan_version: int = Field(alias="expectedPlanVersion", ge=1)
+    expected_plan_version: int = Field(alias="expectedPlanVersion", ge=1, le=MAX_VERSION)

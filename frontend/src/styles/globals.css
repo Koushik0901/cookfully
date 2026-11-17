@@ -9,6 +9,10 @@
 @import "./features.css";
 @import "./redesign.css";
 @import "./mobile-redesign.css";
+@import "./recipes.css";
+@import "./plan.css";
+@import "./grocery.css";
+@import "./cook.css";
 
 *,
 *::before,

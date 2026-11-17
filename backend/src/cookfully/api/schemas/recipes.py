@@ -39,7 +39,7 @@ from cookfully.application.recipes import (
     RecipeWrite,
     SectionWrite,
 )
-from cookfully.domain.common import canonical_decimal, quantize_decimal
+from cookfully.domain.common import MAX_VERSION, canonical_decimal, quantize_decimal
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
@@ -47,6 +47,7 @@ from cookfully.domain.nutrition import (
     SupportedMicronutrientValue,
 )
 from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
+from cookfully.domain.substitutions import table_key
 
 
 def _fixed_decimal(value: object, *, places: int, positive: bool = False) -> Decimal:
@@ -219,7 +220,7 @@ class RecipePhotoStageResponse(ApiModel):
 
 class RecipeBulkArchiveItem(ApiModel):
     id: UUID
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class RecipeBulkArchiveRequest(ApiModel):
@@ -229,7 +230,7 @@ class RecipeBulkArchiveRequest(ApiModel):
 class RecipeBulkArchiveResult(ApiModel):
     id: UUID
     status: Literal["archived", "already_archived", "failed"]
-    version: int | None = Field(default=None, ge=1)
+    version: int | None = Field(default=None, ge=1, le=MAX_VERSION)
     code: str | None = None
     message: str | None = None
 
@@ -260,7 +261,7 @@ class ImportPreviewSection(ApiModel):
 class DuplicateSummary(ApiModel):
     id: UUID
     title: str
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
 
 
 class ImportRecipePreview(ApiModel):
@@ -348,7 +349,7 @@ class ImportConfirmRequest(ApiModel):
 class ImportMergeRequest(ApiModel):
     recipe_id: UUID = Field(alias="recipeId")
     parse_id: str = Field(alias="parseId", max_length=64)
-    expected_version: int = Field(alias="expectedVersion", ge=1)
+    expected_version: int = Field(alias="expectedVersion", ge=1, le=MAX_VERSION)
     title: str | None = Field(default=None, min_length=1, max_length=240)
     yield_quantity: str | None = Field(alias="yieldQuantity", default=None, max_length=100)
     components: tuple[ImportConfirmComponent, ...] = ()
@@ -610,6 +611,7 @@ class IngredientResponse(ApiModel):
     provisional_macros: dict[str, object] | None = Field(alias="provisionalMacros", default=None)
     assumptions: tuple[str, ...] = ()
     section_id: UUID | None = Field(alias="sectionId", default=None)
+    substitutable: bool = False
 
     @classmethod
     def from_read(cls, value: IngredientRead) -> IngredientResponse:
@@ -630,6 +632,7 @@ class IngredientResponse(ApiModel):
             provisional_macros=value.provisional_macros,
             assumptions=value.assumptions,
             section_id=value.section_id,
+            substitutable=table_key(value.original_text) is not None,
         )
 
 
@@ -671,6 +674,13 @@ class RecipeCollectionSummaryResponse(ApiModel):
         return cls(id=value.id, name=value.name, position=value.position)
 
 
+class FacetResponse(ApiModel):
+    """A tag a decision model gave the recipe (diet, cuisine, meal, effort, time, storage)."""
+
+    key: str
+    probability: Decimal6
+
+
 class RecipeResponse(ApiModel):
     id: UUID
     title: str
@@ -685,7 +695,7 @@ class RecipeResponse(ApiModel):
     archived_from_status: str | None = Field(alias="archivedFromStatus", default=None)
     nutrition_state: str = Field(alias="nutritionState")
     nutrition: ResolvedNutritionResponse | None = None
-    version: int = Field(ge=1)
+    version: int = Field(ge=1, le=MAX_VERSION)
     updated_at: datetime = Field(alias="updatedAt")
     favorite: bool = False
     collections: tuple[RecipeCollectionSummaryResponse, ...] = ()
@@ -694,6 +704,7 @@ class RecipeResponse(ApiModel):
     )
     thumbnail_crop: ThumbnailCropRequest = Field(alias="thumbnailCrop")
     origin_kind: RecipeOrigin = Field(alias="originKind")
+    facets: tuple[FacetResponse, ...] = ()
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeResponse:
@@ -730,7 +741,33 @@ class RecipeResponse(ApiModel):
                 height=value.thumbnail_crop.height,
             ),
             origin_kind=cast(RecipeOrigin, value.origin_kind),
+            facets=tuple(
+                FacetResponse(key=tag.key, probability=tag.probability) for tag in value.facets
+            ),
         )
+
+
+class SubstituteResponse(ApiModel):
+    name: str
+    amount: str
+    note: str
+    probability: Decimal6 | None = None
+
+
+class SubstitutionsResponse(ApiModel):
+    ingredient_id: UUID = Field(alias="ingredientId")
+    original_text: str = Field(alias="originalText")
+    substitutes: tuple[SubstituteResponse, ...]
+    ranked: bool
+
+
+class AvoidWarningResponse(ApiModel):
+    """An ingredient that contains (or may contain) something on the owner's avoid list."""
+
+    ingredient_id: UUID = Field(alias="ingredientId")
+    item: str
+    source: str
+    probability: Decimal6 | None = None
 
 
 class RecipeDetailResponse(RecipeResponse):
@@ -739,6 +776,8 @@ class RecipeDetailResponse(RecipeResponse):
     instructions: tuple[InstructionResponse, ...]
     sections: tuple[SectionResponse, ...] = ()
     active_job: JobResponse | None = Field(alias="activeJob", default=None)
+    avoid_warnings: tuple[AvoidWarningResponse, ...] = Field(alias="avoidWarnings", default=())
+    hidden_ingredient_check: str = Field(alias="hiddenIngredientCheck", default="no_avoid_list")
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeDetailResponse:
@@ -750,6 +789,16 @@ class RecipeDetailResponse(RecipeResponse):
             instructions=tuple(InstructionResponse.from_read(item) for item in value.instructions),
             sections=tuple(SectionResponse.from_read(item) for item in value.sections),
             active_job=(JobResponse.from_progress(value.active_job) if value.active_job else None),
+            avoid_warnings=tuple(
+                AvoidWarningResponse(
+                    ingredient_id=warning.ingredient_id,
+                    item=warning.item,
+                    source=warning.source,
+                    probability=warning.probability,
+                )
+                for warning in value.avoid_warnings
+            ),
+            hidden_ingredient_check=value.hidden_ingredient_check,
         )
 
 

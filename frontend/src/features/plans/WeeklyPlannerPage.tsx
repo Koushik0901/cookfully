@@ -3,10 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, CookingPot, HeartPulse, LayoutGrid, Plus, Sparkles } from "lucide-react";
 
-import { Button, ErrorRecovery, PageHeader, PageState, Skeleton, TabList } from "../../components";
+import { Button, ErrorRecovery, PageState, Skeleton, TabList } from "../../components";
 import { ApiProblem } from "../recipes/api";
 import { planningApi } from "./api";
-import { addDays, longDate, todayInTimezone, weekDates, weekStartFor } from "./dates";
+import { addDays, longDate, todayInTimezone, weekDates, weekdayName, weekRangeLabel, weekStartFor } from "./dates";
 import { DayTabs } from "./DayTabs";
 import { ExpiringBanner } from "./ExpiringBanner";
 import { MacroSummary } from "./MacroSummary";
@@ -18,6 +18,7 @@ import { WeekOverview } from "./WeekOverview";
 import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
 import { isRecipePlannable } from "../recipes/recipeEligibility";
 import { useExpiringPantry } from "./useExpiringPantry";
+import { AvoidWarningsProvider } from "./avoidWarnings";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
@@ -205,23 +206,25 @@ export function WeeklyPlannerPage() {
   const recipesById = new Map((recipes.data?.items ?? []).map((recipe) => [recipe.id, recipe]));
   const plannedDays = new Set(entries.map((entry) => entry.localDate)).size;
   const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
-  const selectAdjacentDay = (days: number) => {
-    const candidate = addDays(selectedDate, days);
-    if (dates.includes(candidate)) setSelectedDate(candidate);
-    else changeWeek(days < 0 ? -7 : 7);
-    setAddMessage("");
-  };
 
   return (
+    <AvoidWarningsProvider plan={plan.data}>
     <main className="page-shell planner-page">
-      {isMobile ? <header className="planner-mobile-top"><div><p className="eyebrow">This week</p><h1>{longDate(selectedDate)}</h1><p>{selectedEntries.length ? `${selectedEntries.length} meals planned` : "A clear day, ready to plan."}</p></div><div className="planner-mobile-top__actions"><button type="button" aria-label="Previous day" onClick={() => selectAdjacentDay(-1)}><ChevronLeft aria-hidden="true" /></button><button type="button" aria-label="Next day" onClick={() => selectAdjacentDay(1)}><ChevronRight aria-hidden="true" /></button></div></header> : <PageHeader eyebrow="Meal plan" title={`Week of ${longDate(weekStart)}`} description="Choose the food, balance the week, then turn the plan into one practical prep list." actions={<div className="week-stepper" aria-label="Change planning week"><Button variant="secondary" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" />Previous</Button><Button variant="secondary" aria-label="Next week" onClick={() => changeWeek(7)}>Next<ChevronRight aria-hidden="true" /></Button></div>} />}
+      <header className="plan-head">
+        <h1>Plan</h1>
+        <div className="week-stepper" role="group" aria-label="Change planning week">
+          <button type="button" aria-label="Previous week" onClick={() => changeWeek(-7)}><ChevronLeft aria-hidden="true" /></button>
+          <span className="week-stepper__label" aria-live="polite">{weekRangeLabel(weekStart)}</span>
+          <button type="button" aria-label="Next week" onClick={() => changeWeek(7)}><ChevronRight aria-hidden="true" /></button>
+        </div>
+      </header>
       <div className="planner-toolbar">
         <TabList className="planner-views" label="Planning views">
            <button id="planner-tab-day" role="tab" aria-controls="planner-panel-day" aria-selected={view === "day"} tabIndex={view === "day" ? 0 : -1} onClick={() => setView("day")}><CalendarDays aria-hidden="true" />Day</button>
-           <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>
+           {isMobile ? null : <button id="planner-tab-week" role="tab" aria-controls="planner-panel-week" aria-selected={view === "week"} tabIndex={view === "week" ? 0 : -1} onClick={() => setView("week")}><LayoutGrid aria-hidden="true" />Week</button>}
            <button id="planner-tab-prep" role="tab" aria-controls="planner-panel-prep" aria-selected={view === "prep"} tabIndex={view === "prep" ? 0 : -1} onClick={() => setView("prep")}><CookingPot aria-hidden="true" />Prep</button>
         </TabList>
-        {goal.data ? <Button variant="secondary" asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" />Help fill this week</Link></Button> : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
+        {goal.data ? <Button variant="secondary" asChild><Link to={`/app/suggestions?scope=week&weekStart=${weekStart}`}><Sparkles aria-hidden="true" /><span className="planner-toolbar__label">Help fill this week</span></Link></Button> : isMobile ? null : <Button variant="secondary" asChild><Link to="/app/goals"><HeartPulse aria-hidden="true" />Add nutrition guide</Link></Button>}
       </div>
 
         {view === "week" ? <section id="planner-panel-week" role="tabpanel" aria-labelledby="planner-tab-week">
@@ -250,13 +253,14 @@ export function WeeklyPlannerPage() {
          <DayTabs dates={dates} selected={selectedDate} onSelect={(date) => { setSelectedDate(date); setAddMessage(""); }} totals={totals} entryCounts={entryCounts} today={today} />
         <div className={`plan-workspace${goal.data ? "" : " plan-workspace--single"}`}>
         <section className="planner-day" aria-label={`Plan for ${longDate(selectedDate)}`}>
-          <div className="planner-day__heading"><div><p className="eyebrow">Selected day</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
+          <div className="planner-day__heading"><div><p className="planner-day__weekday">{selectedDate === today ? "Today · " : ""}{weekdayName(selectedDate)}</p><h2>{longDate(selectedDate)}</h2></div><span>{selectedEntries.length} {selectedEntries.length === 1 ? "meal" : "meals"}</span></div>
           {selectedDateIsPast ? <div className="planner-day__readonly" role="status"><strong>Past day</strong><span>This day has already passed. You can review it, but new changes start today.</span></div> : null}
           {addMessage ? <div className={`planner-day__feedback ${move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "error-text" : "success-text"}`} role={move.isError || copy.isError || swap.isError || remove.isError || add.isError ? "alert" : "status"}><span>{addMessage}</span>{addMessage === "Meal added to your plan." ? <Link to="/app/grocery">Build grocery list</Link> : null}</div> : null}
           <DayMealBoard
             date={selectedDate}
             slots={SLOTS.map((slot) => ({ slot, label: slot[0].toUpperCase() + slot.slice(1), entries: selectedEntries.filter((entry) => entry.mealSlot === slot).sort((a, b) => a.position - b.position) }))}
             weekStart={weekStart}
+            today={today}
             recipesById={recipesById}
             readOnly={selectedDateIsPast}
             onMove={(entry, targetSlot, position) => move.mutate({ entry, date: selectedDate, slot: targetSlot, position })}
@@ -277,5 +281,6 @@ export function WeeklyPlannerPage() {
       {isMobile && !selectedDateIsPast ? <div className="planner-mobile-add"><Button onClick={() => { add.reset(); setPickerSlot("dinner"); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a meal</Button></div> : null}
       <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} preferredRecipeId={searchParams.get("recipe")} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
     </main>
+    </AvoidWarningsProvider>
   );
 }

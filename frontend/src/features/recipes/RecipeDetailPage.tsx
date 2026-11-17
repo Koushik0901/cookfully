@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Pencil, ShoppingBasket, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Minus, Pencil, Plus, ShoppingBasket, Sparkles } from "lucide-react";
 
 import { Button, ConfirmDialog, ErrorRecovery, KitchenCompanion, PageState, RecipeMedia, SectionHeading, Skeleton } from "../../components";
 import { nutritionPresentation } from "../../components/cookfully/nutritionState";
@@ -14,6 +14,10 @@ import { recipeTimeLabel } from "./recipeMetadataUtils";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail, RecipePage } from "./types";
+import { formatProbability, modelPick, reviewOrder, reviewSummary } from "./matchReview";
+import { AvoidNotice } from "./AvoidNotice";
+import { FacetChips } from "./FacetChips";
+import { SubstituteDisclosure } from "./SubstituteDisclosure";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -153,7 +157,7 @@ export function RecipeDetailPage() {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: ["recipe", recipeId], exact: true });
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      navigate("/app/recipes", { replace: true });
+      void navigate("/app/recipes", { replace: true });
     },
   });
 
@@ -236,23 +240,20 @@ export function RecipeDetailPage() {
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
            </div>
+           <FacetChips facets={recipe.facets} />
            <span className={`recipe-hero__nutrition-state nutrition-state nutrition-state--${nutritionStatePresentation.key}`} title={nutritionStatePresentation.description}>{nutritionStatePresentation.label}</span>
            <p className="recipe-provenance"><strong>{originLabel[recipe.originKind] ?? "Recipe"}</strong>{recipe.sourceUrl ? <> · <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">View original source</a></> : <> · No external source</>}</p>
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
           <div className="recipe-hero__actions">
             {recipe.instructions.length > 0 && !isMobile ? <Button asChild size="lg"><Link to={`/app/recipes/${recipe.id}/cook`}><ChefHat aria-hidden="true" />Start cooking</Link></Button> : null}
+            {recipe.status !== "archived" ? <Button asChild variant="secondary" className="recipe-hero__plan"><Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}><CalendarPlus aria-hidden="true" />Add to plan</Link></Button> : null}
             <Button asChild variant="secondary"><Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" />Edit recipe</Link></Button>
           </div>
-          <label className="portion-scale__label">
-            <span>Scale to</span>
-            <input className="input portion-scale__input" type="number" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) setScale(value); }} />
-            <span>{recipe.yieldUnit}</span>
-          </label>
         </div>
       </section>
 
       <nav className="recipe-mobile-quick-actions" aria-label="Recipe shortcuts">
-        <Link to={`/app/recipes/${recipe.id}/edit`}><Pencil aria-hidden="true" /><span>Edit</span></Link>
+        <Link to={`/app/recipes/${recipe.id}/edit`} aria-label="Edit recipe"><Pencil aria-hidden="true" /><span>Edit</span></Link>
         <Link to={`/app/plan?slot=dinner&recipe=${encodeURIComponent(recipe.id)}`}><CalendarPlus aria-hidden="true" /><span>Plan</span></Link>
         <Link to={`/app/grocery?recipe=${encodeURIComponent(recipe.id)}`}><ShoppingBasket aria-hidden="true" /><span>Shop</span></Link>
         <a className="recipe-mobile-quick-action" href="#nutrition" aria-label="Open nutrition details" onClick={(event) => { event.preventDefault(); setMobilePanel("nutrition"); setNutritionDetailsOpen(true); }}><Sparkles aria-hidden="true" /><span>Nutrition</span></a>
@@ -276,13 +277,23 @@ export function RecipeDetailPage() {
         <button type="button" aria-label="Increase servings" onClick={() => setScale((value) => value + 0.5)}>+</button>
       </div>
 
-      <div className="recipe-detail__nutrition-summary">
-        <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
-      </div>
-
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">
-          <SectionHeading id="ingredients-heading" title="Ingredients" meta={`${recipe.ingredients.length} items`} />
+          <SectionHeading
+            id="ingredients-heading"
+            title="Ingredients"
+            action={<>
+              <span className="data-value recipe-reading-panel__count">{recipe.ingredients.length} items</span>
+              {/* Scaling sits beside the quantities it changes. Phones use the
+                  dedicated stepper above the panels instead. */}
+              <div className="recipe-servings" role="group" aria-label="Scale recipe">
+                <button type="button" aria-label="Fewer servings" disabled={scale <= 0.25} onClick={() => setScale((value) => Math.max(0.25, value - (value > 1 ? 1 : 0.25)))}><Minus aria-hidden="true" /></button>
+                <label><span className="sr-only">Scale to</span><input className="portion-scale__input" type="number" inputMode="decimal" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) setScale(value); }} /><span>{recipe.yieldUnit}</span></label>
+                <button type="button" aria-label="More servings" onClick={() => setScale((value) => value + (value >= 1 ? 1 : 0.25))}><Plus aria-hidden="true" /></button>
+              </div>
+            </>}
+          />
+          <AvoidNotice recipe={recipe} />
           {recipe.ingredients.length ? (
             <ul className="ingredient-list">
               {orderedSections.map((section) => (
@@ -295,7 +306,7 @@ export function RecipeDetailPage() {
                       const friendlyIngredient = scaleFactor !== 1 && scaledMin
                         ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                         : formatCookingText(item.originalText);
-                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
                     })}
                   </ul>
                 </li>
@@ -306,7 +317,7 @@ export function RecipeDetailPage() {
                 const friendlyIngredient = scaleFactor !== 1 && scaledMin
                   ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                   : formatCookingText(item.originalText);
-                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
               })}
             </ul>
           ) : <p className="muted">No ingredients were provided.</p>}
@@ -330,6 +341,10 @@ export function RecipeDetailPage() {
         </section>
       </section>
 
+      <div className="recipe-detail__nutrition-summary">
+        <RecipeNutritionSummary nutrition={recipe.nutrition} nutritionState={recipe.nutritionState} job={latestJob} editTo={`/app/recipes/${recipe.id}/edit`} />
+      </div>
+
       <details className={`recipe-nutrition-drawer${mobilePanel === "nutrition" ? " is-mobile-active" : ""}`} id="nutrition-details" open={nutritionDetailsOpen} onToggle={(event) => setNutritionDetailsOpen(event.currentTarget.open)}>
         <summary><span><strong>Nutrition details and evidence</strong><small>Micronutrients, sources, assumptions, and processing status</small></span></summary>
         <div className="recipe-nutrition-evidence-summary">
@@ -339,7 +354,7 @@ export function RecipeDetailPage() {
         {ingredientReviewCount ? (
           <section className="ingredient-evidence--inline" style={{ borderTop: 0 }}>
             <div><strong>{ingredientReviewCount} food match{ingredientReviewCount === 1 ? "" : "es"} {ingredientReviewCount === 1 ? "needs" : "need"} review</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these when you want a more specific estimate.</small></div>
-             <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.resolutionKind === "provisional" ? `Estimated from ${item.candidateEvidence?.length ?? 0} possible foods` : item.matchStatus === "ambiguous" ? "Several possible foods" : "No food selected yet"}</small></article>)}</div>
+             <div className="ingredient-evidence__list">{reviewOrder(recipe.ingredients).map((item) => { const pick = modelPick(item); return <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{pick ? `Model pick: ${pick.description} (${formatProbability(pick.probability)})` : reviewSummary(item)}</small></article>; })}</div>
             <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
           </section>
         ) : null}

@@ -83,13 +83,15 @@ def test_owner_erasure_requires_exact_confirmation_and_stopped_services(
         service.erase(owner_id, "erase owner", latest_backup_expiry=EXPIRY)
     assert confirmation.value.code == "owner_erasure_confirmation_invalid"
 
-    with runtime_service_lease(_engine(session_factory), ledger.root):
-        with pytest.raises(DomainError) as running:
-            service.erase(
-                owner_id,
-                f"ERASE OWNER {owner_id}",
-                latest_backup_expiry=EXPIRY,
-            )
+    with (
+        runtime_service_lease(_engine(session_factory), ledger.root),
+        pytest.raises(DomainError) as running,
+    ):
+        service.erase(
+            owner_id,
+            f"ERASE OWNER {owner_id}",
+            latest_backup_expiry=EXPIRY,
+        )
     assert running.value.code == "services_running"
     with session_factory() as session:
         assert session.get(OwnerAccount, owner_id) is not None
@@ -196,9 +198,11 @@ def test_post_ledger_failure_resumes_once_and_removes_every_owner_controlled_rec
         for path in root.rglob("*")
         if path.is_file()
     )
-    with pytest.raises(DomainError) as maintenance:
-        with runtime_service_lease(_engine(session_factory), ledger.root):
-            pass
+    with (
+        pytest.raises(DomainError) as maintenance,
+        runtime_service_lease(_engine(session_factory), ledger.root),
+    ):
+        pass
     assert maintenance.value.code == "maintenance_required"
 
     resumed = _service(session_factory, tmp_path, ledger).erase(

@@ -81,12 +81,12 @@ def _manual_recipe_payload(title: str = "Provider-independent bowl") -> dict[str
 
 @pytest.mark.parametrize(
     ("mode", "failure_code"),
-    (
+    [
         ("disabled", "ai_provider_disabled"),
         ("timeout", "ai_provider_timeout"),
         ("invalid", "ai_output_invalid"),
         ("failure", "ai_provider_failed"),
-    ),
+    ],
 )
 def test_manual_workflows_survive_every_optional_provider_failure(
     mode: str,

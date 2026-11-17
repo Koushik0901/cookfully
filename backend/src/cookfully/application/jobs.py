@@ -24,7 +24,9 @@ RETRY_DELAYS = (
 )
 ATTEMPT_TIMEOUT = timedelta(seconds=60)
 TERMINAL_DEADLINE = timedelta(minutes=15)
-LONG_RUNNING_JOB_KINDS = frozenset({"food_embedding_index", "semantic_model_download"})
+LONG_RUNNING_JOB_KINDS = frozenset(
+    {"food_embedding_index", "semantic_model_download", "food_labeling"}
+)
 LONG_RUNNING_ATTEMPT_TIMEOUT = timedelta(minutes=30)
 LONG_RUNNING_TERMINAL_DEADLINE = timedelta(hours=2)
 DIAGNOSTIC_RETENTION = timedelta(days=30)

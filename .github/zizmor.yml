@@ -1,0 +1,16 @@
+rules:
+  artipacked:
+    ignore:
+      # Commits and pushes regenerated screenshots, so it needs the checkout's credentials.
+      - visual-baselines.yml
+  self-repository:
+    ignore:
+      # `./.github/workflows/x.yml` is the long-standing, documented syntax for local reusable
+      # workflows; the newer `$/` form is not adopted yet.
+      - ci.yml
+  cache-poisoning:
+    ignore:
+      # Flagged because the job uses docker/build-push-action next to cached package managers. The
+      # build only loads images into the runner's own Docker (no registry login, no `push`, a
+      # read-only token), so nothing it produces is ever published.
+      - real-stack.yml

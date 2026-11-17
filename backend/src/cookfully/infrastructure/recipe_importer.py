@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import replace
@@ -18,6 +19,8 @@ from cookfully.infrastructure.cookbook_pdf_decoder import CookbookPdfDecoder
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.recipe_importer_types import ImportedCookbook, ImportedRecipe
 from cookfully.infrastructure.safe_fetch import SafeFetcher
+
+logger = logging.getLogger(__name__)
 
 
 class RecipeImportError(DomainError):
@@ -630,8 +633,7 @@ class RecipeImporter:
         normalized = re.sub(r"(?i)\bf[_\s]*lour\b", "flour", normalized)
         normalized = re.sub(r"(?i)\bf[_\s]*lakes\b", "flakes", normalized)
         normalized = re.sub(r"(?i)\bdr\s+y\b", "dry", normalized)
-        normalized = re.sub(r"\s+", " ", normalized)
-        return normalized
+        return re.sub(r"\s+", " ", normalized)
 
     @classmethod
     def _pdf_directions(cls, value: str) -> tuple[str, ...]:
@@ -774,6 +776,7 @@ class RecipeImporter:
                 try:
                     source = image.image
                 except Exception:
+                    logger.debug("skipping an undecodable PDF image", exc_info=True)
                     continue
                 if source is None or source.width < 96 or source.height < 96:
                     continue

@@ -265,17 +265,13 @@ def test_exact_ranking_objective_and_recipe_id_tie_break_are_repeatable() -> Non
 
 def accepted_total(problem: SuggestionProblem, result: SuggestionSolution) -> SuggestionTarget:
     candidates = {item.recipe_id: item for item in problem.candidates}
-    values = []
-    for field in ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g"):
-        values.append(
-            sum(
-                (
-                    getattr(candidates[item.recipe_id], field) * item.servings
-                    for item in result.items
-                ),
-                Decimal("0"),
-            )
+    values = [
+        sum(
+            (getattr(candidates[item.recipe_id], field) * item.servings for item in result.items),
+            Decimal("0"),
         )
+        for field in ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
+    ]
     return SuggestionTarget(*values)
 
 

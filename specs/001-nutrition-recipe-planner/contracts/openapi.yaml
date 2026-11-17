@@ -200,6 +200,15 @@ paths:
         - name: mealRole
           in: query
           schema: { type: string, enum: [breakfast, lunch, dinner, snack] }
+        - name: facet
+          in: query
+          description: Only recipes carrying every listed decision-model tag (see Recipe.facets).
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 8
+            items: { type: string, pattern: "^[a-z][a-z0-9_]{0,30}(:[a-z0-9_]{1,30})?$" }
       responses:
         "200":
           description: Cursor-paginated recipes.
@@ -392,6 +401,25 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /recipes/{recipeId}/ingredients/{ingredientId}/substitutes:
+    get:
+      operationId: getIngredientSubstitutes
+      tags: [Recipes]
+      summary: Substitutes for one ingredient, from a fixed table, ranked for this recipe by decision models.
+      parameters:
+        - { name: recipeId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: ingredientId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Substitutes (empty when the table has none). Unranked when no model answered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngredientSubstitutes" }
+        "404":
+          description: Recipe or ingredient not found.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -769,6 +797,31 @@ paths:
       responses:
         "200":
           description: Food embedding index job accepted.
+
+  /jobs/food-labels:
+    get:
+      tags: [Jobs]
+      operationId: getFoodLabelSummary
+      responses:
+        "200":
+          description: How many active USDA foods carry decision-model labels, and the job queue state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodLabelSummary" }
+    post:
+      tags: [Jobs]
+      operationId: runFoodLabels
+      responses:
+        "200":
+          description: Food labelling job accepted; it labels only new or changed foods.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobAccepted" }
+        "409":
+          description: Decision models are not set up (no key, or Food labels switched off).
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
 
   /jobs/recipe-processing:
     get:
@@ -1223,6 +1276,24 @@ paths:
         "204": { description: Stop deleted and assignments safely cleared. }
         "409": { $ref: "#/components/responses/Conflict" }
 
+  /grocery-items/{itemId}/keep-separate:
+    post:
+      operationId: keepGroceryItemSeparate
+      tags: [Grocery]
+      summary: Undo a synonym merge on this item for good and regenerate the list.
+      parameters:
+        - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The regenerated grocery list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryList" }
+        "404":
+          description: Item not found.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /grocery-items/{itemId}:
     patch:
       tags: [Grocery]
@@ -1818,6 +1889,33 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /openrouter/settings:
+    get:
+      tags: [Nutrition Intelligence]
+      operationId: getOpenRouterSettings
+      responses:
+        "200":
+          description: OpenRouter key status (never the key itself) and model choices.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenRouterSettings" }
+    put:
+      tags: [Nutrition Intelligence]
+      operationId: updateOpenRouterSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OpenRouterSettingsWrite" }
+      responses:
+        "200":
+          description: Updated OpenRouter settings. The API key is stored encrypted and is write-only.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OpenRouterSettings" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
   /nutrition-intelligence/estimate:
     post:
       tags: [Nutrition Intelligence]
@@ -2218,28 +2316,28 @@ components:
       required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG]
       properties:
         displayName: { type: string, minLength: 1, maxLength: 500 }
-        brand: { type: string }
+        brand: { type: string, maxLength: 240 }
         caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
         proteinG: { $ref: "#/components/schemas/Decimal6" }
         carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
         fatG: { $ref: "#/components/schemas/Decimal6" }
         basisGrams: { $ref: "#/components/schemas/Decimal6" }
         typicalServingG: { $ref: "#/components/schemas/Decimal6" }
-        typicalServingUnit: { type: string }
+        typicalServingUnit: { type: string, maxLength: 20 }
     OwnerFoodUpdateRequest:
       type: object
       additionalProperties: false
       required: [displayName, caloriesKcal, proteinG, carbohydrateG, fatG, expectedVersion]
       properties:
         displayName: { type: string, minLength: 1, maxLength: 500 }
-        brand: { type: string }
+        brand: { type: string, maxLength: 240 }
         caloriesKcal: { $ref: "#/components/schemas/Decimal6" }
         proteinG: { $ref: "#/components/schemas/Decimal6" }
         carbohydrateG: { $ref: "#/components/schemas/Decimal6" }
         fatG: { $ref: "#/components/schemas/Decimal6" }
         basisGrams: { $ref: "#/components/schemas/Decimal6" }
         typicalServingG: { $ref: "#/components/schemas/Decimal6" }
-        typicalServingUnit: { type: string }
+        typicalServingUnit: { type: string, maxLength: 20 }
         expectedVersion: { type: integer, minimum: 1 }
     OwnerFoodSelectionRequest:
       type: object
@@ -2328,6 +2426,52 @@ components:
       properties:
         cleanupEnabled: { type: boolean }
         openrouterFallbackEnabled: { type: boolean }
+        version: { type: integer, minimum: 1 }
+    OpenRouterSettings:
+      type: object
+      additionalProperties: false
+      required: [keyConfigured, keyHint, cleanupModel, decisionAssistToleranceDv, decisionFeatures, monthlyCapUsd, spentThisMonthUsd, version]
+      properties:
+        keyConfigured: { type: boolean }
+        keyHint: { type: [string, "null"], description: Last four characters of the stored key. }
+        cleanupModel: { type: string }
+        decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
+        decisionFeatures:
+          type: array
+          description: Every decision-model feature, in a stable order.
+          items: { $ref: "#/components/schemas/DecisionFeature" }
+        monthlyCapUsd: { $ref: "#/components/schemas/Decimal6" }
+        spentThisMonthUsd: { $ref: "#/components/schemas/Decimal6" }
+        version: { type: integer, minimum: 1 }
+    DecisionPurpose:
+      type: string
+      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life]
+    DecisionFeature:
+      type: object
+      additionalProperties: false
+      required: [purpose, enabled, models]
+      properties:
+        purpose: { $ref: "#/components/schemas/DecisionPurpose" }
+        enabled: { type: boolean }
+        models:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 120 }
+    OpenRouterSettingsWrite:
+      type: object
+      additionalProperties: false
+      required: [cleanupModel, decisionAssistToleranceDv, monthlyCapUsd, version]
+      properties:
+        apiKey: { type: [string, "null"], format: password, minLength: 8, maxLength: 256, description: Omit to keep the stored key. }
+        clearApiKey: { type: boolean, default: false }
+        cleanupModel: { type: string, maxLength: 120 }
+        decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
+        decisionFeatures:
+          type: array
+          description: Features to change; features left out keep their settings.
+          items: { $ref: "#/components/schemas/DecisionFeature" }
+        monthlyCapUsd: { $ref: "#/components/schemas/Decimal6" }
         version: { type: integer, minimum: 1 }
     NutritionIntelligenceEstimate:
       type: object
@@ -2543,10 +2687,18 @@ components:
             parseStatus: { type: string, enum: [unparsed, parsed, low_confidence, manual, failed] }
             matchStatus: { type: string, enum: [candidate, matched, ambiguous, unmatched, manual] }
             resolutionKind: { type: [string, "null"], enum: [confirmed, provisional, unresolved, null] }
-            candidateEvidence: { type: array, items: { type: object } }
+            candidateEvidence:
+              type: array
+              description: >-
+                Provenance for the match. Entries of kind `match_referee` carry `action`, `reason`,
+                `models`, `toleranceDv`, `impactDv` (largest nutrient error at stake as a share of daily
+                value, or null), `pick` (`foodReferenceId`, `description`, `probability`, or null),
+                `noneProbability`, `lineState` and `probabilities`.
+              items: { type: object, additionalProperties: true }
             provisionalMacros: { type: [object, "null"] }
             assumptions: { type: array, items: { type: string } }
             sectionId: { type: [string, "null"], format: uuid }
+            substitutable: { type: boolean, description: The substitution table has swaps for this line. }
     SectionWrite:
       type: object
       additionalProperties: false
@@ -2669,6 +2821,20 @@ components:
         updatedAt: { type: string, format: date-time }
         thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
         originKind: { $ref: "#/components/schemas/RecipeOrigin" }
+        facets:
+          type: array
+          description: >-
+            Tags decision models gave the recipe, each with a probability: diets (vegetarian, vegan,
+            gluten_free, dairy_free; removed when the ingredients contradict them), cuisine:*, meal:*,
+            effort:minimal|moderate|involved, time:under_15|15_30|30_60|over_60, keeps_4_days,
+            freezes_well, reheats_well, needs_oven and weeknight.
+          items: { $ref: "#/components/schemas/RecipeFacet" }
+    RecipeFacet:
+      type: object
+      required: [key, probability]
+      properties:
+        key: { type: string }
+        probability: { $ref: "#/components/schemas/Decimal6" }
     RecipeDetail:
       allOf:
         - $ref: "#/components/schemas/Recipe"
@@ -2680,6 +2846,45 @@ components:
             instructions: { type: array, items: { $ref: "#/components/schemas/Instruction" } }
             sections: { type: array, items: { $ref: "#/components/schemas/Section" } }
             activeJob: { oneOf: [{ $ref: "#/components/schemas/Job" }, { type: "null" }] }
+            avoidWarnings:
+              type: array
+              description: Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list.
+              items: { $ref: "#/components/schemas/AvoidWarning" }
+            hiddenIngredientCheck:
+              type: string
+              enum: [checked, not_checked, no_avoid_list]
+              description: Whether decision models checked this recipe for avoid-list items its ingredients may contain without naming them. `not_checked` is never a promise of safety.
+    IngredientSubstitutes:
+      type: object
+      required: [ingredientId, originalText, substitutes, ranked]
+      properties:
+        ingredientId: { type: string, format: uuid }
+        originalText: { type: string }
+        ranked: { type: boolean, description: True when decision models ranked the list. }
+        substitutes:
+          type: array
+          items:
+            type: object
+            required: [name, amount, note]
+            properties:
+              name: { type: string }
+              amount: { type: string }
+              note: { type: string }
+              probability: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+    AvoidWarning:
+      type: object
+      required: [ingredientId, item, source]
+      properties:
+        ingredientId: { type: string, format: uuid }
+        item: { type: string, description: The avoid-list entry as the owner wrote it. }
+        source: { type: string, enum: [ingredient, model], description: "`ingredient` when the line names it; `model` when a decision model suspects it." }
+        probability: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+    PlanAvoidWarning:
+      type: object
+      required: [recipeId, items]
+      properties:
+        recipeId: { type: string, format: uuid }
+        items: { type: array, items: { type: string } }
     RecipePage:
       type: object
       required: [items]
@@ -2749,6 +2954,15 @@ components:
         active: { type: integer, minimum: 0 }
         waiting: { type: integer, minimum: 0 }
         missing: { type: integer, minimum: 0 }
+        pollAfterSeconds: { type: [integer, "null"], minimum: 1 }
+    FoodLabelSummary:
+      type: object
+      required: [labelled, total, active, waiting]
+      properties:
+        labelled: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
+        active: { type: integer, minimum: 0 }
+        waiting: { type: integer, minimum: 0 }
         pollAfterSeconds: { type: [integer, "null"], minimum: 1 }
     JobAccepted:
       type: object
@@ -3091,6 +3305,10 @@ components:
         weekTotal: { $ref: "#/components/schemas/PeriodTotal" }
         groceryStatus: { type: string, enum: [current, dirty, generating, failed, absent] }
         version: { type: integer, minimum: 1 }
+        avoidWarnings:
+          type: array
+          description: Planned recipes whose ingredients name an item on the owner's avoid list.
+          items: { $ref: "#/components/schemas/PlanAvoidWarning" }
     GroceryItemWrite:
       type: object
       additionalProperties: false
@@ -3102,6 +3320,11 @@ components:
         position: { type: integer, minimum: 0 }
         shoppingStopId: { type: [string, "null"], format: uuid }
         rememberPlacement: { type: boolean }
+        aisle:
+          type: [string, "null"]
+          enum: [produce, meat_seafood, dairy_eggs, bakery, pantry, spices, frozen, drinks, other, null]
+          description: Store aisle; set by decision models unless the owner chose one, which is remembered for the food.
+        likelyStaple: { type: boolean, description: "\"Probably have\" mark; the owner's choice is remembered for the food." }
     GroceryShoppingStopWrite:
       type: object
       additionalProperties: false
@@ -3144,6 +3367,10 @@ components:
                   originalText: { type: string }
                   quantityContribution: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
             version: { type: integer, minimum: 1 }
+            mergedFrom:
+              type: array
+              description: Other names decision models merged into this item as the same food.
+              items: { type: string }
     GroceryList:
       type: object
       required: [id, weekStart, status, items, version]

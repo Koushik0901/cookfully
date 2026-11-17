@@ -1,17 +1,10 @@
 name: Backend
 
-# Runs once per change: pushes to main and every pull request. (Running on every branch push
-# *and* on pull_request executed the whole suite twice for each PR commit.)
+# Called by ci.yml, which runs it once per change (pull requests and pushes to main) and owns
+# the concurrency group. It can also be dispatched by hand from the Actions tab.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
   workflow_dispatch:
-
-# A newer push to the same branch or PR supersedes the run in progress.
-concurrency:
-  group: backend-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -25,15 +18,23 @@ jobs:
   static:
     name: Lint and types
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --project backend --all-extras --dev
+      # mypy re-checks only what changed when its cache is restored (a cold run re-checks every module).
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: backend/.mypy_cache
+          key: mypy-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}-${{ github.sha }}
+          restore-keys: mypy-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}-
       - run: uv run --directory backend ruff format --check .
       - run: uv run --directory backend ruff check --output-format=github .
       - run: uv run --directory backend mypy src
@@ -41,7 +42,7 @@ jobs:
   test:
     name: Tests and coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     services:
       postgres:
         # The image deploy/compose.yaml runs. Migrations need the vchord extension and the
@@ -67,20 +68,24 @@ jobs:
       COOKFULLY_REDIS_URL: redis://localhost:6379/0
       COOKFULLY_SECRET_KEY: test-only-secret-key-with-at-least-32-characters
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0 # diff-cover compares against the base branch
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --project backend --all-extras --dev
 
-      # The total must stay above `fail_under` in backend/pyproject.toml.
+      # The total must stay above `fail_under` in backend/pyproject.toml. Tests isolate themselves
+      # in per-test database schemas, so they run on every vCPU of the runner; a hung test fails
+      # after 60 s (`timeout` in pyproject.toml) instead of stalling the job.
       - name: Run tests with coverage
         run: >-
           uv run --directory backend pytest
+          -n 4
           --cov --cov-report=term-missing:skip-covered --cov-report=xml
           --durations=15
 
@@ -97,17 +102,19 @@ jobs:
       # pull request are held to a higher bar than the overall ratchet.
       - name: Require coverage on changed lines
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }} # via env, never interpolated into the script
         run: |
           # coverage.xml paths are relative to backend/; diff-cover expects repo-relative ones.
           sed -i 's#filename="#filename="backend/#' backend/coverage.xml
           uvx diff-cover backend/coverage.xml \
-            --compare-branch="origin/${{ github.base_ref }}" \
+            --compare-branch="origin/$BASE_REF" \
             --include "backend/src/**" \
             --fail-under=85 \
             --markdown-report diff-coverage.md
           cat diff-coverage.md >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: backend-coverage
