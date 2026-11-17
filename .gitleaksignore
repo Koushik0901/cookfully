@@ -1,3 +1,5 @@
 # Test fixtures: a literal Idempotency-Key header value, not a credential.
 e05a5503ecd62bc83be3ee042f3229f41b6c3ed3:backend/tests/contract/test_grocery_tidy_api.py:generic-api-key:73
 e05a5503ecd62bc83be3ee042f3229f41b6c3ed3:backend/tests/contract/test_grocery_tidy_api.py:generic-api-key:98
+# Fake key in a test that proves a rejected write never echoes the key (since reworded).
+7dc0c5195aa5ad18543e8fb030a0f39b3f0d4b7b:backend/tests/contract/test_openrouter_settings_adversarial.py:generic-api-key:61

@@ -112,18 +112,59 @@ def check_hidden(
     return HiddenCheck(status, tuple(flags))
 
 
-def fingerprint(recipe: Recipe, avoid: Sequence[str], models: Sequence[str]) -> str:
+def input_fingerprint(recipe: Recipe, models: Sequence[str]) -> str:
+    """What a stored result's flags depend on besides the avoid list: the recipe and the panel."""
+
     blob = json.dumps(
         [
             PROMPT_VERSION,
             recipe.input_hash,
             [(item.id.hex, item.original_text, item.food_name) for item in recipe.ingredients],
-            sorted(avoid),
             list(models),
         ],
         sort_keys=True,
     )
     return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def fingerprint(recipe: Recipe, avoid: Sequence[str], models: Sequence[str]) -> str:
+    blob = json.dumps([input_fingerprint(recipe, models), sorted(avoid)], sort_keys=True)
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def _flags_from(payload: dict[str, object]) -> list[AvoidWarning]:
+    flags: list[AvoidWarning] = []
+    raw = payload.get("flags")
+    for entry in raw if isinstance(raw, list) else []:
+        try:
+            flags.append(
+                AvoidWarning(
+                    UUID(entry["ingredientId"]),
+                    str(entry["item"]),
+                    "model",
+                    Decimal(entry["probability"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError, ArithmeticError):
+            continue
+    return flags
+
+
+def _still_valid(
+    previous: RecipeInsight | None, input_fp: str, avoid: Sequence[str]
+) -> list[AvoidWarning]:
+    """Earlier model warnings that still apply: same recipe and panel, item still avoided.
+
+    A warning is only dropped when it is proven wrong (the recipe changed, or the owner no longer
+    avoids the item), never because a later check could not run.
+    """
+
+    if previous is None or previous.payload.get("inputFingerprint") != input_fp:
+        return []
+    avoided = {item.strip().casefold() for item in avoid}
+    return [
+        flag for flag in _flags_from(previous.payload) if flag.item.strip().casefold() in avoided
+    ]
 
 
 def refresh_hidden_ingredients(
@@ -145,9 +186,11 @@ def refresh_hidden_ingredients(
         config = decisions_config(load_config(session))
         models = config.feature(Purpose.HIDDEN_INGREDIENTS).models
         current = fingerprint(recipe, avoid, models)
+        input_fp = input_fingerprint(recipe, models)
         stored = _stored(session, recipe_id)
         if stored is not None and stored.fingerprint == current and stored.status == CHECKED:
             return CHECKED
+        carried = _still_valid(stored, input_fp, avoid)
         if not avoid:
             result = HiddenCheck(NO_LIST, ())
         else:
@@ -169,17 +212,23 @@ def refresh_hidden_ingredients(
         if row is None:
             row = RecipeInsight(recipe_id=recipe_id, kind=KIND)
             session.add(row)
+        flags = list(result.flags)
+        if result.status != CHECKED:
+            # A check that could not finish keeps the warnings that are still valid.
+            seen = {(flag.ingredient_id, flag.item.casefold()) for flag in flags}
+            flags += [f for f in carried if (f.ingredient_id, f.item.casefold()) not in seen]
         row.fingerprint = current
         row.status = result.status
         row.payload = {
+            "inputFingerprint": input_fp,
             "flags": [
                 {
                     "ingredientId": str(flag.ingredient_id),
                     "item": flag.item,
                     "probability": str(flag.probability),
                 }
-                for flag in result.flags
-            ]
+                for flag in flags
+            ],
         }
     logger.info("Hidden-ingredient check for a recipe finished: %s.", result.status)
     return result.status
@@ -194,22 +243,12 @@ def stored_hidden(
         return NO_LIST, ()
     models = decisions_config(load_config(session)).feature(Purpose.HIDDEN_INGREDIENTS).models
     row = _stored(session, recipe.id)
-    if row is None or row.fingerprint != fingerprint(recipe, avoid, models):
+    if row is None:
         return NOT_CHECKED, ()
-    flags: list[AvoidWarning] = []
-    for entry in row.payload.get("flags") or []:
-        try:
-            flags.append(
-                AvoidWarning(
-                    UUID(entry["ingredientId"]),
-                    str(entry["item"]),
-                    "model",
-                    Decimal(entry["probability"]),
-                )
-            )
-        except (KeyError, TypeError, ValueError, ArithmeticError):
-            continue
-    return row.status, tuple(flags)
+    if row.fingerprint == fingerprint(recipe, avoid, models):
+        return row.status, tuple(_flags_from(row.payload))
+    # Out of date: not checked, but warnings that still apply stay visible.
+    return NOT_CHECKED, tuple(_still_valid(row, input_fingerprint(recipe, models), avoid))
 
 
 def refresh_all_hidden_ingredients(session_factory: sessionmaker[Session]) -> int:

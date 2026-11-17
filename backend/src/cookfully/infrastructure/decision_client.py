@@ -26,7 +26,9 @@ class RawDecision:
     """The ``answers`` object as returned, what the call cost, and which model served it."""
 
     answers: object
-    cost_usd: Decimal = Decimal(0)
+    # ``None`` means the provider did not report a usable cost; the engine then charges an estimate
+    # so an unmetered response can never slip past the monthly cap.
+    cost_usd: Decimal | None = None
     served_model: str | None = None
 
 
@@ -94,14 +96,18 @@ def _raw(response: httpx.Response) -> RawDecision | None:
         logger.warning("Decision response had no answers.")
         return None
     usage = payload.get("usage")
-    cost = Decimal(0)
-    if isinstance(usage, dict) and usage.get("cost") is not None:
+    cost: Decimal | None = None
+    if (
+        isinstance(usage, dict)
+        and usage.get("cost") is not None
+        and not isinstance(usage["cost"], bool)
+    ):
         try:
-            cost = Decimal(str(usage["cost"]))
+            reported = Decimal(str(usage["cost"]))
         except InvalidOperation:
-            cost = Decimal(0)
-        if not cost.is_finite() or cost < 0:
-            cost = Decimal(0)
+            reported = None
+        if reported is not None and reported.is_finite() and reported >= 0:
+            cost = reported
     served = payload.get("model")
     return RawDecision(payload["answers"], cost, served if isinstance(served, str) else None)
 

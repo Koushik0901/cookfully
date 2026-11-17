@@ -162,8 +162,35 @@ def test_hidden_ingredient_warnings_are_stored_and_go_stale_with_the_list(
             "checked"
         )
 
-        # Changing the list makes the stored result stale until it is rechecked.
+        # Changing the list makes the result "not checked" until it is rechecked, but a warning
+        # about something the owner still avoids does not disappear while that happens.
         _set_avoid(client, headers, ["fish", "dairy"])
+        detail = client.get(f"/api/v1/recipes/{recipe['id']}").json()
+        assert detail["hiddenIngredientCheck"] == "not_checked"
+        assert [(w["item"], w["source"]) for w in detail["avoidWarnings"]] == [("fish", "model")]
+
+        # A recheck that cannot run (the panel is down) must not erase what was found before.
+        down = Decisions(
+            DecisionsConfig(
+                "k",
+                features={
+                    Purpose.HIDDEN_INGREDIENTS: FeatureConfig(
+                        True, ("typesafe/jev-1.14", "cloudflare/clef")
+                    )
+                },
+            ),
+            ScriptedDecisionTransport(lambda _m, _s, _q: None),
+            InMemoryDecisionStore(),
+        )
+        assert refresh_hidden_ingredients(factory, UUID(recipe["id"]), decisions=down) == (
+            "not_checked"
+        )
+        detail = client.get(f"/api/v1/recipes/{recipe['id']}").json()
+        assert detail["hiddenIngredientCheck"] == "not_checked"
+        assert [w["item"] for w in detail["avoidWarnings"]] == ["fish"]
+
+        # Once the owner stops avoiding fish, its warning goes (it is proven irrelevant).
+        _set_avoid(client, headers, ["dairy"])
         detail = client.get(f"/api/v1/recipes/{recipe['id']}").json()
         assert detail["hiddenIngredientCheck"] == "not_checked"
         assert detail["avoidWarnings"] == []

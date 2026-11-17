@@ -353,8 +353,15 @@ def test_transport_returns_none_on_network_error() -> None:
     assert _transport(boom).post("m", {}, {}) is None
 
 
-def test_transport_treats_a_bad_cost_as_zero() -> None:
-    payload = {"answers": {}, "usage": {"cost": "nan"}}
+@pytest.mark.parametrize("cost", ["nan", "Infinity", -1, "-0.5", True, [1], {"a": 1}, "abc", None])
+def test_transport_reports_an_unusable_cost_as_unknown(cost: object) -> None:
+    payload = {"answers": {}, "usage": {"cost": cost}}
+    raw = _transport(lambda _r: httpx.Response(200, json=payload)).post("m", {}, {})
+    assert raw is not None and raw.cost_usd is None
+
+
+def test_transport_keeps_a_reported_zero_cost() -> None:
+    payload = {"answers": {}, "usage": {"cost": 0}}
     raw = _transport(lambda _r: httpx.Response(200, json=payload)).post("m", {}, {})
     assert raw is not None and raw.cost_usd == 0
 

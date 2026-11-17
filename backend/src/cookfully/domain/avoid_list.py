@@ -11,9 +11,11 @@ Pure: no I/O.
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import lru_cache
 from uuid import UUID
 
 # Group names people commonly put on an avoid list, and the words that name their members.
@@ -32,6 +34,11 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "squid",
         "calamari",
         "octopus",
+        "crawfish",
+        "krill",
+        "cockle",
+        "abalone",
+        "whelk",
     ),
     "fish": (
         "fish",
@@ -48,6 +55,14 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "snapper",
         "bass",
         "pollock",
+        "bonito",
+        "katsuobushi",
+        "herring",
+        "swordfish",
+        "mahi",
+        "catfish",
+        "perch",
+        "sole",
     ),
     "tree nut": (
         "almond",
@@ -59,6 +74,15 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "macadamia",
         "brazil nut",
         "pine nut",
+        "chestnut",
+        "marzipan",
+        "nutella",
+        "praline",
+        "amaretto",
+        "frangipane",
+        "gianduja",
+        "orgeat",
+        "mixed nut",
     ),
     "nut": (
         "almond",
@@ -70,8 +94,20 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "macadamia",
         "peanut",
         "pine nut",
+        "chestnut",
+        "marzipan",
+        "nutella",
+        "praline",
+        "amaretto",
+        "frangipane",
+        "gianduja",
+        "orgeat",
+        "mixed nut",
+        "groundnut",
+        "arachis",
+        "satay",
     ),
-    "peanut": ("peanut",),
+    "peanut": ("peanut", "groundnut", "arachis", "satay", "mixed nut"),
     "dairy": (
         "milk",
         "cheese",
@@ -86,6 +122,23 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "cheddar",
         "ricotta",
         "buttermilk",
+        "mascarpone",
+        "paneer",
+        "half and half",
+        "creme fraiche",
+        "halloumi",
+        "kefir",
+        "casein",
+        "caseinate",
+        "custard",
+        "brie",
+        "camembert",
+        "gouda",
+        "gruyere",
+        "provolone",
+        "gelato",
+        "lactose",
+        "eggnog",
     ),
     "gluten": (
         "wheat",
@@ -115,11 +168,33 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "orzo",
         "macaroni",
         "lasagna",
+        "beer",
+        "ale",
+        "lager",
+        "stout",
+        "malt",
+        "ramen",
+        "pretzel",
+        "kamut",
+        "tempura",
+        "udon",
     ),
-    "egg": ("egg",),
-    "soy": ("soy", "soya", "tofu", "edamame", "tempeh", "miso"),
-    "sesame": ("sesame", "tahini"),
-    "pork": ("pork", "bacon", "ham", "prosciutto", "pancetta", "chorizo", "lard", "guanciale"),
+    "egg": ("egg", "mayonnaise", "aioli", "meringue", "eggnog", "yolk", "albumen", "mayo"),
+    "soy": ("soy", "soya", "soybean", "tofu", "edamame", "tempeh", "miso", "tamari"),
+    "sesame": ("sesame", "tahini", "halva", "halvah", "benne", "gomasio", "hummus"),
+    "pork": (
+        "pork",
+        "bacon",
+        "ham",
+        "prosciutto",
+        "pancetta",
+        "chorizo",
+        "lard",
+        "guanciale",
+        "salami",
+        "pepperoni",
+        "mortadella",
+    ),
     "beef": ("beef", "steak", "brisket", "veal"),
     "poultry": ("chicken", "turkey", "duck", "goose", "quail"),
     "meat": (
@@ -150,7 +225,7 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "quail",
         "gelatin",
     ),
-    "honey": ("honey",),
+    "honey": ("honey", "mead"),
 }
 
 # Phrases that contain a member word but do not name that food ("peanut butter" is not dairy).
@@ -192,6 +267,9 @@ _FALSE_FRIENDS: Mapping[str, tuple[str, ...]] = {
     "bread": ("gluten free bread",),
     "tortilla": ("corn tortilla",),
     "wrap": ("lettuce wrap",),
+    "ale": ("ginger ale",),
+    "beer": ("root beer", "ginger beer"),
+    "custard": ("custard apple",),
 }
 
 _WORD = re.compile(r"[a-z]+")
@@ -216,12 +294,12 @@ class AvoidWarning:
 def find_avoided(lines: Sequence[AvoidLine], avoid: Iterable[str]) -> tuple[AvoidWarning, ...]:
     """Warnings for each line that names an avoided item, in line then list order."""
 
-    terms = [(item, _terms(item)) for item in avoid if item.strip()]
+    terms = [(item, _terms(item), _free_forms(item)) for item in avoid if item.strip()]
     warnings: list[AvoidWarning] = []
     for line in lines:
         text = _normalize(line.text)
-        for item, words in terms:
-            if any(_contains(text, word) for word in words):
+        for item, words, forms in terms:
+            if any(_contains(text, word, forms) for word in words):
                 warnings.append(AvoidWarning(line.ingredient_id, item))
     return tuple(warnings)
 
@@ -235,16 +313,39 @@ def _terms(item: str) -> tuple[str, ...]:
     return tuple(sorted(terms))
 
 
-def _contains(text: str, term: str) -> bool:
+def _free_forms(item: str) -> tuple[str, ...]:
+    """Names a "<name> free" label can use for this avoid-list entry (the entry and its groups)."""
+
+    phrase = _singular_phrase(_normalize(item))
+    forms = {phrase} if phrase else set()
+    for group in GROUPS:
+        if phrase in {group, _plural(group)} or phrase == _singular_phrase(group):
+            forms.add(group)
+    return tuple(sorted(forms))
+
+
+@lru_cache(maxsize=8192)
+def _term_pattern(term: str) -> re.Pattern[str]:
+    """Compiled once per term: building it on every check thrashed Python's small regex cache."""
+
+    if term.endswith("y") and len(term) > 2:
+        return re.compile(rf"\b{re.escape(term[:-1])}(?:y|ies)\b")
+    return re.compile(rf"\b{re.escape(term)}(?:s|es)?\b")
+
+
+@lru_cache(maxsize=8192)
+def _friend_pattern(friend: str) -> re.Pattern[str]:
+    return re.compile(rf"\b{re.escape(friend)}")
+
+
+def _contains(text: str, term: str, free_forms: Sequence[str] = ()) -> bool:
     if not term:
         return False
-    if term.endswith("y") and len(term) > 2:
-        pattern = rf"\b{re.escape(term[:-1])}(?:y|ies)\b"
-    else:
-        pattern = rf"\b{re.escape(term)}(?:s|es)?\b"
-    for match in re.finditer(pattern, text):
+    for match in _term_pattern(term).finditer(text):
         if text.startswith(" free", match.end()):
             continue  # "gluten free", "dairy free" say the opposite
+        if any(text[: match.start()].endswith(f"{form} free ") for form in free_forms):
+            continue  # "dairy free cheese" is the free-from kind
         if not _is_false_friend(text, match.start(), term):
             return True
     return False
@@ -252,14 +353,22 @@ def _contains(text: str, term: str) -> bool:
 
 def _is_false_friend(text: str, start: int, term: str) -> bool:
     for friend in _FALSE_FRIENDS.get(term, ()):
-        for found in re.finditer(rf"\b{re.escape(friend)}", text):
+        for found in _friend_pattern(friend).finditer(text):
             if found.start() <= start < found.end():
                 return True
     return False
 
 
 def _normalize(value: str) -> str:
-    return " ".join(_WORD.findall(value.lower()))
+    """Lowercase ASCII words only, after folding accents and compatibility forms.
+
+    "Jalapeño", "jalapeno" and fullwidth or ligature spellings ("ﬁsh") all reduce to the same plain
+    letters, so a match never depends on how a recipe site encoded the text.
+    """
+
+    folded = unicodedata.normalize("NFKD", value).casefold()
+    plain = "".join(char for char in folded if not unicodedata.combining(char))
+    return " ".join(_WORD.findall(plain))
 
 
 def _singular_phrase(phrase: str) -> str:

@@ -164,10 +164,13 @@ def stored_taste_scores(session: Session, recipe_ids: Iterable[UUID]) -> dict[UU
 
 def _score(row: RecipeInsight) -> Decimal | None:
     raw = row.payload.get("score")
+    if raw is None or isinstance(raw, bool):
+        return None
     try:
-        return Decimal(str(raw)) if raw is not None else None
+        value = Decimal(str(raw))
     except InvalidOperation:
         return None
+    return value if value.is_finite() else None
 
 
 def _stored(session: Session, recipe_ids: Sequence[UUID]) -> dict[UUID, RecipeInsight]:

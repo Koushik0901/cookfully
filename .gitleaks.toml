@@ -1,0 +1,16 @@
+title = "Cookfully secret scan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake API keys that tests use to prove a key is never echoed, logged or stored."
+regexes = [
+  '''sk-or-v1-(?:ULTRA-secret-9999|topsecret-WXYZ|super-secret-1234)''',
+]
+paths = [
+  '''backend/tests/contract/test_openrouter_settings_adversarial\.py''',
+  '''backend/tests/contract/test_openrouter_settings_api\.py''',
+  '''frontend/e2e/decision-models-settings\.spec\.ts''',
+]
+condition = "AND"

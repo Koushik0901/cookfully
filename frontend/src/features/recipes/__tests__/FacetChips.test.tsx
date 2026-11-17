@@ -12,6 +12,14 @@ describe("recipe facets", () => {
     expect(facetLabel({ key: "freezes_well", probability: "0.6" })).toBe("Probably freezes well");
   });
 
+  it("words diet tags as certain from 0.7 and other tags from 0.8, matching the server", () => {
+    expect(facetLabel({ key: "vegetarian", probability: "0.7" })).toBe("Vegetarian");
+    expect(facetLabel({ key: "gluten_free", probability: "0.6999" })).toBe("Probably gluten-free");
+    expect(facetLabel({ key: "dairy_free", probability: "0.75" })).toBe("Dairy-free");
+    expect(facetLabel({ key: "reheats_well", probability: "0.75" })).toBe("Probably reheats well");
+    expect(facetLabel({ key: "reheats_well", probability: "0.8" })).toBe("Reheats well");
+  });
+
   it("renders known tags, optionally filtered, and nothing when empty", () => {
     const facets = [
       { key: "cuisine:thai", probability: "0.9" },

@@ -28,6 +28,12 @@ CLEAN_THRESHOLD = Decimal("0.5")
 NOT_RECIPE_THRESHOLD = Decimal("0.7")
 INVENTED_MAX_PRESENT_PROBABILITY = Decimal("0.2")
 PAGE_TEXT_LIMIT = 6000
+# The injection screen reads the whole page in overlapping windows (the remote cleanup model reads
+# all of it, so the screen must too); beyond this many windows the rest counts as unscreened.
+MAX_SCREEN_WINDOWS = 8
+WINDOW_OVERLAP = 300
+MAX_LINE_CHARS = 400
+MAX_TITLE_CHARS = 200
 
 GATE_INSTRUCTIONS = (
     "Is this line a single real food ingredient, with or without a quantity, that belongs in a "
@@ -124,6 +130,8 @@ class ScreenResult:
     not_recipe: bool = False
     kind: str | None = None
     evidence: dict[str, str] = field(default_factory=dict)
+    unscreened: bool = False
+    """The screen could not read the whole page: keep it away from the remote model."""
 
 
 class ImportDecisions:
@@ -138,7 +146,7 @@ class ImportDecisions:
         asks = [
             Ask(
                 Purpose.IMPORT_LINE_GATE,
-                {"recipe": title, "line": line},
+                {"recipe": title[:MAX_TITLE_CHARS], "line": line[:MAX_LINE_CHARS]},
                 {
                     "ingredient": Check(
                         GATE_INSTRUCTIONS, "A real ingredient.", "Not an ingredient."
@@ -156,27 +164,42 @@ class ImportDecisions:
         return tuple(moved)
 
     def screen(self, title: str, ingredients: Sequence[str], steps: Sequence[str]) -> ScreenResult:
-        text = "\n".join(["Ingredients:", *ingredients, "", "Steps:", *steps])[:PAGE_TEXT_LIMIT]
-        [answers] = self._decisions.ask(
-            [
+        text = "\n".join(["Ingredients:", *ingredients, "", "Steps:", *steps])
+        step = PAGE_TEXT_LIMIT - WINDOW_OVERLAP
+        starts = list(range(0, max(len(text), 1), step))[:MAX_SCREEN_WINDOWS]
+        covered = len(text) <= starts[-1] + PAGE_TEXT_LIMIT
+        asks = []
+        for position, start in enumerate(starts):
+            questions: dict[str, Check | Choice] = {
+                "injection": Check(
+                    INJECTION_INSTRUCTIONS,
+                    "It contains instructions aimed at an AI.",
+                    "It only describes a recipe.",
+                )
+            }
+            if position == 0:
+                # Whether a page is clean, and what kind it is, depend on how it opens.
+                questions["clean"] = Check(CLEAN_INSTRUCTIONS, "Already clean.", "Needs cleanup.")
+                questions["kind"] = Choice(KIND_INSTRUCTIONS, PAGE_KINDS)
+            asks.append(
                 Ask(
                     Purpose.IMPORT_SCREEN,
-                    {"title": title, "page_text": text},
                     {
-                        "injection": Check(
-                            INJECTION_INSTRUCTIONS,
-                            "It contains instructions aimed at an AI.",
-                            "It only describes a recipe.",
-                        ),
-                        "clean": Check(CLEAN_INSTRUCTIONS, "Already clean.", "Needs cleanup."),
-                        "kind": Choice(KIND_INSTRUCTIONS, PAGE_KINDS),
+                        "title": title[:MAX_TITLE_CHARS],
+                        "page_text": text[start : start + PAGE_TEXT_LIMIT],
                     },
+                    questions,
                 )
-            ]
-        )
-        if not answers:
-            return ScreenResult()
-        injection = answers.check_worst("injection")
+            )
+        results = self._decisions.ask(asks)
+        answers = results[0]
+        if not any(results):
+            return ScreenResult(unscreened=self._active(Purpose.IMPORT_SCREEN))
+        injection_values = [
+            value for r in results if (value := r.check_worst("injection")) is not None
+        ]
+        injection = max(injection_values) if injection_values else None
+        unscreened = (not covered) or len(injection_values) < len(results)
         clean = answers.check("clean")
         kinds = answers.choice("kind") or {}
         kind = answers.top("kind")
@@ -185,7 +208,7 @@ class ImportDecisions:
         )
         return ScreenResult(
             injection=injection is not None and injection >= INJECTION_THRESHOLD,
-            clean=clean is not None and clean >= CLEAN_THRESHOLD,
+            clean=clean is not None and clean >= CLEAN_THRESHOLD and not unscreened,
             not_recipe=not_recipe,
             kind=kind,
             evidence={
@@ -193,7 +216,12 @@ class ImportDecisions:
                 "clean": str(round(clean, 4)) if clean is not None else "",
                 "kind": kind or "",
             },
+            unscreened=unscreened,
         )
+
+    def _active(self, purpose: Purpose) -> bool:
+        active = getattr(self._decisions, "active", None)
+        return bool(callable(active) and active(purpose))
 
     def invented(self, source: Sequence[str], cleaned: Sequence[str]) -> tuple[str, ...]:
         """Cleaned ingredient lines that every model agrees are not in the source."""
@@ -206,15 +234,23 @@ class ImportDecisions:
         asks = [
             Ask(
                 Purpose.CLEANUP_VERIFIER,
-                {"source_ingredients": source_text[:PAGE_TEXT_LIMIT], "cleaned_line": line},
+                {
+                    "source_ingredients": source_text[:PAGE_TEXT_LIMIT],
+                    "cleaned_line": line[:MAX_LINE_CHARS],
+                },
                 {"present": Check(VERIFY_INSTRUCTIONS, "Present in the source.", "Not in source.")},
             )
             for line in suspects
         ]
         invented: list[str] = []
+        verifier_on = self._active(Purpose.CLEANUP_VERIFIER)
         for line, answers in zip(suspects, self._decisions.ask(asks), strict=True):
             present = answers.check_worst("present")
-            if present is not None and present <= INVENTED_MAX_PRESENT_PROBABILITY:
+            if present is None and verifier_on:
+                # The check is on but could not answer: an unverified new ingredient is not accepted
+                # (the deterministic parse is kept instead).
+                invented.append(line)
+            elif present is not None and present <= INVENTED_MAX_PRESENT_PROBABILITY:
                 invented.append(line)
         return tuple(invented)
 

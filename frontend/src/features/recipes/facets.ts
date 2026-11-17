@@ -3,6 +3,10 @@ import type { RecipeDetail } from "./types";
 export type RecipeFacet = NonNullable<RecipeDetail["facets"]>[number];
 
 const CONFIDENT = 0.8;
+// Diet claims were measured on a hand-labeled set and are worded as certain from 0.7 (the server's
+// `DIET_CONFIDENT_THRESHOLD`); everything else keeps 0.8.
+const DIET_CONFIDENT = 0.7;
+const DIET_KEYS = new Set(["vegetarian", "vegan", "gluten_free", "dairy_free"]);
 
 const LABELS: Record<string, string> = {
   vegetarian: "Vegetarian",
@@ -44,7 +48,8 @@ const LABELS: Record<string, string> = {
 /** Human label for a facet, with "Probably" when the models were not confident. */
 export function facetLabel(facet: RecipeFacet): string {
   const label = LABELS[facet.key] ?? facet.key;
-  return Number(facet.probability) >= CONFIDENT ? label : `Probably ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+  const cutoff = DIET_KEYS.has(facet.key) ? DIET_CONFIDENT : CONFIDENT;
+  return Number(facet.probability) >= cutoff ? label : `Probably ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 }
 
 export function facetKnown(facet: RecipeFacet): boolean {

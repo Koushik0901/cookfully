@@ -62,7 +62,7 @@ class OpenRouterSettingsWrite(BaseModel):
 
     api_key: SecretStr | None = Field(default=None, alias="apiKey")
     clear_api_key: bool = Field(default=False, alias="clearApiKey")
-    cleanup_model: Annotated[str, Field(pattern=r"^$|" + _MODEL_PATTERN[1:])] = Field(
+    cleanup_model: Annotated[str, Field(pattern=r"^(?:$|" + _MODEL_PATTERN[1:] + ")")] = Field(
         alias="cleanupModel"
     )
     decision_assist_tolerance_dv: Decimal6 = Field(
@@ -79,6 +79,8 @@ class OpenRouterSettingsWrite(BaseModel):
         purposes = [feature.purpose for feature in self.decision_features]
         if len(set(purposes)) != len(purposes):
             raise ValueError("each feature may appear once")
+        if self.api_key is not None and self.clear_api_key:
+            raise ValueError("send a new key or ask to remove the key, not both")
         return self
 
     @field_validator("api_key")
@@ -87,7 +89,12 @@ class OpenRouterSettingsWrite(BaseModel):
         if value is None:
             return None
         raw = value.get_secret_value().strip()
-        if not 8 <= len(raw) <= 256 or any(char.isspace() for char in raw) or not raw.isascii():
+        if (
+            not 8 <= len(raw) <= 256
+            or any(char.isspace() for char in raw)
+            or not raw.isascii()
+            or not raw.isprintable()
+        ):
             raise ValueError("API key must be 8-256 visible ASCII characters")
         return SecretStr(raw)
 
