@@ -356,13 +356,25 @@ class RecipeCleanupService:
         screen: ScreenResult | None = None
         notes: list[str] = []
         if guard is not None:
-            recipe = await asyncio.to_thread(_gate, guard, recipe)
-            screen = await asyncio.to_thread(
-                guard.screen, recipe.title, recipe.ingredients, recipe.instructions
-            )
+            # The guard is an optional extra: whatever goes wrong inside it, the import survives.
+            try:
+                recipe = await asyncio.to_thread(_gate, guard, recipe)
+            except Exception:
+                logger.exception("Import line gate failed; keeping the ingredient lines as parsed.")
+            try:
+                screen = await asyncio.to_thread(
+                    guard.screen, recipe.title, recipe.ingredients, recipe.instructions
+                )
+            except Exception:
+                logger.exception("Import screen failed; treating the page as unscreened.")
+                screen = ScreenResult(unscreened=True)
             if screen.injection:
                 remote = None
                 notes.append("import_injection_suspected")
+            elif screen.unscreened:
+                # The page could not be screened in full: keep it away from the remote model.
+                remote = None
+                notes.append("import_screen_incomplete")
             if screen.not_recipe:
                 notes.append("import_not_a_recipe")
         if not cleanup_enabled:
@@ -411,9 +423,14 @@ class RecipeCleanupService:
                 continue
             ingredients, sections, instructions, changes, warnings = applied
             if guard is not None:
-                invented = await asyncio.to_thread(
-                    guard.invented, candidate.ingredients, ingredients
-                )
+                try:
+                    invented = await asyncio.to_thread(
+                        guard.invented, candidate.ingredients, ingredients
+                    )
+                except Exception:
+                    # Unverifiable output is not accepted; the deterministic parse stays.
+                    logger.exception("Cleanup verifier failed; not accepting the cleanup.")
+                    invented = ("unverified",)
                 if invented:
                     failures.append("cleanup_invented_ingredient")
                     continue

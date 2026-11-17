@@ -95,9 +95,18 @@ def test_screen_marks_clean_and_not_recipe_pages() -> None:
     assert result.evidence["kind"] == "article"
 
 
-def test_screen_without_answers_has_no_opinion() -> None:
+def test_an_active_screen_that_cannot_answer_marks_the_page_unscreened() -> None:
     guard, _ = _guard(lambda _m, _s, _q: None)
-    assert guard.screen("R", [], []) == ScreenResult()
+    assert guard.screen("R", [], []) == ScreenResult(unscreened=True)
+
+
+def test_a_screen_that_is_switched_off_has_no_opinion_and_is_not_unscreened() -> None:
+    engine = Decisions(
+        DecisionsConfig("k", features={Purpose.IMPORT_SCREEN: FeatureConfig(False, PANEL)}),
+        ScriptedDecisionTransport(lambda _m, _s, _q: None),
+        InMemoryDecisionStore(),
+    )
+    assert ImportDecisions(engine).screen("R", ["1 egg"], ["Cook."]) == ScreenResult()
 
 
 # --- verifier -------------------------------------------------------------------------------------
