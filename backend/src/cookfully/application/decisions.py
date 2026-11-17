@@ -43,6 +43,8 @@ DEFAULT_MONTHLY_CAP_USD = Decimal("2.00")
 DEFAULT_MODEL = "typesafe/jev-1.14"
 DEFAULT_PANEL = ("typesafe/jev-1.14", "cloudflare/clef")
 MAX_WORKERS = 8
+# Charged when a response reports no usable cost (measured average is about $0.0001 per answer).
+ESTIMATED_CALL_COST_USD = Decimal("0.0002")
 
 
 class DecisionTransport(Protocol):
@@ -133,7 +135,11 @@ class Decisions:
         if not jobs:
             return [Answers() for _ in asks]
 
-        cached = self._store.get([(job.model, job.request_hash) for job in jobs])
+        try:
+            cached = self._store.get([(job.model, job.request_hash) for job in jobs])
+        except Exception:
+            logger.exception("Decision cache could not be read; answering with no opinion.")
+            return [Answers() for _ in asks]
         pending: dict[tuple[str, str], list[_Job]] = {}
         for job in jobs:
             key = (job.model, job.request_hash)
@@ -158,9 +164,14 @@ class Decisions:
         transport = self._transport
         if transport is None:
             return
-        remaining = self._config.monthly_cap_usd - self._store.spent_since(
-            _month_start(self._clock())
-        )
+        try:
+            remaining = self._config.monthly_cap_usd - self._store.spent_since(
+                _month_start(self._clock())
+            )
+        except Exception:
+            # Without a spend reading the cap cannot be enforced, so nothing is sent.
+            logger.exception("Decision spend could not be read; no requests sent.")
+            return
         if remaining <= 0:
             logger.warning("Decision spend cap reached; %d requests skipped.", len(pending))
             return
@@ -187,21 +198,26 @@ class Decisions:
                     parsed = parse_answers(ask, raw.answers)
                     if parsed is None:
                         logger.warning("Decision answer from %s failed validation.", first.model)
+                    cost = raw.cost_usd if raw.cost_usd is not None else ESTIMATED_CALL_COST_USD
                     rows.append(
                         StoredAnswer(
                             ask.purpose.value,
                             first.model,
                             first.request_hash,
                             parsed.to_json() if parsed is not None else dict(REJECTED),
-                            raw.cost_usd,
+                            cost,
                             raw.served_model,
                         )
                     )
-                    remaining -= raw.cost_usd
+                    remaining -= cost
                     if parsed is not None:
                         for job in pending[key]:
                             collected[job.ask_index][job.model] = parsed
-                self._store.put(rows)
+                try:
+                    self._store.put(rows)
+                except Exception:
+                    # The answers were paid for and parsed, so they are still used this time.
+                    logger.exception("Decision answers could not be cached.")
 
     @staticmethod
     def _post(transport: DecisionTransport, ask: Ask, key: tuple[str, str]) -> RawDecision | None:
