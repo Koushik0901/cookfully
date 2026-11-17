@@ -105,3 +105,38 @@ cautious answer across the panel.
 Clef alone missed red curry paste / shellfish, kimchi / fish, marshmallows / pork and gochujang /
 gluten. Taking the worst case across the panel keeps Jev's recall, which is what a warning needs; the
 cost is one extra false alarm. The default threshold stays at 0.5. Cost: 216 answers, under $0.01.
+
+## Import checks (2026-11-17)
+
+**`line-gate`** on the PR #12 line set (`results/exp2_dataset.json`: 58 real ingredient lines; 14 real
+parser fragments and 48 synthetic headings, notes, nutrition labels, steps, equipment and meta lines).
+A line is moved only when every model's P(real ingredient) is at most 0.2.
+
+| panel | junk moved (of 62) | real ingredients moved (of 58) |
+|---|---|---|
+| Jev | 61 | 0 |
+| Clef | 58 | 1 ("1 batch homemade bagels") |
+| **Jev + Clef (default)** | **58** | **0** |
+
+The deterministic parse already treats 5 of the 62 junk lines as junk (`baseline_junk`). Needle2 could not
+be run here (no local intelligence service), so there is no direct comparison with it yet.
+
+**`import-screen`** on 12 hand-made pages (`results/import_pages_gold.json`: 4 clean recipes, 3 messy
+ones, 3 with instructions to an AI hidden in a step or ingredient, an article and a product page). All
+three questions are right on all 12 pages for every panel once the "already clean" threshold is 0.5:
+injection 0.98–0.99 on the crafted pages against at most 0.10 elsewhere; "already clean" 0.71–0.89 on
+clean pages against at most 0.04 on messy ones (the first threshold, 0.8, missed two clean pages with Jev
++ Clef); page kind right every time.
+
+**`cleanup-verifier`** on 20 cleaned lines (`results/cleanup_verifier_gold.json`: 9 invented foods, 11
+rewordings such as scallions / green onions, courgettes / zucchini, mince / ground beef). A cleanup is
+rejected only when every model puts P(present in source) at or below 0.2.
+
+| panel | invented caught (of 9) | false alarms (of 11) |
+|---|---|---|
+| Jev | 9 | 0 |
+| Clef | 8 | 0 |
+| **Jev + Clef (default)** | **8** | **0** |
+
+The miss is chives for spring onions, which Clef accepts as a synonym. Cumulative cost of all
+evaluations so far: $0.061.

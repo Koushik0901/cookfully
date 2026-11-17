@@ -393,6 +393,87 @@ def report_hidden_ingredients(harness: Harness) -> str:
     return "\n".join(out)
 
 
+# --- imports ---------------------------------------------------------------------------------------
+
+
+def _import_guard(harness: Harness, models: tuple[str, ...]) -> Any:
+    from cookfully.application.import_decisions import ImportDecisions
+
+    engine = harness.engine(Purpose.IMPORT_LINE_GATE, models)
+    # One engine serves all three import purposes with the same panel.
+    engine._config = DecisionsConfig(  # noqa: SLF001
+        engine.config.api_key,
+        engine.config.monthly_cap_usd,
+        {purpose: FeatureConfig(True, models) for purpose in Purpose},
+    )
+    return ImportDecisions(engine)
+
+
+def report_line_gate(harness: Harness) -> str:
+    lines = json.loads((RESULTS / "exp2_dataset.json").read_text("utf-8"))
+    real = sum(1 for line in lines if line["label"] == "ingredient")
+    junk = len(lines) - real
+    out = [f"Lines: {len(lines)} ({real} real ingredients, {junk} junk)", ""]
+    out.append(f"{'panel':<10}{'moved':>7}{'junk moved':>12}{'real moved':>12}")
+    for name, models in PANELS.items():
+        guard = _import_guard(harness, models)
+        moved = {line.index for line in guard.gate_lines("", [row["text"] for row in lines])}
+        junk_moved = sum(1 for i in moved if lines[i]["label"] != "ingredient")
+        real_moved = [lines[i]["text"] for i in moved if lines[i]["label"] == "ingredient"]
+        out.append(f"{name:<10}{len(moved):>7}{junk_moved:>7} / {junk:<3}{len(real_moved):>7} / {real}")
+        if real_moved:
+            out.append("            real lines moved: " + "; ".join(real_moved))
+    return "\n".join(out)
+
+
+def report_import_screen(harness: Harness) -> str:
+    pages = json.loads((RESULTS / "import_pages_gold.json").read_text("utf-8"))["pages"]
+    out = [f"Pages: {len(pages)}", ""]
+    for name, models in PANELS.items():
+        guard = _import_guard(harness, models)
+        rows = []
+        for page in pages:
+            result = guard.screen(page["title"], page["ingredients"], page["steps"])
+            rows.append((page, result))
+        inj = sum(1 for p, r in rows if r.injection == p["injection"])
+        clean = sum(1 for p, r in rows if r.clean == p["clean"])
+        not_recipe = sum(1 for p, r in rows if r.not_recipe == (p["kind"] in {"article", "other"}))
+        out.append(
+            f"{name:<10} injection {inj}/{len(rows)}  clean {clean}/{len(rows)}"
+            f"  not-a-recipe {not_recipe}/{len(rows)}"
+        )
+        for page, result in rows:
+            out.append(
+                f"    {page['id']:<10} inj={result.evidence.get('injection', '-'):<7}"
+                f" clean={result.evidence.get('clean', '-'):<7} kind={result.kind}"
+                f"{'  <-- miss' if (result.injection != page['injection'] or result.clean != page['clean']) else ''}"
+            )
+    return "\n".join(out)
+
+
+def report_cleanup_verifier(harness: Harness) -> str:
+    cases = json.loads((RESULTS / "cleanup_verifier_gold.json").read_text("utf-8"))["cases"]
+    invented = sum(1 for c in cases if c["invented"])
+    out = [f"Cases: {len(cases)} ({invented} invented, {len(cases) - invented} rewordings)", ""]
+    for name, models in PANELS.items():
+        guard = _import_guard(harness, models)
+        caught = false_alarm = 0
+        misses = []
+        for case in cases:
+            flagged = bool(guard.invented(case["source"], [case["cleaned"]]))
+            if flagged and case["invented"]:
+                caught += 1
+            elif flagged:
+                false_alarm += 1
+                misses.append("false alarm: " + case["cleaned"])
+            elif case["invented"]:
+                misses.append("missed: " + case["cleaned"])
+        out.append(f"{name:<10} caught {caught}/{invented}  false alarms {false_alarm}")
+        if misses:
+            out.append("            " + "; ".join(misses))
+    return "\n".join(out)
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 Evaluator = Callable[[Harness, argparse.Namespace], str]
@@ -410,6 +491,9 @@ def _hidden_ingredients(harness: Harness, args: argparse.Namespace) -> str:
 EVALUATORS: dict[str, Evaluator] = {
     "match-referee": _match_referee,
     "hidden-ingredients": _hidden_ingredients,
+    "line-gate": lambda harness, _args: report_line_gate(harness),
+    "import-screen": lambda harness, _args: report_import_screen(harness),
+    "cleanup-verifier": lambda harness, _args: report_cleanup_verifier(harness),
 }
 
 

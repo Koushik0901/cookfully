@@ -72,6 +72,20 @@ are refreshed after nutrition processing and in the background when the list or 
 change. A recipe without a fresh result shows "not checked", never "safe". Model warnings only add to
 the deterministic ones. Measured results are in `decision-model-experiments/app-eval.md`.
 
+## Import checks
+
+Run on every import (`application/import_decisions.py`, wired into `RecipeCleanupService`):
+
+- **Line gate:** a line leaves the ingredient list only when every model agrees it is not an
+  ingredient. Import review lists moved lines with a **Put back** button; the original text is kept
+  in the change log. Runs even when cleanup is off, and never empties a list.
+- **Screen:** one request per page. A page that tries to instruct an AI skips remote (OpenRouter)
+  cleanup and says so; a page that already looks clean skips cleanup; a page that is not a recipe is
+  flagged.
+- **Cleanup verifier:** a cleaned ingredient whose words are not in the source is checked against it.
+  If every model agrees the food is not there, that cleanup is rejected and the deterministic parse
+  is kept.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

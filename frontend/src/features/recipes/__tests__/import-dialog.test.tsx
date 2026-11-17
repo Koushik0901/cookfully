@@ -142,6 +142,36 @@ describe("recipe import merge", () => {
     expect(screen.getByText(/1 row adjusted/)).toBeVisible();
   });
 
+  it("lists lines moved out of the ingredients and puts one back on request", async () => {
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({
+          ...preview,
+          duplicates: [],
+          cleanupWarnings: ["moved_ingredient", "import_injection_suspected", "import_not_a_recipe"],
+          cleanupChanges: [
+            { kind: "ingredient", action: "moved", sourceIndex: "0", before: "FOR THE SAUCE:", after: "", reason: "not_an_ingredient", probability: "0.04" },
+          ],
+        });
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/shawarma");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+
+    expect(await screen.findByText("Moved out of the ingredients")).toBeVisible();
+    expect(screen.getByText(/Moved 1 line that is not an ingredient/)).toBeVisible();
+    expect(screen.getByText(/tries to give instructions to an AI/)).toBeVisible();
+    expect(screen.getByText(/may not be a recipe/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Put back FOR THE SAUCE:" }));
+    expect(screen.queryByText("Moved out of the ingredients")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("FOR THE SAUCE:")).toBeInTheDocument();
+  });
+
   it("explains when cleanup falls back to the deterministic parse", async () => {
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const path = String(input);
