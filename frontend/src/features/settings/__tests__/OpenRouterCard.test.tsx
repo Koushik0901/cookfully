@@ -24,7 +24,7 @@ const base: Settings = {
   keyConfigured: false,
   keyHint: null,
   cleanupModel: "",
-  decisionAssistToleranceDv: "0.02",
+  decisionAssistToleranceDv: "0.08",
   decisionFeatures: [
     { purpose: "match_referee", enabled: true, models: panel },
     { purpose: "shelf_life", enabled: true, models: panel },
@@ -90,7 +90,7 @@ describe("OpenRouter settings card", () => {
 
     await screen.findByText("OpenRouter settings saved.");
     expect(bodies[0]).toMatchObject({ apiKey: "sk-or-secret-wxyz", clearApiKey: false, version: 1 });
-    expect(bodies[0]?.decisionAssistToleranceDv).toBe("0.0200");
+    expect(bodies[0]?.decisionAssistToleranceDv).toBe("0.0800");
     expect(bodies[0]?.monthlyCapUsd).toBe("2.00");
     expect(bodies[0]?.decisionFeatures).toEqual(base.decisionFeatures);
     await waitFor(() => expect(screen.getByText(/ending in wxyz/)).toBeInTheDocument());
