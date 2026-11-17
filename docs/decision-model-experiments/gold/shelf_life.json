@@ -1,0 +1,125 @@
+{
+ "note": "Hand-labeled expected buckets for pantry names the lifespan table does not cover. Buckets: few_days, week, two_weeks, month, months.",
+ "items": [
+  [
+   "fresh dill",
+   "few_days"
+  ],
+  [
+   "fresh mint",
+   "few_days"
+  ],
+  [
+   "raspberries",
+   "few_days"
+  ],
+  [
+   "fresh mozzarella",
+   "few_days"
+  ],
+  [
+   "fresh basil",
+   "few_days"
+  ],
+  [
+   "blackberries",
+   "few_days"
+  ],
+  [
+   "hummus",
+   "week"
+  ],
+  [
+   "bok choy",
+   "week"
+  ],
+  [
+   "cottage cheese",
+   "two_weeks"
+  ],
+  [
+   "feta",
+   "two_weeks"
+  ],
+  [
+   "cabbage",
+   "two_weeks"
+  ],
+  [
+   "oranges",
+   "two_weeks"
+  ],
+  [
+   "parmesan",
+   "month"
+  ],
+  [
+   "carrots",
+   "month"
+  ],
+  [
+   "apples",
+   "month"
+  ],
+  [
+   "tahini",
+   "months"
+  ],
+  [
+   "dried lentils",
+   "months"
+  ],
+  [
+   "canned chickpeas",
+   "months"
+  ],
+  [
+   "miso",
+   "months"
+  ],
+  [
+   "frozen peas",
+   "months"
+  ],
+  [
+   "rice",
+   "months"
+  ],
+  [
+   "pasta",
+   "months"
+  ],
+  [
+   "peanut butter",
+   "months"
+  ],
+  [
+   "maple syrup",
+   "months"
+  ],
+  [
+   "ground cumin",
+   "months"
+  ],
+  [
+   "olive oil",
+   "months"
+  ],
+  [
+   "canned tomatoes",
+   "months"
+  ],
+  [
+   "oats",
+   "months"
+  ],
+  [
+   "honey",
+   "months"
+  ],
+  [
+   "dried oregano",
+   "months"
+  ]
+ ]
+}

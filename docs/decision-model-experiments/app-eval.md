@@ -212,3 +212,38 @@ For the Jev+Clef panel on the 140 gold lines:
 Each step resolves more lines with no wrong ones. The default moves from 2% to 8% (the Settings field
 allows up to 10%); 12% is left out only because it is above that cap. Single models are less safe at
 wide tolerances (Clef alone: 6 wrong at 12%), which is why the panel average matters.
+
+## Threshold sweeps on hand-labeled gold sets (2026-11-17)
+
+Gold sets live in `docs/decision-model-experiments/gold/` (hand-labeled from clear cases, judgment calls
+noted in each file). Each evaluator asks the shipped prompts once with the Jev + Clef panel, caches the
+raw probabilities, then sweeps the threshold offline. Total spend about $0.05.
+
+```
+uv run --directory backend python ../scripts/decision-model-eval/app_eval.py <evaluator> \
+  --usda-dir /tmp/usda --workdir $W
+# evaluators: grocery-merge grocery-labels shelf-life diet clean-pages substitutions label-confidence
+```
+
+| Threshold | Gold set | Result | Setting |
+|---|---|---|---|
+| Grocery merge (`MERGE_THRESHOLD`) | 18 lists, 15 true synonym pairs | 0.3–0.6: 12 right, 0 wrong. 0.8: 10 right, 0 wrong. | **0.8 → 0.5** |
+| Merge "every model agrees" rule | same | Dropping it adds a wrong merge (onion + red onion) and recovers none of the 3 misses (arugula/rocket, heavy/double cream, greek yogurt/yogurt). | **kept** |
+| Staple (`STAPLE_THRESHOLD`) | 15 staples, 15 non-staples | 0.3: 15 found, 0 wrong. 0.5: 11. 0.7: 8 (7 missed). No threshold marks a non-staple. | **0.7 → 0.3** |
+| Aisle (`AISLE_THRESHOLD`) | 60 items | 0.3–0.5: 59 right, 1 wrong. 0.6: 59 right, 0 wrong, 1 unassigned. | kept at 0.5 |
+| Shelf life (`MIN_PROBABILITY`, agreement) | 30 names | Agreement + 0.5: 26 answered, all exact. No agreement + 0.3: 30 answered, 27 exact, 3 one bucket off, 0 far. | **0.5 → 0.3, agreement dropped** |
+| Diet tag show cutoff | 40 recipes, 160 claims | Mean at 0.5: 78 right, **1 wrong** (Welsh rarebit "vegetarian": Worcestershire sauce has anchovy). Mean at 0.6: 78 right, 0 wrong, 0 missed. | **0.5 → 0.6 (diets only)** |
+| Diet "certain" wording | same | Mean at 0.7: 77 right, 0 wrong. At 0.8: 75 right, 0 wrong. | **0.8 → 0.7 (diets only)** |
+| Food-label confidence (`CONFIDENT`) | 140 matcher gold lines | 0.5: 80, 0.6: 81, 0.7: **82**, 0.8: 81, 0.9: 80 top-candidate correct. | **0.8 → 0.7** |
+| "Already clean" import page (`CLEAN_THRESHOLD`) | 24 synthetic pages (12 clean) | 0.3–0.5: all 12 clean pages skipped, 0 messy skipped. 0.6: 11. 0.8: 4. | kept at 0.5 (the set is saturated: nothing to gain) |
+| Substitution show cutoff | 78 swaps (58 work) | 0.4: 58 right, 6 wrong. 0.5: 55 right, 4 wrong. 0.6: 49 right, 2 wrong. | kept at 0.5 (balanced) |
+
+Notes:
+
+- The diet change goes the other way from loosening, because the data showed a wrong "vegetarian" claim
+  at the old setting and none at the new one with nothing lost. It applies to the four diet tags only;
+  cuisine, meal, effort and storage tags keep 0.5 and 0.8, since no gold set covers them.
+- The clean-page set is synthetic and its messy pages have obvious junk, so it cannot rank thresholds
+  below 0.5. Real imports are harder; treat 0.5 as untuned beyond "no regression".
+- Gold sets are small (tens of items). Differences of one item are noise; the changes above are the ones
+  where the whole curve points the same way.

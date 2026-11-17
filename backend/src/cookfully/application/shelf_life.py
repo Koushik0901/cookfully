@@ -18,7 +18,7 @@ from cookfully.application.decisions import build_decisions
 from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
 from cookfully.domain.expiry_lifespans import SHELF_LIFE_BUCKETS, needs_model_estimate
 
-MIN_PROBABILITY = Decimal("0.5")
+MIN_PROBABILITY = Decimal("0.3")
 INSTRUCTIONS = (
     "Roughly how long does this item usually keep once bought, stored the usual way (fridge for "
     "perishables, cupboard for dry goods)?"
@@ -49,7 +49,7 @@ def estimate_days(decisions: DecisionAsker, display_name: str) -> int | None:
     )
     top = answers.top("lifespan")
     probabilities = answers.choice("lifespan") or {}
-    if top is None or not answers.agree("lifespan"):
+    if top is None:
         return None
     if probabilities.get(top, Decimal(0)) < MIN_PROBABILITY:
         return None
@@ -59,7 +59,7 @@ def estimate_days(decisions: DecisionAsker, display_name: str) -> int | None:
 def model_expiry(
     session_factory: sessionmaker[Session], display_name: str, today: date
 ) -> date | None:
-    """An estimated expiry date, or ``None`` when the models give no agreed answer."""
+    """An estimated expiry date, or ``None`` when the models give no usable answer."""
 
     days = estimate_days(build_decisions(session_factory), display_name)
     return today + timedelta(days=days) if days is not None else None

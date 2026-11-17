@@ -21,6 +21,9 @@ from cookfully.domain.decisions import Answers
 
 SHOW_THRESHOLD = Decimal("0.5")
 CONFIDENT_THRESHOLD = Decimal("0.8")
+# Diet claims were measured on a hand-labeled set (docs/decision-model-experiments/app-eval.md).
+DIET_SHOW_THRESHOLD = Decimal("0.6")
+DIET_CONFIDENT_THRESHOLD = Decimal("0.7")
 
 DIETS: Mapping[str, str] = {
     "vegetarian": "Vegetarian: no meat, poultry, fish or seafood.",
@@ -103,7 +106,8 @@ class FacetTag:
 
     @property
     def confident(self) -> bool:
-        return self.probability >= CONFIDENT_THRESHOLD
+        cutoff = DIET_CONFIDENT_THRESHOLD if self.key in DIETS else CONFIDENT_THRESHOLD
+        return self.probability >= cutoff
 
 
 def interpret(answers: Answers, ingredient_lines: Sequence[str]) -> tuple[FacetTag, ...]:
@@ -113,7 +117,11 @@ def interpret(answers: Answers, ingredient_lines: Sequence[str]) -> tuple[FacetT
     contradicted = _contradicted_diets(ingredient_lines)
     for diet in DIETS:
         probability = answers.check(f"diet_{diet}")
-        if probability is not None and probability >= SHOW_THRESHOLD and diet not in contradicted:
+        if (
+            probability is not None
+            and probability >= DIET_SHOW_THRESHOLD
+            and diet not in contradicted
+        ):
             tags.append(FacetTag(diet, round(probability, 4)))
     for question, prefix in (("cuisine", "cuisine"), ("meal_type", "meal")):
         top = answers.top(question)

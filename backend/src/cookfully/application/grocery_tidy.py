@@ -29,9 +29,9 @@ AISLES: Mapping[str, str] = {
     "drinks": "Drinks",
     "other": "Anything else",
 }
-MERGE_THRESHOLD = Decimal("0.8")
+MERGE_THRESHOLD = Decimal("0.5")
 AISLE_THRESHOLD = Decimal("0.5")
-STAPLE_THRESHOLD = Decimal("0.7")
+STAPLE_THRESHOLD = Decimal("0.3")
 MAX_MERGE_OPTIONS = 40
 
 MERGE_INSTRUCTIONS = (

@@ -596,6 +596,264 @@ def report_match_labels(harness: Harness, usda_dir: Path) -> str:
     return "\n".join(out)
 
 
+# --- threshold sweeps on hand-labeled gold sets ------------------------------------------------------
+
+GOLD = ROOT / "docs/decision-model-experiments/gold"
+THRESHOLDS = [Decimal(x) for x in ("0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9")]
+
+
+def _gold(name: str) -> Any:
+    return json.loads((GOLD / f"{name}.json").read_text("utf-8"))
+
+
+def report_grocery_merge(harness: Harness) -> str:
+    from cookfully.application import grocery_tidy
+    from cookfully.application.grocery_tidy import synonym_map
+
+    lists = _gold("grocery_merge")["lists"]
+    engine = harness.engine(Purpose.GROCERY_TIDY, PANELS["jev+clef"])
+    expected_total = sum(len(item["merges"]) for item in lists)
+    out = [f"{len(lists)} shopping lists, {expected_total} true synonym pairs", ""]
+    out.append(f"{'threshold':>9} | {'right':>5} {'wrong':>5} {'missed':>6}")
+    original = grocery_tidy.MERGE_THRESHOLD
+    try:
+        for threshold in THRESHOLDS:
+            grocery_tidy.MERGE_THRESHOLD = threshold
+            right = wrong = 0
+            wrong_pairs = []
+            for item in lists:
+                expected = {frozenset(pair) for pair in item["merges"]}
+                got = {frozenset((a, b)) for a, b in synonym_map(engine, item["names"]).items()}
+                right += len(got & expected)
+                wrong += len(got - expected)
+                wrong_pairs += [" / ".join(sorted(pair)) for pair in got - expected]
+            out.append(f"{threshold:>9} | {right:>5} {wrong:>5} {expected_total - right:>6}"
+                       + (f"   wrong: {'; '.join(sorted(set(wrong_pairs)))}" if wrong_pairs else ""))
+    finally:
+        grocery_tidy.MERGE_THRESHOLD = original
+    return "\n".join(out)
+
+
+def report_grocery_labels(harness: Harness) -> str:
+    from cookfully.application.grocery_tidy import (
+        AISLE_INSTRUCTIONS, AISLES, STAPLE_INSTRUCTIONS,
+    )
+    from cookfully.domain.decisions import Ask, Check, Choice
+
+    gold = _gold("grocery_labels")
+    engine = harness.engine(Purpose.GROCERY_TIDY, PANELS["jev+clef"])
+    names = sorted({n for n, _ in gold["aisle"]} | {n for n, _ in gold["staple"]})
+    asks = [
+        Ask(
+            Purpose.GROCERY_TIDY,
+            {"grocery_item": name},
+            {
+                "aisle": Choice(AISLE_INSTRUCTIONS, AISLES),
+                "staple": Check(STAPLE_INSTRUCTIONS, "A staple most cooks have.", "Usually bought."),
+            },
+        )
+        for name in names
+    ]
+    answers = dict(zip(names, engine.ask(asks), strict=True))
+    out = [f"Aisle gold: {len(gold['aisle'])}; staple gold: {len(gold['staple'])}", "", "aisle (assign when top probability >= threshold):"]
+    out.append(f"{'threshold':>9} | {'assigned':>8} {'right':>5} {'wrong':>5} {'unassigned':>10}")
+    for threshold in THRESHOLDS:
+        right = wrong = none = 0
+        for name, aisle in gold["aisle"]:
+            a = answers[name]
+            top = a.top("aisle")
+            prob = (a.choice("aisle") or {}).get(top or "", Decimal(0))
+            if top is None or prob < threshold:
+                none += 1
+            elif top == aisle:
+                right += 1
+            else:
+                wrong += 1
+        out.append(f"{threshold:>9} | {right + wrong:>8} {right:>5} {wrong:>5} {none:>10}")
+    out += ["", "staple (marked when mean probability >= threshold):"]
+    out.append(f"{'threshold':>9} | {'yes right':>9} {'yes wrong':>9} {'staples missed':>14}")
+    for threshold in THRESHOLDS:
+        yes_right = yes_wrong = missed = 0
+        for name, is_staple in gold["staple"]:
+            value = answers[name].check("staple")
+            marked = value is not None and value >= threshold
+            if marked and is_staple:
+                yes_right += 1
+            elif marked:
+                yes_wrong += 1
+            elif is_staple:
+                missed += 1
+        out.append(f"{threshold:>9} | {yes_right:>9} {yes_wrong:>9} {missed:>14}")
+    return "\n".join(out)
+
+
+def report_shelf_life(harness: Harness) -> str:
+    from cookfully.application.shelf_life import INSTRUCTIONS
+    from cookfully.domain.decisions import Ask, Choice
+    from cookfully.domain.expiry_lifespans import SHELF_LIFE_BUCKETS
+
+    items = _gold("shelf_life")["items"]
+    engine = harness.engine(Purpose.SHELF_LIFE, PANELS["jev+clef"])
+    order = list(SHELF_LIFE_BUCKETS)
+    asks = [
+        Ask(
+            Purpose.SHELF_LIFE,
+            {"pantry_item": name},
+            {"lifespan": Choice(INSTRUCTIONS, {k: d for k, (_, d) in SHELF_LIFE_BUCKETS.items()})},
+        )
+        for name, _ in items
+    ]
+    answers = engine.ask(asks)
+    out = [f"{len(items)} pantry names", ""]
+    out.append(f"{'require agree':>13} {'min p':>6} | {'answered':>8} {'exact':>5} {'one off':>7} {'far':>4}")
+    for agree in (True, False):
+        for threshold in THRESHOLDS[:5]:
+            exact = near = far = given = 0
+            for (name, bucket), a in zip(items, answers, strict=True):
+                top = a.top("lifespan")
+                prob = (a.choice("lifespan") or {}).get(top or "", Decimal(0))
+                if top is None or prob < threshold or (agree and not a.agree("lifespan")):
+                    continue
+                given += 1
+                gap = abs(order.index(top) - order.index(bucket))
+                exact += gap == 0
+                near += gap == 1
+                far += gap >= 2
+            out.append(f"{str(agree):>13} {threshold:>6} | {given:>8} {exact:>5} {near:>7} {far:>4}")
+    return "\n".join(out)
+
+
+def report_diet(harness: Harness) -> str:
+    from cookfully.application.recipe_facets import facet_ask
+    from cookfully.domain.recipe_facets import DIETS, _contradicted_diets
+
+    recipes = _gold("diet")["recipes"]
+    engine = harness.engine(Purpose.RECIPE_FACETS, PANELS["jev+clef"])
+    answers = engine.ask([facet_ask(r["title"], r["lines"], []) for r in recipes])
+    out = [f"{len(recipes)} recipes x {len(DIETS)} diets = {len(recipes) * len(DIETS)} claims", ""]
+    out.append(f"{'aggregate':>9} {'show >=':>7} | {'shown right':>11} {'shown wrong':>11} {'missed':>6}")
+    for label, pick in (("mean", lambda a, k: a.check(k)), ("min", lambda a, k: _least(a, k))):
+        for threshold in THRESHOLDS[:6]:
+            right = wrong = missed = 0
+            wrong_items: list[str] = []
+            for recipe, a in zip(recipes, answers, strict=True):
+                contradicted = _contradicted_diets(recipe["lines"])
+                for diet in DIETS:
+                    value = pick(a, f"diet_{diet}")
+                    shown = value is not None and value >= threshold and diet not in contradicted
+                    truth = recipe[diet]
+                    if shown and truth:
+                        right += 1
+                    elif shown:
+                        wrong += 1
+                        wrong_items.append(f"{recipe['title']}:{diet}")
+                    elif truth:
+                        missed += 1
+            out.append(f"{label:>9} {threshold:>7} | {right:>11} {wrong:>11} {missed:>6}"
+                       + (f"   wrong: {'; '.join(wrong_items[:6])}" if wrong_items else ""))
+    return "\n".join(out)
+
+
+def _least(answers: Any, name: str) -> Decimal | None:
+    values = [m.checks[name] for m in answers.by_model.values() if name in m.checks]
+    return min(values) if values else None
+
+
+def report_clean_pages(harness: Harness) -> str:
+    pages = _gold("clean_pages")["pages"]
+    guard = _import_guard(harness, PANELS["jev+clef"])
+    scored = []
+    for page in pages:
+        result = guard.screen(page["title"], page["ingredients"], page["steps"])
+        value = result.evidence.get("clean")
+        scored.append((page, Decimal(value) if value else None))
+    out = [f"{len(pages)} pages ({sum(p['clean'] for p in pages)} clean)", ""]
+    out.append(f"{'clean >=':>8} | {'clean skipped':>13} {'messy skipped':>13} {'clean sent on':>13}")
+    for threshold in THRESHOLDS[:6]:
+        skipped_clean = skipped_messy = sent_clean = 0
+        for page, value in scored:
+            called_clean = value is not None and value >= threshold
+            if called_clean and page["clean"]:
+                skipped_clean += 1
+            elif called_clean:
+                skipped_messy += 1
+            elif page["clean"]:
+                sent_clean += 1
+        out.append(f"{threshold:>8} | {skipped_clean:>13} {skipped_messy:>13} {sent_clean:>13}")
+    out.append("")
+    out.append("messy skipped = a messy page wrongly skipping cleanup (the costly error).")
+    return "\n".join(out)
+
+
+def report_substitutions(harness: Harness) -> str:
+    from cookfully.application.substitutions import INSTRUCTIONS, TEXT_LIMIT
+    from cookfully.domain.decisions import Ask, Check
+    from cookfully.domain.substitutions import TABLE, table_key
+
+    cases = _gold("substitutions")["cases"]
+    engine = harness.engine(Purpose.SUBSTITUTIONS, PANELS["jev+clef"])
+    rows: list[tuple[str, bool, Any]] = []
+    asks = []
+    expected: list[tuple[str, bool]] = []
+    for case in cases:
+        key = table_key(case["line"])
+        candidates = TABLE[key] if key else ()
+        if len(candidates) != len(case["works"]):
+            raise SystemExit(f"gold mismatch for {case['line']!r}: table has {len(candidates)}")
+        for item, works in zip(candidates, case["works"], strict=True):
+            context = {
+                "recipe": case["recipe"],
+                "ingredients": "\n".join(case["ingredients"])[:TEXT_LIMIT],
+                "steps": "\n".join(case["steps"])[:TEXT_LIMIT],
+                "original_line": case["line"],
+            }
+            asks.append(
+                Ask(
+                    Purpose.SUBSTITUTIONS,
+                    {**context, "substitute": f"{item.name} ({item.amount})"},
+                    {"works": Check(INSTRUCTIONS, "Works well here.", "Would not work well here.")},
+                )
+            )
+            expected.append((f"{case['recipe']}: {item.name}", works))
+    answers = engine.ask(asks)
+    good = sum(works for _, works in expected)
+    out = [f"{len(expected)} swaps ({good} work, {len(expected) - good} do not)", ""]
+    out.append(f"{'show >=':>7} | {'shown right':>11} {'shown wrong':>11} {'hidden good':>11}")
+    for threshold in THRESHOLDS[:6]:
+        right = wrong = hidden = 0
+        wrong_items = []
+        for (label, works), a in zip(expected, answers, strict=True):
+            value = a.check("works")
+            shown = value is not None and value >= threshold
+            if shown and works:
+                right += 1
+            elif shown:
+                wrong += 1
+                wrong_items.append(label)
+            elif works:
+                hidden += 1
+        out.append(f"{threshold:>7} | {right:>11} {wrong:>11} {hidden:>11}"
+                   + (f"   wrong: {'; '.join(wrong_items[:5])}" if wrong_items else ""))
+    return "\n".join(out)
+
+
+def report_label_confidence(harness: Harness, usda_dir: Path) -> str:
+    from cookfully.domain import food_labels
+
+    out = []
+    original = food_labels.CONFIDENT
+    try:
+        for value in ("0.5", "0.6", "0.7", "0.8", "0.9"):
+            food_labels.CONFIDENT = Decimal(value)
+            body = report_match_labels(harness, usda_dir).splitlines()
+            summary = [line for line in body if "top candidate" in line][-1].strip()
+            matched = [line for line in body if "deterministic matched" in line][-1].strip()
+            out.append(f"label confidence >= {value}: {summary}; {matched}")
+    finally:
+        food_labels.CONFIDENT = original
+    return "\n".join(out)
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 Evaluator = Callable[[Harness, argparse.Namespace], str]
@@ -619,6 +877,13 @@ EVALUATORS: dict[str, Evaluator] = {
     "facets": lambda harness, _args: report_facets(harness),
     "food-labels": lambda harness, args: report_food_labels(harness, args.usda_dir),
     "match-labels": lambda harness, args: report_match_labels(harness, args.usda_dir),
+    "grocery-merge": lambda harness, _args: report_grocery_merge(harness),
+    "grocery-labels": lambda harness, _args: report_grocery_labels(harness),
+    "shelf-life": lambda harness, _args: report_shelf_life(harness),
+    "diet": lambda harness, _args: report_diet(harness),
+    "clean-pages": lambda harness, _args: report_clean_pages(harness),
+    "substitutions": lambda harness, _args: report_substitutions(harness),
+    "label-confidence": lambda harness, args: report_label_confidence(harness, args.usda_dir),
 }
 
 

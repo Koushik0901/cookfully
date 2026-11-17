@@ -1,0 +1,608 @@
+{
+ "note": "Hand-labeled from the ingredient lines (judgment calls: parmesan counts as vegetarian; soy sauce contains wheat; Worcestershire sauce contains anchovy).",
+ "recipes": [
+  {
+   "title": "Margherita pizza",
+   "lines": [
+    "1 pizza dough (wheat flour)",
+    "1/2 cup tomato sauce",
+    "8 oz fresh mozzarella",
+    "fresh basil",
+    "1 tbsp olive oil"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Chicken tikka masala",
+   "lines": [
+    "1.5 lb chicken thighs",
+    "1 cup yogurt",
+    "2 tbsp garam masala",
+    "1 cup tomato puree",
+    "1/2 cup heavy cream",
+    "1 onion",
+    "3 cloves garlic",
+    "1 tbsp ginger"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Vegan chili",
+   "lines": [
+    "1 can kidney beans",
+    "1 can black beans",
+    "1 can diced tomatoes",
+    "1 onion",
+    "1 bell pepper",
+    "2 tbsp chili powder",
+    "1 tsp cumin",
+    "2 cups vegetable broth"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Spaghetti carbonara",
+   "lines": [
+    "12 oz spaghetti",
+    "4 eggs",
+    "1 cup pecorino romano",
+    "6 oz guanciale",
+    "black pepper"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Greek salad",
+   "lines": [
+    "2 cucumbers",
+    "4 tomatoes",
+    "1 red onion",
+    "1/2 cup kalamata olives",
+    "6 oz feta",
+    "3 tbsp olive oil",
+    "1 tsp oregano"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Pad thai",
+   "lines": [
+    "8 oz rice noodles",
+    "1 lb shrimp",
+    "2 eggs",
+    "8 oz tofu",
+    "2 cups bean sprouts",
+    "1/2 cup peanuts",
+    "3 tbsp fish sauce",
+    "2 tbsp tamarind paste",
+    "1 lime"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Beef tacos",
+   "lines": [
+    "1 lb ground beef",
+    "8 corn tortillas",
+    "1 cup shredded cheddar",
+    "lettuce",
+    "salsa",
+    "1/2 cup sour cream"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Lentil soup",
+   "lines": [
+    "1 cup red lentils",
+    "2 carrots",
+    "2 celery stalks",
+    "1 onion",
+    "3 cloves garlic",
+    "1 tsp cumin",
+    "6 cups vegetable stock",
+    "1 lemon"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Banana pancakes",
+   "lines": [
+    "2 cups all-purpose flour",
+    "2 bananas",
+    "1.5 cups milk",
+    "1 egg",
+    "2 tsp baking powder",
+    "3 tbsp butter"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Hummus",
+   "lines": [
+    "1 can chickpeas",
+    "1/4 cup tahini",
+    "3 tbsp lemon juice",
+    "2 cloves garlic",
+    "2 tbsp olive oil",
+    "salt"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Caesar salad",
+   "lines": [
+    "2 heads romaine",
+    "1/2 cup parmesan",
+    "6 anchovy fillets",
+    "2 cups bread croutons",
+    "1 lemon",
+    "3 tbsp olive oil"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Mushroom risotto",
+   "lines": [
+    "1.5 cups arborio rice",
+    "1 lb mushrooms",
+    "5 cups vegetable stock",
+    "1/2 cup white wine",
+    "1/2 cup parmesan",
+    "3 tbsp butter",
+    "1 onion"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Salmon with asparagus",
+   "lines": [
+    "4 salmon fillets",
+    "1 bunch asparagus",
+    "1 lemon",
+    "2 tbsp olive oil",
+    "3 cloves garlic"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Chia pudding",
+   "lines": [
+    "1/2 cup chia seeds",
+    "2 cups coconut milk",
+    "2 tbsp maple syrup",
+    "1 cup strawberries"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "French toast",
+   "lines": [
+    "8 slices bread",
+    "4 eggs",
+    "1 cup milk",
+    "1 tsp cinnamon",
+    "2 tbsp butter",
+    "maple syrup"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Chicken noodle soup",
+   "lines": [
+    "2 chicken breasts",
+    "8 oz egg noodles",
+    "3 carrots",
+    "3 celery stalks",
+    "1 onion",
+    "8 cups chicken broth"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Tofu stir fry",
+   "lines": [
+    "14 oz firm tofu",
+    "2 cups broccoli",
+    "3 tbsp soy sauce",
+    "1 tbsp ginger",
+    "3 cloves garlic",
+    "1 tbsp sesame oil",
+    "2 cups cooked rice"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Loaded baked potatoes",
+   "lines": [
+    "4 russet potatoes",
+    "1/2 cup sour cream",
+    "chives",
+    "2 tbsp butter",
+    "1 cup shredded cheddar"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Beef stew",
+   "lines": [
+    "2 lb beef chuck",
+    "4 potatoes",
+    "3 carrots",
+    "1 onion",
+    "4 cups beef broth",
+    "3 tbsp all-purpose flour",
+    "1 cup red wine",
+    "thyme"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Pork ramen",
+   "lines": [
+    "4 portions ramen noodles",
+    "8 oz pork belly",
+    "4 soft-boiled eggs",
+    "4 scallions",
+    "3 tbsp soy sauce",
+    "2 tbsp miso paste"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Guacamole",
+   "lines": [
+    "3 avocados",
+    "2 limes",
+    "1/4 cup cilantro",
+    "1/2 onion",
+    "1 jalapeno",
+    "salt"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Cheese quesadillas",
+   "lines": [
+    "4 flour tortillas",
+    "2 cups shredded cheddar",
+    "1 cup monterey jack",
+    "1/2 cup salsa"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Shakshuka",
+   "lines": [
+    "6 eggs",
+    "1 can crushed tomatoes",
+    "1 bell pepper",
+    "1 onion",
+    "1 tsp cumin",
+    "1 tsp paprika",
+    "1/2 cup feta"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Pasta primavera",
+   "lines": [
+    "12 oz penne",
+    "2 zucchini",
+    "1 cup cherry tomatoes",
+    "3 cloves garlic",
+    "3 tbsp olive oil",
+    "fresh basil"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Almond flour brownies",
+   "lines": [
+    "1 cup almond flour",
+    "1/2 cup cocoa powder",
+    "3 eggs",
+    "1/2 cup butter",
+    "3/4 cup sugar",
+    "4 oz dark chocolate"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Pork chops with apples",
+   "lines": [
+    "4 pork chops",
+    "2 apples",
+    "1 onion",
+    "1/2 cup apple cider",
+    "thyme",
+    "2 tbsp olive oil"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Pesto pasta",
+   "lines": [
+    "12 oz spaghetti",
+    "2 cups basil",
+    "1/3 cup pine nuts",
+    "1/2 cup parmesan",
+    "2 cloves garlic",
+    "1/2 cup olive oil"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Chickpea coconut curry",
+   "lines": [
+    "2 cans chickpeas",
+    "1 can coconut milk",
+    "4 cups spinach",
+    "1 onion",
+    "3 cloves garlic",
+    "2 tbsp curry powder",
+    "2 cups cooked rice"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Salmon sushi bowl",
+   "lines": [
+    "2 cups sushi rice",
+    "8 oz raw salmon",
+    "1 cucumber",
+    "1 avocado",
+    "2 sheets nori",
+    "2 tbsp rice vinegar",
+    "3 tbsp soy sauce"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Waffles",
+   "lines": [
+    "2 cups all-purpose flour",
+    "1.75 cups milk",
+    "2 eggs",
+    "1/2 cup butter",
+    "1 tbsp baking powder",
+    "2 tbsp sugar"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Egg fried rice",
+   "lines": [
+    "3 cups cooked rice",
+    "3 eggs",
+    "1 cup peas",
+    "2 carrots",
+    "3 tbsp soy sauce",
+    "1 tbsp sesame oil"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Black bean burrito bowl",
+   "lines": [
+    "1 can black beans",
+    "2 cups cooked rice",
+    "1 cup corn",
+    "1/2 cup salsa",
+    "1 avocado",
+    "1 lime"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Honey glazed carrots",
+   "lines": [
+    "1 lb carrots",
+    "3 tbsp honey",
+    "2 tbsp butter",
+    "thyme"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  },
+  {
+   "title": "Welsh rarebit",
+   "lines": [
+    "4 slices bread",
+    "2 cups shredded cheddar",
+    "2 tsp Worcestershire sauce",
+    "1/2 cup beer",
+    "1 tsp mustard"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Minestrone",
+   "lines": [
+    "1 can cannellini beans",
+    "1 cup small pasta",
+    "2 zucchini",
+    "2 carrots",
+    "2 celery stalks",
+    "1 can tomatoes",
+    "6 cups vegetable broth",
+    "parmesan rind"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Roasted cauliflower",
+   "lines": [
+    "1 head cauliflower",
+    "3 tbsp olive oil",
+    "1 tsp cumin",
+    "1 lemon",
+    "2 tbsp tahini"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Cheeseburgers",
+   "lines": [
+    "1 lb ground beef",
+    "4 hamburger buns",
+    "4 slices cheddar",
+    "lettuce",
+    "1 tomato"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": false,
+   "dairy_free": false
+  },
+  {
+   "title": "Ceviche",
+   "lines": [
+    "1 lb white fish",
+    "1/2 cup lime juice",
+    "1 red onion",
+    "cilantro",
+    "1 jalapeno"
+   ],
+   "vegetarian": false,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": true
+  },
+  {
+   "title": "Peanut noodles",
+   "lines": [
+    "8 oz rice noodles",
+    "1/3 cup peanut butter",
+    "3 tbsp soy sauce",
+    "1 lime",
+    "1 tbsp sesame oil"
+   ],
+   "vegetarian": true,
+   "vegan": true,
+   "gluten_free": false,
+   "dairy_free": true
+  },
+  {
+   "title": "Tzatziki",
+   "lines": [
+    "2 cups greek yogurt",
+    "1 cucumber",
+    "2 cloves garlic",
+    "fresh dill",
+    "1 tbsp olive oil"
+   ],
+   "vegetarian": true,
+   "vegan": false,
+   "gluten_free": true,
+   "dairy_free": false
+  }
+ ]
+}
