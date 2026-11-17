@@ -71,3 +71,17 @@ Compared with the deterministic matcher alone on these 140 lines: 38 more lines 
 person, none of them wrong; 4 of the 7 wrong confident matches are caught, at the cost of 2 correct
 matches sent to review. Lines left for a person: 58 of 140 (deterministic alone: 90 not matched, plus 7
 wrong matches nobody looks at). Cumulative cache cost for both evaluators: $0.017.
+
+### Prep state (#49, 2026-11-17)
+
+The referee also asks, in a separate request, what state the line implies (raw, cooked, canned,
+unspecified). A confident (mean at least 0.8), agreed state that contradicts the food's USDA state
+(for example a cooked line on a raw-rice entry) sends the line to review with a fitting candidate first,
+or holds back an upgrade. Asking it in the same request as the match question shifted the match answers
+(35 resolved instead of 38, 3 caught instead of 4), so it is asked separately.
+
+On the 140 gold lines the state check changed no outcome: the numbers above are unchanged with it on.
+The corpus lines that name a cooked or prepared form already say so in the text, which the
+deterministic matcher's semantic filter catches before the referee runs. The check is there for implied
+states ("leftover rice", "2 cups rice, prepared"), which this gold set does not contain, so its benefit
+is not yet measured. Extra cost: one request per line per model.

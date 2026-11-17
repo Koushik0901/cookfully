@@ -21,7 +21,13 @@ from cookfully.domain.decision_assist import (
 )
 from cookfully.domain.decisions import Answers, Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate, MatchDecision
-from cookfully.domain.match_referee import RefereeAction, judge, switch_impact_dv
+from cookfully.domain.match_referee import (
+    RefereeAction,
+    RefereeVerdict,
+    check_state,
+    judge,
+    switch_impact_dv,
+)
 from cookfully.infrastructure.decision_client import ScriptedDecisionTransport
 from cookfully.infrastructure.decision_store import InMemoryDecisionStore
 
@@ -217,6 +223,72 @@ def test_switch_impact_is_the_largest_nutrient_change_as_share_of_daily_value() 
     assert switch_impact_dv([BUTTER, LIME], "c3", "c4", None) is None
 
 
+# --- prep state ---------------------------------------------------------------------------------
+
+DRY_RICE = AssistOption("c1", _nutrients(calories_kcal="365", carbohydrate_g="80"))
+COOKED_RICE = AssistOption("c2", _nutrients(calories_kcal="130", carbohydrate_g="28"))
+RICE_STATES = {"c1": "raw", "c2": "cooked"}
+COOKED = {"cooked": D("0.9"), "raw": D("0.05"), "unspecified": D("0.05")}
+CONFIRMED = RefereeVerdict(RefereeAction.CONFIRM, "panel_agrees", "c1", D("0.9"), None)
+
+
+def _state(verdict: RefereeVerdict, line_state: Any, **kwargs: Any) -> RefereeVerdict:
+    defaults: dict[str, Any] = {
+        "current": "c1",
+        "grams": D(180),
+        "tolerance_dv": TOL,
+        "agreed": True,
+    }
+    return check_state(
+        verdict, [DRY_RICE, COOKED_RICE], RICE_STATES, line_state, **(defaults | kwargs)
+    )
+
+
+def test_cooked_line_matched_to_dry_food_goes_to_review_with_the_cooked_food_first() -> None:
+    verdict = _state(CONFIRMED, COOKED)
+    assert verdict.action is RefereeAction.DOWNGRADE
+    assert verdict.reason == "state_mismatch"
+    assert verdict.pick == "c2"
+
+
+def test_state_check_needs_a_confident_agreed_state() -> None:
+    unsure = {"cooked": D("0.6"), "raw": D("0.4")}
+    assert _state(CONFIRMED, unsure) is CONFIRMED
+    assert _state(CONFIRMED, COOKED, agreed=False) is CONFIRMED
+    assert _state(CONFIRMED, None) is CONFIRMED
+    assert _state(CONFIRMED, {"unspecified": D("0.95")}) is CONFIRMED
+
+
+def test_matching_state_or_harmless_switch_is_left_alone() -> None:
+    assert _state(CONFIRMED, COOKED, current="c2") is CONFIRMED
+    assert _state(CONFIRMED, COOKED, grams=D(1)) is CONFIRMED
+
+
+def test_contradicting_upgrade_is_held_back() -> None:
+    upgrade = RefereeVerdict(
+        RefereeAction.UPGRADE, "expected_error_within_tolerance", "c1", D(1), None
+    )
+    verdict = _state(upgrade, COOKED, current=None)
+    assert verdict.action is RefereeAction.KEEP
+    assert verdict.reason == "state_mismatch"
+    assert verdict.pick == "c2"
+
+
+def test_contradiction_without_a_fitting_food_still_goes_to_review() -> None:
+    verdict = check_state(
+        CONFIRMED,
+        [DRY_RICE],
+        {"c1": "raw"},
+        COOKED,
+        current="c1",
+        grams=D(180),
+        tolerance_dv=TOL,
+        agreed=True,
+    )
+    assert verdict.action is RefereeAction.DOWNGRADE
+    assert verdict.reason == "state_mismatch_no_fitting_food"
+
+
 # --- referee service ----------------------------------------------------------------------------
 
 
@@ -244,8 +316,13 @@ PANEL = ("m1", "m2")
 class _Panel:
     """Answers the match question through the real engine with a scripted transport."""
 
-    def __init__(self, answers: dict[str, dict[str, float] | None]) -> None:
+    def __init__(
+        self,
+        answers: dict[str, dict[str, float] | None],
+        line_state: dict[str, float] | None = None,
+    ) -> None:
         self.answers = answers
+        self.line_state = line_state
         self.calls: list[dict[str, Any]] = []
         self._engine = Decisions(
             DecisionsConfig(
@@ -257,10 +334,15 @@ class _Panel:
         )
 
     def _respond(self, model: str, state: Any, questions: Any) -> object:
+        answer = self.answers[model]
+        if "state" in questions:
+            if answer is None:
+                return None
+            line_state = self.line_state or {"unspecified": 1.0}
+            return {"state": {"type": "choice", "probabilities": line_state}}
         self.calls.append(
             {"model": model, "state": dict(state), "criteria": dict(questions["match"]["criteria"])}
         )
-        answer = self.answers[model]
         if answer is None:
             return None
         return {"match": {"type": "choice", "probabilities": answer}}
@@ -370,6 +452,25 @@ def test_uncertain_large_amount_stays_in_review() -> None:
     judgement = referee.judge(BUTTER_LINE, original)
     assert judgement.decision is original
     assert judgement.evidence is not None and judgement.evidence["action"] == "keep"
+
+
+def test_cooked_line_matched_to_dry_rice_is_sent_to_review_by_the_service() -> None:
+    dry = _food("Rice, white, long-grain, regular, raw, enriched", **{"208": "365", "205": "80"})
+    cooked = _food("Rice, white, long-grain, regular, cooked", **{"208": "130", "205": "28"})
+    panel = _Panel({"m1": {"c1": 0.9, "c2": 0.1}}, line_state={"cooked": 0.95, "raw": 0.05})
+    referee = MatchReferee(panel, panel=("m1",), tolerance_dv=TOL)
+    judgement = referee.judge(
+        RefereeLine("2 cups leftover rice", "rice", "Fried rice", D(316)),
+        MatchDecision("matched", "ranked", _candidate(dry), (_candidate(cooked),)),
+    )
+    assert judgement.decision.status == "ambiguous"
+    assert judgement.decision.alternatives[0].food is cooked
+    evidence = judgement.evidence
+    assert evidence is not None
+    assert evidence["reason"] == "state_mismatch"
+    line_state = cast(dict[str, str], evidence["lineState"])
+    assert line_state["state"] == "cooked"
+    assert D(line_state["probability"]) == D("0.95")
 
 
 def test_options_sent_to_the_panel_are_limited() -> None:

@@ -16,8 +16,15 @@ from typing import Protocol
 
 from cookfully.domain.decision_assist import NONE_KEY, TRACKED_DAILY_VALUES, AssistOption
 from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
+from cookfully.domain.food_semantics import profile_from_text
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate, MatchDecision
-from cookfully.domain.match_referee import RefereeAction, RefereeVerdict, judge
+from cookfully.domain.match_referee import (
+    LINE_STATES,
+    RefereeAction,
+    RefereeVerdict,
+    check_state,
+    judge,
+)
 from cookfully.domain.nutrition import CORE_NUTRIENT_CODES, USDA_MICRONUTRIENT_MANIFEST
 from cookfully.infrastructure.models.reference_foods import FoodReference
 
@@ -28,10 +35,14 @@ MATCH_INSTRUCTIONS = (
     "plain generic entries over flavored, processed, branded or different-part variants. "
     "Answer none if no entry is an acceptable match or the line is not a food ingredient."
 )
+STATE_INSTRUCTIONS = (
+    "In what state is this ingredient when it is measured for the recipe, as written or clearly "
+    "implied by the line and the recipe?"
+)
 NONE_CRITERION = (
     "None of the listed entries is an acceptable match, or this line is not a food ingredient."
 )
-PROVENANCE_VERSION = "match-referee-v1"
+PROVENANCE_VERSION = "match-referee-v2"
 METHOD = "decision_referee"
 DEFAULT_MAX_OPTIONS = 12
 
@@ -87,9 +98,15 @@ class MatchReferee:
             "ingredient_line": line.original_text,
             "parsed_food_name": line.food_name,
         }
-        answers = self._decisions.ask(
-            [Ask(Purpose.MATCH_REFEREE, state, {"match": Choice(MATCH_INSTRUCTIONS, criteria)})]
-        )[0]
+        # Separate requests: asking both questions at once shifted the match answers (measured).
+        answers, state_answers = self._decisions.ask(
+            [
+                Ask(Purpose.MATCH_REFEREE, state, {"match": Choice(MATCH_INSTRUCTIONS, criteria)}),
+                Ask(
+                    Purpose.MATCH_REFEREE, state, {"state": Choice(STATE_INSTRUCTIONS, LINE_STATES)}
+                ),
+            ]
+        )
         models = [
             model
             for model in (*self._panel, *answers.by_model)
@@ -106,7 +123,20 @@ class MatchReferee:
         verdict = judge(
             options, panel, current=current, grams=line.grams, tolerance_dv=self._tolerance
         )
-        evidence = self._evidence(verdict, keys, models, answers)
+        verdict = check_state(
+            verdict,
+            options,
+            {
+                key: profile_from_text(candidate.food.description).state
+                for key, candidate in keys.items()
+            },
+            state_answers.choice("state"),
+            current=current,
+            grams=line.grams,
+            tolerance_dv=self._tolerance,
+            agreed=state_answers.agree("state"),
+        )
+        evidence = self._evidence(verdict, keys, models, answers, state_answers)
         picked = keys.get(verdict.pick) if verdict.pick else None
         others = tuple(candidate for candidate in shortlist if candidate is not picked)
         if verdict.action is RefereeAction.UPGRADE and picked is not None:
@@ -124,8 +154,11 @@ class MatchReferee:
         keys: Mapping[str, FoodCandidate],
         models: Sequence[str],
         answers: Answers,
+        state_answers: Answers,
     ) -> dict[str, object]:
         mean = answers.choice("match") or {}
+        line_state = state_answers.choice("state") or {}
+        top_state = max(sorted(line_state), key=lambda key: line_state[key]) if line_state else None
         picked = keys.get(verdict.pick) if verdict.pick else None
         return {
             "kind": "match_referee",
@@ -145,6 +178,11 @@ class MatchReferee:
                 else None
             ),
             "noneProbability": str(round(mean.get(NONE_KEY, Decimal(0)), 4)),
+            "lineState": (
+                {"state": top_state, "probability": str(round(line_state[top_state], 4))}
+                if top_state
+                else None
+            ),
             "probabilities": [
                 {
                     "foodReferenceId": str(keys[key].food.id),

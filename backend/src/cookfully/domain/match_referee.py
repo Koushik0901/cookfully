@@ -141,3 +141,75 @@ def _verdict(
     impact: Decimal | None = None,
 ) -> RefereeVerdict:
     return RefereeVerdict(action, reason, pick, probability, impact)
+
+
+# --- prep state ---------------------------------------------------------------------------------
+
+LINE_STATES: Mapping[str, str] = {
+    "raw": "Raw, fresh or uncooked as bought (including dry grains, pasta and dried beans).",
+    "cooked": "Already cooked when measured (boiled, steamed, baked, roasted, fried or prepared).",
+    "canned": "Canned or jarred, drained or with its liquid.",
+    "unspecified": "The line does not say or imply a state, or the state does not matter.",
+}
+
+# Food states (from USDA descriptions, see ``food_semantics``) that fit each line state.
+_FITS: Mapping[str, frozenset[str | None]] = {
+    "raw": frozenset({"raw", "dried", "frozen", None}),
+    "cooked": frozenset({"cooked", "roasted", "fried", "canned"}),
+    "canned": frozenset({"canned"}),
+}
+# Food states that clearly contradict each line state. Anything else is left alone.
+_CONTRADICTS: Mapping[str, frozenset[str]] = {
+    "raw": frozenset({"cooked", "roasted", "fried"}),
+    "cooked": frozenset({"raw"}),
+    "canned": frozenset({"raw", "cooked"}),
+}
+
+
+def check_state(
+    verdict: RefereeVerdict,
+    options: Sequence[AssistOption],
+    food_states: Mapping[str, str | None],
+    line_state: Mapping[str, Decimal] | None,
+    *,
+    current: str | None,
+    grams: Decimal | None,
+    tolerance_dv: Decimal,
+    agreed: bool,
+    min_probability: Decimal = Decimal("0.8"),
+) -> RefereeVerdict:
+    """Revise a verdict when the line's implied state contradicts the food that would be used.
+
+    ``line_state`` is the panel's mean distribution over ``LINE_STATES``; ``agreed`` says whether
+    every model picked the same state. Only a confident, agreed state acts. A contradicting food
+    that would be applied (a confirmed match or an upgrade) goes to review, with a candidate whose
+    state fits listed first when switching to it would change the nutrition.
+    """
+
+    if not line_state or not agreed:
+        return verdict
+    state = max(sorted(line_state), key=lambda key: line_state[key])
+    if state not in _CONTRADICTS or line_state[state] < min_probability:
+        return verdict
+    applied = current if verdict.action is RefereeAction.CONFIRM else None
+    if verdict.action is RefereeAction.UPGRADE:
+        applied = verdict.pick
+    if applied is None or food_states.get(applied) not in _CONTRADICTS[state]:
+        return verdict
+    fitting = [
+        option.key
+        for option in options
+        if option.key != applied and food_states.get(option.key) in _FITS[state]
+    ]
+    if verdict.action is RefereeAction.UPGRADE:
+        return _verdict(
+            RefereeAction.KEEP, "state_mismatch", fitting[0] if fitting else None, _ZERO
+        )
+    if not fitting:
+        return _verdict(RefereeAction.DOWNGRADE, "state_mismatch_no_fitting_food", None, _ZERO)
+    impact = switch_impact_dv(options, applied, fitting[0], grams)
+    if impact is not None and impact <= tolerance_dv:
+        return verdict
+    return _verdict(
+        RefereeAction.DOWNGRADE, "state_mismatch", fitting[0], line_state[state], impact
+    )
