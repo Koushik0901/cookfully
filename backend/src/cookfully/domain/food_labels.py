@@ -58,22 +58,27 @@ class FoodLabels:
 
     @classmethod
     def from_json(cls, payload: Mapping[str, Any]) -> FoodLabels:
+        """Read stored labels, ignoring anything that is not a finite probability in [0, 1]."""
+
+        def probability(value: object) -> Decimal | None:
+            if isinstance(value, bool) or not isinstance(value, int | float | str | Decimal):
+                return None
+            try:
+                number = Decimal(str(value))
+            except InvalidOperation:
+                return None
+            return number if number.is_finite() and Decimal(0) <= number <= Decimal(1) else None
+
         def pair(key: str) -> tuple[str | None, Decimal]:
             value = payload.get(key)
-            if not isinstance(value, list) or len(value) != 2:
+            if not isinstance(value, list) or len(value) != 2 or not isinstance(value[0], str):
                 return None, Decimal(0)
-            try:
-                return str(value[0]), Decimal(str(value[1]))
-            except InvalidOperation:
-                return None, Decimal(0)
+            parsed = probability(value[1])
+            return (value[0], parsed) if parsed is not None else (None, Decimal(0))
 
         state, state_p = pair("state")
         kind, kind_p = pair("kind")
-        try:
-            flavored = Decimal(str(payload["flavored"])) if "flavored" in payload else None
-        except InvalidOperation:
-            flavored = None
-        return cls(state, state_p, kind, kind_p, flavored)
+        return cls(state, state_p, kind, kind_p, probability(payload.get("flavored")))
 
 
 def label_penalty(food_name: str, labels: FoodLabels | None) -> Decimal:
