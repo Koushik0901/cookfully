@@ -57,8 +57,11 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
     if (item.needsExpiryDate) setShowExpirySheet(true);
   }, [item.needsExpiryDate]);
   const badge = item.expiresOn ? expiryBadge(item.expiresOn, today) : null;
+  // A second click can land before the disabled state renders, so guard synchronously too.
+  const keepSeparateInFlight = useRef(false);
   const keepSeparate = useMutation({
     mutationFn: () => groceryApi.keepSeparate(item.id),
+    onSettled: () => { keepSeparateInFlight.current = false; },
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["grocery-list", weekStart] }); },
   });
   const update = useMutation({
@@ -91,7 +94,7 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
       void refresh();
     },
   });
-  const error = update.error ?? remove.error;
+  const error = update.error ?? remove.error ?? keepSeparate.error;
   const conflict = error instanceof ApiProblem && error.status === 409;
   const sourceMeals = Array.from(new Map(item.sources
     .map((source) => sourceMealsByEntry.get(source.mealPlanEntryId))
@@ -119,7 +122,7 @@ export function GroceryRow({ item, weekStart, stops, readOnly, sourceMealsByEntr
       ? <p className="grocery-item__uses"><span>For</span>{sourceMeals.map((meal) => meal.recipeId ? <Link key={`${meal.recipeId}-${meal.recipeTitle}`} to={`/app/recipes/${meal.recipeId}`}>{meal.recipeTitle}</Link> : <span key={meal.recipeTitle}>{meal.recipeTitle}</span>)}</p>
       : item.sources.length ? <p className="grocery-item__uses"><span>For planned meals</span></p> : <p className="grocery-item__uses"><span>Added by you</span></p>}
     {item.needsReview ? <span className="review-badge grocery-item__review" title="Check this item's quantity or recipe sources">Check item</span> : null}
-    <GroceryTidyLine item={item} title={title} readOnly={readOnly} busy={update.isPending} onStaple={(likelyStaple) => update.mutate({ likelyStaple })} onKeepSeparate={() => keepSeparate.mutate()} />
+    <GroceryTidyLine item={item} title={title} readOnly={readOnly} busy={update.isPending || keepSeparate.isPending} onStaple={(likelyStaple) => update.mutate({ likelyStaple })} onKeepSeparate={() => { if (keepSeparateInFlight.current) return; keepSeparateInFlight.current = true; keepSeparate.mutate(); }} />
   </>;
   const checkbox = <label className="grocery-check"><Checkbox aria-label={`${title} purchased`} checked={checked} disabled={readOnly || update.isPending || remove.isPending} onCheckedChange={checkOff} /></label>;
   const icon = <span className="grocery-item__icon"><FoodCategoryIcon name={title} size={isMobile ? "compact" : "row"} /></span>;
