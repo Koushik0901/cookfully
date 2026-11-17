@@ -292,3 +292,12 @@ stove", "call mom"). Jev + Clef top-1 was right on 56/57. The one miss, "what do
 answered next at 0.51), is genuinely ambiguous. Acting threshold sweep: at 0.3-0.5 one wrong action; at 0.6
 and above none, with only that ambiguous line and one other asked. The app acts at 0.6: the extra
 confirmation lands only on ambiguous lines, and clear commands are unaffected.
+
+## Model-assisted labeling (#23, 2026-11-17)
+
+`label_assist.py` asks the Jev + Clef panel the same question as the gold label and writes a Markdown review
+sheet of only the items worth a human's time: the panel disagrees with the label, the two models disagree
+with each other, or the top probability is under 0.6. It never edits a gold file. Dogfooded on our own gold
+sets: `cook-commands` 54/57 confirmed, 3 flagged ("what do I do now", a genuinely ambiguous one, and two
+low-agreement items); `shelf-life` 26/30 confirmed, 4 flagged (cottage cheese, parmesan, carrots, apples,
+all debatable lifespans). Custom tasks use a small JSON file (see the script's docstring).

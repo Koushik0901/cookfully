@@ -88,7 +88,7 @@ That is a measurement from our own runs, not a price list; re-check before budge
 
 | # | Use case | Primitive | Evidence |
 |---|---|---|---|
-| 23 | **Model-assisted labeling.** The research gold labels were made by an LLM. A second model pre-screens so a human only reviews disagreements. | `choice` | Pattern |
+| 23 | **Model-assisted labeling.** The research gold labels were made by an LLM. A second model pre-screens so a human only reviews disagreements. | `choice` | Built (`scripts/decision-model-eval/label_assist.py`) |
 
 ## Suggested order
 
