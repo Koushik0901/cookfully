@@ -14,6 +14,10 @@ import { recipeTimeLabel } from "./recipeMetadataUtils";
 import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail, RecipePage } from "./types";
+import { formatProbability, modelPick, reviewOrder, reviewSummary } from "./matchReview";
+import { AvoidNotice } from "./AvoidNotice";
+import { FacetChips } from "./FacetChips";
+import { SubstituteDisclosure } from "./SubstituteDisclosure";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -153,7 +157,7 @@ export function RecipeDetailPage() {
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: ["recipe", recipeId], exact: true });
       void queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      navigate("/app/recipes", { replace: true });
+      void navigate("/app/recipes", { replace: true });
     },
   });
 
@@ -236,6 +240,7 @@ export function RecipeDetailPage() {
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
            </div>
+           <FacetChips facets={recipe.facets} />
            <span className={`recipe-hero__nutrition-state nutrition-state nutrition-state--${nutritionStatePresentation.key}`} title={nutritionStatePresentation.description}>{nutritionStatePresentation.label}</span>
            <p className="recipe-provenance"><strong>{originLabel[recipe.originKind] ?? "Recipe"}</strong>{recipe.sourceUrl ? <> · <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">View original source</a></> : <> · No external source</>}</p>
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}
@@ -288,6 +293,7 @@ export function RecipeDetailPage() {
               </div>
             </>}
           />
+          <AvoidNotice recipe={recipe} />
           {recipe.ingredients.length ? (
             <ul className="ingredient-list">
               {orderedSections.map((section) => (
@@ -300,7 +306,7 @@ export function RecipeDetailPage() {
                       const friendlyIngredient = scaleFactor !== 1 && scaledMin
                         ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                         : formatCookingText(item.originalText);
-                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
                     })}
                   </ul>
                 </li>
@@ -311,7 +317,7 @@ export function RecipeDetailPage() {
                 const friendlyIngredient = scaleFactor !== 1 && scaledMin
                   ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                   : formatCookingText(item.originalText);
-                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
               })}
             </ul>
           ) : <p className="muted">No ingredients were provided.</p>}
@@ -348,7 +354,7 @@ export function RecipeDetailPage() {
         {ingredientReviewCount ? (
           <section className="ingredient-evidence--inline" style={{ borderTop: 0 }}>
             <div><strong>{ingredientReviewCount} food match{ingredientReviewCount === 1 ? "" : "es"} {ingredientReviewCount === 1 ? "needs" : "need"} review</strong><small style={{ display: "block", color: "var(--color-on-surface-variant)", marginTop: "0.15rem" }}>The recipe is still usable. Review these when you want a more specific estimate.</small></div>
-             <div className="ingredient-evidence__list">{recipe.ingredients.filter((item) => item.matchStatus === "ambiguous" || item.matchStatus === "unmatched" || item.resolutionKind === "provisional").map((item) => <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{item.resolutionKind === "provisional" ? `Estimated from ${item.candidateEvidence?.length ?? 0} possible foods` : item.matchStatus === "ambiguous" ? "Several possible foods" : "No food selected yet"}</small></article>)}</div>
+             <div className="ingredient-evidence__list">{reviewOrder(recipe.ingredients).map((item) => { const pick = modelPick(item); return <article key={item.id}><strong>{formatCookingText(item.originalText)}</strong><small>{pick ? `Model pick: ${pick.description} (${formatProbability(pick.probability)})` : reviewSummary(item)}</small></article>; })}</div>
             <Button variant="secondary" asChild><Link to={`/app/recipes/${recipe.id}/edit#ingredient-matches`}>Review matches in editor</Link></Button>
           </section>
         ) : null}

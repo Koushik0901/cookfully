@@ -21,7 +21,7 @@ export function OwnerFoodsPage() {
     mutationFn: ({ id, version }: { id: string; version: number }) =>
       foodsApi.deleteUserFood(id, version),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["owner-foods"] });
+      void queryClient.invalidateQueries({ queryKey: ["owner-foods"] });
       void invalidateFoodChoiceQueries(queryClient);
     },
   });
@@ -34,7 +34,7 @@ export function OwnerFoodsPage() {
       </main>
     );
   }
-  if (list.isError) return <PageState><ErrorRecovery title="Could not load your foods" onRetry={() => list.refetch()} /></PageState>;
+  if (list.isError) return <PageState><ErrorRecovery title="Could not load your foods" onRetry={() => void list.refetch()} /></PageState>;
 
   const foods = list.data ?? [];
 
@@ -48,7 +48,7 @@ export function OwnerFoodsPage() {
           <CreateFoodDialog
             ingredientName=""
             trigger={<Button>New food</Button>}
-            onCreated={() => queryClient.invalidateQueries({ queryKey: ["owner-foods"] })}
+            onCreated={() => void queryClient.invalidateQueries({ queryKey: ["owner-foods"] })}
           />
         }
       />
@@ -82,7 +82,7 @@ export function OwnerFoodsPage() {
                   ? `Nothing matches “${search}”. Try a product or brand name.`
                   : "Packaged staples are a good place to start—protein powder, yogurt, bread, sauces, or anything whose label you want Cookfully to remember."
               }
-              action={search ? <Button variant="secondary" onClick={() => setSearch("")}>Clear search</Button> : <CreateFoodDialog ingredientName="" trigger={<Button>Add a food from a label</Button>} onCreated={() => queryClient.invalidateQueries({ queryKey: ["owner-foods"] })} />}
+              action={search ? <Button variant="secondary" onClick={() => setSearch("")}>Clear search</Button> : <CreateFoodDialog ingredientName="" trigger={<Button>Add a food from a label</Button>} onCreated={() => void queryClient.invalidateQueries({ queryKey: ["owner-foods"] })} />}
             />
           ) : (
             <ul className="owner-foods-list">

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -51,6 +53,8 @@ from cookfully.api.schemas.recipes import (
     RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
+    SubstituteResponse,
+    SubstitutionsResponse,
     ThumbnailCropRequest,
 )
 from cookfully.application.corrections import CorrectionService
@@ -60,9 +64,13 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
-from cookfully.domain.common import DomainError, utc_now
+from cookfully.application.substitutions import suggest_for_ingredient
+from cookfully.application.taste_scores import refresh_all_taste_scores
+from cookfully.domain.common import DomainError, require_present, utc_now
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.observability import correlation_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/recipes", tags=["Recipes"])
 
@@ -188,7 +196,10 @@ def replace_recipe_organization(
     organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    request: Request,
+    background: BackgroundTasks,
 ) -> RecipeDetailResponse:
+    before = queries.get(recipe_id).favorite
     organization.replace(
         owner.id,
         recipe_id,
@@ -197,6 +208,9 @@ def replace_recipe_organization(
         collection_ids=payload.collection_ids,
         meal_roles=payload.meal_roles,
     )
+    if payload.favorite != before:
+        # Favourites steer taste scores for suggestions; recompute them after responding.
+        background.add_task(refresh_all_taste_scores, request.app.state.sessions)
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
 
@@ -275,10 +289,14 @@ async def _maybe_repair_recipe_ingredients(
             try:
                 new_ingredients[idx] = orig.model_copy(update={"unit": res})
             except Exception:
+                logger.debug("skipping an unusable unit suggestion", exc_info=True)
                 continue
         return payload.model_copy(update={"ingredients": tuple(new_ingredients)})
     except Exception:
         return payload
+
+
+_FACET_KEY = re.compile(r"[a-z][a-z0-9_]{0,30}(?::[a-z0-9_]{1,30})?")
 
 
 @router.get("", response_model=RecipePageResponse, response_model_by_alias=True)
@@ -293,7 +311,11 @@ def list_recipes(
     collection_id: Annotated[UUID | None, Query(alias="collectionId")] = None,
     meal_role: Annotated[str | None, Query(alias="mealRole")] = None,
     include_archived: Annotated[bool, Query(alias="includeArchived")] = False,
+    facet: Annotated[list[str] | None, Query(max_length=8)] = None,
 ) -> RecipePageResponse:
+    facets = tuple(dict.fromkeys(facet or ()))
+    if any(not _FACET_KEY.fullmatch(item) for item in facets):
+        raise DomainError("invalid_facet", "Facet filters must be known tag keys.", 422)
     return RecipePageResponse.from_read(
         queries.list(
             query=query,
@@ -304,6 +326,7 @@ def list_recipes(
             include_archived=include_archived,
             cursor=cursor,
             limit=limit,
+            facets=facets,
         )
     )
 
@@ -396,14 +419,14 @@ def import_recipe(
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise
-    assert mutation.job is not None
-    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=mutation.recipe.id)
+    job = require_present(mutation.job, "queued recipe job")
+    response = JobAcceptedResponse(job_id=job.id, resource_id=mutation.recipe.id)
     idempotency.complete(
         owner_id=owner.id,
         key=key,
         response_status=202,
         resource_id=mutation.recipe.id,
-        job_id=mutation.job.id,
+        job_id=job.id,
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response
@@ -544,9 +567,9 @@ async def confirm_recipe_import(
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise
-    assert mutation.job is not None
+    job = require_present(mutation.job, "queued recipe job")
     response = JobAcceptedResponse(
-        job_id=mutation.job.id,
+        job_id=job.id,
         resource_id=mutation.recipe.id,
         cover_status=mutation.cover_status,
     )
@@ -555,7 +578,7 @@ async def confirm_recipe_import(
         key=key,
         response_status=202,
         resource_id=mutation.recipe.id,
-        job_id=mutation.job.id,
+        job_id=job.id,
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response
@@ -598,14 +621,14 @@ def merge_recipe_import(
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise
-    assert mutation.job is not None
-    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=mutation.recipe.id)
+    job = require_present(mutation.job, "queued recipe job")
+    response = JobAcceptedResponse(job_id=job.id, resource_id=mutation.recipe.id)
     idempotency.complete(
         owner_id=owner.id,
         key=key,
         response_status=202,
         resource_id=mutation.recipe.id,
-        job_id=mutation.job.id,
+        job_id=job.id,
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response
@@ -618,6 +641,34 @@ def get_recipe(
     _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
 ) -> RecipeDetailResponse:
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.get(
+    "/{recipeId}/ingredients/{ingredientId}/substitutes",
+    response_model=SubstitutionsResponse,
+    response_model_by_alias=True,
+)
+def get_ingredient_substitutes(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    ingredient_id: Annotated[UUID, Path(alias="ingredientId")],
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
+) -> SubstitutionsResponse:
+    result = suggest_for_ingredient(request.app.state.sessions, recipe_id, ingredient_id)
+    return SubstitutionsResponse(
+        ingredient_id=result.ingredient_id,
+        original_text=result.original_text,
+        substitutes=tuple(
+            SubstituteResponse(
+                name=entry.substitute.name,
+                amount=entry.substitute.amount,
+                note=entry.substitute.note,
+                probability=entry.probability,
+            )
+            for entry in result.substitutes
+        ),
+        ranked=result.ranked,
+    )
 
 
 @router.patch("/{recipeId}", response_model=RecipeDetailResponse, response_model_by_alias=True)
@@ -908,14 +959,14 @@ def recalculate_recipe_nutrition(
     except Exception:
         idempotency.abort(owner_id=owner.id, key=key)
         raise
-    assert mutation.job is not None
-    response = JobAcceptedResponse(job_id=mutation.job.id, resource_id=recipe_id)
+    job = require_present(mutation.job, "queued recipe job")
+    response = JobAcceptedResponse(job_id=job.id, resource_id=recipe_id)
     idempotency.complete(
         owner_id=owner.id,
         key=key,
         response_status=202,
         resource_id=recipe_id,
-        job_id=mutation.job.id,
+        job_id=job.id,
         response_body=response.model_dump(mode="json", by_alias=True),
     )
     return response

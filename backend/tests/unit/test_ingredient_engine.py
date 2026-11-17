@@ -12,7 +12,7 @@ from cookfully.infrastructure.models.nutrition_intelligence import (
 from cookfully.infrastructure.semantic_embeddings import HashingTextEmbedder
 
 
-@pytest.fixture()
+@pytest.fixture
 def engine() -> IngredientEngine:
     return IngredientEngine()
 

@@ -1,0 +1,41 @@
+# Optional local git hooks that run the same fast checks CI does, so problems surface before a push.
+#
+#   pnpm --dir frontend install
+#   pnpm --dir frontend exec lefthook install      # once per clone; `lefthook uninstall` removes them
+#
+# Only staged files are checked where a tool supports it. Skip a run with `git commit --no-verify`;
+# CI (`ci-ok`) is the real gate either way. Works the same on Windows, macOS and Linux.
+pre-commit:
+  parallel: true
+  commands:
+    backend-format:
+      root: backend/
+      glob: "*.py"
+      run: uv run ruff format {staged_files}
+      stage_fixed: true
+    backend-lint:
+      root: backend/
+      glob: "*.py"
+      run: uv run ruff check {staged_files}
+    backend-types:
+      root: backend/
+      glob: "src/**/*.py"
+      run: uv run mypy src
+    frontend-lint:
+      root: frontend/
+      glob: "*.{ts,tsx,js}"
+      run: pnpm exec eslint --max-warnings=0 {staged_files}
+    frontend-types:
+      root: frontend/
+      glob: "*.{ts,tsx}"
+      run: pnpm typecheck
+
+pre-push:
+  parallel: true
+  commands:
+    backend-unit:
+      root: backend/
+      run: uv run pytest tests/unit -q -n 4
+    frontend-unit:
+      root: frontend/
+      run: pnpm exec vitest run

@@ -8,6 +8,9 @@ const stableChromiumText = { launchOptions: { args: ["--disable-lcd-text", "--fo
 
 export default defineConfig({
   testDir: "./e2e",
+  // Real-stack tests need the composed application, not the mocked dev server; they have their
+  // own config (playwright.real-stack.config.ts) and CI job.
+  testIgnore: "**/real-stack/**",
   fullyParallel: true,
   forbidOnly: isCI,
   // One retry separates a flake from a real failure; more would multiply a broken run's time.

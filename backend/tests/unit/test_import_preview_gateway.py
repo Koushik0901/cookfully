@@ -75,10 +75,9 @@ def coordinator(session_factory, tmp_path):
         async def attach_url(self, *a, **kw):
             return None
 
-    coord = ImportPreviewCoordinator(
+    return ImportPreviewCoordinator(
         session_factory, FakeImporter(), StubRecipes(), object(), photos=StubPhotos()
     )
-    return coord
 
 
 async def test_preview_gateway_does_not_enrich_inline_even_when_enabled(

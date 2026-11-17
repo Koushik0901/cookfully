@@ -6,23 +6,35 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cookfully.domain.common import MAX_VERSION
+
+# The columns are NUMERIC(20, 6), so anything past 14 integer digits cannot be stored; a nutrition
+# label or serving never needs more than a hundred million of any unit.
+MAX_FOOD_AMOUNT = Decimal("100000000")
+
 
 class OwnerFoodWriteRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     display_name: Annotated[str, Field(alias="displayName", min_length=1, max_length=500)]
-    brand: str | None = None
-    calories_kcal: Annotated[Decimal, Field(alias="caloriesKcal", ge=0)]
-    protein_g: Annotated[Decimal, Field(alias="proteinG", ge=0)]
-    carbohydrate_g: Annotated[Decimal, Field(alias="carbohydrateG", ge=0)]
-    fat_g: Annotated[Decimal, Field(alias="fatG", ge=0)]
-    basis_grams: Annotated[Decimal, Field(alias="basisGrams", ge=1, default=Decimal("100.000"))]
-    typical_serving_g: Annotated[Decimal | None, Field(alias="typicalServingG", default=None)]
-    typical_serving_unit: Annotated[str | None, Field(alias="typicalServingUnit", default=None)]
+    brand: Annotated[str | None, Field(max_length=240)] = None
+    calories_kcal: Annotated[Decimal, Field(alias="caloriesKcal", ge=0, le=MAX_FOOD_AMOUNT)]
+    protein_g: Annotated[Decimal, Field(alias="proteinG", ge=0, le=MAX_FOOD_AMOUNT)]
+    carbohydrate_g: Annotated[Decimal, Field(alias="carbohydrateG", ge=0, le=MAX_FOOD_AMOUNT)]
+    fat_g: Annotated[Decimal, Field(alias="fatG", ge=0, le=MAX_FOOD_AMOUNT)]
+    basis_grams: Annotated[
+        Decimal, Field(alias="basisGrams", ge=1, le=MAX_FOOD_AMOUNT, default=Decimal("100.000"))
+    ]
+    typical_serving_g: Annotated[
+        Decimal | None, Field(alias="typicalServingG", gt=0, le=MAX_FOOD_AMOUNT, default=None)
+    ]
+    typical_serving_unit: Annotated[
+        str | None, Field(alias="typicalServingUnit", max_length=20, default=None)
+    ]
 
 
 class OwnerFoodUpdateRequest(OwnerFoodWriteRequest):
-    expected_version: Annotated[int, Field(alias="expectedVersion", ge=1)]
+    expected_version: Annotated[int, Field(alias="expectedVersion", ge=1, le=MAX_VERSION)]
 
 
 class OwnerFoodResponse(BaseModel):

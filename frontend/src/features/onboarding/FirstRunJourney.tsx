@@ -25,7 +25,7 @@ export function FirstRunJourney({ onboarding }: { onboarding: OnboardingState })
       // The mutation retains the error for diagnostics; onboarding remains non-blocking.
     } finally {
       // Optional guidance must never block the real task if preference persistence fails.
-      navigate(destination);
+      void navigate(destination);
     }
   }
 
@@ -61,7 +61,7 @@ export function FirstRunJourney({ onboarding }: { onboarding: OnboardingState })
         // Install failures never block the kitchen; Settings shows the retry surface.
       }
     }
-    navigate("/app/recipes");
+    void navigate("/app/recipes");
   }
 
   if (dismissed) return null;

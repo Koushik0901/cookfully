@@ -25,6 +25,7 @@ from cookfully.api.routes import (
     meal_plans,
     media,
     nutrition_intelligence,
+    openrouter,
     owner,
     pantry,
     recipe_import,
@@ -32,6 +33,7 @@ from cookfully.api.routes import (
     reference_data,
     suggestions,
 )
+from cookfully.api.security_headers import security_headers_middleware
 from cookfully.application.access_tokens import AccessTokenService
 from cookfully.application.auth import AuthService
 from cookfully.application.corrections import CorrectionService
@@ -109,6 +111,8 @@ _OPERATION_IDS = {
     "preview_uploaded_cookbook": "previewCookbookPdfImport",
     "confirm_recipe_import": "confirmRecipeImport",
     "get_recipe": "getRecipe",
+    "keep_grocery_item_separate": "keepGroceryItemSeparate",
+    "get_ingredient_substitutes": "getIngredientSubstitutes",
     "update_recipe": "updateRecipe",
     "replace_recipe_photo": "replaceRecipePhoto",
     "remove_recipe_photo": "removeRecipePhoto",
@@ -164,6 +168,8 @@ _OPERATION_IDS = {
     "update_settings": "updateNutritionIntelligenceSettings",
     "get_recipe_import_settings": "getRecipeImportSettings",
     "update_recipe_import_settings": "updateRecipeImportSettings",
+    "get_openrouter_settings": "getOpenRouterSettings",
+    "update_openrouter_settings": "updateOpenRouterSettings",
     "infer_intelligence": "inferIntelligence",
     "create_draft": "createIntelligenceDraft",
     "get_draft": "getIntelligenceDraft",
@@ -312,8 +318,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "planning aids, not medical advice."
         ),
         lifespan=lifespan,
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
+        # The interactive docs and schema describe every endpoint to anyone who can reach the
+        # server, so production serves neither.
+        docs_url=None if resolved.environment == "production" else "/api/docs",
+        openapi_url=None if resolved.environment == "production" else "/api/openapi.json",
     )
     app.state.engine = engine
     app.state.redis = redis_client
@@ -324,6 +332,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # or mutation responses.
     app.add_middleware(GZipMiddleware, minimum_size=1_000, compresslevel=5)
     app.middleware("http")(correlation_middleware)
+    app.middleware("http")(security_headers_middleware)
     install_problem_handlers(app)
     versioned = APIRouter(
         prefix="/api/v1",
@@ -337,6 +346,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     versioned.include_router(jobs.router)
     versioned.include_router(recipes.router)
     versioned.include_router(recipe_import.router)
+    versioned.include_router(openrouter.router)
     versioned.include_router(goals.router)
     versioned.include_router(meal_plans.router)
     versioned.include_router(grocery.router)

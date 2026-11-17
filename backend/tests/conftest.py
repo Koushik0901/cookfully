@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterator
+from contextlib import suppress
 from io import BytesIO
 from uuid import uuid4
 
@@ -24,11 +25,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         return
     engine = create_engine(Settings().database_url)
     try:
-        with engine.begin() as connection:
+        # Without a database the DB-backed tests report their own, clearer, error.
+        with suppress(Exception), engine.begin() as connection:
             for extension in ("citext", "btree_gist", "vector"):
                 connection.execute(text(f'CREATE EXTENSION IF NOT EXISTS "{extension}"'))
-    except Exception:  # no database: the DB-backed tests report their own error
-        pass
     finally:
         engine.dispose()
 
