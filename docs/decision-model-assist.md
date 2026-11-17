@@ -105,6 +105,16 @@ or 2% of one calorie tolerance, preferring higher taste scores and no more than 
 cuisine. It then minimises the distance again within that band. Scores are read from storage, so
 suggestions stay deterministic. With no scores the solver behaves exactly as before.
 
+## Grocery tidy and shelf life
+
+When a grocery list is generated, the `grocery_tidy` feature merges names every model agrees are the
+same product (scallions and green onions). Quantities are still only summed when units are compatible.
+It also assigns a store aisle and marks likely staples ("Probably have"). Each item shows what it
+includes, with **Keep separate**, which is remembered. Aisle and staple can be changed per item, and the
+choice is remembered for that food (`grocery_tidy_memories`). When a checked-off item has no known
+lifespan and needs no label date, the `shelf_life` feature picks a lifespan bucket. The date is marked
+"(estimated)" in the pantry.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

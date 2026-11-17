@@ -1251,6 +1251,24 @@ paths:
         "204": { description: Stop deleted and assignments safely cleared. }
         "409": { $ref: "#/components/responses/Conflict" }
 
+  /grocery-items/{itemId}/keep-separate:
+    post:
+      operationId: keepGroceryItemSeparate
+      tags: [Grocery]
+      summary: Undo a synonym merge on this item for good and regenerate the list.
+      parameters:
+        - { name: itemId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The regenerated grocery list.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroceryList" }
+        "404":
+          description: Item not found.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /grocery-items/{itemId}:
     patch:
       tags: [Grocery]
@@ -3268,6 +3286,11 @@ components:
         position: { type: integer, minimum: 0 }
         shoppingStopId: { type: [string, "null"], format: uuid }
         rememberPlacement: { type: boolean }
+        aisle:
+          type: [string, "null"]
+          enum: [produce, meat_seafood, dairy_eggs, bakery, pantry, spices, frozen, drinks, other, null]
+          description: Store aisle; set by decision models unless the owner chose one, which is remembered for the food.
+        likelyStaple: { type: boolean, description: "\"Probably have\" mark; the owner's choice is remembered for the food." }
     GroceryShoppingStopWrite:
       type: object
       additionalProperties: false
@@ -3310,6 +3333,10 @@ components:
                   originalText: { type: string }
                   quantityContribution: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
             version: { type: integer, minimum: 1 }
+            mergedFrom:
+              type: array
+              description: Other names decision models merged into this item as the same food.
+              items: { type: string }
     GroceryList:
       type: object
       required: [id, weekStart, status, items, version]

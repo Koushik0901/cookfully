@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -9,12 +9,15 @@ from uuid import UUID
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.decisions import Decisions, build_decisions
 from cookfully.application.grocery_reconciliation import (
     ExistingGroceryItem,
     reconcile_grocery_items,
 )
+from cookfully.application.grocery_tidy import AISLES, classify, synonym_map
 from cookfully.application.shelf_life import model_expiry
 from cookfully.domain.common import DomainError, require_version, utc_now
+from cookfully.domain.decisions import Purpose
 from cookfully.domain.expiry_lifespans import resolve_expiry
 from cookfully.domain.grocery import (
     GroceryIngredient,
@@ -27,6 +30,7 @@ from cookfully.infrastructure.models.grocery import (
     GroceryItemSource,
     GroceryList,
     GroceryShoppingStop,
+    GroceryTidyMemory,
     RememberedGroceryPlacement,
 )
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -63,6 +67,9 @@ class GroceryItemRead:
     expires_on: date | None = None
     expiry_source: str | None = None
     needs_expiry_date: bool = False
+    aisle: str | None = None
+    likely_staple: bool = False
+    merged_from: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,13 +144,22 @@ class GroceryListService:
                     )
                 grocery_list.status = "generating"
 
-            proposed = aggregate_grocery_ingredients(self._ingredients(session, plan))
+            memories = {
+                memory.normalized_food_name: memory
+                for memory in session.scalars(
+                    select(GroceryTidyMemory).where(GroceryTidyMemory.owner_id == owner_id)
+                )
+            }
+            ingredients, merged = self._merge_synonyms(self._ingredients(session, plan), memories)
+            proposed = aggregate_grocery_ingredients(ingredients)
             current = [self._existing(item) for item in grocery_list.items]
             reconciled = reconcile_grocery_items(current, proposed)
             by_id = {item.id: item for item in grocery_list.items}
             retained = {item.id for item in reconciled if item.id is not None}
             for item in list(grocery_list.items):
                 if item.id not in retained:
+                    # Remove from the loaded collection too, or the response lists deleted rows.
+                    grocery_list.items.remove(item)
                     session.delete(item)
             session.flush()
             for value in reconciled:
@@ -178,6 +194,7 @@ class GroceryListService:
                     )
                     for source in value.sources
                 )
+            self._label_items(grocery_list.items, memories, merged)
             grocery_list.status = "current"
             grocery_list.source_plan_version = plan.version
             grocery_list.generated_at = utc_now()
@@ -186,6 +203,95 @@ class GroceryListService:
                 grocery_list.version += 1
             session.flush()
             return self._list_read(grocery_list)
+
+    def _tidy_engine(self) -> Decisions | None:
+        decisions = build_decisions(self._session_factory)
+        return decisions if decisions.active(Purpose.GROCERY_TIDY) else None
+
+    def _merge_synonyms(
+        self,
+        ingredients: list[GroceryIngredient],
+        memories: dict[str, GroceryTidyMemory],
+    ) -> tuple[list[GroceryIngredient], dict[str, list[str]]]:
+        """Rename synonyms to one name before aggregation; returns target -> merged names."""
+
+        engine = self._tidy_engine()
+        if engine is None:
+            return ingredients, {}
+        names = [
+            normalize_food_name(item.food_name) or normalize_food_name(item.original_text)
+            for item in ingredients
+        ]
+        vetoes = {name: frozenset(memory.keep_separate) for name, memory in memories.items()}
+        mapping = synonym_map(engine, names, vetoes)
+        if not mapping:
+            return ingredients, {}
+        display = {
+            name: item.food_name.strip() or item.original_text.strip()
+            for name, item in zip(names, ingredients, strict=True)
+        }
+        merged: dict[str, list[str]] = {}
+        renamed = []
+        for name, item in zip(names, ingredients, strict=True):
+            target = mapping.get(name)
+            if target is None:
+                renamed.append(item)
+                continue
+            if display[name] not in merged.setdefault(target, []):
+                merged[target].append(display[name])
+            renamed.append(replace(item, food_name=display.get(target, target)))
+        return renamed, merged
+
+    def _label_items(
+        self,
+        items: list[GroceryItem],
+        memories: dict[str, GroceryTidyMemory],
+        merged: dict[str, list[str]],
+    ) -> None:
+        """Aisle and staple marks: the owner's remembered choice first, then the panel."""
+
+        for item in items:
+            item.merged_from = sorted(merged.get(item.normalized_food_name, []))
+        engine = self._tidy_engine()
+        labels = classify(engine, [item.normalized_food_name for item in items]) if engine else {}
+        for item in items:
+            memory = memories.get(item.normalized_food_name)
+            label = labels.get(item.normalized_food_name)
+            if memory is not None and memory.aisle is not None:
+                item.aisle = memory.aisle
+            elif label is not None:
+                item.aisle = label.aisle
+            if memory is not None and memory.staple is not None:
+                item.likely_staple = memory.staple
+            elif label is not None and label.staple is not None:
+                item.likely_staple = label.staple
+
+    def keep_separate(self, owner_id: UUID, item_id: UUID) -> GroceryListRead:
+        """Undo a synonym merge for good and regenerate the list."""
+
+        with self._session_factory.begin() as session:
+            item = GroceryRepository(session).get_item(owner_id, item_id, for_update=True)
+            self._ensure_active(item.grocery_list)
+            target = item.normalized_food_name
+            others = [normalize_food_name(name) for name in item.merged_from]
+            memory = self._memory(session, owner_id, target)
+            memory.keep_separate = sorted(set(memory.keep_separate) | set(others))
+            week_start = item.grocery_list.meal_plan.week_start
+        return self.generate(owner_id, week_start)
+
+    @staticmethod
+    def _memory(session: Session, owner_id: UUID, name: str) -> GroceryTidyMemory:
+        memory = session.scalar(
+            select(GroceryTidyMemory).where(
+                GroceryTidyMemory.owner_id == owner_id,
+                GroceryTidyMemory.normalized_food_name == name,
+            )
+        )
+        if memory is None:
+            memory = GroceryTidyMemory(owner_id=owner_id, normalized_food_name=name)
+            session.add(memory)
+            session.flush()
+        return memory
 
     def create_manual(
         self,
@@ -257,6 +363,17 @@ class GroceryListService:
             if "quantity" in values:
                 item.quantity = values["quantity"]
                 item.manual_quantity = True
+            if "aisle" in values:
+                aisle = values["aisle"]
+                if aisle is not None and aisle not in AISLES:
+                    raise DomainError("invalid_aisle", "Choose a known aisle.", 422)
+                item.aisle = aisle
+                self._memory(session, owner_id, item.normalized_food_name).aisle = aisle
+            if "likely_staple" in values:
+                item.likely_staple = bool(values["likely_staple"])
+                self._memory(session, owner_id, item.normalized_food_name).staple = bool(
+                    values["likely_staple"]
+                )
             if "unit" in values:
                 unit = values["unit"]
                 item.unit_code = str(unit).strip() if unit else None
@@ -546,6 +663,9 @@ class GroceryListService:
             expires_on=value.expires_on,
             expiry_source=value.expiry_source,
             needs_expiry_date=needs_expiry_date,
+            aisle=value.aisle,
+            likely_staple=value.likely_staple,
+            merged_from=tuple(value.merged_from or ()),
         )
 
     @classmethod

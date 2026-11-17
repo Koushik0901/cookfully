@@ -841,6 +841,23 @@ export interface paths {
         patch: operations["updateGroceryShoppingStop"];
         trace?: never;
     };
+    "/grocery-items/{itemId}/keep-separate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a synonym merge on this item for good and regenerate the list. */
+        post: operations["keepGroceryItemSeparate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/grocery-items/{itemId}": {
         parameters: {
             query?: never;
@@ -2286,6 +2303,13 @@ export interface components {
             /** Format: uuid */
             shoppingStopId?: string | null;
             rememberPlacement?: boolean;
+            /**
+             * @description Store aisle; set by decision models unless the owner chose one, which is remembered for the food.
+             * @enum {string|null}
+             */
+            aisle?: "produce" | "meat_seafood" | "dairy_eggs" | "bakery" | "pantry" | "spices" | "frozen" | "drinks" | "other" | null;
+            /** @description "Probably have" mark; the owner's choice is remembered for the food. */
+            likelyStaple?: boolean;
         };
         GroceryShoppingStopWrite: {
             name?: string;
@@ -2313,6 +2337,8 @@ export interface components {
                 quantityContribution?: components["schemas"]["Decimal6"] | null;
             }[];
             version: number;
+            /** @description Other names decision models merged into this item as the same food. */
+            mergedFrom?: string[];
         };
         GroceryList: {
             /** Format: uuid */
@@ -4269,6 +4295,37 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    keepGroceryItemSeparate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The regenerated grocery list. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroceryList"];
+                };
+            };
+            /** @description Item not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     deleteGroceryItem: {

@@ -317,6 +317,21 @@ def update_grocery_item(
     return response
 
 
+@router.post(
+    "/grocery-items/{itemId}/keep-separate",
+    response_model=GroceryListResponse,
+    response_model_by_alias=True,
+)
+def keep_grocery_item_separate(
+    item_id: Annotated[UUID, Path(alias="itemId")],
+    service: Annotated[GroceryListService, Depends(grocery_service)],
+    owner: Annotated[OwnerAccount, Depends(require_scopes("grocery:write"))],
+) -> GroceryListResponse:
+    """Undo a synonym merge on this item, remember it, and regenerate the list."""
+
+    return GroceryListResponse.from_read(service.keep_separate(owner.id, item_id))
+
+
 @router.delete("/grocery-items/{itemId}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_grocery_item(
     item_id: Annotated[UUID, Path(alias="itemId")],

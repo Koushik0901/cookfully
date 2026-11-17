@@ -5,6 +5,7 @@ from cookfully.infrastructure.models.grocery import (
     GroceryItemSource,
     GroceryList,
     GroceryShoppingStop,
+    GroceryTidyMemory,
     RememberedGroceryPlacement,
 )
 from cookfully.infrastructure.models.idempotency import IdempotencyRecord
@@ -69,6 +70,7 @@ __all__ = [
     "GroceryItemSource",
     "GroceryList",
     "GroceryShoppingStop",
+    "GroceryTidyMemory",
     "IdempotencyRecord",
     "ImportPreviewRecord",
     "Ingredient",

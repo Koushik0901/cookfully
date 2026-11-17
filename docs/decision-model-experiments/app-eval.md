@@ -173,3 +173,10 @@ sauerkraut, frozen peas, rice, pasta, peanut butter, maple syrup, olives, capers
 sauce, pesto, jalapeños) because the models disagreed, which leaves the date blank as before. Coarse
 buckets (180 days for an opened jar of capers is generous) are why the date is marked "estimated" and
 editable.
+
+## Grocery tidy spot-check (2026-11-17)
+
+14 names, live, Jev + Clef. Merges: garbanzo beans to chickpea, coriander leaves to cilantro, scallion to
+green onion, and nothing else. Onion and red onion, rice and brown rice, and parmesan and cheddar stayed
+separate. Aisles were right for all 14 (produce, pantry, dairy and eggs, spices). Only salt and olive oil
+were marked "probably have".

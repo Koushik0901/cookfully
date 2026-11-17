@@ -1947,3 +1947,9 @@
 .substitutes__body li { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
 .substitutes__body p { margin: 0; }
 .substitutes__fit { color: var(--color-on-surface-variant); }
+.grocery-tidy { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.6rem; margin: 0.2rem 0 0; color: var(--color-on-surface-variant); font-size: 0.75rem; }
+.grocery-tidy__aisle { font-weight: 620; }
+.grocery-tidy__staple { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.05rem 0.5rem; color: var(--color-on-surface); background: var(--color-surface-low); font: inherit; cursor: pointer; }
+.grocery-tidy__merged { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; }
+.grocery-tidy__merged button { border: 0; padding: 0; color: var(--color-primary); background: none; font: inherit; font-weight: 620; text-decoration: underline; cursor: pointer; }
+.grocery-tidy button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
