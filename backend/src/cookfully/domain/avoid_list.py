@@ -15,6 +15,7 @@ import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import lru_cache
 from uuid import UUID
 
 # Group names people commonly put on an avoid list, and the words that name their members.
@@ -323,14 +324,24 @@ def _free_forms(item: str) -> tuple[str, ...]:
     return tuple(sorted(forms))
 
 
+@lru_cache(maxsize=8192)
+def _term_pattern(term: str) -> re.Pattern[str]:
+    """Compiled once per term: building it on every check thrashed Python's small regex cache."""
+
+    if term.endswith("y") and len(term) > 2:
+        return re.compile(rf"\b{re.escape(term[:-1])}(?:y|ies)\b")
+    return re.compile(rf"\b{re.escape(term)}(?:s|es)?\b")
+
+
+@lru_cache(maxsize=8192)
+def _friend_pattern(friend: str) -> re.Pattern[str]:
+    return re.compile(rf"\b{re.escape(friend)}")
+
+
 def _contains(text: str, term: str, free_forms: Sequence[str] = ()) -> bool:
     if not term:
         return False
-    if term.endswith("y") and len(term) > 2:
-        pattern = rf"\b{re.escape(term[:-1])}(?:y|ies)\b"
-    else:
-        pattern = rf"\b{re.escape(term)}(?:s|es)?\b"
-    for match in re.finditer(pattern, text):
+    for match in _term_pattern(term).finditer(text):
         if text.startswith(" free", match.end()):
             continue  # "gluten free", "dairy free" say the opposite
         if any(text[: match.start()].endswith(f"{form} free ") for form in free_forms):
@@ -342,7 +353,7 @@ def _contains(text: str, term: str, free_forms: Sequence[str] = ()) -> bool:
 
 def _is_false_friend(text: str, start: int, term: str) -> bool:
     for friend in _FALSE_FRIENDS.get(term, ()):
-        for found in re.finditer(rf"\b{re.escape(friend)}", text):
+        for found in _friend_pattern(friend).finditer(text):
             if found.start() <= start < found.end():
                 return True
     return False

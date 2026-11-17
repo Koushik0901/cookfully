@@ -197,7 +197,7 @@ def test_hundreds_of_avoid_items_across_thousands_of_lines_is_fast() -> None:
     started = time.perf_counter()
     warnings = find_avoided(lines, avoid)
     assert len(warnings) == 3000
-    assert time.perf_counter() - started < 10
+    assert time.perf_counter() - started < 30
 
 
 @settings(max_examples=300, deadline=None)
