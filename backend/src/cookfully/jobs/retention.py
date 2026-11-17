@@ -9,11 +9,13 @@ from cookfully.application.intelligence_drafts import IntelligenceDraftService
 from cookfully.application.jobs import JobService
 from cookfully.domain.common import utc_now
 from cookfully.infrastructure.media_store import MediaStore
+from cookfully.infrastructure.models.decisions import DecisionAnswer
 from cookfully.infrastructure.models.identity import SessionRecord
 from cookfully.infrastructure.models.import_preview import ImportPreviewRecord
 from cookfully.infrastructure.models.media import MediaAsset, RecipePhotoStage
 
 SESSION_SWEEP_GRACE_DAYS = 30
+DECISION_ANSWER_RETENTION_DAYS = 365
 
 
 def sweep_sessions(session_factory: sessionmaker[Session], *, now: datetime | None = None) -> int:
@@ -73,6 +75,18 @@ def sweep_retention(
         for preview in previews:
             session.delete(preview)
             expired_import_previews += 1
+        expired_decision_answers = (
+            cast(
+                CursorResult[Any],
+                session.execute(
+                    delete(DecisionAnswer).where(
+                        DecisionAnswer.created_at
+                        < checked_at - timedelta(days=DECISION_ANSWER_RETENTION_DAYS)
+                    )
+                ),
+            ).rowcount
+            or 0
+        )
     reduced = jobs.reduce_diagnostics(now=checked_at)
     deleted = jobs.delete_safe_metadata(now=checked_at)
     expired_idempotency = IdempotencyService(session_factory).delete_expired(now=checked_at)
@@ -82,6 +96,7 @@ def sweep_retention(
         "expired_media": expired_media,
         "expired_photo_stages": expired_photo_stages,
         "expired_import_previews": expired_import_previews,
+        "expired_decision_answers": expired_decision_answers,
         "reduced_jobs": len(reduced),
         "deleted_jobs": len(deleted),
         "expired_idempotency": expired_idempotency,

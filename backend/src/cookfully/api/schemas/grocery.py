@@ -11,6 +11,18 @@ from cookfully.application.grocery_lists import GroceryItemRead, GroceryListRead
 from cookfully.application.grocery_shopping_stops import ShoppingStopRead
 from cookfully.domain.common import canonical_decimal
 
+Aisle = Literal[
+    "produce",
+    "meat_seafood",
+    "dairy_eggs",
+    "bakery",
+    "pantry",
+    "spices",
+    "frozen",
+    "drinks",
+    "other",
+]
+
 
 class GroceryItemWriteRequest(ApiModel):
     display_name: str | None = Field(
@@ -23,10 +35,12 @@ class GroceryItemWriteRequest(ApiModel):
     shopping_stop_id: UUID | None = Field(alias="shoppingStopId", default=None)
     remember_placement: bool | None = Field(alias="rememberPlacement", default=None)
     expires_on: date | None = Field(alias="expiresOn", default=None)
+    aisle: Aisle | None = None
+    likely_staple: bool | None = Field(alias="likelyStaple", default=None)
 
     @model_validator(mode="after")
     def reject_disallowed_nulls(self) -> GroceryItemWriteRequest:
-        for field in ("display_name", "checked", "position", "remember_placement"):
+        for field in ("display_name", "checked", "position", "remember_placement", "likely_staple"):
             if field in self.model_fields_set and getattr(self, field) is None:
                 raise ValueError(f"{field} cannot be null")
         return self
@@ -90,10 +104,13 @@ class GroceryItemResponse(ApiModel):
     version: int
     purchased_at: datetime | None = Field(alias="purchasedAt", default=None)
     expires_on: date | None = Field(alias="expiresOn", default=None)
-    expiry_source: Literal["auto", "label", "manual"] | None = Field(
+    expiry_source: Literal["auto", "label", "manual", "model"] | None = Field(
         alias="expirySource", default=None
     )
     needs_expiry_date: bool = Field(alias="needsExpiryDate", default=False)
+    aisle: str | None = None
+    likely_staple: bool = Field(alias="likelyStaple", default=False)
+    merged_from: tuple[str, ...] = Field(alias="mergedFrom", default=())
 
     @classmethod
     def from_read(cls, value: GroceryItemRead) -> GroceryItemResponse:
@@ -102,6 +119,9 @@ class GroceryItemResponse(ApiModel):
         expiry_source = getattr(value, "expiry_source", None)
         needs_expiry_date = bool(getattr(value, "needs_expiry_date", False))
         return cls(
+            aisle=value.aisle,
+            likely_staple=value.likely_staple,
+            merged_from=value.merged_from,
             id=value.id,
             display_name=value.display_name,
             quantity=canonical_decimal(value.quantity) if value.quantity is not None else None,

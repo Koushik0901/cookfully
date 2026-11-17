@@ -1,0 +1,162 @@
+{
+ "note": "Cleaned ingredient lines against their source list; invented = the food is not in the source.",
+ "cases": [
+  {
+   "source": [
+    "2 cups flour",
+    "3 scallions, sliced"
+   ],
+   "cleaned": "3 green onions, sliced",
+   "invented": false
+  },
+  {
+   "source": [
+    "2 cups flour",
+    "3 scallions, sliced"
+   ],
+   "cleaned": "200 g chicken breast",
+   "invented": true
+  },
+  {
+   "source": [
+    "1 tbsp EVOO",
+    "2 cloves garlic"
+   ],
+   "cleaned": "1 tbsp extra virgin olive oil",
+   "invented": false
+  },
+  {
+   "source": [
+    "1 tbsp EVOO",
+    "2 cloves garlic"
+   ],
+   "cleaned": "1 tsp salt",
+   "invented": true
+  },
+  {
+   "source": [
+    "1 cup cilantro, chopped",
+    "1 lime"
+   ],
+   "cleaned": "1 cup coriander leaves",
+   "invented": false
+  },
+  {
+   "source": [
+    "1 cup cilantro, chopped",
+    "1 lime"
+   ],
+   "cleaned": "1 jalape\u00f1o",
+   "invented": true
+  },
+  {
+   "source": [
+    "2 courgettes",
+    "1 aubergine"
+   ],
+   "cleaned": "2 zucchini",
+   "invented": false
+  },
+  {
+   "source": [
+    "2 courgettes",
+    "1 aubergine"
+   ],
+   "cleaned": "1 eggplant",
+   "invented": false
+  },
+  {
+   "source": [
+    "2 courgettes",
+    "1 aubergine"
+   ],
+   "cleaned": "1 bell pepper",
+   "invented": true
+  },
+  {
+   "source": [
+    "500 g mince",
+    "1 onion"
+   ],
+   "cleaned": "500 g ground beef",
+   "invented": false
+  },
+  {
+   "source": [
+    "500 g mince",
+    "1 onion"
+   ],
+   "cleaned": "1 cup cheddar cheese",
+   "invented": true
+  },
+  {
+   "source": [
+    "1 c. AP flour",
+    "1/2 c. buttermilk"
+   ],
+   "cleaned": "1 cup all-purpose flour",
+   "invented": false
+  },
+  {
+   "source": [
+    "1 c. AP flour",
+    "1/2 c. buttermilk"
+   ],
+   "cleaned": "2 eggs",
+   "invented": true
+  },
+  {
+   "source": [
+    "2 tbsp soy",
+    "1 tbsp sesame oil"
+   ],
+   "cleaned": "2 tbsp soy sauce",
+   "invented": false
+  },
+  {
+   "source": [
+    "2 tbsp soy",
+    "1 tbsp sesame oil"
+   ],
+   "cleaned": "1 tbsp honey",
+   "invented": true
+  },
+  {
+   "source": [
+    "1 can chickpeas",
+    "2 tbsp tahini"
+   ],
+   "cleaned": "1 can garbanzo beans",
+   "invented": false
+  },
+  {
+   "source": [
+    "1 can chickpeas",
+    "2 tbsp tahini"
+   ],
+   "cleaned": "2 tbsp peanut butter",
+   "invented": true
+  },
+  {
+   "source": [
+    "1 bunch spring onions"
+   ],
+   "cleaned": "1 bunch scallions",
+   "invented": false
+  },
+  {
+   "source": [
+    "1 bunch spring onions"
+   ],
+   "cleaned": "1 bunch chives",
+   "invented": true
+  },
+  {
+   "source": [
+    "4 rashers streaky bacon"
+   ],
+   "cleaned": "4 slices bacon",
+   "invented": false
+  }
+ ]
+}

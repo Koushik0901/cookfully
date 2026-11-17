@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
+from cookfully.application import openrouter_settings
 from cookfully.domain.common import MAX_VERSION, DomainError
 from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -42,15 +43,15 @@ def _get_or_create(request: Request) -> RecipeImportSettings:
         return cast(RecipeImportSettings, value)
 
 
-def _response(value: RecipeImportSettings, settings: Settings) -> RecipeImportSettingsResponse:
+def _response(
+    value: RecipeImportSettings, settings: Settings, remote: openrouter_settings.OpenRouterConfig
+) -> RecipeImportSettingsResponse:
     return RecipeImportSettingsResponse(
         cleanup_enabled=value.cleanup_enabled,
         openrouter_fallback_enabled=value.openrouter_fallback_enabled,
         local_available=settings.intelligence_enabled,
-        openrouter_configured=bool(
-            settings.openrouter_api_key.get_secret_value() and settings.openrouter_model
-        ),
-        openrouter_model=settings.openrouter_model or None,
+        openrouter_configured=remote.cleanup_configured,
+        openrouter_model=remote.cleanup_model or None,
         version=value.version,
     )
 
@@ -60,7 +61,10 @@ def get_recipe_import_settings(
     request: Request, owner: Annotated[OwnerAccount, Depends(require_browser_owner)]
 ) -> RecipeImportSettingsResponse:
     del owner
-    return _response(_get_or_create(request), request.app.state.settings)
+    value = _get_or_create(request)
+    with request.app.state.sessions() as session:
+        remote = openrouter_settings.load_config(session)
+    return _response(value, request.app.state.settings, remote)
 
 
 @router.put("/settings", response_model=RecipeImportSettingsResponse)
@@ -82,4 +86,6 @@ def update_recipe_import_settings(
         value.openrouter_fallback_enabled = payload.openrouter_fallback_enabled
         value.version += 1
         session.flush()
-        return _response(value, request.app.state.settings)
+        return _response(
+            value, request.app.state.settings, openrouter_settings.load_config(session)
+        )

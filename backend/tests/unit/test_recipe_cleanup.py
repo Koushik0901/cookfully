@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from types import SimpleNamespace
 
+import pytest
+
 from cookfully.application.recipe_cleanup import (
     CleanupCandidate,
     CleanupResponse,
@@ -10,9 +12,7 @@ from cookfully.application.recipe_cleanup import (
     RecipeCleanupSchema,
     RecipeCleanupService,
     _apply_cleanup,
-    build_recipe_cleanup_service,
 )
-from cookfully.infrastructure.config import Settings
 from cookfully.infrastructure.models.recipe_import import RecipeImportSettings
 from cookfully.infrastructure.recipe_importer_types import ImportedCookbook
 from cookfully.intelligence.contracts import InferenceResponse, ToolCall
@@ -267,13 +267,59 @@ def test_needle_provider_accepts_weighted_response_without_calibrated_confidence
     assert result.output is not None
 
 
-def test_missing_openrouter_credentials_builds_no_remote_provider() -> None:
-    service = build_recipe_cleanup_service(
-        None,  # type: ignore[arg-type]
-        None,  # type: ignore[arg-type]
-        Settings(intelligence_enabled=False, openrouter_api_key="", openrouter_model=""),
+def test_remote_provider_requires_a_key_and_a_cleanup_model() -> None:
+    from decimal import Decimal
+
+    from cookfully.application.openrouter_settings import OpenRouterConfig
+    from cookfully.application.recipe_cleanup import _openrouter_cleanup_provider
+
+    def config(key: str | None, model: str) -> OpenRouterConfig:
+        return OpenRouterConfig(key, model, True, "typesafe/jev-1.14", Decimal("0.02"))
+
+    assert _openrouter_cleanup_provider(config(None, "a/b")) is None
+    assert _openrouter_cleanup_provider(config("k", "")) is None
+    assert _openrouter_cleanup_provider(config("k", "a/b")) is not None
+
+
+def test_remote_provider_is_resolved_from_settings_on_every_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import asyncio
+
+    seen: list[object] = []
+    remote = FakeProvider("openrouter", CleanupResponse(valid_output()))
+
+    class SessionStub:
+        def __enter__(self) -> SessionStub:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+    def factory(config: object) -> FakeProvider:
+        seen.append(config)
+        return remote
+
+    service = RecipeCleanupService(
+        SessionStub,  # type: ignore[arg-type]
+        None,
+        None,
+        remote_factory=factory,  # type: ignore[arg-type]
     )
-    assert service._remote is None  # type: ignore[attr-defined]
+    service._settings = lambda: (  # type: ignore[method-assign]
+        RecipeImportSettings(id=1, cleanup_enabled=True, openrouter_fallback_enabled=True),
+        SimpleNamespace(intelligence_enabled=False),
+    )
+    monkeypatch.setattr(
+        "cookfully.application.recipe_cleanup.load_openrouter_config", lambda _session: "cfg"
+    )
+
+    first = asyncio.run(service.cleanup_imported(_recipe(), source_kind="url"))
+    asyncio.run(service.cleanup_imported(_recipe(), source_kind="url"))
+
+    assert seen == ["cfg", "cfg"]
+    assert first.cleanup_provider == "openrouter"
+    assert remote.calls == 2
 
 
 def test_cookbook_cleanup_is_sequential() -> None:

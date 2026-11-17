@@ -10,6 +10,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   intelligence:
+    cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     networks: [intelligence-net]
     read_only: true
@@ -21,6 +22,7 @@ services:
     networks: [backend]
 
   api:
+    cap_drop: [ALL]
     environment:
       COOKFULLY_ENVIRONMENT: production
     command:
@@ -37,18 +39,30 @@ services:
     networks: [backend, intelligence-net, proxy]
 
   worker-interactive:
+    cap_drop: [ALL]
+    environment:
+      COOKFULLY_ENVIRONMENT: production
     security_opt: ["no-new-privileges:true"]
     networks: [backend, intelligence-net]
 
   worker-bulk:
+    cap_drop: [ALL]
+    environment:
+      COOKFULLY_ENVIRONMENT: production
     security_opt: ["no-new-privileges:true"]
     networks: [backend, intelligence-net]
 
   outbox:
+    cap_drop: [ALL]
+    environment:
+      COOKFULLY_ENVIRONMENT: production
     security_opt: ["no-new-privileges:true"]
     networks: [backend]
 
   retention:
+    cap_drop: [ALL]
+    environment:
+      COOKFULLY_ENVIRONMENT: production
     security_opt: ["no-new-privileges:true"]
     networks: [backend]
 

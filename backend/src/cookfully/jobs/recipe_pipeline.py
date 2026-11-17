@@ -16,9 +16,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.decisions import build_decisions
+from cookfully.application.food_labels import load_labels
 from cookfully.application.food_match_memories import remembered_food_choice
+from cookfully.application.hidden_ingredients import refresh_hidden_ingredients
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
+from cookfully.application.match_referee import Judgement, MatchReferee, RefereeLine
+from cookfully.application.openrouter_settings import decisions_config
+from cookfully.application.openrouter_settings import load_config as load_openrouter_config
+from cookfully.application.recipe_facets import refresh_recipe_facets
 from cookfully.application.recipes import (
     IngredientWrite,
     InstructionWrite,
@@ -26,6 +33,7 @@ from cookfully.application.recipes import (
     SectionWrite,
     recipe_input_hash,
 )
+from cookfully.application.taste_scores import refresh_taste_score
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     DomainError,
@@ -34,8 +42,10 @@ from cookfully.domain.common import (
     utc_now,
     uuid7,
 )
-from cookfully.domain.ingredient_nutrition.matching import FoodMatcher
+from cookfully.domain.decisions import Purpose
+from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
 from cookfully.domain.nutrition import (
+    CORE_NUTRIENT_CODES,
     MICRONUTRIENT_KEYS,
     USDA_MICRONUTRIENT_MANIFEST,
     IngredientNutrition,
@@ -98,12 +108,6 @@ NEXT_KIND = {
     "recipe_import": "ingredient_parse",
     "ingredient_parse": "nutrition_match",
     "nutrition_match": "nutrition_rollup",
-}
-CORE_NUTRIENT_CODES = {
-    "calories_kcal": ("208", "1008", "2047", "2048"),
-    "protein_g": ("203", "1003"),
-    "carbohydrate_g": ("205", "1005"),
-    "fat_g": ("204", "1004"),
 }
 
 
@@ -180,6 +184,7 @@ class RecipePipeline:
                 next_job = self._match(envelope.job_id)
             else:
                 next_job = self._rollup(envelope.job_id)
+                self._refresh_insights(envelope.aggregate_id)
             return PipelineResult(
                 envelope.job_id,
                 "succeeded",
@@ -401,10 +406,12 @@ class RecipePipeline:
                 repository,
                 embedder=self._session_embedder(session),
                 candidate_pool_limit=256,
+                labels_for=lambda foods: load_labels(session, [food.id for food in foods]),
             )
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
+            referee = self._match_referee(session)
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -451,6 +458,10 @@ class RecipePipeline:
                     continue
                 remembered = remembered_choice.food_reference if remembered_choice else None
                 decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
+                referee_evidence: dict[str, object] | None = None
+                if referee is not None and decision.method != "memory":
+                    judgement = self._refereed(referee, decision, ingredient, recipe.title)
+                    decision, referee_evidence = judgement.decision, judgement.evidence
                 candidate = decision.candidate
                 density = (
                     density_for(candidate.food.description)
@@ -477,6 +488,7 @@ class RecipePipeline:
                         ),
                         input_hash=recipe.input_hash,
                         active=True,
+                        candidate_evidence=[referee_evidence] if referee_evidence else None,
                     )
                 )
                 job.progress_current = position
@@ -485,6 +497,47 @@ class RecipePipeline:
                 session, job.id, next_kind=NEXT_KIND[job.kind]
             )
             return next_job
+
+    def _refresh_insights(self, recipe_id: UUID) -> None:
+        """Best-effort decision-model checks once nutrition is done; never fails the job."""
+
+        for refresh in (refresh_hidden_ingredients, refresh_recipe_facets, refresh_taste_score):
+            try:
+                refresh(self._session_factory, recipe_id)
+            except Exception:
+                logger.exception("Recipe insight refresh failed; the recipe is unaffected.")
+
+    def _match_referee(self, session: Session) -> MatchReferee | None:
+        """Build the match referee from the owner's Settings; ``None`` when it cannot answer."""
+
+        config = load_openrouter_config(session)
+        decisions = build_decisions(self._session_factory, decisions_config(config))
+        if not decisions.active(Purpose.MATCH_REFEREE):
+            return None
+        return MatchReferee(
+            decisions,
+            panel=config.features[Purpose.MATCH_REFEREE].models,
+            tolerance_dv=config.decision_assist_tolerance_dv,
+        )
+
+    def _refereed(
+        self,
+        referee: MatchReferee,
+        decision: MatchDecision,
+        ingredient: Ingredient,
+        recipe_title: str,
+    ) -> Judgement:
+        candidates = (
+            (decision.candidate,) if decision.candidate is not None else ()
+        ) + decision.alternatives
+        density = density_for(candidates[0].food.description) if candidates else None
+        grams_min, _, _, _ = self._grams(ingredient, density_g_per_ml=density)
+        return referee.judge(
+            RefereeLine(
+                ingredient.original_text, ingredient.food_name or "", recipe_title, grams_min
+            ),
+            decision,
+        )
 
     def _session_embedder(self, session: Session) -> TextEmbedder:
         # A non-null embedder with no key is an explicit test/integration
