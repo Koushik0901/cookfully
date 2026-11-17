@@ -468,7 +468,7 @@
   .settings-page .settings-tabs { display: grid; width: auto; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(8.5rem, 42vw); gap: 0.45rem; overflow-x: auto; margin-inline: -1rem; padding: 0.25rem 1rem 0.65rem; background: transparent; scroll-padding-inline: 1rem; scroll-snap-type: x proximity; scrollbar-width: none; }
   .settings-page .settings-tabs::-webkit-scrollbar { display: none; }
   .settings-page .settings-tabs button { min-height: 4.5rem; align-content: center; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-lg); padding: 0.65rem; background: var(--color-surface-bright); box-shadow: var(--shadow-card-rest); scroll-snap-align: start; }
-  .settings-page .settings-tabs button[aria-selected="true"] { border-color: color-mix(in oklch, var(--color-primary) 42%, var(--color-outline-variant)); background: var(--color-primary-container); }
+  .settings-page .settings-tabs button[aria-selected="true"] { border-color: color-mix(in oklch, var(--color-primary) 42%, var(--color-outline-variant)); color: var(--color-on-primary-container); background: var(--color-primary-container); }
   .settings-page .settings-tabs button small { display: none; }
 }
 
