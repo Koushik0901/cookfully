@@ -80,7 +80,7 @@ That is a measurement from our own runs, not a price list; re-check before budge
 
 | # | Use case | Primitive | Evidence |
 |---|---|---|---|
-| 20 | **Voice-command router.** Pick the intent (next, repeat, scale, substitute, how long) with a confidence; re-ask below the threshold. A fast first stage ahead of Needle2's function calls. | `choice` | Pattern |
+| 20 | **Voice-command router.** Pick the intent (next, repeat, scale, substitute, how long) with a confidence; re-ask below the threshold. A fast first stage ahead of Needle2's function calls. | `choice` | Built (`cook_command`) |
 | 21 | **Timer and step detection.** Find "simmer 20 minutes" and passive vs active steps; could build a real cooking timeline. | `noul` + `score` | Built (`step_timers`) |
 | 22 | **Thumbnails.** Use `box` to find the dish and set the focal point automatically; score PDF thumbnail candidates so food beats logos and ads. | `box`, `score` | Speculative |
 

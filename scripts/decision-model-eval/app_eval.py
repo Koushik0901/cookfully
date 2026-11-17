@@ -762,6 +762,54 @@ def report_step_timers(harness: Harness) -> str:
     )
 
 
+def report_cook_commands(harness: Harness) -> str:
+    from cookfully.application.cook_command import INSTRUCTIONS
+    from cookfully.domain.cook_command import INTENTS
+    from cookfully.domain.decisions import Ask, Choice
+
+    items = _gold("cook_commands")["items"]
+    engine = harness.engine(Purpose.COOK_COMMAND, PANELS["jev+clef"])
+    asks = [
+        Ask(
+            Purpose.COOK_COMMAND,
+            {"utterance": text, "step": "Simmer the sauce 10 minutes.", "position": "step 2 of 5"},
+            {"intent": Choice(INSTRUCTIONS, INTENTS)},
+        )
+        for text, _ in items
+    ]
+    answers = engine.ask(asks)
+    ranked = []
+    for (text, intent), a in zip(items, answers, strict=True):
+        probabilities = a.choice("intent") or {}
+        top = max(probabilities, key=lambda k: probabilities[k], default=None)
+        ranked.append((text, intent, top, float(probabilities.get(top or "", 0))))
+    out = [f"{len(items)} utterances", ""]
+    out.append(f"{'act at':>6} | {'acted right':>11} {'acted wrong':>11} {'asked':>6} | wrong-action examples")
+    for threshold in (0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
+        right = wrong = asked = 0
+        examples = []
+        for text, intent, top, probability in ranked:
+            if top is None or top == "none":
+                # nothing happens for "none": counts as right when none was expected
+                if intent == "none":
+                    right += 1
+                else:
+                    asked += 1
+            elif probability >= threshold:
+                if top == intent:
+                    right += 1
+                else:
+                    wrong += 1
+                    examples.append(f"{text!r}->{top}")
+            else:
+                asked += 1
+        out.append(f"{threshold:>6} | {right:>11} {wrong:>11} {asked:>6} | {'; '.join(examples[:4])}")
+    out.append("")
+    out.append("top-1 misses:")
+    out += [f"  {t!r}: want {i}, got {g} ({p:.2f})" for t, i, g, p in ranked if g != i]
+    return "\n".join(out)
+
+
 def report_diet(harness: Harness) -> str:
     from cookfully.application.recipe_facets import facet_ask
     from cookfully.domain.recipe_facets import DIETS, _contradicted_diets
@@ -987,6 +1035,7 @@ EVALUATORS: dict[str, Evaluator] = {
     "grocery-labels": lambda harness, _args: report_grocery_labels(harness),
     "shelf-life": lambda harness, _args: report_shelf_life(harness),
     "step-timers": lambda harness, _args: report_step_timers(harness),
+    "cook-commands": lambda harness, _args: report_cook_commands(harness),
     "diet": lambda harness, _args: report_diet(harness),
     "clean-pages": lambda harness, _args: report_clean_pages(harness),
     "substitutions": lambda harness, _args: report_substitutions(harness),

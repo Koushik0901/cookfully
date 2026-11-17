@@ -12,6 +12,7 @@ import { addDays } from "../plans/dates";
 import type { MealPlan, MealPlanEntry } from "../plans/types";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
+import { CookCommandBar } from "./CookCommandBar";
 import { RecipeMetadata } from "./RecipeMetadata";
 
 type CookSession = { currentStep: number; complete: boolean; checkedIngredients: number[] };
@@ -472,6 +473,29 @@ export function CookModePage() {
                 </button>
               ))}
               <button type="button" className="cook-mode__quick-timer" onClick={() => startTimer(15)}>Start 15 min timer</button>
+              {recipeId ? (
+                <CookCommandBar
+                  recipeId={recipeId}
+                  step={currentStep}
+                  actions={{
+                    next: () => {
+                      if (currentStep >= total - 1) return "That is the last step. Use Finish cooking when you are done.";
+                      nextStep();
+                      return "Next step.";
+                    },
+                    previous: () => {
+                      if (currentStep === 0) return "You are on the first step.";
+                      prevStep();
+                      return "Previous step.";
+                    },
+                    repeat: () => `Step ${currentStep + 1}: ${steps[currentStep]?.text ?? ""}`,
+                    timer: (minutes) => {
+                      startTimer(minutes);
+                      return `Timer set for ${Math.min(MAX_TIMER_MINUTES, minutes)} min.`;
+                    },
+                  }}
+                />
+              ) : null}
               {timer ? <div className="cook-mode__timer-status"><TimerChip key={timer.run} minutes={timer.minutes} /></div> : null}
             </div>
             <div className="cook-mode__step-controls">

@@ -2,6 +2,7 @@ import type {
   ImportConfirmWrite,
   IngredientSubstitutes,
   StepTimers,
+  CookCommand,
   ImportMergeWrite,
   ImportPreview,
   Job,
@@ -31,6 +32,12 @@ export async function apiRequest<T>(path: string, options: KitchenRequestOptions
 }
 
 export const recipesApi = {
+  cookCommand(recipeId: string, utterance: string, step: number) {
+    return apiRequest<CookCommand>(`/recipes/${recipeId}/cook-command`, {
+      method: "POST",
+      body: JSON.stringify({ utterance, step }),
+    });
+  },
   stepTimers(recipeId: string) {
     return apiRequest<StepTimers>(`/recipes/${recipeId}/step-timers`);
   },

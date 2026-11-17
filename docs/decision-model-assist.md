@@ -124,6 +124,16 @@ whether the cook is free meanwhile. `GET /recipes/{id}/step-timers` returns them
 "Start 20 min timer (up to 25) · hands-free" on that step. Answers are cached by step text. With no key,
 a silent panel or a failed request, nothing is offered and the manual 15-minute timer remains.
 
+## Cook commands
+
+Cook mode has a "Say or type a command" box (with a microphone where the browser supports speech
+recognition). `POST /recipes/{id}/cook-command` lets the `cook_command` panel choose an intent (next,
+previous, repeat, timer, ingredient, or none) from the transcript. It acts at once at probability 0.6 or
+more; below that it asks "Did you mean ...?" with the leading choices, so a mis-hearing costs one tap. A
+timer's length is read from the words by rule (digits or "twenty five minutes", "an hour"), never by the
+model, and a timer without a length asks for one. Voice never finishes the session: "next" on the last
+step says so. With no key or a failed request the box says so and the buttons are unchanged.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

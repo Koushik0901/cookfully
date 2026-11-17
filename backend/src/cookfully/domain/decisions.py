@@ -35,6 +35,7 @@ class Purpose(StrEnum):
     GROCERY_TIDY = "grocery_tidy"
     SHELF_LIFE = "shelf_life"
     STEP_TIMERS = "step_timers"
+    COOK_COMMAND = "cook_command"
 
 
 @dataclass(frozen=True, slots=True)

@@ -283,3 +283,12 @@ the panel (Jev + Clef) picks the timed wait or none. 28/30 right, 0 false timers
 chose the release). The hands-free flag was right on 19 of 22 correct timers. A missed timer costs the
 cook one tap on the manual button; a false timer would be an annoying nudge, so there is no threshold to
 loosen and none was added.
+
+## Cook commands (#20, 2026-11-17)
+
+`app_eval.py cook-commands` on 57 utterances (gold `cook_commands.json`: clean and misheard phrasings of
+next/previous/repeat/timer/ingredient, plus 15 non-commands such as "the dog is barking", "next to the
+stove", "call mom"). Jev + Clef top-1 was right on 56/57. The one miss, "what do I do now" (meant repeat,
+answered next at 0.51), is genuinely ambiguous. Acting threshold sweep: at 0.3-0.5 one wrong action; at 0.6
+and above none, with only that ambiguous line and one other asked. The app acts at 0.6: the extra
+confirmation lands only on ambiguous lines, and clear commands are unaffected.

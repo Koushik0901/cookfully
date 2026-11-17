@@ -56,6 +56,10 @@ const DECISION_FEATURE_COPY: Record<DecisionPurpose, { label: string; descriptio
     label: "Step timers",
     description: "Offers a timer in cook mode for the timed waits written in a recipe's steps.",
   },
+  cook_command: {
+    label: "Cook commands",
+    description: "Understands typed or spoken commands in cook mode (next, repeat, timer 10 minutes).",
+  },
 };
 
 type FeatureDraft = { purpose: DecisionPurpose; enabled: boolean; models: string };

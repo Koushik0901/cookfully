@@ -773,6 +773,24 @@ class StepTimersResponse(ApiModel):
     timers: tuple[StepTimerResponse, ...]
 
 
+class CookCommandRequest(ApiModel):
+    utterance: str = Field(min_length=1, max_length=400)
+    step: int = Field(ge=0, le=1000, description="Zero-based step the cook is on.")
+
+
+class CookCommandAlternative(ApiModel):
+    intent: Literal["next", "previous", "repeat", "timer", "ingredient"]
+    probability: Decimal6
+
+
+class CookCommandResponse(ApiModel):
+    intent: Literal["next", "previous", "repeat", "timer", "ingredient", "none"]
+    probability: Decimal6 | None = None
+    minutes: int | None = Field(default=None, ge=1, le=720)
+    act: bool
+    alternatives: tuple[CookCommandAlternative, ...]
+
+
 class AvoidWarningResponse(ApiModel):
     """An ingredient that contains (or may contain) something on the owner's avoid list."""
 

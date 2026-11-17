@@ -13,6 +13,7 @@ const PURPOSES = [
   "grocery_tidy",
   "shelf_life",
   "step_timers",
+  "cook_command",
 ] as const;
 const PANEL = ["typesafe/jev-1.14", "cloudflare/clef"];
 

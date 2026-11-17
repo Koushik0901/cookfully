@@ -113,6 +113,8 @@ _OPERATION_IDS = {
     "get_recipe": "getRecipe",
     "keep_grocery_item_separate": "keepGroceryItemSeparate",
     "get_ingredient_substitutes": "getIngredientSubstitutes",
+    "get_step_timers": "getRecipeStepTimers",
+    "post_cook_command": "postCookCommand",
     "update_recipe": "updateRecipe",
     "replace_recipe_photo": "replaceRecipePhoto",
     "remove_recipe_photo": "removeRecipePhoto",

@@ -300,6 +300,129 @@ describe("recipe UI", () => {
     expect(screen.getByRole("button", { name: "Start 15 min timer" })).toBeInTheDocument();
   });
 
+  describe("cook command bar", () => {
+    const steps = [
+      { position: 0, text: "Mix the oats." },
+      { position: 1, text: "Chill and serve." },
+    ];
+
+    function mockCommand(result: unknown | "fail") {
+      vi.mocked(fetch).mockImplementation((input, init) => {
+        const path = String(input);
+        if (path.includes("/cook-command")) {
+          return result === "fail" ? response({ title: "Boom" }, 500) : response(result);
+        }
+        if (path.includes("/step-timers")) return response({ timers: [] });
+        void init;
+        return response({ ...recipe, instructions: steps });
+      });
+    }
+
+    async function ready() {
+      window.sessionStorage.clear();
+      renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
+      const user = userEvent.setup();
+      expect(await screen.findByText("Mix the oats.")).toBeVisible();
+      return user;
+    }
+
+    it("acts on a clear command and sends the current step", async () => {
+      mockCommand({ intent: "next", probability: "0.9", minutes: null, act: true, alternatives: [{ intent: "next", probability: "0.9" }] });
+      const user = await ready();
+      expect(screen.getByRole("button", { name: "Go" })).toBeDisabled();
+      await user.type(screen.getByLabelText("Say or type a command"), "okay what is next");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText("Chill and serve.")).toBeVisible();
+      const call = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes("/cook-command"));
+      expect(JSON.parse(String(call?.[1]?.body))).toEqual({ utterance: "okay what is next", step: 0 });
+    });
+
+    it("never finishes the session by voice and stays on the first step when told to go back", async () => {
+      mockCommand({ intent: "previous", probability: "0.9", minutes: null, act: true, alternatives: [] });
+      const user = await ready();
+      await user.type(screen.getByLabelText("Say or type a command"), "back");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText("You are on the first step.")).toBeVisible();
+      mockCommand({ intent: "next", probability: "0.9", minutes: null, act: true, alternatives: [] });
+      await user.click(screen.getByRole("button", { name: "Next step" }));
+      expect(await screen.findByText("Chill and serve.")).toBeVisible();
+      await user.type(screen.getByLabelText("Say or type a command"), "next");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText(/That is the last step/)).toBeVisible();
+      expect(screen.queryByRole("heading", { name: "Time to eat." })).not.toBeInTheDocument();
+    });
+
+    it("asks which was meant when unsure and then does the chosen one", async () => {
+      mockCommand({ intent: "next", probability: "0.45", minutes: null, act: false, alternatives: [{ intent: "next", probability: "0.45" }, { intent: "repeat", probability: "0.4" }] });
+      const user = await ready();
+      await user.type(screen.getByLabelText("Say or type a command"), "what do I do now");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText("Did you mean:")).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Read this step again" }));
+      expect(screen.getByText("Step 1: Mix the oats.")).toBeVisible();
+      expect(screen.queryByText("Did you mean:")).not.toBeInTheDocument();
+    });
+
+    it("starts a spoken timer and asks for a length when there is none", async () => {
+      mockCommand({ intent: "timer", probability: "0.9", minutes: 10, act: true, alternatives: [] });
+      const user = await ready();
+      await user.type(screen.getByLabelText("Say or type a command"), "timer ten minutes");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByRole("status", { name: "Timer 10 min" })).toBeVisible();
+      mockCommand({ intent: "timer", probability: "0.9", minutes: null, act: false, alternatives: [{ intent: "timer", probability: "0.9" }] });
+      await user.clear(screen.getByLabelText("Say or type a command"));
+      await user.type(screen.getByLabelText("Say or type a command"), "start a timer");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText(/For how long/)).toBeVisible();
+    });
+
+    it("explains when nothing was understood or the service fails, leaving the buttons usable", async () => {
+      mockCommand({ intent: "none", probability: "0.8", minutes: null, act: false, alternatives: [] });
+      const user = await ready();
+      await user.type(screen.getByLabelText("Say or type a command"), "the dog is barking");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText(/didn’t catch a command/)).toBeVisible();
+      mockCommand("fail");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText(/unavailable right now/)).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Next step" }));
+      expect(screen.getByText("Chill and serve.")).toBeVisible();
+    });
+
+    it("offers a microphone only where speech recognition exists and sends its transcript", async () => {
+      mockCommand({ intent: "repeat", probability: "0.9", minutes: null, act: true, alternatives: [] });
+      let user = await ready();
+      expect(screen.queryByRole("button", { name: "Speak a command" })).not.toBeInTheDocument();
+      cleanup();
+
+      class FakeRecognition {
+        lang = "";
+        interimResults = true;
+        maxAlternatives = 0;
+        onresult: ((event: { results: { transcript: string }[][] }) => void) | null = null;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        start() {
+          queueMicrotask(() => {
+            this.onresult?.({ results: [[{ transcript: "say that again" }]] });
+            this.onend?.();
+          });
+        }
+        stop() {}
+      }
+      vi.stubGlobal("SpeechRecognition", FakeRecognition);
+      try {
+        user = await ready();
+        await user.click(screen.getByRole("button", { name: "Speak a command" }));
+        expect(await screen.findByText("Step 1: Mix the oats.")).toBeVisible();
+        expect(screen.getByLabelText("Say or type a command")).toHaveValue("");
+      } finally {
+        vi.unstubAllGlobals();
+        vi.stubGlobal("fetch", vi.fn(() => response(recipe)));
+      }
+    });
+  });
+
   it("resumes a planned cooking session and saves leftovers with undo", async () => {
     const weekStart = "2026-03-09";
     const entry = {
