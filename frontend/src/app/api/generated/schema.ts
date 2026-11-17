@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/{recipeId}/ingredients/{ingredientId}/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Substitutes for one ingredient, from a fixed table, ranked for this recipe by decision models. */
+        get: operations["getIngredientSubstitutes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -1798,6 +1815,8 @@ export interface components {
             assumptions?: string[];
             /** Format: uuid */
             sectionId?: string | null;
+            /** @description The substitution table has swaps for this line. */
+            substitutable?: boolean;
         };
         SectionWrite: {
             title: string;
@@ -1911,6 +1930,19 @@ export interface components {
              * @enum {string}
              */
             hiddenIngredientCheck?: "checked" | "not_checked" | "no_avoid_list";
+        };
+        IngredientSubstitutes: {
+            /** Format: uuid */
+            ingredientId: string;
+            originalText: string;
+            /** @description True when decision models ranked the list. */
+            ranked: boolean;
+            substitutes: {
+                name: string;
+                amount: string;
+                note: string;
+                probability?: components["schemas"]["Decimal6"] | null;
+            }[];
         };
         AvoidWarning: {
             /** Format: uuid */
@@ -3005,6 +3037,38 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationError"];
+        };
+    };
+    getIngredientSubstitutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+                ingredientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Substitutes (empty when the table has none). Unranked when no model answered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngredientSubstitutes"];
+                };
+            };
+            /** @description Recipe or ingredient not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getRecipe: {

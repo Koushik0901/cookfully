@@ -53,6 +53,8 @@ from cookfully.api.schemas.recipes import (
     RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
+    SubstituteResponse,
+    SubstitutionsResponse,
     ThumbnailCropRequest,
 )
 from cookfully.application.corrections import CorrectionService
@@ -62,6 +64,7 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
+from cookfully.application.substitutions import suggest_for_ingredient
 from cookfully.application.taste_scores import refresh_all_taste_scores
 from cookfully.domain.common import DomainError, require_present, utc_now
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -638,6 +641,34 @@ def get_recipe(
     _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
 ) -> RecipeDetailResponse:
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
+
+
+@router.get(
+    "/{recipeId}/ingredients/{ingredientId}/substitutes",
+    response_model=SubstitutionsResponse,
+    response_model_by_alias=True,
+)
+def get_ingredient_substitutes(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    ingredient_id: Annotated[UUID, Path(alias="ingredientId")],
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
+) -> SubstitutionsResponse:
+    result = suggest_for_ingredient(request.app.state.sessions, recipe_id, ingredient_id)
+    return SubstitutionsResponse(
+        ingredient_id=result.ingredient_id,
+        original_text=result.original_text,
+        substitutes=tuple(
+            SubstituteResponse(
+                name=entry.substitute.name,
+                amount=entry.substitute.amount,
+                note=entry.substitute.note,
+                probability=entry.probability,
+            )
+            for entry in result.substitutes
+        ),
+        ranked=result.ranked,
+    )
 
 
 @router.patch("/{recipeId}", response_model=RecipeDetailResponse, response_model_by_alias=True)

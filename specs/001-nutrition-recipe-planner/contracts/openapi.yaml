@@ -401,6 +401,25 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /recipes/{recipeId}/ingredients/{ingredientId}/substitutes:
+    get:
+      operationId: getIngredientSubstitutes
+      tags: [Recipes]
+      summary: Substitutes for one ingredient, from a fixed table, ranked for this recipe by decision models.
+      parameters:
+        - { name: recipeId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: ingredientId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Substitutes (empty when the table has none). Unranked when no model answered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngredientSubstitutes" }
+        "404":
+          description: Recipe or ingredient not found.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -2636,6 +2655,7 @@ components:
             provisionalMacros: { type: [object, "null"] }
             assumptions: { type: array, items: { type: string } }
             sectionId: { type: [string, "null"], format: uuid }
+            substitutable: { type: boolean, description: The substitution table has swaps for this line. }
     SectionWrite:
       type: object
       additionalProperties: false
@@ -2791,6 +2811,23 @@ components:
               type: string
               enum: [checked, not_checked, no_avoid_list]
               description: Whether decision models checked this recipe for avoid-list items its ingredients may contain without naming them. `not_checked` is never a promise of safety.
+    IngredientSubstitutes:
+      type: object
+      required: [ingredientId, originalText, substitutes, ranked]
+      properties:
+        ingredientId: { type: string, format: uuid }
+        originalText: { type: string }
+        ranked: { type: boolean, description: True when decision models ranked the list. }
+        substitutes:
+          type: array
+          items:
+            type: object
+            required: [name, amount, note]
+            properties:
+              name: { type: string }
+              amount: { type: string }
+              note: { type: string }
+              probability: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
     AvoidWarning:
       type: object
       required: [ingredientId, item, source]

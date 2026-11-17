@@ -1938,3 +1938,12 @@
 .recipe-facet-filters button { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.3rem 0.75rem; color: var(--color-on-surface); background: var(--color-surface); font: inherit; font-size: 0.8rem; cursor: pointer; }
 .recipe-facet-filters button[aria-pressed="true"] { border-color: var(--color-primary); color: var(--color-on-primary-container); background: var(--color-primary-container); }
 .recipe-facet-filters button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.substitutes { display: inline-block; margin-left: 0.5rem; vertical-align: baseline; }
+.substitutes > summary { display: inline; color: var(--color-primary); font-size: 0.78rem; font-weight: 620; cursor: pointer; list-style: none; }
+.substitutes > summary::-webkit-details-marker { display: none; }
+.substitutes > summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 0.2rem; }
+.substitutes__body { display: grid; gap: 0.4rem; margin-top: 0.4rem; border-radius: var(--radius-md); padding: 0.6rem 0.75rem; background: var(--color-surface-low); font-size: 0.85rem; }
+.substitutes__body ul { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.substitutes__body li { display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
+.substitutes__body p { margin: 0; }
+.substitutes__fit { color: var(--color-on-surface-variant); }

@@ -1,5 +1,6 @@
 import type {
   ImportConfirmWrite,
+  IngredientSubstitutes,
   ImportMergeWrite,
   ImportPreview,
   Job,
@@ -29,6 +30,9 @@ export async function apiRequest<T>(path: string, options: KitchenRequestOptions
 }
 
 export const recipesApi = {
+  substitutes(recipeId: string, ingredientId: string) {
+    return apiRequest<IngredientSubstitutes>(`/recipes/${recipeId}/ingredients/${ingredientId}/substitutes`);
+  },
   list(filters: { query?: string; nutritionState?: string; includeArchived?: boolean; favorite?: boolean; collectionId?: string; mealRole?: string; facets?: string[] } = {}, cursor?: string, limit = 30, signal?: AbortSignal) {
     const params = new URLSearchParams();
     if (filters.query) params.set("query", filters.query);

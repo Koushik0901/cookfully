@@ -47,6 +47,7 @@ from cookfully.domain.nutrition import (
     SupportedMicronutrientValue,
 )
 from cookfully.domain.recipes import RecipeOrigin, ThumbnailCrop
+from cookfully.domain.substitutions import table_key
 
 
 def _fixed_decimal(value: object, *, places: int, positive: bool = False) -> Decimal:
@@ -610,6 +611,7 @@ class IngredientResponse(ApiModel):
     provisional_macros: dict[str, object] | None = Field(alias="provisionalMacros", default=None)
     assumptions: tuple[str, ...] = ()
     section_id: UUID | None = Field(alias="sectionId", default=None)
+    substitutable: bool = False
 
     @classmethod
     def from_read(cls, value: IngredientRead) -> IngredientResponse:
@@ -630,6 +632,7 @@ class IngredientResponse(ApiModel):
             provisional_macros=value.provisional_macros,
             assumptions=value.assumptions,
             section_id=value.section_id,
+            substitutable=table_key(value.original_text) is not None,
         )
 
 
@@ -742,6 +745,20 @@ class RecipeResponse(ApiModel):
                 FacetResponse(key=tag.key, probability=tag.probability) for tag in value.facets
             ),
         )
+
+
+class SubstituteResponse(ApiModel):
+    name: str
+    amount: str
+    note: str
+    probability: Decimal6 | None = None
+
+
+class SubstitutionsResponse(ApiModel):
+    ingredient_id: UUID = Field(alias="ingredientId")
+    original_text: str = Field(alias="originalText")
+    substitutes: tuple[SubstituteResponse, ...]
+    ranked: bool
 
 
 class AvoidWarningResponse(ApiModel):

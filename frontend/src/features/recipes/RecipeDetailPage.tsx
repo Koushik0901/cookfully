@@ -17,6 +17,7 @@ import type { Job, RecipeDetail, RecipePage } from "./types";
 import { formatProbability, modelPick, reviewOrder, reviewSummary } from "./matchReview";
 import { AvoidNotice } from "./AvoidNotice";
 import { FacetChips } from "./FacetChips";
+import { SubstituteDisclosure } from "./SubstituteDisclosure";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -305,7 +306,7 @@ export function RecipeDetailPage() {
                       const friendlyIngredient = scaleFactor !== 1 && scaledMin
                         ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                         : formatCookingText(item.originalText);
-                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
                     })}
                   </ul>
                 </li>
@@ -316,7 +317,7 @@ export function RecipeDetailPage() {
                 const friendlyIngredient = scaleFactor !== 1 && scaledMin
                   ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
                   : formatCookingText(item.originalText);
-                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span></li>;
+                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
               })}
             </ul>
           ) : <p className="muted">No ingredients were provided.</p>}

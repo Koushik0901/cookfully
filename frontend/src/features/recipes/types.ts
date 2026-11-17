@@ -26,3 +26,5 @@ export type DuplicateSummary = ImportPreview["duplicates"][number];
 export type RecipePhotoAttachWrite = components["schemas"]["RecipePhotoAttach"];
 export type ThumbnailCrop = components["schemas"]["ThumbnailCrop"];
 export type ThumbnailCropWrite = ThumbnailCrop;
+
+export type IngredientSubstitutes = components["schemas"]["IngredientSubstitutes"];
