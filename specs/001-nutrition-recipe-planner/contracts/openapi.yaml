@@ -2616,7 +2616,14 @@ components:
             parseStatus: { type: string, enum: [unparsed, parsed, low_confidence, manual, failed] }
             matchStatus: { type: string, enum: [candidate, matched, ambiguous, unmatched, manual] }
             resolutionKind: { type: [string, "null"], enum: [confirmed, provisional, unresolved, null] }
-            candidateEvidence: { type: array, items: { type: object } }
+            candidateEvidence:
+              type: array
+              description: >-
+                Provenance for the match. Entries of kind `match_referee` carry `action`, `reason`,
+                `models`, `toleranceDv`, `impactDv` (largest nutrient error at stake as a share of daily
+                value, or null), `pick` (`foodReferenceId`, `description`, `probability`, or null),
+                `noneProbability`, `lineState` and `probabilities`.
+              items: { type: object, additionalProperties: true }
             provisionalMacros: { type: [object, "null"] }
             assumptions: { type: array, items: { type: string } }
             sectionId: { type: [string, "null"], format: uuid }

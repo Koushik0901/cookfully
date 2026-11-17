@@ -19,6 +19,9 @@ Measured results are in [`decision-model-experiments/app-eval.md`](decision-mode
    0.5) and switching would move a tracked nutrient by more than the tolerance, or the panel agrees no
    listed food fits, the line goes back to review (`ambiguous`, method `decision_referee`) with the
    panel's pick first. Harmless disagreements are confirmed and recorded.
+   A separate request asks what state the line implies (raw, cooked, canned, unspecified); a
+   confident, agreed state that contradicts the food's USDA state sends the line to review with a
+   fitting candidate first, or holds back an upgrade.
 5. `domain/decision_assist.py` computes, per tracked nutrient (kcal, protein, fat, carbohydrate,
    sodium, vitamin C), the model's expected error against its top pick as a share of the daily
    value. The line auto-resolves only if that is at most the tolerance (default 2%) in **every**
@@ -49,6 +52,14 @@ All decision-model calls go through one engine, `Decisions.ask` in `application/
 The transport (`infrastructure/decision_client.py`) is the only code that knows the wire format;
 `ScriptedDecisionTransport` answers from a function for tests and offline replay.
 
+## Reviewing
+
+The editor's **Review food matches** list (and the recipe page's review summary) puts the lines with
+the most nutrition at stake first, using the referee's `impactDv`. Where the panel agreed on a food, the
+line shows a "Model pick · 94%" chip with the food's name and a **Use this** button. Tapping it saves
+the food exactly like choosing it in the picker, including the match memory. The models give no reasons,
+so only the probability is shown.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment
@@ -75,6 +86,5 @@ to OpenRouter. No account data is sent. The Decisions endpoint is alpha and may 
 
 ## Not done yet
 
-- Review-screen ordering by nutrition at stake and the one-tap "looks right" confirmation.
 - Re-measuring on the live app; the research numbers came from an offline harness with a stub repository.
 - Import-cleanup gate and the Extractions API (research sections 5 and 6).

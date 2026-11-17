@@ -1790,7 +1790,10 @@ export interface components {
             matchStatus?: "candidate" | "matched" | "ambiguous" | "unmatched" | "manual";
             /** @enum {string|null} */
             resolutionKind?: "confirmed" | "provisional" | "unresolved" | null;
-            candidateEvidence?: Record<string, never>[];
+            /** @description Provenance for the match. Entries of kind `match_referee` carry `action`, `reason`, `models`, `toleranceDv`, `impactDv` (largest nutrient error at stake as a share of daily value, or null), `pick` (`foodReferenceId`, `description`, `probability`, or null), `noneProbability`, `lineState` and `probabilities`. */
+            candidateEvidence?: {
+                [key: string]: unknown;
+            }[];
             provisionalMacros?: Record<string, never> | null;
             assumptions?: string[];
             /** Format: uuid */
