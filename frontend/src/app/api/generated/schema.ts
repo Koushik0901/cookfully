@@ -2757,6 +2757,8 @@ export interface operations {
                 favorite?: boolean;
                 collectionId?: string;
                 mealRole?: "breakfast" | "lunch" | "dinner" | "snack";
+                /** @description Only recipes carrying every listed decision-model tag (see Recipe.facets). */
+                facet?: string[];
             };
             header?: never;
             path?: never;

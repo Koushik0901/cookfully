@@ -86,6 +86,15 @@ Run on every import (`application/import_decisions.py`, wired into `RecipeCleanu
   If every model agrees the food is not there, that cleanup is rejected and the deterministic parse
   is kept.
 
+## Recipe facets
+
+After processing, the `recipe_facets` feature tags each recipe (diet, cuisine, meal type, effort,
+hands-on time, keeps four days, freezes, reheats, needs an oven, and a derived "weeknight-friendly").
+Diet tags the ingredient list contradicts are dropped deterministically. Tags appear as chips on
+recipe detail ("Probably …" below 0.8), can be combined as filters under **Refine recipes**
+(`GET /recipes?facet=…`, matched in SQL against stored tags), and storage tags show as badges on
+planned meals.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

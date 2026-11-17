@@ -7,7 +7,10 @@ import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt"
 import { formatCookingInput, formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import type { MealPlanEntry as Entry, RecipePage } from "./types";
+import { FacetChips } from "../recipes/FacetChips";
 import { AvoidBadge } from "./avoidWarnings";
+
+const PLAN_FACETS = ["keeps_4_days", "reheats_well", "freezes_well"];
 import { nutritionConfidenceLabel } from "./nutritionConfidence";
 import { useMealPlanMutations } from "./useMealPlanMutations";
 import { addDays, weekDates } from "./dates";
@@ -47,7 +50,7 @@ export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false, toda
         ) : <span className="plan-entry__media plan-entry__media--fallback"><RecipeFallbackArt title={entry.recipeTitle} /></span>}
         <div className="plan-entry__body">
           <div className="plan-entry__heading">
-            <div className="plan-entry__title"><h4>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : entry.recipeTitle}</h4><AvoidBadge recipeId={entry.recipeId} /></div>
+            <div className="plan-entry__title"><h4>{entry.recipeId ? <Link to={`/app/recipes/${entry.recipeId}`}>{entry.recipeTitle}</Link> : entry.recipeTitle}</h4><AvoidBadge recipeId={entry.recipeId} /><FacetChips facets={recipe?.facets} keys={PLAN_FACETS} /></div>
             <details className="nutrition-confidence nutrition-confidence--meal">
               <summary>{nutritionConfidenceLabel(entry.nutrition.status, entry.nutrition.coverageRatio)}</summary>
               <p>{entry.nutrition.status === "unavailable" ? "Nutrition is not available yet; the meal is still ready to cook." : `${entry.nutrition.status.replace("_", " ")} nutrition · ${Math.round(Number(entry.nutrition.coverageRatio) * 100)}% source coverage`}</p>

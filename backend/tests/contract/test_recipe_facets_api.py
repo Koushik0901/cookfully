@@ -88,3 +88,60 @@ def test_facets_are_stored_listed_and_dropped_when_the_recipe_changes(
             )
         assert client.get(f"/api/v1/recipes/{recipe['id']}").json()["facets"] == []
         engine.dispose()
+
+
+def test_recipe_library_filters_by_facets(isolated_database_url: str, tmp_path: Path) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        ids = {}
+        for title in ("Veggie pasta", "Beef stew"):
+            ids[title] = client.post(
+                "/api/v1/recipes",
+                json={
+                    "title": title,
+                    "yieldQuantity": "2.000",
+                    "yieldUnit": "servings",
+                    "ingredients": [{"originalText": "1 cup water"}],
+                    "instructions": [{"text": "Cook."}],
+                },
+                headers=headers,
+            ).json()["id"]
+        engine = create_engine(isolated_database_url)
+        factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+        def responder(_model: str, state: Any, questions: Any) -> object:
+            answers = _answers(_model, state, questions)
+            veggie = state["title"] == "Veggie pasta"
+            assert isinstance(answers, dict)
+            answers["diet_vegetarian"] = {"type": "noul", "noul": 0.9 if veggie else 0.05}
+            answers["freezes_well"] = {"type": "noul", "noul": 0.1 if veggie else 0.9}
+            return answers
+
+        decisions = Decisions(
+            DecisionsConfig(
+                "k",
+                features={
+                    Purpose.RECIPE_FACETS: FeatureConfig(
+                        True, ("typesafe/jev-1.14", "cloudflare/clef")
+                    )
+                },
+            ),
+            ScriptedDecisionTransport(responder),
+            InMemoryDecisionStore(),
+        )
+        for recipe_id in ids.values():
+            refresh_recipe_facets(factory, UUID(recipe_id), decisions=decisions)
+        engine.dispose()
+
+        def titles(params: str) -> list[str]:
+            response = client.get(f"/api/v1/recipes?{params}")
+            assert response.status_code == 200, response.text
+            return sorted(item["title"] for item in response.json()["items"])
+
+        assert titles("") == ["Beef stew", "Veggie pasta"]
+        assert titles("facet=vegetarian") == ["Veggie pasta"]
+        assert titles("facet=freezes_well") == ["Beef stew"]
+        assert titles("facet=vegetarian&facet=freezes_well") == []
+        assert titles("facet=cuisine:italian") == ["Beef stew", "Veggie pasta"]
+        for bad in ("facet=DROP%20TABLE", "facet=" + "a" * 80, "&".join(["facet=x"] * 9)):
+            assert client.get(f"/api/v1/recipes?{bad}").status_code == 422

@@ -200,6 +200,15 @@ paths:
         - name: mealRole
           in: query
           schema: { type: string, enum: [breakfast, lunch, dinner, snack] }
+        - name: facet
+          in: query
+          description: Only recipes carrying every listed decision-model tag (see Recipe.facets).
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 8
+            items: { type: string, pattern: "^[a-z][a-z0-9_]{0,30}(:[a-z0-9_]{1,30})?$" }
       responses:
         "200":
           description: Cursor-paginated recipes.

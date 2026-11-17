@@ -285,6 +285,9 @@ async def _maybe_repair_recipe_ingredients(
         return payload
 
 
+_FACET_KEY = re.compile(r"[a-z][a-z0-9_]{0,30}(?::[a-z0-9_]{1,30})?")
+
+
 @router.get("", response_model=RecipePageResponse, response_model_by_alias=True)
 def list_recipes(
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
@@ -297,7 +300,11 @@ def list_recipes(
     collection_id: Annotated[UUID | None, Query(alias="collectionId")] = None,
     meal_role: Annotated[str | None, Query(alias="mealRole")] = None,
     include_archived: Annotated[bool, Query(alias="includeArchived")] = False,
+    facet: Annotated[list[str] | None, Query(max_length=8)] = None,
 ) -> RecipePageResponse:
+    facets = tuple(dict.fromkeys(facet or ()))
+    if any(not _FACET_KEY.fullmatch(item) for item in facets):
+        raise DomainError("invalid_facet", "Facet filters must be known tag keys.", 422)
     return RecipePageResponse.from_read(
         queries.list(
             query=query,
@@ -308,6 +315,7 @@ def list_recipes(
             include_archived=include_archived,
             cursor=cursor,
             limit=limit,
+            facets=facets,
         )
     )
 

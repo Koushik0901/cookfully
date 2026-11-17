@@ -171,6 +171,7 @@ class RecipeQueryService:
         include_archived: bool,
         cursor: str | None,
         limit: int,
+        facets: Sequence[str] = (),
     ) -> RecipePageRead:
         after = self._decode_cursor(cursor) if cursor else None
         with self._session_factory() as session:
@@ -184,6 +185,7 @@ class RecipeQueryService:
                 limit=limit + 1,
                 after=after,
                 include_content=False,
+                facets=facets,
             )
             has_more = len(recipes) > limit
             recipes = recipes[:limit]
@@ -225,13 +227,13 @@ class RecipeQueryService:
                 if recipe_ids
                 else {}
             )
-            facets = stored_facets(session, recipes)
+            facet_tags = stored_facets(session, recipes)
             items = tuple(
                 self._read(
                     session,
                     recipe,
                     detail=False,
-                    prefetched_facets=facets.get(recipe.id, ()),
+                    prefetched_facets=facet_tags.get(recipe.id, ()),
                     prefetched_corrections=corrections_by_recipe.get(recipe.id, ()),
                     prefetched_estimate=(
                         estimates.get(recipe.active_estimate_id)
