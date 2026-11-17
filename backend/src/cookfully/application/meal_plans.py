@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import cast
@@ -10,6 +11,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.avoid_warnings import plan_avoid_warnings
 from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.domain.common import (
@@ -139,6 +141,7 @@ class MealPlanRead:
     totals: PlanTotals
     grocery_status: str
     version: int
+    avoid_warnings: Mapping[UUID, tuple[str, ...]] = field(default_factory=dict)
 
 
 class GoalService:
@@ -202,8 +205,7 @@ class GoalService:
                     for position, target in enumerate(validated.meal_targets)
                 )
                 session.flush()
-                result = self._read(goal)
-            return result
+                return self._read(goal)
         except IntegrityError as exc:
             raise DomainError(
                 "goal_period_overlap", "Goal effective dates overlap an existing goal.", 409
@@ -289,7 +291,9 @@ class MealPlanService:
 
     def get(self, owner_id: UUID, week_start: date) -> MealPlanRead:
         with self._session_factory() as session:
-            return self._read(MealPlanRepository(session).get_week(owner_id, week_start))
+            plan = self._read(MealPlanRepository(session).get_week(owner_id, week_start))
+            warnings = plan_avoid_warnings(session, (entry.recipe_id for entry in plan.entries))
+            return replace(plan, avoid_warnings=warnings)
 
     def get_entry(self, owner_id: UUID, entry_id: UUID) -> MealPlanEntryContext:
         with self._session_factory() as session:

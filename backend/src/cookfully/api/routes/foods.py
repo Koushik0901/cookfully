@@ -19,7 +19,7 @@ from cookfully.api.schemas.foods import (
 from cookfully.application.food_embedding_index import embedding_storage_key
 from cookfully.application.food_match_memories import remembered_food_choice_for_name
 from cookfully.application.ingredient_engine import engine
-from cookfully.domain.common import DomainError
+from cookfully.domain.common import MAX_VERSION, DomainError, require_present
 from cookfully.domain.food_semantics import (
     Compatibility,
     CompatibilityResult,
@@ -243,8 +243,8 @@ def _remembered_candidate_for_name(
         return None
     if choice.owner_food is not None:
         return _candidate_from_owner(choice.owner_food, remembered=True)
-    assert choice.food_reference is not None
-    return _candidate_from_usda(choice.food_reference, remembered=True)
+    food_reference = require_present(choice.food_reference, "remembered food reference")
+    return _candidate_from_usda(food_reference, remembered=True)
 
 
 def _prioritize_remembered(
@@ -294,12 +294,12 @@ def search_foods(
         )
     repo = UserFoodRepository(session)
     user_foods = repo.search(owner.id, query, limit=5)
-    for uf in user_foods:
-        candidates.append(_candidate_from_owner(uf))
+    candidates.extend(_candidate_from_owner(uf) for uf in user_foods)
 
     matcher = _configured_search_matcher(session)
-    for match in matcher.candidates(q, limit=5):
-        candidates.append(_candidate_from_usda(match.food, match))
+    candidates.extend(
+        _candidate_from_usda(match.food, match) for match in matcher.candidates(q, limit=5)
+    )
     session.close()
 
     return FoodSearchResponse(
@@ -397,7 +397,7 @@ def update_user_food(
 )
 def delete_user_food(
     food_id: Annotated[UUID, Path(alias="foodId")],
-    expected_version: Annotated[int, Query(alias="expectedVersion", ge=1)],
+    expected_version: Annotated[int, Query(alias="expectedVersion", ge=1, le=MAX_VERSION)],
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
 ) -> None:
@@ -445,12 +445,12 @@ def list_ingredient_candidates(
         )
 
     repo = UserFoodRepository(session)
-    for uf in repo.search(owner.id, query, limit=5):
-        candidates.append(_candidate_from_owner(uf))
+    candidates.extend(_candidate_from_owner(uf) for uf in repo.search(owner.id, query, limit=5))
 
     matcher = _configured_search_matcher(session)
-    for fc in matcher.candidates(search_name, limit=5):
-        candidates.append(_candidate_from_usda(fc.food, fc))
+    candidates.extend(
+        _candidate_from_usda(fc.food, fc) for fc in matcher.candidates(search_name, limit=5)
+    )
 
     session.close()
     return FoodSearchResponse(

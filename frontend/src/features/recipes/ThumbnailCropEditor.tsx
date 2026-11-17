@@ -89,6 +89,7 @@ export function ThumbnailCropEditor({
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
         >
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-tabindex -- custom crop widget: arrow keys move and resize the frame, so it must be a tab stop; there is no native role for it */}
           <div className="thumbnail-crop-editor__frame" style={frameStyle} tabIndex={0} aria-label="Thumbnail selection" onKeyDown={onKeyDown}>
             {HANDLES.map((corner) => (
               <span key={corner} className={`thumbnail-crop-editor__handle thumbnail-crop-editor__handle--${corner}`} data-crop-resize={corner} />

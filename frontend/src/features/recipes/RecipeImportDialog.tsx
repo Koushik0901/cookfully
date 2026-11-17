@@ -25,6 +25,11 @@ function cleanupWarningLabels(warnings: string[]): string[] {
   const counts = new Map<string, number>();
   for (const warning of warnings) counts.set(warning, (counts.get(warning) ?? 0) + 1);
   return [...counts.entries()].map(([warning, count]) => {
+    if (warning === "moved_ingredient") return `Moved ${count} line${count === 1 ? "" : "s"} that ${count === 1 ? "is" : "are"} not an ingredient (put back below)`;
+    if (warning === "import_injection_suspected") return "The page tries to give instructions to an AI, so remote cleanup was skipped";
+    if (warning === "import_not_a_recipe") return "This page may not be a recipe";
+    if (warning === "cleanup_skipped_clean") return "The parse already looked clean, so cleanup was skipped";
+    if (warning === "cleanup_invented_ingredient") return "Cleanup added an ingredient the source does not have; the original parse was kept";
     const [action, kind] = warning.split("_");
     const noun = kind === "ingredient" ? "ingredient row" : kind === "step" ? "method step" : "row";
     if (action === "dropped") return `Removed ${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -34,6 +39,27 @@ function cleanupWarningLabels(warnings: string[]): string[] {
     if (warning === "cleanup_invalid_output") return "Cleanup output was unsafe; the deterministic parse was kept";
     return "Cleanup was unavailable; the deterministic parse was kept";
   });
+}
+
+function MovedLines({ changes, restored, onPutBack }: { changes: Record<string, string>[]; restored: ReadonlySet<string>; onPutBack: (text: string) => void }) {
+  const moved = changes.filter((change) => change.action === "moved" && change.before && !restored.has(change.before));
+  if (!moved.length) return null;
+  return (
+    <section className="import-moved-lines" aria-labelledby="import-moved-title">
+      <h3 id="import-moved-title">Moved out of the ingredients</h3>
+      <p className="muted">Decision models agreed these lines are not ingredients. Put back any that are.</p>
+      <ul>
+        {moved.map((change) => (
+          <li key={`${change.sourceIndex}-${change.before}`}>
+            <span>{change.before}</span>
+            <Button type="button" variant="secondary" size="sm" onClick={() => onPutBack(change.before ?? "")} aria-label={`Put back ${change.before}`}>
+              Put back
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function componentsPayload(components: EditableComponent[]): ImportConfirmComponent[] {
@@ -92,6 +118,7 @@ export function RecipeImportDialog({
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [thumbnailCrop, setThumbnailCrop] = useState<ThumbnailCropWrite>(defaultThumbnailCrop);
   const [components, setComponents] = useState<EditableComponent[]>([]);
+  const [putBack, setPutBack] = useState<ReadonlySet<string>>(new Set());
   const [cookbookRecipes, setCookbookRecipes] = useState<ImportRecipePreview[]>([]);
   const [selectedCookbookParseIds, setSelectedCookbookParseIds] = useState<Set<string>>(new Set());
 
@@ -110,6 +137,7 @@ export function RecipeImportDialog({
     setImageSource(result.imageSources[0] ?? null);
     setThumbnailCrop(defaultThumbnailCrop());
     setComponents(editableComponents(result));
+    setPutBack(new Set());
     setStep("preview");
   }
 
@@ -129,7 +157,7 @@ export function RecipeImportDialog({
             // The import is already accepted; onboarding persistence is best-effort.
           }
           setOpen(false);
-          if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
+          if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
         } catch {
           setValidation("That page could not be imported. Check the address and try again.");
           setStep("url");
@@ -159,7 +187,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
+        if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url, coverStatus: accepted.coverStatus } });
       }
     },
   });
@@ -181,7 +209,7 @@ export function RecipeImportDialog({
         // The recipe already exists; optional onboarding persistence must not turn that into a failure.
       } finally {
         setOpen(false);
-        if (accepted.resourceId) navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url } });
+        if (accepted.resourceId) void navigate(`/app/recipes/${accepted.resourceId}`, { state: { jobId: accepted.jobId, recipeSaved: true, importUrl: sourceLabel || url } });
       }
     },
   });
@@ -208,7 +236,7 @@ export function RecipeImportDialog({
         // The recipes already exist; onboarding persistence is optional.
       } finally {
         setOpen(false);
-        navigate("/app/recipes");
+        void navigate("/app/recipes");
       }
     },
   });
@@ -278,6 +306,16 @@ export function RecipeImportDialog({
     setComponents((current) => current.map((component, index) => (
       index === componentIndex ? { ...component, instructions: [...component.instructions, ""] } : component
     )));
+  }
+
+  function putBackIngredient(text: string) {
+    setPutBack((current) => new Set(current).add(text));
+    setComponents((current) => {
+      if (!current.length) return [{ title: "", ingredients: [{ originalText: text }], instructions: [] }];
+      return current.map((component, index) => (
+        index === 0 ? { ...component, ingredients: [...component.ingredients, { originalText: text }] } : component
+      ));
+    });
   }
 
   function removeComponent(componentIndex: number) {
@@ -368,6 +406,11 @@ export function RecipeImportDialog({
               {preview.cleanupWarnings?.length ? (
                 <p className="muted">Review note: {cleanupWarningLabels(preview.cleanupWarnings).join("; ")}.</p>
               ) : null}
+              <MovedLines
+                changes={preview.cleanupChanges ?? []}
+                restored={putBack}
+                onPutBack={putBackIngredient}
+              />
 
               {cookbookRecipes.length > 1 ? (
                 <section className="import-wizard__cookbook" aria-labelledby="cookbook-import-title">
@@ -430,7 +473,7 @@ export function RecipeImportDialog({
                   ))}
                   <div className="actions">
                     <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Discard</Button>
-                    <Button type="button" variant="secondary" onClick={() => { setOpen(false); navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>
+                    <Button type="button" variant="secondary" onClick={() => { setOpen(false); void navigate(`/app/recipes/${preview.duplicates[0].id}`); }}>
                       Open existing
                     </Button>
                     <Button type="button" onClick={() => setStep("confirm")}>Keep this import</Button>

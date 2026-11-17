@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hmac
 import secrets
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from cookfully.application.access_tokens import ALL_TOKEN_SCOPES as ALL_TOKEN_SCOPES
 from cookfully.application.access_tokens import AccessTokenService, token_hash
 from cookfully.application.access_tokens import IssuedAccessToken as ManagedAccessToken
+from cookfully.application.login_throttle import LoginThrottle
 from cookfully.domain.common import DomainError, utc_now
 from cookfully.infrastructure.models.identity import (
     OwnerAccount,
@@ -89,6 +91,8 @@ class AuthService:
         self._session_factory = session_factory
         self._session_ttl = session_ttl
         self._passwords = PasswordHasher()
+        self._throttle = LoginThrottle()
+        self._dummy_hash = self._passwords.hash(secrets.token_urlsafe(16))
         self._access_tokens = AccessTokenService(session_factory)
 
     def bootstrap_owner(self, email: str, password: str, display_name: str) -> OwnerAccount:
@@ -122,19 +126,34 @@ class AuthService:
         password: str,
         client_label: str | None = None,
         user_agent: str | None = None,
+        client_address: str | None = None,
     ) -> IssuedSession:
         normalized = email.strip().lower()
         label = client_label or _session_label(user_agent)
+        keys = ("owner", f"ip:{client_address or 'unknown'}")
+        wait = self._throttle.retry_after(*keys)
+        if wait:
+            raise DomainError(
+                "login_throttled",
+                f"Too many failed sign-ins. Try again in {wait} seconds.",
+                429,
+            )
         with self._session_factory.begin() as session:
             owner = session.scalar(select(OwnerAccount).where(OwnerAccount.email == normalized))
             if owner is None or owner.status != "active":
+                # Spend the same hashing time as a real check so timing does not reveal the email.
+                with suppress(VerifyMismatchError):
+                    self._passwords.verify(self._dummy_hash, password)
+                self._throttle.record_failure(*keys)
                 raise DomainError("invalid_credentials", "Email or password is incorrect.", 401)
             try:
                 self._passwords.verify(owner.password_hash, password)
             except VerifyMismatchError as exc:
+                self._throttle.record_failure(*keys)
                 raise DomainError(
                     "invalid_credentials", "Email or password is incorrect.", 401
                 ) from exc
+            self._throttle.record_success(*keys)
             if self._passwords.check_needs_rehash(owner.password_hash):
                 owner.password_hash = self._passwords.hash(password)
             now = utc_now()
@@ -252,6 +271,12 @@ class AuthService:
                 "weak_password", "Password must contain between 12 and 1024 characters.", 422
             )
         checked_at = (now or utc_now()).astimezone(UTC)
+        # A stolen session must not be able to guess the current password without limit.
+        wait = self._throttle.retry_after("owner")
+        if wait:
+            raise DomainError(
+                "login_throttled", f"Too many failed attempts. Try again in {wait} seconds.", 429
+            )
         with self._session_factory.begin() as session:
             owner = session.get(OwnerAccount, owner_id, with_for_update=True)
             if owner is None:
@@ -259,9 +284,11 @@ class AuthService:
             try:
                 self._passwords.verify(owner.password_hash, current_password)
             except VerifyMismatchError as exc:
+                self._throttle.record_failure("owner")
                 raise DomainError(
                     "invalid_credentials", "Current password is incorrect.", 401
                 ) from exc
+            self._throttle.record_success("owner")
             owner.password_hash = self._passwords.hash(new_password)
             session.execute(
                 update(SessionRecord)

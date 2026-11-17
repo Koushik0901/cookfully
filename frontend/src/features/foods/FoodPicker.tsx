@@ -93,6 +93,7 @@ export function FoodPicker({
             onChange={(event) => setSearchValue(event.currentTarget.value)}
             onClear={() => setSearchValue("")}
             placeholder="Search foods by name"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open
             autoFocus
           />
 

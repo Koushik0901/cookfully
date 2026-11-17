@@ -51,7 +51,7 @@ export async function kitchenRequest<T>(path: string, options: KitchenRequestOpt
       if (response.status === 401) {
         markSessionKnown(false);
         void clearOfflineResponses();
-        getSessionQueryClient()?.invalidateQueries({ queryKey: ["owner-session"] });
+        void getSessionQueryClient()?.invalidateQueries({ queryKey: ["owner-session"] });
       }
       throw new KitchenRequestProblem(response.status, message, code);
     }

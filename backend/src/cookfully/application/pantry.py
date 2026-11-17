@@ -375,10 +375,9 @@ class PantryService:
         # explicit editor, where the food search stays fast and cancellable.
         if session is not None:
             return None, None, "unmatched", None
-        else:
-            # Unit-level callers exercise the pure decision mapping without a
-            # database-backed runtime readiness check.
-            decision = engine.match_ingredient(session, display_name)
+        # Unit-level callers exercise the pure decision mapping without a
+        # database-backed runtime readiness check.
+        decision = engine.match_ingredient(session, display_name)
         candidate = decision.candidate
         if candidate is None and decision.status == "ambiguous" and decision.alternatives:
             candidate = decision.alternatives[0]

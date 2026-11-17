@@ -57,10 +57,30 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   precedence in every code path.
 - Background handlers must be idempotent and reject stale input hashes.
 - Use fixed-precision decimals for stored nutrition and scaled integers for solver inputs.
+- Decision models: do not be overly conservative about using them. Let the model panel decide by default
+  and put a backstop behind it (a human review step with an undo, a deterministic fallback, or an
+  "unchecked" state) instead of withholding the model's answer. This applies to every decision-model
+  feature, merged, in progress or not started. Measure before loosening or tightening a threshold.
+- Owner-facing configuration lives in Settings (database-backed, versioned singleton rows), not environment
+  variables; env vars are for deployment infrastructure only. Credentials entered in the UI are encrypted
+  with `SecretBox`, write-only over the API (return a configured flag and last-four hint), and never logged.
 - Follow `DESIGN.md` for UI tokens and verify desktop plus 390x844 behavior, keyboard access, overflow,
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Decision-model assist** — configured under Settings → Intelligence → OpenRouter (key stored encrypted, no env vars); re-ranks matcher candidates via
+  OpenRouter Decisions and auto-resolves only when expected error is within tolerance in every tracked
+  nutrient (`domain/decision_assist.py`); failures keep the deterministic result. See
+  `docs/decision-model-assist.md`.
+- **Real-stack tests** — CI boots the composed app (`deploy/compose.ci.yaml`) and runs a no-mocks browser
+  test plus a Schemathesis fuzz of the OpenAPI contract; a request that crashes the API fails the change.
+  Client-supplied versions are bounded by `MAX_VERSION`, and database data errors become `422 invalid_value`.
+  See `docs/ci.md`.
+- **Stricter static checks** — ruff now also enforces security/async/simplification/performance/return/
+  pytest rules (use `require_present()` instead of `assert` in `src`; log instead of `except: pass`), ESLint
+  enforces `jsx-a11y` and promise-handling rules (mark intentional fire-and-forget with `void`; justify any
+  `eslint-disable` inline), the unit job reports changed-line frontend coverage, and `lefthook.yml` provides
+  optional pre-commit/pre-push hooks. See `docs/ci.md`.
 - **CI and coverage overhaul** — Backend and frontend workflows split into parallel jobs with
   concurrency control and timeouts; CI uses the `vchord-postgres` image the tests need; coverage is a
   ratchet (`fail_under`, Vitest thresholds) plus a 85% changed-lines gate; production-only dependency
@@ -123,4 +143,19 @@ should start with: "Does this help someone plan, cook, and eat better food with 
 - Do not presume either this repository or an inspiration project has the best design. Challenge both
   sets of assumptions, account for their different scale/persona/history, and validate adopted patterns
   through this project's contracts and tests.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `Koushik0901/cookfully`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+`wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` plus `docs/adr/`, created lazily. See `docs/agents/domain.md`.
 <!-- MANUAL ADDITIONS END -->

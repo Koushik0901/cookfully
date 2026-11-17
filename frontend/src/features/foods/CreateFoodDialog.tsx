@@ -113,6 +113,7 @@ export function CreateFoodDialog({
               <p>Use the name you expect to see in a recipe.</p>
               <div className="food-dialog__identity-grid">
                 <Field label="Food name" error={error && !displayName.trim() ? error : undefined}>
+                  {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open */}
                   <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={ingredientName || "Plain Greek yogurt"} autoFocus />
                 </Field>
                 <Field label="Brand (optional)">

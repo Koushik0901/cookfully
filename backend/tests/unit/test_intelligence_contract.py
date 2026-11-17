@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from cookfully.intelligence.client import IntelligenceClient, IntelligenceUnavailableError
 from cookfully.intelligence.contracts import InferenceRequest, InferenceResponse
@@ -14,7 +15,7 @@ def test_inference_contract_uses_aliases_and_forbids_unknown_fields() -> None:
         prompt="add milk to groceries",
     )
     assert request.model_dump(mode="json", by_alias=True)["requestId"] == "req-1"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError, match="Extra inputs"):
         InferenceResponse.model_validate({"requestId": "req-1", "status": "ok", "extra": True})
 
 

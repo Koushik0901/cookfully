@@ -15,6 +15,9 @@ import { onboardingApi } from "../onboarding/api";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isRecipePlannable } from "./recipeEligibility";
 import { pantryApi } from "../pantry/api";
+import { FACET_LABELS } from "./facets";
+
+const FILTER_FACETS = ["weeknight", "vegetarian", "vegan", "gluten_free", "dairy_free", "keeps_4_days", "freezes_well", "reheats_well", "meal:breakfast", "meal:dessert"];
 
 export function RecipeLibraryPage() {
   const queryClient = useQueryClient();
@@ -30,6 +33,7 @@ export function RecipeLibraryPage() {
   const [canMakeNow, setCanMakeNow] = useState(false);
   const [collectionId, setCollectionId] = useState("");
   const [mealRole, setMealRole] = useState("");
+  const [facetFilters, setFacetFilters] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("");
@@ -56,12 +60,13 @@ export function RecipeLibraryPage() {
     libraryView !== "all" ? { label: libraryView === "ready" ? "Ready to plan" : libraryView === "attention" ? "Needs attention" : "Archived", clear: () => setLibraryView("all") } : null,
     collectionId ? { label: unfiled ? "Unfiled recipes" : `Collection: ${collectionName ?? "Selected"}`, clear: () => setCollectionId("") } : null,
     mealRole ? { label: `Meal: ${mealRole}`, clear: () => setMealRole("") } : null,
+    ...facetFilters.map((key) => ({ label: FACET_LABELS[key] ?? key, clear: () => setFacetFilters((current) => current.filter((item) => item !== key)) })),
   ].filter((filter): filter is { label: string; clear: () => void } => filter !== null);
   // Keep one badge for the controls that change the library view. `favoriteOnly`
   // already contributes to activeFilters, so counting it again makes the
   // disclosure read as if two filters were active when only one is selected.
   const activeRefinementCount = activeFilters.length + (sortBy !== "updated" ? 1 : 0);
-  const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: unfiled ? undefined : collectionId || undefined, mealRole: mealRole || undefined };
+  const filters = { query, includeArchived: true, favorite: favoriteOnly || undefined, collectionId: unfiled ? undefined : collectionId || undefined, mealRole: mealRole || undefined, facets: facetFilters.length ? facetFilters : undefined };
   const recipes = useQuery({
     queryKey: ["recipes", filters],
     queryFn: ({ signal }) => recipesApi.list(filters, undefined, 30, signal),
@@ -168,7 +173,7 @@ export function RecipeLibraryPage() {
         { title: "Archived", items: displayedRecipes.filter((recipe) => recipe.status === "archived") },
       ].filter((group) => group.items.length)
     : [{ title: "", items: displayedRecipes }];
-  const hasDiscoveryFilter = Boolean(query || favoriteOnly || canMakeNow || collectionId || mealRole || libraryView !== "all");
+  const hasDiscoveryFilter = Boolean(query || favoriteOnly || canMakeNow || collectionId || mealRole || facetFilters.length || libraryView !== "all");
   const isGenuinelyEmpty = Boolean(recipes.data && loadedItems.length === 0 && !hasDiscoveryFilter && !bulkMessage);
   const hasArchivedRecipes = Boolean(loadedItems.some((recipe) => recipe.status === "archived"));
   const readyViewNeedsReview = libraryView === "ready"
@@ -256,6 +261,14 @@ export function RecipeLibraryPage() {
               <Field label="Sort recipes"><Select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}><option value="updated">Recently updated</option><option value="title-asc">Name A–Z</option><option value="title-desc">Name Z–A</option><option value="protein">Highest protein</option><option value="calories">Lowest calories</option></Select></Field>
               <Field label="Collection"><Select value={collectionId} onChange={(event) => setCollectionId(event.target.value)}><option value="">Any collection</option>{(Array.isArray(collections.data) ? collections.data : []).map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}</Select></Field>
               <Field label="Meal moment"><Select value={mealRole} onChange={(event) => setMealRole(event.target.value)}><option value="">Any meal</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></Select></Field>
+              <fieldset className="recipe-facet-filters">
+                <legend>Tags</legend>
+                {FILTER_FACETS.map((key) => (
+                  <button key={key} type="button" aria-pressed={facetFilters.includes(key)} onClick={() => setFacetFilters((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key])}>
+                    {FACET_LABELS[key]}
+                  </button>
+                ))}
+              </fieldset>
               <Field label="Group results"><Select value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)}><option value="none">No grouping</option><option value="readiness">Planning readiness</option></Select></Field>
             </div>
             <label className="recipe-favorite-filter"><Checkbox checked={favoriteOnly} onCheckedChange={(checked) => setFavoriteOnly(checked === true)} />Favorites only</label>
@@ -263,7 +276,7 @@ export function RecipeLibraryPage() {
             <RecipeCollectionManager collections={Array.isArray(collections.data) ? collections.data : []} />
           </div>
          </details>
-        {activeFilters.length ? <div className="active-library-filters" aria-label="Active recipe filters" aria-live="polite"><span>Showing a focused view</span>{activeFilters.map((filter) => <button type="button" key={filter.label} onClick={filter.clear}>{filter.label} <span aria-hidden="true">×</span><span className="sr-only">Remove filter</span></button>)}<button type="button" className="active-library-filters__clear" onClick={() => { setFavoriteOnly(false); setCanMakeNow(false); setCollectionId(""); setMealRole(""); }}>Clear filters</button></div> : null}
+        {activeFilters.length ? <div className="active-library-filters" aria-label="Active recipe filters" aria-live="polite"><span>Showing a focused view</span>{activeFilters.map((filter) => <button type="button" key={filter.label} onClick={filter.clear}>{filter.label} <span aria-hidden="true">×</span><span className="sr-only">Remove filter</span></button>)}<button type="button" className="active-library-filters__clear" onClick={() => { setFavoriteOnly(false); setCanMakeNow(false); setCollectionId(""); setMealRole(""); setFacetFilters([]); }}>Clear filters</button></div> : null}
       </section>
 
        {lifecycle.error instanceof Error ? <p className="error-text" role="alert">{lifecycle.error.message}</p> : null}

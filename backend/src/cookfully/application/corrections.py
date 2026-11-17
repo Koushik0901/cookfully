@@ -16,6 +16,7 @@ from cookfully.domain.common import (
     SERVING_SCALE,
     DomainError,
     quantize_decimal,
+    require_present,
     utc_now,
 )
 from cookfully.domain.ingredient_nutrition.quantities import IngredientMeasure
@@ -129,9 +130,12 @@ class CorrectionService:
                 )
             )
             if field == "food_reference" and ingredient is not None:
-                assert reference_id_value is not None
-                food = session.get(FoodReference, reference_id_value)
-                assert food is not None
+                food = require_present(
+                    session.get(
+                        FoodReference, require_present(reference_id_value, "food reference id")
+                    ),
+                    "food reference",
+                )
                 grams_min: Decimal | None = None
                 grams_max: Decimal | None = None
                 conversion_method: str | None = None

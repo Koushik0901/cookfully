@@ -21,6 +21,7 @@ def test_only_the_engine_imports_the_domain_package() -> None:
             "application/recipes.py",
             "application/corrections.py",
             "application/food_match_propagation.py",
+            "application/match_referee.py",
             "jobs/recipe_pipeline.py",
             "api/routes/foods.py",
             "domain/units.py",
@@ -70,9 +71,8 @@ def test_pint_imports_and_quantity_definitions_restricted() -> None:
     for path in package_root.rglob("*.py"):
         rel = str(path.relative_to(package_root)).replace("\\", "/")
         text = path.read_text(encoding="utf-8")
-        if "import pint" in text or "from pint" in text:
-            if rel not in allowed_pint:
-                pint_offenders.append(rel)
+        if ("import pint" in text or "from pint" in text) and rel not in allowed_pint:
+            pint_offenders.append(rel)
     assert pint_offenders == [], f"unexpected pint imports: {pint_offenders}"
 
     allowed_defs = {

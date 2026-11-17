@@ -170,9 +170,9 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
         <p className="pantry-staple__facts">
           <span className="pantry-staple__quantity">{formatCookingNumber(item.quantity)} {item.unit}</span>
           {expiry ? (
-            <span className={`pantry-staple__useby pantry-staple__useby--${usebyTone} expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}`}>
+            <span className={`pantry-staple__useby pantry-staple__useby--${usebyTone} expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}${item.expirySource === "model" ? ", estimated by a decision model" : ""}`} title={item.expirySource === "model" ? "Estimated by a decision model; edit it if you know better." : undefined}>
               <CalendarClock aria-hidden="true" />
-              Use by {formatUseBy(item.expiresOn!)} · {expiry.label}
+              Use by {formatUseBy(item.expiresOn!)} · {expiry.label}{item.expirySource === "model" ? " (estimated)" : ""}
             </span>
           ) : (
             <span className="pantry-staple__useby pantry-staple__useby--none">No use-by date</span>
@@ -211,6 +211,7 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
                     onChange={(event) => setFoodSearch(event.currentTarget.value)}
                     onClear={() => setFoodSearch("")}
                     placeholder="Search foods by name"
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open
                     autoFocus
                   />
                   <div className="food-picker__results-heading">
@@ -397,6 +398,7 @@ function AddPantryDialog({ trigger, prefillName = "" }: { trigger: ReactNode; pr
           </header>
           <form className="pantry-dialog__form" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
             <Field label="Food name" hint="Use the name you would put on a shopping list.">
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus -- first field of a modal dialog, so focus belongs here on open */}
               <input className="input" value={draft.displayName} onChange={(event) => { const displayName = event.currentTarget.value; setDraft((value) => ({ ...value, displayName })); }} placeholder="Brown rice" autoFocus />
             </Field>
             <div className="pantry-dialog__quantity">

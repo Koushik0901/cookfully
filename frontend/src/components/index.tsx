@@ -132,6 +132,8 @@ export function TabList({ label, className = "", children }: { label: string; cl
     tabs[next]?.click();
   }
 
+  // APG tabs: each tab is focusable and arrow keys bubble up to this handler; the list itself is not a tab stop.
+  // eslint-disable-next-line jsx-a11y/interactive-supports-focus
   return <div className={className} role="tablist" aria-label={label} onKeyDown={moveFocus}>{children}</div>;
 }
 
