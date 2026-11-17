@@ -143,3 +143,16 @@ to OpenRouter. No account data is sent. The Decisions endpoint is alpha and may 
 
 - Re-measuring on the live app; the research numbers came from an offline harness with a stub repository.
 - Import-cleanup gate and the Extractions API (research sections 5 and 6).
+
+## Food labels
+
+Settings → Intelligence → OpenRouter has a **Food labels** panel that labels every USDA reference
+food once (state, generic/processed/branded, origin, flavoured, allergens) as a resumable background
+job; it also queues itself after a dataset install. Labels are stored per food under a fingerprint of
+the description, models and prompt version, so reruns only ask about new or changed foods. The job
+stops with a clear message when the spend cap is reached or the feature is off.
+
+The matcher reads confident labels (probability 0.8 or more) as small score penalties on the top 20
+candidates: a raw food for a cooked line (or the reverse), a flavoured or processed variant the line
+did not ask for. Foods without labels are unaffected. On the gold set this raised top-candidate
+accuracy from 76/140 to 81/140; see `docs/decision-model-experiments/app-eval.md`.

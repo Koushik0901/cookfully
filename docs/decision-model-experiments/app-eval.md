@@ -180,3 +180,19 @@ editable.
 green onion, and nothing else. Onion and red onion, rice and brown rice, and parmesan and cheddar stayed
 separate. Aisles were right for all 14 (produce, pantry, dairy and eggs, spices). Only salt and olive oil
 were marked "probably have".
+
+## Food labels in the matcher (#39, #50)
+
+`app_eval.py match-labels` labels the 1,259 candidate foods for the 140 gold lines, then compares the
+deterministic matcher without and with the label penalty (cost about $0.44, cached).
+
+| | without labels | with labels |
+|---|---|---|
+| top candidate correct (any status) | 76/140 | 81/140 |
+| confidently matched: correct / wrong | 43 / 7 | 45 / 6 |
+| ambiguous: correct / wrong | 12 / 53 | 12 / 52 |
+| unmatched: correct / wrong | 11 / 14 | 11 / 14 |
+
+Accuracy improved with no regression in any status, so the penalty stays. A spot-check of the labels
+themselves found the state agrees with the description word in 115 of 120 foods (96%); the misses
+were mostly "dried" labelled as "cooked".
