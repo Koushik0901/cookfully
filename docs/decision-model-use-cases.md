@@ -44,7 +44,7 @@ That is a measurement from our own runs, not a price list; re-check before budge
 | 1 | **Second opinion on every match.** Run 2-3 models over every auto-matched line, not only ambiguous ones; disagreement goes to review. The matcher's auto-matches were still ~12% wrong vs gold (cooked rice matched to rice crackers). | `choice` | Tested (matching), ensemble untested |
 | 2 | **Pre-label the whole USDA table once.** For ~8,000 foods ask: raw or cooked, branded or generic, plant or animal, allergen flags. One-time cost around a dollar; gives the matcher features at zero runtime cost. | `choice` + `noul` | Pattern |
 | 3 | **Raw vs cooked and prep state.** "1 cup cooked rice" and "1 cup chopped onion" need different grams; pick the state per line. | `choice` | Pattern |
-| 4 | **Grams for count items.** "1 medium onion" as a p10/p90 range feeding the existing range-based nutrition. | Extractions `estimate` | Pattern, untested |
+| 4 | **Grams for count items.** "1 medium onion" as a p10/p90 range feeding the existing range-based nutrition. | Extractions `estimate` | Built (`gram_estimate`) |
 | 5 | **Nutrition-label photo to owner food.** Photograph a label and fill in the owner-created food. | Extractions + image | Speculative |
 
 ### B. Safety and dietary needs
