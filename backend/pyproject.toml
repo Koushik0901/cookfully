@@ -88,7 +88,7 @@ relative_files = true
 # A ratchet, not an aspiration: keep this just under the measured total so coverage cannot
 # silently regress, and raise it whenever the measured number rises. New and changed lines are
 # held to a higher bar per pull request by diff-cover (see .github/workflows/backend.yml).
-fail_under = 80
+fail_under = 82
 show_missing = true
 skip_covered = true
 exclude_also = [
