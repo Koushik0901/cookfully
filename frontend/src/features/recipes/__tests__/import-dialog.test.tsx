@@ -172,6 +172,40 @@ describe("recipe import merge", () => {
     expect(screen.getByDisplayValue("FOR THE SAUCE:")).toBeInTheDocument();
   });
 
+  it("keeps two identical moved lines apart: putting one back leaves the other listed", async () => {
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path.endsWith("/import/preview") && init?.method === "POST") {
+        return response({
+          ...preview,
+          duplicates: [],
+          cleanupWarnings: ["moved_ingredient", "moved_ingredient"],
+          cleanupChanges: [
+            { kind: "ingredient", action: "moved", sourceIndex: "1", before: "divided", after: "", reason: "not_an_ingredient", probability: "0.03" },
+            { kind: "ingredient", action: "moved", sourceIndex: "3", before: "divided", after: "", reason: "not_an_ingredient", probability: "0.05" },
+          ],
+        });
+      }
+      return response({});
+    });
+    renderDialog();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await user.type(screen.getByLabelText("Recipe or cookbook URL"), "https://example.com/pie");
+    await user.click(screen.getByRole("button", { name: "Start import" }));
+
+    expect(await screen.findByText("Moved out of the ingredients")).toBeVisible();
+    const buttons = screen.getAllByRole("button", { name: "Put back divided" });
+    expect(buttons).toHaveLength(2);
+    await user.click(buttons[0] as HTMLElement);
+    // One line was put back; the other must still be offered, not silently dropped.
+    expect(screen.getAllByRole("button", { name: "Put back divided" })).toHaveLength(1);
+    expect(screen.getAllByDisplayValue("divided")).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Put back divided" }));
+    expect(screen.queryByText("Moved out of the ingredients")).not.toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("divided")).toHaveLength(2);
+  });
+
   it("explains when cleanup falls back to the deterministic parse", async () => {
     vi.mocked(fetch).mockImplementation(async (input, init) => {
       const path = String(input);

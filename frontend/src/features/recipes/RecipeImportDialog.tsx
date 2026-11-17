@@ -41,8 +41,11 @@ function cleanupWarningLabels(warnings: string[]): string[] {
   });
 }
 
-function MovedLines({ changes, restored, onPutBack }: { changes: Record<string, string>[]; restored: ReadonlySet<string>; onPutBack: (text: string) => void }) {
-  const moved = changes.filter((change) => change.action === "moved" && change.before && !restored.has(change.before));
+/** Moved lines are told apart by their position in the source, not their text: two fragments can read the same. */
+const movedKey = (change: Record<string, string>) => `${change.sourceIndex}:${change.before}`;
+
+function MovedLines({ changes, restored, onPutBack }: { changes: Record<string, string>[]; restored: ReadonlySet<string>; onPutBack: (text: string, key: string) => void }) {
+  const moved = changes.filter((change) => change.action === "moved" && change.before && !restored.has(movedKey(change)));
   if (!moved.length) return null;
   return (
     <section className="import-moved-lines" aria-labelledby="import-moved-title">
@@ -52,7 +55,7 @@ function MovedLines({ changes, restored, onPutBack }: { changes: Record<string, 
         {moved.map((change) => (
           <li key={`${change.sourceIndex}-${change.before}`}>
             <span>{change.before}</span>
-            <Button type="button" variant="secondary" size="sm" onClick={() => onPutBack(change.before ?? "")} aria-label={`Put back ${change.before}`}>
+            <Button type="button" variant="secondary" size="sm" onClick={() => onPutBack(change.before ?? "", movedKey(change))} aria-label={`Put back ${change.before}`}>
               Put back
             </Button>
           </li>
@@ -308,8 +311,8 @@ export function RecipeImportDialog({
     )));
   }
 
-  function putBackIngredient(text: string) {
-    setPutBack((current) => new Set(current).add(text));
+  function putBackIngredient(text: string, key: string) {
+    setPutBack((current) => new Set(current).add(key));
     setComponents((current) => {
       if (!current.length) return [{ title: "", ingredients: [{ originalText: text }], instructions: [] }];
       return current.map((component, index) => (
