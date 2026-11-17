@@ -24,7 +24,7 @@ Measured results are in [`decision-model-experiments/app-eval.md`](decision-mode
    fitting candidate first, or holds back an upgrade.
 5. `domain/decision_assist.py` computes, per tracked nutrient (kcal, protein, fat, carbohydrate,
    sodium, vitamin C), the model's expected error against its top pick as a share of the daily
-   value. The line auto-resolves only if that is at most the tolerance (default 2%) in **every**
+   value. The line auto-resolves only if that is at most the tolerance (default 8%) in **every**
    nutrient. Calories alone are not enough: the research found a calories-only rule leaves 8% sodium
    and 36% vitamin C error.
 6. Every answered line records `candidate_evidence` of kind `match_referee`: action, reason, models,

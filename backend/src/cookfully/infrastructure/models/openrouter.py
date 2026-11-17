@@ -45,6 +45,6 @@ class OpenRouterSettings(TimestampMixin, Base):
         Numeric(8, 2), nullable=False, default=Decimal("2.00"), server_default="2.00"
     )
     decision_assist_tolerance_dv: Mapped[Decimal] = mapped_column(
-        Numeric(7, 6), nullable=False, default=Decimal("0.02"), server_default="0.02"
+        Numeric(7, 6), nullable=False, default=Decimal("0.08"), server_default="0.08"
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
