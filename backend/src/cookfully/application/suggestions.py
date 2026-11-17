@@ -114,7 +114,7 @@ def _penalty(score: Decimal | None, *, any_scores: bool) -> int:
     some recipes are scored, an unscored one counts as neutral (the middle of the range).
     """
 
-    if score is None:
+    if score is None or not score.is_finite():
         return MAX_PREFERENCE_PENALTY // 2 if any_scores else 0
     bounded = min(Decimal(1), max(Decimal(0), score))
     return int(((Decimal(1) - bounded) * MAX_PREFERENCE_PENALTY).to_integral_value())
