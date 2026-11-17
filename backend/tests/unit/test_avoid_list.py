@@ -27,6 +27,8 @@ def _hits(text: str, *avoid: str) -> list[str]:
         ("4 slices bacon", "pork", ["pork"]),
         ("1 cup cilantro", "cilantro", ["cilantro"]),
         ("2 cups blueberries", "blueberry", ["blueberry"]),
+        ("4 whole wheat wraps", "gluten", ["gluten"]),
+        ("4 flour tortillas", "gluten", ["gluten"]),
     ],
 )
 def test_names_in_the_line_and_group_members_match(
@@ -45,6 +47,10 @@ def test_names_in_the_line_and_group_members_match(
         ("1 can coconut milk", "dairy"),
         ("1/2 tsp cream of tartar", "dairy"),
         ("1 cup shredded coconut", "nuts"),
+        ("200 g rice noodles", "gluten"),
+        ("1 cup almond flour", "gluten"),
+        ("8 oz gluten-free pasta", "gluten"),
+        ("8 corn tortillas", "gluten"),
         ("2 cloves garlic", "shellfish"),
         ("salt to taste", ""),
     ],

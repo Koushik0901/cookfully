@@ -1931,3 +1931,5 @@
 .import-moved-lines ul { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
 .import-moved-lines li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .import-moved-lines li span { min-width: 0; overflow-wrap: anywhere; }
+.facet-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
+.facet-chips li { border: 1px solid var(--color-outline-variant); border-radius: var(--radius-full); padding: 0.15rem 0.6rem; color: var(--color-on-surface-variant); background: var(--color-surface-low); font-size: 0.75rem; white-space: nowrap; }

@@ -16,6 +16,7 @@ import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail, RecipePage } from "./types";
 import { formatProbability, modelPick, reviewOrder, reviewSummary } from "./matchReview";
 import { AvoidNotice } from "./AvoidNotice";
+import { FacetChips } from "./FacetChips";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -238,6 +239,7 @@ export function RecipeDetailPage() {
             <span><strong>{recipe.instructions.length}</strong> steps</span>
             {recipe.sourceUrl && sourceHost(recipe.sourceUrl) ? <a className="recipe-source" href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">From {sourceHost(recipe.sourceUrl)} <ExternalLink aria-hidden="true" /></a> : null}
            </div>
+           <FacetChips facets={recipe.facets} />
            <span className={`recipe-hero__nutrition-state nutrition-state nutrition-state--${nutritionStatePresentation.key}`} title={nutritionStatePresentation.description}>{nutritionStatePresentation.label}</span>
            <p className="recipe-provenance"><strong>{originLabel[recipe.originKind] ?? "Recipe"}</strong>{recipe.sourceUrl ? <> · <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer">View original source</a></> : <> · No external source</>}</p>
            {recipeCollections.length ? <div className="recipe-detail__collections" aria-label="Recipe collections">{recipeCollections.map((collection) => <span key={collection.id}>{collection.name}</span>)}</div> : null}

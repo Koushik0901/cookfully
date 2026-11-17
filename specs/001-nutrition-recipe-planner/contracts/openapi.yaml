@@ -2749,6 +2749,20 @@ components:
         updatedAt: { type: string, format: date-time }
         thumbnailCrop: { $ref: "#/components/schemas/ThumbnailCrop" }
         originKind: { $ref: "#/components/schemas/RecipeOrigin" }
+        facets:
+          type: array
+          description: >-
+            Tags decision models gave the recipe, each with a probability: diets (vegetarian, vegan,
+            gluten_free, dairy_free; removed when the ingredients contradict them), cuisine:*, meal:*,
+            effort:minimal|moderate|involved, time:under_15|15_30|30_60|over_60, keeps_4_days,
+            freezes_well, reheats_well, needs_oven and weeknight.
+          items: { $ref: "#/components/schemas/RecipeFacet" }
+    RecipeFacet:
+      type: object
+      required: [key, probability]
+      properties:
+        key: { type: string }
+        probability: { $ref: "#/components/schemas/Decimal6" }
     RecipeDetail:
       allOf:
         - $ref: "#/components/schemas/Recipe"

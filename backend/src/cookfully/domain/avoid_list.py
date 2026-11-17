@@ -100,12 +100,57 @@ GROUPS: Mapping[str, tuple[str, ...]] = {
         "panko",
         "spaghetti",
         "noodle",
+        "wrap",
+        "pita",
+        "bagel",
+        "bun",
+        "naan",
+        "cracker",
+        "crouton",
+        "tortilla",
+        "bulgur",
+        "farro",
+        "spelt",
+        "seitan",
+        "orzo",
+        "macaroni",
+        "lasagna",
     ),
     "egg": ("egg",),
     "soy": ("soy", "soya", "tofu", "edamame", "tempeh", "miso"),
     "sesame": ("sesame", "tahini"),
     "pork": ("pork", "bacon", "ham", "prosciutto", "pancetta", "chorizo", "lard", "guanciale"),
     "beef": ("beef", "steak", "brisket", "veal"),
+    "poultry": ("chicken", "turkey", "duck", "goose", "quail"),
+    "meat": (
+        "meat",
+        "beef",
+        "steak",
+        "brisket",
+        "veal",
+        "pork",
+        "bacon",
+        "ham",
+        "prosciutto",
+        "pancetta",
+        "chorizo",
+        "salami",
+        "pepperoni",
+        "sausage",
+        "lard",
+        "guanciale",
+        "lamb",
+        "mutton",
+        "goat",
+        "venison",
+        "chicken",
+        "turkey",
+        "duck",
+        "goose",
+        "quail",
+        "gelatin",
+    ),
+    "honey": ("honey",),
 }
 
 # Phrases that contain a member word but do not name that food ("peanut butter" is not dairy).
@@ -124,6 +169,29 @@ _FALSE_FRIENDS: Mapping[str, tuple[str, ...]] = {
     "milk": ("coconut milk", "almond milk", "oat milk", "soy milk", "rice milk", "cashew milk"),
     "cream": ("cream of tartar", "coconut cream", "ice cream sandwich"),
     "cheese": ("vegan cheese",),
+    "noodle": ("rice noodle", "glass noodle", "zucchini noodle", "kelp noodle", "shirataki noodle"),
+    "pasta": (
+        "gluten free pasta",
+        "rice pasta",
+        "chickpea pasta",
+        "lentil pasta",
+        "zucchini pasta",
+    ),
+    "flour": (
+        "almond flour",
+        "rice flour",
+        "coconut flour",
+        "chickpea flour",
+        "corn flour",
+        "buckwheat flour",
+        "tapioca flour",
+        "potato flour",
+        "gluten free flour",
+        "oat flour",
+    ),
+    "bread": ("gluten free bread",),
+    "tortilla": ("corn tortilla",),
+    "wrap": ("lettuce wrap",),
 }
 
 _WORD = re.compile(r"[a-z]+")
@@ -175,6 +243,8 @@ def _contains(text: str, term: str) -> bool:
     else:
         pattern = rf"\b{re.escape(term)}(?:s|es)?\b"
     for match in re.finditer(pattern, text):
+        if text.startswith(" free", match.end()):
+            continue  # "gluten free", "dairy free" say the opposite
         if not _is_false_friend(text, match.start(), term):
             return True
     return False

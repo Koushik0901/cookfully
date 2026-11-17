@@ -140,3 +140,24 @@ rejected only when every model puts P(present in source) at or below 0.2.
 
 The miss is chives for spring onions, which Clef accepts as a synonym. Cumulative cost of all
 evaluations so far: $0.061.
+
+## `facets` spot-check (2026-11-17)
+
+All 50 corpus recipes, from title and ingredient lines only (the corpus has no steps), with the Jev +
+Clef panel in one request per recipe. There are no gold labels, so this is a read-through.
+
+- **Diet tags look right where checkable:** no vegetarian tag on any recipe naming meat, poultry or
+  fish (the deterministic conflict check guarantees that); "honey and walnut stuffed dates" is
+  vegetarian but not vegan; the endive "tuna salad wraps" are correctly gluten-free.
+- **The read-through led to two fixes.** "Weeknight-friendly" fired on 46 of 50 recipes. It now needs
+  under 15 minutes hands-on, or 15–30 minutes with minimal effort, and fires on 18. The gluten word
+  list gained wraps, pitas, bagels, buns, naan, crackers, tortillas (except corn), bulgur, farro,
+  spelt, seitan, orzo, macaroni and lasagna. "X-free" phrases and gluten-free flours, pastas and
+  noodles no longer count as gluten.
+- **Coverage:** effort and active time on every recipe, meal type on 47, cuisine on 37 (the rest
+  "other" or unsure), storage tags on 25–29, oven on 13. About half of the storage tags are below 0.8
+  and are shown as "Probably …".
+- **Known weakness:** active time is estimated without the method text here, so it leans short; in the
+  app the steps are included.
+
+Cost: 100 answers, about $0.02.

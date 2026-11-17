@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from cookfully.application.avoid_warnings import ingredient_warnings, owner_avoid_list
 from cookfully.application.hidden_ingredients import stored_hidden
 from cookfully.application.jobs import JobProgress, JobService
+from cookfully.application.recipe_facets import stored_facets
 from cookfully.domain.avoid_list import AvoidWarning
 from cookfully.domain.common import DomainError, require_present
 from cookfully.domain.nutrition import (
@@ -29,6 +30,7 @@ from cookfully.domain.nutrition import (
     SupportedMicronutrientValue,
     resolved_macros,
 )
+from cookfully.domain.recipe_facets import FacetTag
 from cookfully.domain.recipes import ThumbnailCrop
 from cookfully.infrastructure.models.jobs import NONTERMINAL_JOB_STATUSES, ProcessingJob
 from cookfully.infrastructure.models.media import RecipePhotoDerivative
@@ -138,6 +140,7 @@ class RecipeRead:
     origin_kind: str = "manual"
     avoid_warnings: tuple[AvoidWarning, ...] = ()
     hidden_ingredient_check: str = "no_avoid_list"
+    facets: tuple[FacetTag, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,11 +225,13 @@ class RecipeQueryService:
                 if recipe_ids
                 else {}
             )
+            facets = stored_facets(session, recipes)
             items = tuple(
                 self._read(
                     session,
                     recipe,
                     detail=False,
+                    prefetched_facets=facets.get(recipe.id, ()),
                     prefetched_corrections=corrections_by_recipe.get(recipe.id, ()),
                     prefetched_estimate=(
                         estimates.get(recipe.active_estimate_id)
@@ -261,6 +266,7 @@ class RecipeQueryService:
         prefetched_corrections: Sequence[NutritionCorrection] | None = None,
         prefetched_estimate: NutritionEstimate | None = None,
         card_asset_id: UUID | None = None,
+        prefetched_facets: tuple[FacetTag, ...] | None = None,
     ) -> RecipeRead:
         corrections = (
             list(prefetched_corrections)
@@ -373,6 +379,11 @@ class RecipeQueryService:
             ),
             active_job=active_job,
             **(self._avoid(session, recipe) if detail else {}),
+            facets=(
+                prefetched_facets
+                if prefetched_facets is not None
+                else stored_facets(session, [recipe]).get(recipe.id, ())
+            ),
         )
 
     @staticmethod

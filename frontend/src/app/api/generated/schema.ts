@@ -1891,6 +1891,12 @@ export interface components {
             updatedAt?: string;
             thumbnailCrop: components["schemas"]["ThumbnailCrop"];
             originKind: components["schemas"]["RecipeOrigin"];
+            /** @description Tags decision models gave the recipe, each with a probability: diets (vegetarian, vegan, gluten_free, dairy_free; removed when the ingredients contradict them), cuisine:*, meal:*, effort:minimal|moderate|involved, time:under_15|15_30|30_60|over_60, keeps_4_days, freezes_well, reheats_well, needs_oven and weeknight. */
+            facets?: components["schemas"]["RecipeFacet"][];
+        };
+        RecipeFacet: {
+            key: string;
+            probability: components["schemas"]["Decimal6"];
         };
         RecipeDetail: components["schemas"]["Recipe"] & {
             description?: string | null;

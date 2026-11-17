@@ -671,6 +671,13 @@ class RecipeCollectionSummaryResponse(ApiModel):
         return cls(id=value.id, name=value.name, position=value.position)
 
 
+class FacetResponse(ApiModel):
+    """A tag a decision model gave the recipe (diet, cuisine, meal, effort, time, storage)."""
+
+    key: str
+    probability: Decimal6
+
+
 class RecipeResponse(ApiModel):
     id: UUID
     title: str
@@ -694,6 +701,7 @@ class RecipeResponse(ApiModel):
     )
     thumbnail_crop: ThumbnailCropRequest = Field(alias="thumbnailCrop")
     origin_kind: RecipeOrigin = Field(alias="originKind")
+    facets: tuple[FacetResponse, ...] = ()
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeResponse:
@@ -730,6 +738,9 @@ class RecipeResponse(ApiModel):
                 height=value.thumbnail_crop.height,
             ),
             origin_kind=cast(RecipeOrigin, value.origin_kind),
+            facets=tuple(
+                FacetResponse(key=tag.key, probability=tag.probability) for tag in value.facets
+            ),
         )
 
 

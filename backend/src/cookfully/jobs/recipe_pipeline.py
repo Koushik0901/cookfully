@@ -24,6 +24,7 @@ from cookfully.application.jobs import JobService
 from cookfully.application.match_referee import Judgement, MatchReferee, RefereeLine
 from cookfully.application.openrouter_settings import decisions_config
 from cookfully.application.openrouter_settings import load_config as load_openrouter_config
+from cookfully.application.recipe_facets import refresh_recipe_facets
 from cookfully.application.recipes import (
     IngredientWrite,
     InstructionWrite,
@@ -497,10 +498,11 @@ class RecipePipeline:
     def _refresh_insights(self, recipe_id: UUID) -> None:
         """Best-effort decision-model checks once nutrition is done; never fails the job."""
 
-        try:
-            refresh_hidden_ingredients(self._session_factory, recipe_id)
-        except Exception:
-            logger.exception("Recipe insight refresh failed; the recipe is unaffected.")
+        for refresh in (refresh_hidden_ingredients, refresh_recipe_facets):
+            try:
+                refresh(self._session_factory, recipe_id)
+            except Exception:
+                logger.exception("Recipe insight refresh failed; the recipe is unaffected.")
 
     def _match_referee(self, session: Session) -> MatchReferee | None:
         """Build the match referee from the owner's Settings; ``None`` when it cannot answer."""

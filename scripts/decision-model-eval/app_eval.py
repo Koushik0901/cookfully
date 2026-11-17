@@ -474,6 +474,39 @@ def report_cleanup_verifier(harness: Harness) -> str:
     return "\n".join(out)
 
 
+# --- facets ----------------------------------------------------------------------------------------
+
+
+def report_facets(harness: Harness) -> str:
+    """Facets for the 50 corpus recipes (ingredients only), for a manual spot-check."""
+
+    from cookfully.application.recipe_facets import facet_ask
+    from cookfully.domain.recipe_facets import interpret
+
+    derived = json.loads((CORPUS / "derived-inputs.json").read_text("utf-8"))
+    manifest = json.loads((CORPUS / "manifest.json").read_text("utf-8"))
+    titles = {case["id"]: case["slug"].replace("-", " ") for case in manifest["cases"]}
+    engine = harness.engine(Purpose.RECIPE_FACETS, PANELS["jev+clef"])
+    cases = derived["cases"]
+    lines_by_case = [[i["originalText"] for i in case["ingredients"]] for case in cases]
+    asks = [
+        facet_ask(titles.get(case["caseId"], ""), lines, [])
+        for case, lines in zip(cases, lines_by_case, strict=True)
+    ]
+    out = []
+    counts: Counter[str] = Counter()
+    for case, lines, answers in zip(cases, lines_by_case, engine.ask(asks), strict=True):
+        tags = interpret(answers, lines)
+        counts.update(tag.key.split(":")[0] for tag in tags)
+        rendered = ", ".join(
+            f"{tag.key}{'' if tag.confident else '?'}" for tag in tags
+        )
+        out.append(f"{titles.get(case['caseId'], case['caseId'])[:38]:<38} {rendered}")
+    out.append("")
+    out.append("tag counts: " + ", ".join(f"{k}={v}" for k, v in counts.most_common()))
+    return "\n".join(out)
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 Evaluator = Callable[[Harness, argparse.Namespace], str]
@@ -494,6 +527,7 @@ EVALUATORS: dict[str, Evaluator] = {
     "line-gate": lambda harness, _args: report_line_gate(harness),
     "import-screen": lambda harness, _args: report_import_screen(harness),
     "cleanup-verifier": lambda harness, _args: report_cleanup_verifier(harness),
+    "facets": lambda harness, _args: report_facets(harness),
 }
 
 
