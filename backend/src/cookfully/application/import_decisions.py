@@ -150,7 +150,12 @@ class ImportDecisions:
         moved: list[MovedLine] = []
         for index, (line, answers) in enumerate(zip(lines, self._decisions.ask(asks), strict=True)):
             probability = answers.check_worst("ingredient")
-            if probability is not None and probability <= GATE_MAX_INGREDIENT_PROBABILITY:
+            # Moving a line needs the whole panel; one model's vote alone never moves it.
+            if (
+                probability is not None
+                and answers.complete
+                and probability <= GATE_MAX_INGREDIENT_PROBABILITY
+            ):
                 moved.append(MovedLine(index, line, round(probability, 4)))
         return tuple(moved)
 

@@ -99,6 +99,8 @@ class RecipeRepository:
                     RecipeInsight.recipe_id == Recipe.id,
                     RecipeInsight.kind == "facets",
                     RecipeInsight.status == "checked",
+                    # Only results for the recipe's current content count (not stale ones).
+                    cast(RecipeInsight.payload, JSONB)["inputHash"].astext == Recipe.input_hash,
                     cast(RecipeInsight.payload, JSONB)["tags"].contains([{"key": facet}]),
                 )
             )

@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from typing import Annotated
 
@@ -139,6 +140,7 @@ def update_openrouter_settings(
     spent = _spent_this_month(request)
     with request.app.state.sessions.begin() as session:
         row = service.get_or_create(session)
+        before = json.dumps(row.decision_features, sort_keys=True, default=str)
         service.apply_update(
             row,
             version=payload.version,
@@ -153,7 +155,13 @@ def update_openrouter_settings(
             monthly_cap_usd=payload.monthly_cap_usd,
         )
         session.flush()
+        changed = (
+            payload.api_key is not None
+            or payload.clear_api_key
+            or before != json.dumps(row.decision_features, sort_keys=True, default=str)
+        )
         response = _response(row, spent)
-    # A new key or model panel can change hidden-ingredient results; recheck after responding.
-    background.add_task(refresh_all_hidden_ingredients, request.app.state.sessions)
+    if changed:
+        # A new key or model panel can change hidden-ingredient results; recheck after responding.
+        background.add_task(refresh_all_hidden_ingredients, request.app.state.sessions)
     return response

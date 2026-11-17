@@ -85,3 +85,20 @@ def test_scores_map_to_the_nearest_level_and_weeknight_needs_low_effort() -> Non
 
 def test_no_answers_give_no_tags() -> None:
     assert interpret(Answers(), ["1 cup rice"]) == ()
+
+
+def test_a_diet_tag_needs_every_model_not_the_average() -> None:
+    split = Answers(
+        {
+            "m1": ModelAnswers({}, {"diet_gluten_free": D("0.9")}, {}),
+            "m2": ModelAnswers({}, {"diet_gluten_free": D("0.1")}, {}),
+        }
+    )
+    assert "gluten_free" not in {tag.key for tag in interpret(split, ["1 cup rice"])}
+    agreed = Answers(
+        {
+            "m1": ModelAnswers({}, {"diet_gluten_free": D("0.9")}, {}),
+            "m2": ModelAnswers({}, {"diet_gluten_free": D("0.8")}, {}),
+        }
+    )
+    assert "gluten_free" in {tag.key for tag in interpret(agreed, ["1 cup rice"])}

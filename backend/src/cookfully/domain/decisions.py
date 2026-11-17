@@ -118,6 +118,12 @@ class Answers:
     """Answers from every model on the panel that answered. Empty means no opinion."""
 
     by_model: Mapping[str, ModelAnswers] = field(default_factory=dict)
+    # Models the panel asked; ``complete`` is False when some of them did not answer.
+    asked: int = 0
+
+    @property
+    def complete(self) -> bool:
+        return bool(self.by_model) and len(self.by_model) >= self.asked
 
     def __bool__(self) -> bool:
         return bool(self.by_model)
@@ -167,6 +173,12 @@ class Answers:
 
         values = [item.checks[name] for item in self.by_model.values() if name in item.checks]
         return max(values) if values else None
+
+    def check_least(self, name: str) -> Decimal | None:
+        """Lowest P(yes) over the models that answered: for claims every model must back."""
+
+        values = [item.checks[name] for item in self.by_model.values() if name in item.checks]
+        return min(values) if values else None
 
     def score(self, name: str) -> Decimal | None:
         """Mean normalized score in [0, 1] over the models that answered."""

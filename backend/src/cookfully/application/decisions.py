@@ -147,7 +147,10 @@ class Decisions:
 
         if pending:
             self._call(asks, pending, collected)
-        return [Answers(by_model) for by_model in collected]
+        return [
+            Answers(by_model, len(self._config.feature(ask.purpose).models) if by_model else 0)
+            for ask, by_model in zip(asks, collected, strict=True)
+        ]
 
     def _call(
         self,

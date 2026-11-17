@@ -171,10 +171,10 @@ class FoodMatcher:
                 else item
                 for item in head
             ]
-            head.sort(
-                key=lambda item: (-item.score, -item.semantic_similarity, item.food.external_id)
+            ranked = sorted(
+                [*head, *tail],
+                key=lambda item: (-item.score, -item.semantic_similarity, item.food.external_id),
             )
-            ranked = head + tail
         deduped: list[FoodCandidate] = []
         seen: set[str] = set()
         for cand in ranked:

@@ -105,11 +105,11 @@ def check_hidden(
     for (line, keys), answers in zip(pending, decisions.ask(asks), strict=True):
         for key, item in keys.items():
             probability = answers.check_worst(key)
-            if probability is None:
-                status = NOT_CHECKED
-                continue
-            if probability >= THRESHOLD:
+            if probability is not None and probability >= THRESHOLD:
                 flags.append(AvoidWarning(line.ingredient_id, item, "model", round(probability, 4)))
+            elif probability is None or not answers.complete:
+                # A partial panel (one model failed) is not a clear: it reads as not checked.
+                status = NOT_CHECKED
     return HiddenCheck(status, tuple(flags))
 
 

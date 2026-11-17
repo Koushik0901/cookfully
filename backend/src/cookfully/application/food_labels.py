@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 JOB_KIND = "food_labeling"
 AGGREGATE_TYPE = "food_catalog"
-AGGREGATE_ID = UUID("00000000-0000-7000-8000-000000000003")
+AGGREGATE_ID = UUID("00000000-0000-7000-8000-000000000004")
 PROMPT_VERSION = "food-labels-v1"
 BATCH_SIZE = 40
 

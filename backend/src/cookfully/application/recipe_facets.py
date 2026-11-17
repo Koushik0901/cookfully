@@ -113,6 +113,7 @@ def refresh_recipe_facets(
         [answers] = engine.ask([facet_ask(recipe.title, lines, steps)])
         tags = interpret(answers, lines) if answers else ()
         status = "checked" if answers else "not_checked"
+        recipe_hash = recipe.input_hash
     with session_factory.begin() as session:
         row = _stored(session, [recipe_id]).get(recipe_id)
         if row is None:
@@ -121,7 +122,8 @@ def refresh_recipe_facets(
         row.fingerprint = current
         row.status = status
         row.payload = {
-            "tags": [{"key": tag.key, "probability": str(tag.probability)} for tag in tags]
+            "inputHash": recipe_hash,
+            "tags": [{"key": tag.key, "probability": str(tag.probability)} for tag in tags],
         }
     return len(tags)
 

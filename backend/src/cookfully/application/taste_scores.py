@@ -50,12 +50,12 @@ class DecisionAsker(Protocol):
 
 
 def liked_titles(session: Session) -> tuple[str, ...]:
-    """Up to ``MAX_LIKED`` favourite recipe titles, in a stable order."""
+    """Up to ``MAX_LIKED`` favourite titles, newest recipes first (edits do not reshuffle)."""
 
     titles = session.scalars(
         select(Recipe.title)
         .where(Recipe.is_favorite.is_(True), Recipe.status != "archived")
-        .order_by(Recipe.updated_at.desc(), Recipe.id)
+        .order_by(Recipe.id.desc())
         .limit(MAX_LIKED)
     ).all()
     return tuple(sorted(titles))

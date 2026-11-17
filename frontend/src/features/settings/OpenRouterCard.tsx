@@ -87,9 +87,11 @@ export function OpenRouterCard() {
   const [capUsd, setCapUsd] = useState("2");
   const [features, setFeatures] = useState<FeatureDraft[]>([]);
   const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    if (!settings.data) return;
+    // A background refetch (spend changed, window focus) must not overwrite what is being typed.
+    if (!settings.data || editing) return;
     setCleanupModel(settings.data.cleanupModel);
     setTolerancePercent(String(Number(settings.data.decisionAssistToleranceDv) * 100));
     setCapUsd(String(Number(settings.data.monthlyCapUsd)));
@@ -100,7 +102,7 @@ export function OpenRouterCard() {
         models: feature.models.join(", "),
       })),
     );
-  }, [settings.data]);
+  }, [settings.data, editing]);
 
   const toleranceValue = Number(tolerancePercent);
   const toleranceValid = Number.isFinite(toleranceValue) && toleranceValue > 0 && toleranceValue <= 10;
@@ -125,6 +127,7 @@ export function OpenRouterCard() {
       }),
     onSuccess: async () => {
       setApiKey("");
+      setEditing(false);
       setSaved(true);
       await queryClient.invalidateQueries({ queryKey: OPENROUTER_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ["recipe-import-settings"] });
@@ -136,7 +139,10 @@ export function OpenRouterCard() {
     return <ErrorRecovery title="OpenRouter settings could not be loaded" onRetry={() => void settings.refetch()} />;
   }
 
-  const dirty = () => setSaved(false);
+  const dirty = () => {
+    setSaved(false);
+    setEditing(true);
+  };
   const keyConfigured = settings.data.keyConfigured;
   const updateFeature = (purpose: DecisionPurpose, change: Partial<FeatureDraft>) => {
     setFeatures((current) => current.map((draft) => (draft.purpose === purpose ? { ...draft, ...change } : draft)));
@@ -251,7 +257,7 @@ export function OpenRouterCard() {
       {saved ? <p className="success-text" role="status">OpenRouter settings saved.</p> : null}
       <div className="actions">
         {keyConfigured ? (
-          <Button type="button" variant="ghost" onClick={() => save.mutate({ clearApiKey: true })} disabled={save.isPending}>
+          <Button type="button" variant="ghost" onClick={() => save.mutate({ clearApiKey: true })} disabled={save.isPending || !toleranceValid || !capValid || !featuresValid}>
             <Trash2 aria-hidden="true" /> Remove key
           </Button>
         ) : null}

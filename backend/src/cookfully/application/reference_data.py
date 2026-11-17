@@ -304,6 +304,9 @@ class ReferenceDataInstallService:
             accept_food_label_job(self._session_factory, trace_id=f"reference-install-{job_id}")
         except DomainError:
             logger.info("Food labels not queued: decision models are not set up.")
+        except Exception:
+            # The install itself already succeeded; labelling can be started from Settings.
+            logger.exception("Food labels could not be queued.")
 
     def _install_units(self, job_id: UUID, units: tuple[str, ...]) -> None:
         releases = tuple(release for unit in units for release in PINNED_RELEASES[unit])

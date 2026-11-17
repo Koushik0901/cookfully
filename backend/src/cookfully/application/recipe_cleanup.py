@@ -286,12 +286,12 @@ class RecipeCleanupService:
         *,
         source_kind: Literal["url", "text_pdf"],
     ) -> ImportedRecipe | ImportedCookbook:
+        settings, intelligence = self._settings()
         guard = (
             await asyncio.to_thread(self._decisions_factory)
             if self._decisions_factory is not None
             else None
         )
-        settings, intelligence = self._settings()
         remote = (
             self._remote_provider()
             if settings.cleanup_enabled and settings.openrouter_fallback_enabled

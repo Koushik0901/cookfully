@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -38,6 +39,8 @@ from cookfully.infrastructure.models.plans import MealPlan
 from cookfully.infrastructure.models.recipes import Recipe
 from cookfully.infrastructure.repositories.grocery import GroceryRepository
 from cookfully.infrastructure.repositories.plans import MealPlanRepository
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,7 +124,36 @@ class GroceryListService:
                 session.flush()
             return self._list_read(grocery_list)
 
+    def _warm_tidy_answers(self, owner_id: UUID, week_start: date) -> None:
+        """Ask the tidy questions before locking anything, so the locked section reads the cache.
+
+        Best effort: answers are cached by request, and anything missed is asked again later.
+        """
+
+        try:
+            if self._tidy_engine() is None:
+                return
+            with self._session_factory() as session:
+                plan = MealPlanRepository(session).get_week(owner_id, week_start)
+                memories = {
+                    memory.normalized_food_name: memory
+                    for memory in session.scalars(
+                        select(GroceryTidyMemory).where(GroceryTidyMemory.owner_id == owner_id)
+                    )
+                }
+                ingredients, _ = self._merge_synonyms(self._ingredients(session, plan), memories)
+            names = [
+                normalize_food_name(item.food_name) or normalize_food_name(item.original_text)
+                for item in ingredients
+            ]
+            engine = self._tidy_engine()
+            if engine is not None:
+                classify(engine, names)
+        except Exception:
+            logger.exception("Grocery tidy warm-up failed; asking while generating instead.")
+
     def generate(self, owner_id: UUID, week_start: date) -> GroceryListRead:
+        self._warm_tidy_answers(owner_id, week_start)
         with self._session_factory.begin() as session:
             plan = MealPlanRepository(session).get_week(owner_id, week_start, for_update=True)
             repository = GroceryRepository(session)
