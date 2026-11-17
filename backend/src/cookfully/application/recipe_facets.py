@@ -102,7 +102,12 @@ def refresh_recipe_facets(
         models = config.feature(Purpose.RECIPE_FACETS).models
         current = fingerprint(recipe.input_hash, models)
         stored = _stored(session, [recipe_id]).get(recipe_id)
-        if stored is not None and stored.fingerprint == current and stored.status == "checked":
+        if (
+            stored is not None
+            and stored.fingerprint == current
+            and stored.status == "checked"
+            and stored.payload.get("inputHash") == recipe.input_hash  # older rows lack it
+        ):
             return len(stored.payload.get("tags") or [])
         engine = decisions or build_decisions(session_factory, config)
         active = getattr(engine, "active", None)
