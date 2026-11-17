@@ -52,6 +52,10 @@ const DECISION_FEATURE_COPY: Record<DecisionPurpose, { label: string; descriptio
     label: "Shelf life",
     description: "Estimates how long pantry items without a known lifespan keep.",
   },
+  gram_estimate: {
+    label: "Item weights",
+    description: "Estimates the weight of counted ingredients (such as one onion) so their nutrition is included, as a range.",
+  },
 };
 
 type FeatureDraft = { purpose: DecisionPurpose; enabled: boolean; models: string };

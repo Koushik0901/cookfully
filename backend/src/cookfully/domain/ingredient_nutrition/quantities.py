@@ -186,6 +186,62 @@ def owner_serving_grams(
     )
 
 
+COUNTED_UNITS = frozenset(
+    {
+        "clove",
+        "cloves",
+        "slice",
+        "slices",
+        "piece",
+        "pieces",
+        "sprig",
+        "sprigs",
+        "stalk",
+        "stalks",
+        "head",
+        "heads",
+        "fillet",
+        "fillets",
+    }
+)
+
+
+def is_counted(measure: IngredientMeasure) -> bool:
+    """True for "2 large eggs", "3 cloves garlic": a count whose weight the text does not give."""
+
+    if measure.minimum is None or measure.minimum <= 0:
+        return False
+    unit = (measure.unit_code or "").strip().casefold()
+    if not unit:
+        return True
+    if unit in COUNTED_UNITS:
+        return True
+    try:
+        return _normalize_alias(unit) == "item"
+    except DomainError:
+        return False
+
+
+def counted_grams(
+    measure: IngredientMeasure, item_low_g: Decimal, item_high_g: Decimal
+) -> GramRange:
+    """Gram range for a counted measure given a per-item range (quantity range x item range)."""
+
+    if not is_counted(measure) or measure.minimum is None:
+        raise DomainError(
+            "unsafe_conversion", "This unit cannot be safely converted to grams.", 422
+        )
+    if item_low_g <= 0 or item_high_g < item_low_g:
+        raise DomainError("count_weight_required", "A positive count weight is required.", 422)
+    maximum = measure.maximum or measure.minimum
+    return GramRange(
+        quantize_decimal(measure.minimum * item_low_g, NUTRIENT_SCALE),
+        quantize_decimal(maximum * item_high_g, NUTRIENT_SCALE),
+        "count_weight_model",
+        f"model-estimated {item_low_g}-{item_high_g} g per item",
+    )
+
+
 def to_grams(
     measure: IngredientMeasure,
     *,

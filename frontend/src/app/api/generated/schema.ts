@@ -1656,7 +1656,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life";
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "gram_estimate";
         DecisionFeature: {
             purpose: components["schemas"]["DecisionPurpose"];
             enabled: boolean;

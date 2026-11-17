@@ -16,9 +16,10 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.decisions import build_decisions
+from cookfully.application.decisions import Decisions, build_decisions
 from cookfully.application.food_labels import load_labels
 from cookfully.application.food_match_memories import remembered_food_choice
+from cookfully.application.gram_estimate import item_weight_range
 from cookfully.application.hidden_ingredients import refresh_hidden_ingredients
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
@@ -44,6 +45,7 @@ from cookfully.domain.common import (
 )
 from cookfully.domain.decisions import Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
+from cookfully.domain.ingredient_nutrition.quantities import counted_grams, is_counted
 from cookfully.domain.nutrition import (
     CORE_NUTRIENT_CODES,
     MICRONUTRIENT_KEYS,
@@ -86,6 +88,8 @@ from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
 from cookfully.infrastructure.semantic_embeddings import TextEmbedder
+
+MODEL_COUNT_METHOD = "count_weight_model"
 
 
 def _section_at(
@@ -412,6 +416,7 @@ class RecipePipeline:
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
             referee = self._match_referee(session)
+            counts = self._count_estimator(session)
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -471,6 +476,10 @@ class RecipePipeline:
                 grams_min, grams_max, method, assumption = self._grams(
                     ingredient, density_g_per_ml=density
                 )
+                if method is None and counts is not None and candidate is not None:
+                    grams_min, grams_max, method, assumption = self._counted_grams(
+                        counts, ingredient, candidate.food.description
+                    )
                 repository.activate_match(
                     IngredientMatch(
                         ingredient_id=ingredient.id,
@@ -519,6 +528,51 @@ class RecipePipeline:
             panel=config.features[Purpose.MATCH_REFEREE].models,
             tolerance_dv=config.decision_assist_tolerance_dv,
         )
+
+    def _count_estimator(self, session: Session) -> Decisions | None:
+        """The panel that estimates counted-ingredient weights; ``None`` when switched off."""
+
+        config = load_openrouter_config(session)
+        decisions = build_decisions(self._session_factory, decisions_config(config))
+        return decisions if decisions.active(Purpose.GRAM_ESTIMATE) else None
+
+    @staticmethod
+    def _counted_grams(
+        decisions: Decisions, ingredient: Ingredient, food_description: str
+    ) -> tuple[Decimal | None, Decimal | None, str | None, str | None]:
+        """A model-estimated gram range for "2 large eggs"; nothing when it cannot be had."""
+
+        measure = IngredientMeasure(
+            ingredient.quantity_min,
+            ingredient.quantity_max,
+            ingredient.unit_code,
+            ingredient.optional,
+        )
+        if not is_counted(measure):
+            return None, None, None, None
+        try:
+            per_item = item_weight_range(
+                decisions, ingredient.original_text, ingredient.food_name or food_description
+            )
+            if per_item is None:
+                return None, None, None, None
+            converted = counted_grams(measure, *per_item)
+        except Exception:
+            logger.exception(
+                "Counted-ingredient weight estimate failed; the line stays unresolved."
+            )
+            return None, None, None, None
+        return converted.minimum, converted.maximum, converted.method, converted.assumption
+
+    @staticmethod
+    def _rollup_grams(match: IngredientMatch | None) -> Decimal | None:
+        """Grams the roll-up uses: the geometric mean of a model-estimated range, else the minimum."""
+
+        if match is None or match.grams_min is None:
+            return None
+        if match.conversion_method == MODEL_COUNT_METHOD and match.grams_max is not None:
+            return (match.grams_min * match.grams_max).sqrt()
+        return match.grams_min
 
     def _refereed(
         self,
@@ -570,7 +624,7 @@ class RecipePipeline:
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
                 match = matches.get(ingredient.id)
-                grams = match.grams_min if match is not None else None
+                grams = self._rollup_grams(match)
                 matched = (
                     match is not None
                     and grams is not None
@@ -579,7 +633,11 @@ class RecipePipeline:
                 measures.append(
                     IngredientMeasure(
                         grams,
-                        match.grams_max if match else None,
+                        grams
+                        if grams is not None
+                        and match is not None
+                        and match.conversion_method == MODEL_COUNT_METHOD
+                        else (match.grams_max if match else None),
                         "gram",
                         ingredient.optional,
                         matched,

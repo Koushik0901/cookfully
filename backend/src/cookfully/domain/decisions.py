@@ -34,6 +34,7 @@ class Purpose(StrEnum):
     SUBSTITUTIONS = "substitutions"
     GROCERY_TIDY = "grocery_tidy"
     SHELF_LIFE = "shelf_life"
+    GRAM_ESTIMATE = "gram_estimate"
 
 
 @dataclass(frozen=True, slots=True)
