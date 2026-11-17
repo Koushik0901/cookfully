@@ -227,7 +227,7 @@ def compare_compatibility(
     return CompatibilityResult(Compatibility.COMPATIBLE, tuple(reasons))
 
 
-from cookfully.domain.ingredient_nutrition.normalization import normalize as _core_normalize  # noqa: E402, I001
+from cookfully.domain.ingredient_nutrition.normalization import normalize as _core_normalize  # noqa: E402
 
 
 def _normalize(value: str) -> str:
