@@ -90,7 +90,7 @@ class GroceryItemResponse(ApiModel):
     version: int
     purchased_at: datetime | None = Field(alias="purchasedAt", default=None)
     expires_on: date | None = Field(alias="expiresOn", default=None)
-    expiry_source: Literal["auto", "label", "manual"] | None = Field(
+    expiry_source: Literal["auto", "label", "manual", "model"] | None = Field(
         alias="expirySource", default=None
     )
     needs_expiry_date: bool = Field(alias="needsExpiryDate", default=False)

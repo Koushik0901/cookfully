@@ -4,7 +4,7 @@ export type GroceryList = components["schemas"]["GroceryList"];
 export type GroceryItem = components["schemas"]["GroceryItem"] & {
   purchasedAt?: string | null;
   expiresOn?: string | null;
-  expirySource?: "auto" | "label" | "manual" | null;
+  expirySource?: "auto" | "label" | "manual" | "model" | null;
   needsExpiryDate?: boolean;
 };
 export type GroceryItemWrite = components["schemas"]["GroceryItemWrite"] & {

@@ -66,7 +66,7 @@ class GroceryItem(TimestampMixin, Base):
         CheckConstraint("position >= 0", name="nonnegative_position"),
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint(
-            "expiry_source IN ('auto', 'label', 'manual')",
+            "expiry_source IN ('auto', 'label', 'manual', 'model')",
             name="valid_expiry_source",
         ),
         CheckConstraint(

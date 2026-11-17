@@ -13,6 +13,7 @@ from cookfully.application.grocery_reconciliation import (
     ExistingGroceryItem,
     reconcile_grocery_items,
 )
+from cookfully.application.shelf_life import model_expiry
 from cookfully.domain.common import DomainError, require_version, utc_now
 from cookfully.domain.expiry_lifespans import resolve_expiry
 from cookfully.domain.grocery import (
@@ -312,8 +313,11 @@ class GroceryListService:
                             else:
                                 if item.purchased_at is None:
                                     item.purchased_at = utc_now()
-                                item.expires_on = None
-                                item.expiry_source = None
+                                estimated = model_expiry(
+                                    self._session_factory, item.display_name, utc_now().date()
+                                )
+                                item.expires_on = estimated
+                                item.expiry_source = "model" if estimated is not None else None
                 elif not new_checked and old_checked:
                     item.purchased_at = None
                     item.expires_on = None
