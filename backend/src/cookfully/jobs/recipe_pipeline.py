@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
+from cookfully.application.food_labels import load_labels
 from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.hidden_ingredients import refresh_hidden_ingredients
 from cookfully.application.ingredient_engine import engine
@@ -405,6 +406,7 @@ class RecipePipeline:
                 repository,
                 embedder=self._session_embedder(session),
                 candidate_pool_limit=256,
+                labels_for=lambda foods: load_labels(session, [food.id for food in foods]),
             )
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from difflib import SequenceMatcher
 from typing import cast
 from uuid import UUID
 
 from cookfully.domain.common import NUTRIENT_SCALE, quantize_decimal
+from cookfully.domain.food_labels import FoodLabels, label_penalty
 from cookfully.domain.food_semantics import (
     Compatibility,
     FoodSemanticProfile,
@@ -92,6 +93,7 @@ _FLAVOR_TOKENS = frozenset(
 )
 _PART_TOKENS = frozenset({"leave", "peel", "seed", "stalk", "stem"})
 _PENALTY_TOKENS = _FORM_TOKENS | _FLAVOR_TOKENS | _PART_TOKENS
+LABELLED_CANDIDATES = 20
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,8 +120,11 @@ class FoodMatcher:
         *,
         embedder: TextEmbedder | None = None,
         candidate_pool_limit: int | None = None,
+        labels_for: Callable[[Sequence[FoodReference]], Mapping[UUID, FoodLabels]] | None = None,
     ) -> None:
         self.repository = repository
+        # Decision-model labels lower the score of candidates they confidently contradict.
+        self._labels_for = labels_for
         self._embedder = embedder or HashingTextEmbedder()
         self._candidate_pool_limit = candidate_pool_limit
         self._food_pool: tuple[FoodReference, ...] | None = None
@@ -152,6 +157,24 @@ class FoodMatcher:
         ranked.sort(
             key=lambda item: (-item.score, -item.semantic_similarity, item.food.external_id)
         )
+        if self._labels_for is not None and ranked:
+            # Only the leading candidates can win, so only they are checked against labels.
+            head, tail = ranked[:LABELLED_CANDIDATES], ranked[LABELLED_CANDIDATES:]
+            labels = self._labels_for([item.food for item in head])
+            head = [
+                replace(
+                    item,
+                    score=quantize_decimal(max(Decimal(0), item.score - penalty), NUTRIENT_SCALE),
+                    reasons=(*item.reasons, "label_mismatch"),
+                )
+                if (penalty := label_penalty(food_name, labels.get(item.food.id)))
+                else item
+                for item in head
+            ]
+            head.sort(
+                key=lambda item: (-item.score, -item.semantic_similarity, item.food.external_id)
+            )
+            ranked = head + tail
         deduped: list[FoodCandidate] = []
         seen: set[str] = set()
         for cand in ranked:

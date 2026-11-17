@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button, ErrorRecovery, Field, Skeleton } from "../../components";
 import { openRouterSettingsApi } from "./api";
+import { FoodLabelsPanel } from "./FoodLabelsPanel";
 import type { DecisionFeature, DecisionPurpose } from "./types";
 
 const OPENROUTER_QUERY_KEY = ["openrouter-settings"];
@@ -245,6 +246,7 @@ export function OpenRouterCard() {
           })}
         </ul>
       </fieldset>
+      <FoodLabelsPanel enabled={keyConfigured && (features.find((draft) => draft.purpose === "food_labels")?.enabled ?? false)} />
       {save.error instanceof Error ? <p className="error-text" role="alert">{save.error.message}</p> : null}
       {saved ? <p className="success-text" role="status">OpenRouter settings saved.</p> : null}
       <div className="actions">

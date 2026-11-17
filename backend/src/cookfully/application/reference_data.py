@@ -272,6 +272,8 @@ class ReferenceDataInstallService:
                     extra={"job_id": str(job_id), "recipe_count": len(recovered)},
                 )
             self._jobs.succeed(job_id)
+            if "foundation_sr_legacy" in units:
+                self._queue_food_labels(job_id)
         except DomainError as exc:
             self._jobs.fail_attempt(
                 job_id,
@@ -292,6 +294,16 @@ class ReferenceDataInstallService:
             )
         finally:
             heartbeat.stop()
+
+    def _queue_food_labels(self, job_id: UUID) -> None:
+        """Label the new foods with decision models when the owner has them set up."""
+
+        from cookfully.application.food_labels import accept_food_label_job
+
+        try:
+            accept_food_label_job(self._session_factory, trace_id=f"reference-install-{job_id}")
+        except DomainError:
+            logger.info("Food labels not queued: decision models are not set up.")
 
     def _install_units(self, job_id: UUID, units: tuple[str, ...]) -> None:
         releases = tuple(release for unit in units for release in PINNED_RELEASES[unit])

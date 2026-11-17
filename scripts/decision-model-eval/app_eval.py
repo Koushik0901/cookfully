@@ -507,6 +507,95 @@ def report_facets(harness: Harness) -> str:
     return "\n".join(out)
 
 
+# --- food labels -----------------------------------------------------------------------------------
+
+_STATE_WORDS = {
+    "raw": ("raw",),
+    "cooked": ("cooked", "boiled", "roasted", "baked", "fried", "grilled", "steamed", "braised", "broiled"),
+    "canned": ("canned",),
+    "frozen": ("frozen",),
+    "dried": ("dried", "dehydrated"),
+}
+
+
+def _expected_state(description: str) -> str | None:
+    words = set(description.lower().replace(",", " ").split())
+    found = [state for state, tokens in _STATE_WORDS.items() if words & set(tokens)]
+    return found[0] if len(found) == 1 else None
+
+
+def _label_foods(harness: Harness, foods: list[FoodReference]) -> dict[Any, Any]:
+    from cookfully.application.food_labels import label_ask, labels_from
+    from cookfully.domain.food_labels import FoodLabels
+
+    engine = harness.engine(Purpose.FOOD_LABELS, PANELS["jev+clef"])
+    result: dict[Any, Any] = {}
+    for start in range(0, len(foods), 50):
+        batch = foods[start : start + 50]
+        for food, answers in zip(batch, engine.ask([label_ask(f) for f in batch]), strict=True):
+            labels = labels_from(answers)
+            if labels is not None:
+                result[food.id] = FoodLabels.from_json(labels)
+    return result
+
+
+def report_food_labels(harness: Harness, usda_dir: Path) -> str:
+    foods = sorted(load_foods(usda_dir), key=lambda food: food.external_id)
+    by_state: dict[str, list[FoodReference]] = defaultdict(list)
+    for food in foods:
+        state = _expected_state(food.description)
+        if state and len(by_state[state]) < 24:
+            by_state[state].append(food)
+    sample = [food for group in by_state.values() for food in group]
+    labels = _label_foods(harness, sample)
+    out = [f"Foods with one explicit state word in the USDA description: {len(sample)}", ""]
+    total = right = 0
+    confusions: Counter[str] = Counter()
+    for food in sample:
+        expected = _expected_state(food.description)
+        got = labels.get(food.id)
+        total += 1
+        if got is not None and got.state == expected:
+            right += 1
+        else:
+            confusions[f"{expected}->{got.state if got else 'none'}"] += 1
+    out.append(f"state matches the description word: {right}/{total} ({right / total:.0%})")
+    out.append("mismatches: " + ", ".join(f"{k} x{v}" for k, v in confusions.most_common()))
+    return "\n".join(out)
+
+
+def report_match_labels(harness: Harness, usda_dir: Path) -> str:
+    """Deterministic matching on the gold set without and with stored food labels."""
+
+    foods = load_foods(usda_dir)
+    gold = gold_labels()
+    lines = {line.idx: line for line in corpus_lines()}
+    plain = FoodMatcher(StubNutritionRepository(foods), candidate_pool_limit=256)  # type: ignore[arg-type]
+    heads: dict[Any, FoodReference] = {}
+    for idx in gold:
+        for candidate in plain.candidates(lines[idx].food_name, limit=20):
+            heads[candidate.food.id] = candidate.food
+    labels = _label_foods(harness, list(heads.values()))
+    labelled = FoodMatcher(
+        StubNutritionRepository(foods),  # type: ignore[arg-type]
+        candidate_pool_limit=256,
+        labels_for=lambda batch: {food.id: labels[food.id] for food in batch if food.id in labels},
+    )
+    out = [f"Candidate foods labelled: {len(labels)} of {len(heads)}", ""]
+    for name, matcher in (("without labels", plain), ("with labels", labelled)):
+        cases = [
+            MatchCase(lines[idx], label, matcher.decide(lines[idx].food_name))
+            for idx, label in sorted(gold.items())
+        ]
+        out.append(f"{name}:")
+        out.append(_deterministic_summary(cases))
+        top_right = sum(
+            1 for case in cases if case.candidates and case.correct(case.candidates[0].food)
+        )
+        out.append(f"  top candidate correct (any status): {top_right}/{len(cases)}")
+    return "\n".join(out)
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 Evaluator = Callable[[Harness, argparse.Namespace], str]
@@ -528,6 +617,8 @@ EVALUATORS: dict[str, Evaluator] = {
     "import-screen": lambda harness, _args: report_import_screen(harness),
     "cleanup-verifier": lambda harness, _args: report_cleanup_verifier(harness),
     "facets": lambda harness, _args: report_facets(harness),
+    "food-labels": lambda harness, args: report_food_labels(harness, args.usda_dir),
+    "match-labels": lambda harness, args: report_match_labels(harness, args.usda_dir),
 }
 
 

@@ -521,6 +521,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs/food-labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFoodLabelSummary"];
+        put?: never;
+        post: operations["runFoodLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/recipe-processing": {
         parameters: {
             query?: never;
@@ -2027,6 +2043,13 @@ export interface components {
             waiting: number;
             missing: number;
             pollAfterSeconds: number | null;
+        };
+        FoodLabelSummary: {
+            labelled: number;
+            total: number;
+            active: number;
+            waiting: number;
+            pollAfterSeconds?: number | null;
         };
         JobAccepted: {
             /** Format: uuid */
@@ -3653,6 +3676,55 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getFoodLabelSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many active USDA foods carry decision-model labels, and the job queue state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodLabelSummary"];
+                };
+            };
+        };
+    };
+    runFoodLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Food labelling job accepted; it labels only new or changed foods. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Decision models are not set up (no key, or Food labels switched off). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
             };
         };
     };

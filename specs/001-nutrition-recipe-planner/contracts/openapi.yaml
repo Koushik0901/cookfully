@@ -798,6 +798,31 @@ paths:
         "200":
           description: Food embedding index job accepted.
 
+  /jobs/food-labels:
+    get:
+      tags: [Jobs]
+      operationId: getFoodLabelSummary
+      responses:
+        "200":
+          description: How many active USDA foods carry decision-model labels, and the job queue state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodLabelSummary" }
+    post:
+      tags: [Jobs]
+      operationId: runFoodLabels
+      responses:
+        "200":
+          description: Food labelling job accepted; it labels only new or changed foods.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobAccepted" }
+        "409":
+          description: Decision models are not set up (no key, or Food labels switched off).
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
   /jobs/recipe-processing:
     get:
       tags: [Jobs]
@@ -2929,6 +2954,15 @@ components:
         active: { type: integer, minimum: 0 }
         waiting: { type: integer, minimum: 0 }
         missing: { type: integer, minimum: 0 }
+        pollAfterSeconds: { type: [integer, "null"], minimum: 1 }
+    FoodLabelSummary:
+      type: object
+      required: [labelled, total, active, waiting]
+      properties:
+        labelled: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
+        active: { type: integer, minimum: 0 }
+        waiting: { type: integer, minimum: 0 }
         pollAfterSeconds: { type: [integer, "null"], minimum: 1 }
     JobAccepted:
       type: object

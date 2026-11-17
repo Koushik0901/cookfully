@@ -155,48 +155,38 @@ def test_recipe_id_tie_break_is_lexicographic_not_a_rank_sum() -> None:
 
 # --- preferences (taste scores and variety) ------------------------------------------------------
 
-from decimal import Decimal as _D  # noqa: E402
-from uuid import UUID as _UUID  # noqa: E402
 
-from cookfully.domain.suggestion_solver import (  # noqa: E402
-    SuggestionCandidate as _Candidate,
-)
-from cookfully.domain.suggestion_solver import (  # noqa: E402
-    SuggestionProblem as _Problem,
-)
-from cookfully.domain.suggestion_solver import (  # noqa: E402
-    SuggestionTarget as _Target,
-)
-from cookfully.domain.suggestion_solver import solve_suggestion as _solve  # noqa: E402
-
-
-def _cand(n: int, kcal: str, penalty: int = 0, group: str | None = None) -> _Candidate:
-    return _Candidate(
-        _UUID(int=n),
+def _cand(n: int, kcal: str, penalty: int = 0, group: str | None = None) -> SuggestionCandidate:
+    return SuggestionCandidate(
+        UUID(int=n),
         f"Recipe {n}",
-        _D(kcal),
-        _D("30"),
-        _D("50"),
-        _D("15"),
-        serving_increment=_D("1.000"),
-        minimum_servings=_D("1.000"),
-        maximum_servings=_D("1.000"),
+        Decimal(kcal),
+        Decimal("30"),
+        Decimal("50"),
+        Decimal("15"),
+        serving_increment=Decimal("1.000"),
+        minimum_servings=Decimal("1.000"),
+        maximum_servings=Decimal("1.000"),
         preference_penalty=penalty,
         variety_group=group,
     )
 
 
-def _problem(*candidates: _Candidate, kcal: str = "500", entries: int = 1) -> _Problem:
-    return _Problem(
+def _problem(
+    *candidates: SuggestionCandidate, kcal: str = "500", entries: int = 1
+) -> SuggestionProblem:
+    return SuggestionProblem(
         candidates=candidates,
-        target=_Target(_D(kcal), _D("30") * entries, _D("50") * entries, _D("15") * entries),
-        tolerances=_Target(_D("100"), _D("10"), _D("20"), _D("10")),
+        target=SuggestionTarget(
+            Decimal(kcal), Decimal("30") * entries, Decimal("50") * entries, Decimal("15") * entries
+        ),
+        tolerances=SuggestionTarget(Decimal("100"), Decimal("10"), Decimal("20"), Decimal("10")),
         max_entries=entries,
     )
 
 
-def _picked(problem: _Problem) -> list[int]:
-    return sorted(item.recipe_id.int for item in _solve(problem).items)
+def _picked(problem: SuggestionProblem) -> list[int]:
+    return sorted(item.recipe_id.int for item in solve_suggestion(problem).items)
 
 
 def test_preference_chooses_between_nutritionally_near_equal_options() -> None:

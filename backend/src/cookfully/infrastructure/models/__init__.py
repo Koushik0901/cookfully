@@ -1,5 +1,6 @@
 from cookfully.infrastructure.models.base import Base
 from cookfully.infrastructure.models.decisions import DecisionAnswer
+from cookfully.infrastructure.models.food_labels import FoodLabel
 from cookfully.infrastructure.models.grocery import (
     GroceryItem,
     GroceryItemSource,
@@ -62,6 +63,7 @@ __all__ = [
     "AccessToken",
     "Base",
     "DecisionAnswer",
+    "FoodLabel",
     "FoodMatchMemory",
     "FoodNutrient",
     "FoodReference",
