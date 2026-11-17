@@ -17,14 +17,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decision_assist import AssistLine, DecisionAssist
+from cookfully.application.decisions import build_decisions
 from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
-from cookfully.application.openrouter_settings import (
-    DECISION_MAX_OPTIONS,
-    DECISION_TIMEOUT_SECONDS,
-    DECISIONS_URL,
-)
+from cookfully.application.openrouter_settings import decisions_config
 from cookfully.application.openrouter_settings import load_config as load_openrouter_config
 from cookfully.application.recipes import (
     IngredientWrite,
@@ -41,6 +38,7 @@ from cookfully.domain.common import (
     utc_now,
     uuid7,
 )
+from cookfully.domain.decisions import Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
 from cookfully.domain.nutrition import (
     CORE_NUTRIENT_CODES,
@@ -59,7 +57,6 @@ from cookfully.domain.units import IngredientMeasure, coverage_ratio, to_grams
 from cookfully.domain.volume_assumptions import density_for
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
-from cookfully.infrastructure.decision_client import OpenRouterDecisionClient
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -496,24 +493,14 @@ class RecipePipeline:
             )
             return next_job
 
-    @staticmethod
-    def _decision_assist(session: Session) -> DecisionAssist | None:
-        """Build the decision assist from the owner's Settings; ``None`` without a usable key."""
+    def _decision_assist(self, session: Session) -> DecisionAssist | None:
+        """Build the decision assist from the owner's Settings; ``None`` when it cannot answer."""
 
         config = load_openrouter_config(session)
-        if not config.decision_assist_active or config.api_key is None:
+        decisions = build_decisions(self._session_factory, decisions_config(config))
+        if not decisions.active(Purpose.MATCH_REFEREE):
             return None
-        chooser = OpenRouterDecisionClient(
-            api_key=config.api_key,
-            model=config.decision_assist_model,
-            url=DECISIONS_URL,
-            timeout_seconds=DECISION_TIMEOUT_SECONDS,
-        )
-        return DecisionAssist(
-            chooser,
-            tolerance_dv=config.decision_assist_tolerance_dv,
-            max_options=DECISION_MAX_OPTIONS,
-        )
+        return DecisionAssist(decisions, tolerance_dv=config.decision_assist_tolerance_dv)
 
     def _assisted(
         self,

@@ -1,4 +1,5 @@
 from cookfully.infrastructure.models.base import Base
+from cookfully.infrastructure.models.decisions import DecisionAnswer
 from cookfully.infrastructure.models.grocery import (
     GroceryItem,
     GroceryItemSource,
@@ -58,6 +59,7 @@ from cookfully.infrastructure.models.suggestions import SuggestionItem, Suggesti
 __all__ = [
     "AccessToken",
     "Base",
+    "DecisionAnswer",
     "FoodMatchMemory",
     "FoodNutrient",
     "FoodReference",

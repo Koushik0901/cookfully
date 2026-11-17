@@ -19,6 +19,25 @@ runs first; this layer can only *replace* its result when it is safe to.
 5. Anything else keeps the deterministic result: a `none` winner, unknown quantity, malformed or
    missing probabilities, timeout, HTTP error, disabled key.
 
+## The decision engine
+
+All decision-model calls go through one engine, `Decisions.ask` in `application/decisions.py`
+(types in `domain/decisions.py`). Features build `Ask`s (purpose, state, typed `Choice` / `Check` /
+`Score` questions) and get back `Answers`, possibly empty. The engine:
+
+- sends each ask to every model on the feature's panel and averages their answers (`choice`,
+  `check`, `score`), with `agree` and `check_worst` for stricter rules;
+- caches every answer in `decision_answers` by model and request hash, so reprocessing an unchanged
+  recipe makes no calls (rows older than a year are removed by the retention sweep);
+- records each call's cost there too and stops calling once the month's spend reaches the cap
+  (default $2.00);
+- shuffles choice options reproducibly per model and request, so position bias is not systematic;
+- rejects malformed answers per model and returns empty answers for any failure, missing key or
+  disabled feature.
+
+The transport (`infrastructure/decision_client.py`) is the only code that knows the wire format;
+`ScriptedDecisionTransport` answers from a function for tests and offline replay.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

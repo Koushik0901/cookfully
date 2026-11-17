@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from typing import Any, cast
 from uuid import uuid4
 
-import httpx
 import pytest
 
 from cookfully.application.decision_assist import (
@@ -13,14 +12,17 @@ from cookfully.application.decision_assist import (
     DecisionAssist,
     nutrients_per_100g,
 )
+from cookfully.application.decisions import Decisions, DecisionsConfig, FeatureConfig
 from cookfully.domain.decision_assist import (
     AssistAction,
     AssistOption,
     evaluate,
     normalize_probabilities,
 )
+from cookfully.domain.decisions import Answers, Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate
-from cookfully.infrastructure.decision_client import OpenRouterDecisionClient
+from cookfully.infrastructure.decision_client import ScriptedDecisionTransport
+from cookfully.infrastructure.decision_store import InMemoryDecisionStore
 
 D = Decimal
 
@@ -143,15 +145,28 @@ def _candidate(food: Any) -> FoodCandidate:
 
 
 class _Chooser:
-    model = "test/model"
+    """Answers the match question through the real engine with a scripted transport."""
 
     def __init__(self, answer: dict[str, float] | None) -> None:
         self.answer = answer
         self.calls: list[dict[str, Any]] = []
+        self._engine = Decisions(
+            DecisionsConfig(
+                api_key="k",
+                features={Purpose.MATCH_REFEREE: FeatureConfig(models=("test/model",))},
+            ),
+            ScriptedDecisionTransport(self._respond),
+            InMemoryDecisionStore(),
+        )
 
-    def choose(self, *, state: Any, instructions: str, criteria: Any) -> dict[str, float] | None:
-        self.calls.append({"state": dict(state), "criteria": dict(criteria)})
-        return self.answer
+    def _respond(self, _model: str, state: Any, questions: Any) -> object:
+        self.calls.append({"state": dict(state), "criteria": dict(questions["match"]["criteria"])})
+        if self.answer is None:
+            return None
+        return {"match": {"type": "choice", "probabilities": self.answer}}
+
+    def ask(self, asks: Any) -> list[Answers]:
+        return self._engine.ask(asks)
 
 
 LINE = AssistLine("1 tbsp olive oil", "olive oil", "Salad", D(14))
@@ -217,77 +232,6 @@ def test_service_limits_options_sent_to_the_model() -> None:
         LINE, [_candidate(food) for food in foods]
     )
     assert set(chooser.calls[0]["criteria"]) == {"c1", "c2", "c3", "c4", "c5", "none"}
-
-
-# --- client -------------------------------------------------------------------------------------
-
-
-def _client(handler: Any) -> OpenRouterDecisionClient:
-    return OpenRouterDecisionClient(
-        api_key="secret",
-        model="typesafe/jev-1.14",
-        url="https://example.test/decisions",
-        timeout_seconds=1,
-        client=httpx.Client(transport=httpx.MockTransport(handler)),
-    )
-
-
-def test_client_sends_bearer_key_and_parses_probabilities() -> None:
-    seen: dict[str, Any] = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        import json
-
-        seen["auth"] = request.headers["authorization"]
-        seen["body"] = json.loads(request.content)
-        return httpx.Response(
-            200,
-            json={
-                "answers": {"match": {"type": "choice", "probabilities": {"c1": 0.9, "none": 0.1}}}
-            },
-        )
-
-    result = _client(handler).choose(
-        state={"ingredient_line": "x"}, instructions="pick", criteria={"c1": "A", "none": "N"}
-    )
-    assert result == {"c1": 0.9, "none": 0.1}
-    assert seen["auth"] == "Bearer secret"
-    assert seen["body"]["model"] == "typesafe/jev-1.14"
-    assert seen["body"]["questions"]["match"]["type"] == "choice"
-
-
-@pytest.mark.parametrize(
-    "response",
-    [
-        httpx.Response(500, json={}),
-        httpx.Response(200, text="not json"),
-        httpx.Response(200, json=[]),
-        httpx.Response(200, json={"answers": {}}),
-        httpx.Response(200, json={"answers": {"match": {"type": "noul", "noul": 0.5}}}),
-        httpx.Response(
-            200, json={"answers": {"match": {"type": "choice", "probabilities": {"c1": "x"}}}}
-        ),
-    ],
-)
-def test_client_returns_none_for_any_failure(response: httpx.Response) -> None:
-    assert (
-        _client(lambda _request: response).choose(state={}, instructions="i", criteria={}) is None
-    )
-
-
-def test_client_returns_none_on_network_error() -> None:
-    def boom(_request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("down")
-
-    assert _client(boom).choose(state={}, instructions="i", criteria={}) is None
-
-
-def test_client_falls_back_to_single_choice_confidence() -> None:
-    payload = {"answers": {"match": {"type": "choice", "choice": "c2", "confidence": 0.8}}}
-    result = _client(lambda _r: httpx.Response(200, json=payload)).choose(
-        state={}, instructions="i", criteria={}
-    )
-    assert result == {"c2": 0.8}
 
 
 # --- pipeline hook ------------------------------------------------------------------------------
@@ -371,6 +315,7 @@ def test_pipeline_builds_the_assist_only_with_a_usable_key_and_the_switch_on(
         return OpenRouterConfig(key, "", enabled, "typesafe/jev-1.14", D("0.03"))
 
     pipeline = _pipeline()
+    pipeline._session_factory = None
     for key, enabled, expected in [(None, True, False), ("k", False, False), ("k", True, True)]:
         monkeypatch.setattr(
             "cookfully.jobs.recipe_pipeline.load_openrouter_config",

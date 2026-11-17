@@ -22,6 +22,7 @@ from cookfully.domain.decision_assist import (
     AssistVerdict,
     evaluate,
 )
+from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate
 from cookfully.domain.nutrition import CORE_NUTRIENT_CODES, USDA_MICRONUTRIENT_MANIFEST
 from cookfully.infrastructure.models.reference_foods import FoodReference
@@ -39,13 +40,11 @@ NONE_CRITERION = (
 PROVENANCE_VERSION = "decision-assist-v1"
 
 
-class DecisionChooser(Protocol):
-    @property
-    def model(self) -> str: ...
+DEFAULT_MAX_OPTIONS = 12
 
-    def choose(
-        self, *, state: Mapping[str, str], instructions: str, criteria: Mapping[str, str]
-    ) -> dict[str, float] | None: ...
+
+class DecisionAsker(Protocol):
+    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,12 +65,12 @@ class AssistOutcome:
 class DecisionAssist:
     def __init__(
         self,
-        chooser: DecisionChooser,
+        decisions: DecisionAsker,
         *,
         tolerance_dv: Decimal,
-        max_options: int = 12,
+        max_options: int = DEFAULT_MAX_OPTIONS,
     ) -> None:
-        self._chooser = chooser
+        self._decisions = decisions
         self._tolerance = tolerance_dv
         self._max_options = max_options
 
@@ -91,9 +90,16 @@ class DecisionAssist:
             "ingredient_line": line.original_text,
             "parsed_food_name": line.food_name,
         }
-        probabilities = self._chooser.choose(
-            state=state, instructions=MATCH_INSTRUCTIONS, criteria=criteria
-        )
+        answers = self._decisions.ask(
+            [
+                Ask(
+                    Purpose.MATCH_REFEREE,
+                    state,
+                    {"match": Choice(MATCH_INSTRUCTIONS, criteria)},
+                )
+            ]
+        )[0]
+        probabilities = answers.choice("match")
         if not probabilities:
             return None
         options = [
@@ -103,15 +109,21 @@ class DecisionAssist:
         if verdict.action is not AssistAction.AUTO_RESOLVE or verdict.top_key is None:
             return None
         chosen = keys[verdict.top_key]
-        return AssistOutcome(chosen, verdict, self._evidence(verdict, keys))
+        return AssistOutcome(
+            chosen, verdict, self._evidence(verdict, keys, tuple(answers.by_model))
+        )
 
     def _evidence(
-        self, verdict: AssistVerdict, keys: Mapping[str, FoodCandidate]
+        self,
+        verdict: AssistVerdict,
+        keys: Mapping[str, FoodCandidate],
+        models: tuple[str, ...],
     ) -> dict[str, object]:
         return {
             "kind": "decision_assist",
             "version": PROVENANCE_VERSION,
-            "model": self._chooser.model,
+            "model": models[0] if models else None,
+            "models": list(models),
             "toleranceDv": str(self._tolerance),
             "topProbability": str(round(verdict.top_probability, 4)),
             "expectedErrorDv": {

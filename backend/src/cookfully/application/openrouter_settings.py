@@ -7,14 +7,12 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from cookfully.application.decisions import DecisionsConfig, FeatureConfig
 from cookfully.domain.common import DomainError
+from cookfully.domain.decisions import Purpose
 from cookfully.infrastructure.config import get_settings
 from cookfully.infrastructure.models.openrouter import OpenRouterSettings
 from cookfully.infrastructure.secret_box import SecretBox
-
-DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
-DECISION_TIMEOUT_SECONDS = 8.0
-DECISION_MAX_OPTIONS = 12
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +63,20 @@ def resolve(row: OpenRouterSettings | None) -> OpenRouterConfig:
 
 def load_config(session: Session) -> OpenRouterConfig:
     return resolve(session.get(OpenRouterSettings, 1))
+
+
+def decisions_config(config: OpenRouterConfig) -> DecisionsConfig:
+    """Engine settings derived from the owner's OpenRouter settings."""
+
+    return DecisionsConfig(
+        api_key=config.api_key,
+        features={
+            Purpose.MATCH_REFEREE: FeatureConfig(
+                enabled=config.decision_assist_enabled,
+                models=(config.decision_assist_model,) if config.decision_assist_model else (),
+            )
+        },
+    )
 
 
 def key_hint(api_key: str) -> str:
