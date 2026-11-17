@@ -1,22 +1,33 @@
-# Decision-model assist for ingredient matching
+# Decision-model match referee for ingredient matching
 
 On by default; it does nothing until an OpenRouter key is saved in Settings. Implements recommendation 2 of
 [`decision-model-experiments`](decision-model-experiments/README.md). Deterministic matching always
-runs first; this layer can only *replace* its result when it is safe to.
+runs first; the referee (`application/match_referee.py`, rule in `domain/match_referee.py`) gives a
+second opinion from a panel of models (Jev 1.14 and Clef by default) on every non-memory match.
+Measured results are in [`decision-model-experiments/app-eval.md`](decision-model-experiments/app-eval.md).
 
 ## How it works
 
 1. `FoodMatcher.decide` produces a decision and its candidate foods (remembered choices, manual
    matches and owner foods are never sent to the model).
-2. Up to 12 candidates (plus a reserved `none` option) go to a decision model as one `choice` question.
-3. `domain/decision_assist.py` computes, per tracked nutrient (kcal, protein, fat, carbohydrate,
+2. Up to 12 candidates (plus a reserved `none` option) go to every model on the panel as one `choice`
+   question.
+3. **No deterministic match** (ambiguous or unmatched): the primary model's distribution must pass
+   the expected-error rule below and every other model must agree on the top pick; then the line is
+   stored as `matched` with `match_method = "decision_referee"`.
+4. **A deterministic match**: if every model agrees on a *different* food (mean probability at least
+   0.5) and switching would move a tracked nutrient by more than the tolerance, or the panel agrees no
+   listed food fits, the line goes back to review (`ambiguous`, method `decision_referee`) with the
+   panel's pick first. Harmless disagreements are confirmed and recorded.
+5. `domain/decision_assist.py` computes, per tracked nutrient (kcal, protein, fat, carbohydrate,
    sodium, vitamin C), the model's expected error against its top pick as a share of the daily
    value. The line auto-resolves only if that is at most the tolerance (default 2%) in **every**
    nutrient. Calories alone are not enough: the research found a calories-only rule leaves 8% sodium
    and 36% vitamin C error.
-4. On auto-resolve the match is stored with `match_method = "decision_assist"` and the probabilities,
-   model id, tolerance and per-nutrient expected error in `candidate_evidence`.
-5. Anything else keeps the deterministic result: a `none` winner, unknown quantity, malformed or
+6. Every answered line records `candidate_evidence` of kind `match_referee`: action, reason, models,
+   the pick with its probability, the impact at stake and the probabilities per candidate. Rows from
+   before the referee carry kind `decision_assist`.
+7. Anything else keeps the deterministic result: a `none` winner, unknown quantity, malformed or
    missing probabilities, timeout, HTTP error, disabled key.
 
 ## The decision engine

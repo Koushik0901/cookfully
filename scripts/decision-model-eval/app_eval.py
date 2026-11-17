@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from usda_pool import StubNutritionRepository
 
-from cookfully.application.decision_assist import AssistLine, DecisionAssist
+from cookfully.application.match_referee import MatchReferee, RefereeLine
 from cookfully.application.decisions import (
     DECISIONS_URL,
     Decisions,
@@ -276,38 +276,62 @@ def match_cases(usda_dir: Path) -> list[MatchCase]:
     ]
 
 
-def assist_line(case: MatchCase) -> AssistLine:
-    return AssistLine(
+def referee_line(case: MatchCase) -> RefereeLine:
+    return RefereeLine(
         case.line.original_text, case.line.food_name, case.line.recipe_title, case.line.grams
     )
 
 
-def report_match_assist(harness: Harness, cases: list[MatchCase], tolerances: Iterable[str]) -> str:
+def report_match_referee(
+    harness: Harness, cases: list[MatchCase], tolerances: Iterable[str]
+) -> str:
+    """The shipped referee rule: upgrades on uncertain lines, downgrades on confident ones."""
+
     out = [_deterministic_summary(cases), ""]
-    out.append("Assist on ambiguous/unmatched lines (the shipped rule), per panel and tolerance:")
     out.append(
-        f"{'panel':<10}{'tol':>6}{'eligible':>10}{'resolved':>10}{'correct':>9}"
-        f"{'wrong':>7}{'precision':>11}"
+        f"{'panel':<10}{'tol':>6} | {'upgraded':>8}{'right':>6}{'wrong':>6} |"
+        f" {'matched':>7}{'caught':>7}{'false':>6}{'missed':>7} | review"
     )
-    eligible = [case for case in cases if case.decision.status != "matched" and case.candidates]
     for name, models in PANELS.items():
         for tolerance in tolerances:
-            assist = DecisionAssist(
-                harness.engine(Purpose.MATCH_REFEREE, models), tolerance_dv=Decimal(tolerance)
+            referee = MatchReferee(
+                harness.engine(Purpose.MATCH_REFEREE, models),
+                panel=models,
+                tolerance_dv=Decimal(tolerance),
             )
-            resolved = correct = 0
-            for case in eligible:
-                outcome = assist.resolve(assist_line(case), case.candidates)
-                if outcome is None:
+            up = up_right = matched = caught = false_alarm = missed = review = 0
+            for case in cases:
+                if not case.candidates:
+                    review += 1
                     continue
-                resolved += 1
-                if case.correct(outcome.candidate.food):
-                    correct += 1
-            precision = f"{correct / resolved:.0%}" if resolved else "-"
+                judgement = referee.judge(referee_line(case), case.decision)
+                final = judgement.decision
+                food = final.candidate.food if final.candidate else None
+                if case.decision.status == "matched":
+                    matched += 1
+                    was_right = case.correct(case.decision.candidate.food)  # type: ignore[union-attr]
+                    if final.status != "matched":
+                        review += 1
+                        if was_right:
+                            false_alarm += 1
+                        else:
+                            caught += 1
+                    elif not was_right:
+                        missed += 1
+                elif final.status == "matched":
+                    up += 1
+                    up_right += case.correct(food)
+                else:
+                    review += 1
             out.append(
-                f"{name:<10}{tolerance:>6}{len(eligible):>10}{resolved:>10}{correct:>9}"
-                f"{resolved - correct:>7}{precision:>11}"
+                f"{name:<10}{tolerance:>6} | {up:>8}{up_right:>6}{up - up_right:>6} |"
+                f" {matched:>7}{caught:>7}{false_alarm:>6}{missed:>7} | {review}"
             )
+    out.append(
+        "\nupgraded: uncertain lines resolved by the panel; caught/false: confident matches sent to"
+        " review that were wrong/right; missed: wrong confident matches left in place;"
+        " review: lines left for a person (of all gold lines)."
+    )
     return "\n".join(out)
 
 
@@ -332,11 +356,11 @@ def _deterministic_summary(cases: list[MatchCase]) -> str:
 Evaluator = Callable[[Harness, argparse.Namespace], str]
 
 
-def _match_assist(harness: Harness, args: argparse.Namespace) -> str:
-    return report_match_assist(harness, match_cases(args.usda_dir), args.tolerance)
+def _match_referee(harness: Harness, args: argparse.Namespace) -> str:
+    return report_match_referee(harness, match_cases(args.usda_dir), args.tolerance)
 
 
-EVALUATORS: dict[str, Evaluator] = {"match-assist": _match_assist}
+EVALUATORS: dict[str, Evaluator] = {"match-referee": _match_referee}
 
 
 def main(argv: Sequence[str] | None = None) -> None:

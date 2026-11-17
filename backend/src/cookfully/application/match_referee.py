@@ -1,10 +1,10 @@
-"""Optional decision-model assist for ingredient-to-food matching.
+"""The match referee: a second opinion from a panel of decision models on every food match.
 
-The deterministic matcher always runs first. When the owner enables the assist, the candidate
-foods it produced are re-ranked by a decision model and the model's pick replaces the
-deterministic result only when the impact-aware rule in ``domain.decision_assist`` says the
-remaining uncertainty cannot move the recipe's nutrition. Everything else, including every failure,
-keeps the deterministic result.
+The deterministic matcher always runs first. The referee then asks the owner's model panel to pick
+among the matcher's candidates and applies ``domain.match_referee.judge``: an ambiguous line can be
+resolved when the remaining doubt cannot move the nutrition, and a confident deterministic match is
+sent to review when the panel agrees on a different food that would change the nutrition. Everything
+else, including every failure, keeps the deterministic result.
 """
 
 from __future__ import annotations
@@ -14,16 +14,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Protocol
 
-from cookfully.domain.decision_assist import (
-    NONE_KEY,
-    TRACKED_DAILY_VALUES,
-    AssistAction,
-    AssistOption,
-    AssistVerdict,
-    evaluate,
-)
+from cookfully.domain.decision_assist import NONE_KEY, TRACKED_DAILY_VALUES, AssistOption
 from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
-from cookfully.domain.ingredient_nutrition.matching import FoodCandidate
+from cookfully.domain.ingredient_nutrition.matching import FoodCandidate, MatchDecision
+from cookfully.domain.match_referee import RefereeAction, RefereeVerdict, judge
 from cookfully.domain.nutrition import CORE_NUTRIENT_CODES, USDA_MICRONUTRIENT_MANIFEST
 from cookfully.infrastructure.models.reference_foods import FoodReference
 
@@ -37,9 +31,8 @@ MATCH_INSTRUCTIONS = (
 NONE_CRITERION = (
     "None of the listed entries is an acceptable match, or this line is not a food ingredient."
 )
-PROVENANCE_VERSION = "decision-assist-v1"
-
-
+PROVENANCE_VERSION = "match-referee-v1"
+METHOD = "decision_referee"
 DEFAULT_MAX_OPTIONS = 12
 
 
@@ -48,7 +41,7 @@ class DecisionAsker(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class AssistLine:
+class RefereeLine:
     original_text: str
     food_name: str
     recipe_title: str
@@ -56,32 +49,36 @@ class AssistLine:
 
 
 @dataclass(frozen=True, slots=True)
-class AssistOutcome:
-    candidate: FoodCandidate
-    verdict: AssistVerdict
-    evidence: dict[str, object]
+class Judgement:
+    decision: MatchDecision
+    verdict: RefereeVerdict | None
+    evidence: dict[str, object] | None
 
 
-class DecisionAssist:
+class MatchReferee:
     def __init__(
         self,
         decisions: DecisionAsker,
         *,
+        panel: Sequence[str],
         tolerance_dv: Decimal,
         max_options: int = DEFAULT_MAX_OPTIONS,
     ) -> None:
         self._decisions = decisions
+        self._panel = tuple(panel)
         self._tolerance = tolerance_dv
         self._max_options = max_options
 
-    def resolve(
-        self, line: AssistLine, candidates: Sequence[FoodCandidate]
-    ) -> AssistOutcome | None:
-        """Return the candidate to apply, or ``None`` to keep the deterministic result."""
+    def judge(self, line: RefereeLine, decision: MatchDecision) -> Judgement:
+        """Return the decision to store and the evidence to record beside it."""
 
-        shortlist = list(candidates[: self._max_options])
+        unchanged = Judgement(decision, None, None)
+        if decision.method == "memory":
+            return unchanged
+        head = (decision.candidate,) if decision.candidate is not None else ()
+        shortlist = list((head + decision.alternatives)[: self._max_options])
         if not shortlist:
-            return None
+            return unchanged
         keys = {f"c{index}": candidate for index, candidate in enumerate(shortlist, start=1)}
         criteria = {key: _describe(candidate.food) for key, candidate in keys.items()}
         criteria[NONE_KEY] = NONE_CRITERION
@@ -91,52 +88,69 @@ class DecisionAssist:
             "parsed_food_name": line.food_name,
         }
         answers = self._decisions.ask(
-            [
-                Ask(
-                    Purpose.MATCH_REFEREE,
-                    state,
-                    {"match": Choice(MATCH_INSTRUCTIONS, criteria)},
-                )
-            ]
+            [Ask(Purpose.MATCH_REFEREE, state, {"match": Choice(MATCH_INSTRUCTIONS, criteria)})]
         )[0]
-        probabilities = answers.choice("match")
-        if not probabilities:
-            return None
+        models = [
+            model
+            for model in (*self._panel, *answers.by_model)
+            if model in answers.by_model and "match" in answers.by_model[model].choices
+        ]
+        models = list(dict.fromkeys(models))
+        if not models:
+            return unchanged
+        panel = [answers.by_model[model].choices["match"] for model in models]
         options = [
             AssistOption(key, nutrients_per_100g(candidate.food)) for key, candidate in keys.items()
         ]
-        verdict = evaluate(options, probabilities, grams=line.grams, tolerance_dv=self._tolerance)
-        if verdict.action is not AssistAction.AUTO_RESOLVE or verdict.top_key is None:
-            return None
-        chosen = keys[verdict.top_key]
-        return AssistOutcome(
-            chosen, verdict, self._evidence(verdict, keys, tuple(answers.by_model))
+        current = "c1" if decision.candidate is not None else None
+        verdict = judge(
+            options, panel, current=current, grams=line.grams, tolerance_dv=self._tolerance
         )
+        evidence = self._evidence(verdict, keys, models, answers)
+        picked = keys.get(verdict.pick) if verdict.pick else None
+        others = tuple(candidate for candidate in shortlist if candidate is not picked)
+        if verdict.action is RefereeAction.UPGRADE and picked is not None:
+            return Judgement(MatchDecision("matched", METHOD, picked, others), verdict, evidence)
+        if verdict.action is RefereeAction.DOWNGRADE:
+            alternatives = ((picked,) if picked is not None else ()) + others
+            return Judgement(
+                MatchDecision("ambiguous", METHOD, None, alternatives), verdict, evidence
+            )
+        return Judgement(decision, verdict, evidence)
 
     def _evidence(
         self,
-        verdict: AssistVerdict,
+        verdict: RefereeVerdict,
         keys: Mapping[str, FoodCandidate],
-        models: tuple[str, ...],
+        models: Sequence[str],
+        answers: Answers,
     ) -> dict[str, object]:
+        mean = answers.choice("match") or {}
+        picked = keys.get(verdict.pick) if verdict.pick else None
         return {
-            "kind": "decision_assist",
+            "kind": "match_referee",
             "version": PROVENANCE_VERSION,
-            "model": models[0] if models else None,
+            "action": verdict.action.value,
+            "reason": verdict.reason,
             "models": list(models),
             "toleranceDv": str(self._tolerance),
-            "topProbability": str(round(verdict.top_probability, 4)),
-            "expectedErrorDv": {
-                name: str(round(value, 6)) for name, value in verdict.expected_error_dv.items()
-            },
+            "impactDv": str(round(verdict.impact_dv, 6)) if verdict.impact_dv is not None else None,
+            "pick": (
+                {
+                    "foodReferenceId": str(picked.food.id),
+                    "description": picked.food.description,
+                    "probability": str(round(verdict.pick_probability, 4)),
+                }
+                if picked is not None
+                else None
+            ),
+            "noneProbability": str(round(mean.get(NONE_KEY, Decimal(0)), 4)),
             "probabilities": [
                 {
                     "foodReferenceId": str(keys[key].food.id),
                     "probability": str(round(probability, 4)),
                 }
-                for key, probability in sorted(
-                    verdict.probabilities.items(), key=lambda item: item[1], reverse=True
-                )
+                for key, probability in sorted(mean.items(), key=lambda item: item[1], reverse=True)
                 if key in keys
             ],
         }

@@ -25,7 +25,7 @@ recipe. This runner uses the matcher and candidate list exactly as the app does 
 the gold sample, so the two sets of numbers answer different questions. Both agree on the direction:
 the per-nutrient expected-error rule auto-resolves a large share of uncertain lines with very few errors.
 
-## `match-assist` (2026-11-17)
+## `match-assist` (2026-11-17, superseded by `match-referee`)
 
 The shipped assist rule, applied to lines the matcher left ambiguous or unmatched (84 of the 140 gold
 lines have candidates). "Correct" means gold accepts the chosen food; for lines gold marks as not a food
@@ -51,4 +51,23 @@ Cost: 168 answers, $0.011 in total.
 Reading: at the default 2% tolerance Jev alone resolves almost half of the uncertain lines at 98%
 precision. Averaging Jev with Clef does not improve precision and resolves fewer lines, because Clef's
 flatter distributions raise the expected error. A second model earns its place for *disagreement*
-(the referee's downgrade rule), not for averaging; see `match-referee` once it exists.
+(the referee's downgrade rule), not for averaging. The `match-assist` evaluator was replaced by
+`match-referee`; its numbers are kept here for comparison.
+
+## `match-referee` (2026-11-17)
+
+The shipped referee (`domain/match_referee.py`) at the default 2% tolerance. On uncertain lines the
+primary model's distribution drives the tolerance rule and the other models can only veto. On confident
+matches, a line goes to review when every model agrees on a different food that moves a tracked
+nutrient past the tolerance, or agrees that no listed food fits (mean probability at least 0.5).
+
+| panel | uncertain lines resolved | right | wrong | confident wrong caught (of 7) | false alarms (of 43) | wrong left in place |
+|---|---|---|---|---|---|---|
+| Jev | 40 | 39 | 1 | 4 | 3 | 3 |
+| Clef | 36 | 34 | 2 | 3 | 2 | 4 |
+| **Jev + Clef (default)** | **38** | **38** | **0** | **4** | **2** | **3** |
+
+Compared with the deterministic matcher alone on these 140 lines: 38 more lines are resolved without a
+person, none of them wrong; 4 of the 7 wrong confident matches are caught, at the cost of 2 correct
+matches sent to review. Lines left for a person: 58 of 140 (deterministic alone: 90 not matched, plus 7
+wrong matches nobody looks at). Cumulative cache cost for both evaluators: $0.017.

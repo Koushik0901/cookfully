@@ -16,11 +16,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.decision_assist import AssistLine, DecisionAssist
 from cookfully.application.decisions import build_decisions
 from cookfully.application.food_match_memories import remembered_food_choice
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
+from cookfully.application.match_referee import Judgement, MatchReferee, RefereeLine
 from cookfully.application.openrouter_settings import decisions_config
 from cookfully.application.openrouter_settings import load_config as load_openrouter_config
 from cookfully.application.recipes import (
@@ -405,7 +405,7 @@ class RecipePipeline:
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
-            assist = self._decision_assist(session)
+            referee = self._match_referee(session)
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -452,11 +452,10 @@ class RecipePipeline:
                     continue
                 remembered = remembered_choice.food_reference if remembered_choice else None
                 decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
-                assist_evidence: dict[str, object] | None = None
-                if assist is not None and decision.method != "memory":
-                    decision, assist_evidence = self._assisted(
-                        assist, decision, ingredient, recipe.title
-                    )
+                referee_evidence: dict[str, object] | None = None
+                if referee is not None and decision.method != "memory":
+                    judgement = self._refereed(referee, decision, ingredient, recipe.title)
+                    decision, referee_evidence = judgement.decision, judgement.evidence
                 candidate = decision.candidate
                 density = (
                     density_for(candidate.food.description)
@@ -483,7 +482,7 @@ class RecipePipeline:
                         ),
                         input_hash=recipe.input_hash,
                         active=True,
-                        candidate_evidence=[assist_evidence] if assist_evidence else None,
+                        candidate_evidence=[referee_evidence] if referee_evidence else None,
                     )
                 )
                 job.progress_current = position
@@ -493,44 +492,36 @@ class RecipePipeline:
             )
             return next_job
 
-    def _decision_assist(self, session: Session) -> DecisionAssist | None:
-        """Build the decision assist from the owner's Settings; ``None`` when it cannot answer."""
+    def _match_referee(self, session: Session) -> MatchReferee | None:
+        """Build the match referee from the owner's Settings; ``None`` when it cannot answer."""
 
         config = load_openrouter_config(session)
         decisions = build_decisions(self._session_factory, decisions_config(config))
         if not decisions.active(Purpose.MATCH_REFEREE):
             return None
-        return DecisionAssist(decisions, tolerance_dv=config.decision_assist_tolerance_dv)
+        return MatchReferee(
+            decisions,
+            panel=config.features[Purpose.MATCH_REFEREE].models,
+            tolerance_dv=config.decision_assist_tolerance_dv,
+        )
 
-    def _assisted(
+    def _refereed(
         self,
-        assist: DecisionAssist,
+        referee: MatchReferee,
         decision: MatchDecision,
         ingredient: Ingredient,
         recipe_title: str,
-    ) -> tuple[MatchDecision, dict[str, object] | None]:
+    ) -> Judgement:
         candidates = (
             (decision.candidate,) if decision.candidate is not None else ()
         ) + decision.alternatives
-        if not candidates:
-            return decision, None
-        density = density_for(candidates[0].food.description)
+        density = density_for(candidates[0].food.description) if candidates else None
         grams_min, _, _, _ = self._grams(ingredient, density_g_per_ml=density)
-        outcome = assist.resolve(
-            AssistLine(
-                ingredient.original_text,
-                ingredient.food_name or "",
-                recipe_title,
-                grams_min,
+        return referee.judge(
+            RefereeLine(
+                ingredient.original_text, ingredient.food_name or "", recipe_title, grams_min
             ),
-            candidates,
-        )
-        if outcome is None:
-            return decision, None
-        rest = tuple(item for item in candidates if item is not outcome.candidate)
-        return (
-            MatchDecision("matched", "decision_assist", outcome.candidate, rest),
-            outcome.evidence,
+            decision,
         )
 
     def _session_embedder(self, session: Session) -> TextEmbedder:
