@@ -566,7 +566,7 @@ class RecipePipeline:
 
     @staticmethod
     def _rollup_grams(match: IngredientMatch | None) -> Decimal | None:
-        """Grams the roll-up uses: the geometric mean of a model-estimated range, else the minimum."""
+        """Grams for the roll-up: geometric mean of a model-estimated range, else the minimum."""
 
         if match is None or match.grams_min is None:
             return None
