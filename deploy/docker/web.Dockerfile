@@ -6,7 +6,7 @@ RUN pnpm install --frozen-lockfile
 COPY frontend ./
 RUN pnpm build
 
-FROM nginx:1.29-alpine
+FROM nginx:1.31-alpine
 COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY deploy/docker/nginx-security-headers.conf /etc/nginx/snippets/cookfully-security-headers.conf
 COPY --from=build /app/frontend/dist /usr/share/nginx/html

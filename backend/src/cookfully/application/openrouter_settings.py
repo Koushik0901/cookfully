@@ -30,7 +30,7 @@ class OpenRouterConfig:
 
     api_key: str | None
     cleanup_model: str = ""
-    decision_assist_tolerance_dv: Decimal = Decimal("0.02")
+    decision_assist_tolerance_dv: Decimal = Decimal("0.08")
     features: Mapping[Purpose, FeatureConfig] = field(
         default_factory=lambda: dict(DEFAULT_FEATURES)
     )

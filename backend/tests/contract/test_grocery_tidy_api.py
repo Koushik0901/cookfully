@@ -112,3 +112,24 @@ def test_grocery_list_merges_labels_and_honours_overrides(
         names = sorted(item["displayName"] for item in separated.json()["items"])
         assert len([n for n in names if "onion" in n or "scallion" in n]) == 2
         assert all(not item["mergedFrom"] for item in separated.json()["items"])
+
+
+def test_warming_the_shelf_life_answer_never_breaks_a_check_off(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    from uuid import uuid4
+
+    with client_for(isolated_database_url, tmp_path) as client:
+        authenticate(client)
+        service = client.app.state.grocery_lists
+        with client.app.state.sessions() as session:
+            from sqlalchemy import select
+
+            from cookfully.infrastructure.models.identity import OwnerAccount
+
+            owner = session.scalar(select(OwnerAccount.id).limit(1))
+        assert owner is not None
+        # An unknown item makes the lookup fail; the warm-up logs it and carries on.
+        service._warm_expiry_answer(owner, uuid4(), {"checked": True})
+        # Nothing to warm when the item is not being checked off.
+        service._warm_expiry_answer(owner, uuid4(), {"checked": False})

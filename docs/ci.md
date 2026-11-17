@@ -103,6 +103,29 @@ Bugs this has already found are pinned by `backend/tests/contract/test_fuzz_regr
 malformed timezone, version numbers beyond the database's integer range and text PostgreSQL cannot store
 all used to return a 500. Client input the database cannot store now yields `422 invalid_value`.
 
+## Test quality
+
+Coverage says a line ran, not that it was checked. Three practices make the tests catch bugs:
+
+- **Property tests** (`backend/tests/unit/test_domain_properties.py`, [Hypothesis](https://hypothesis.works))
+  state a rule that must hold for *every* input: "an unknown value never becomes a smaller total", "a pantry
+  deduction never goes negative and can be reversed", "a plan week contains its date". Hypothesis generates
+  the inputs and shrinks a failure to the smallest one. Pull requests run with
+  `--hypothesis-profile=ci`, which replays the same examples every time, so a rare random failure cannot
+  block unrelated work; pushes to `main` and local runs explore fresh ones. If a run on `main` fails,
+  copy the printed example into a normal test and fix the code.
+- **Dispatch tests** (`backend/tests/integration/test_process_job_dispatch.py`) run the Celery entry point
+  every background job passes through against a real database. When you add a job kind, add its routing test.
+- **Mutation spot-checks.** When you add a test for important logic, break the code on purpose (route a
+  job to the wrong handler, skip a cleanup) and confirm the test fails.
+
+### Coverage floors only go up
+
+`fail_under` (backend) and the Vitest thresholds sit just under what the suite measured when they were
+set. CI runs `scripts/coverage-ratchet.py`, which posts a notice when a measurement is two or more points
+above its floor; raise the floor in the same change. The script measures exactly what the gate measures
+(lines and branches together).
+
 ## Static checks
 
 Lint rules are chosen to catch bugs, not to enforce taste:

@@ -196,3 +196,19 @@ deterministic matcher without and with the label penalty (cost about $0.44, cach
 Accuracy improved with no regression in any status, so the penalty stays. A spot-check of the labels
 themselves found the state agrees with the description word in 115 of 120 foods (96%); the misses
 were mostly "dried" labelled as "cooked".
+
+## Auto-resolve tolerance sweep
+
+`match-referee --offline --tolerance 0.02 0.05 0.08 0.12` replayed from the answer cache (no new spend).
+For the Jev+Clef panel on the 140 gold lines:
+
+| tolerance | upgraded | right | wrong | left for a person |
+|---|---|---|---|---|
+| 2% | 38 | 38 | 0 | 58 |
+| 5% | 41 | 41 | 0 | 55 |
+| 8% | 44 | 44 | 0 | 51 |
+| 12% | 46 | 46 | 0 | 48 |
+
+Each step resolves more lines with no wrong ones. The default moves from 2% to 8% (the Settings field
+allows up to 10%); 12% is left out only because it is above that cap. Single models are less safe at
+wide tolerances (Clef alone: 6 wrong at 12%), which is why the panel average matters.
