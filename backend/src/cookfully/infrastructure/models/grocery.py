@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Date,
@@ -16,6 +17,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    false,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -66,7 +68,7 @@ class GroceryItem(TimestampMixin, Base):
         CheckConstraint("position >= 0", name="nonnegative_position"),
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint(
-            "expiry_source IN ('auto', 'label', 'manual')",
+            "expiry_source IN ('auto', 'label', 'manual', 'model')",
             name="valid_expiry_source",
         ),
         CheckConstraint(
@@ -97,6 +99,15 @@ class GroceryItem(TimestampMixin, Base):
     purchased_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     expiry_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # Grocery tidy (decision models, owner-overridable): store aisle, "probably have" flag, and the
+    # names merged into this item as synonyms.
+    aisle: Mapped[str | None] = mapped_column(String(24))
+    likely_staple: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+    merged_from: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
+    )
     shopping_stop_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("grocery_shopping_stops.id", ondelete="SET NULL")
     )
@@ -182,4 +193,24 @@ class RememberedGroceryPlacement(TimestampMixin, Base):
 
     shopping_stop: Mapped[GroceryShoppingStop] = relationship(
         back_populates="remembered_placements"
+    )
+
+
+class GroceryTidyMemory(TimestampMixin, Base):
+    """The owner's grocery-tidy overrides for one food name, reused on every list."""
+
+    __tablename__ = "grocery_tidy_memories"
+    __table_args__ = (
+        Index("uq_grocery_tidy_owner_name", "owner_id", "normalized_food_name", unique=True),
+    )
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid7)
+    owner_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("owner_accounts.id", ondelete="CASCADE"), nullable=False
+    )
+    normalized_food_name: Mapped[str] = mapped_column(String(240), nullable=False)
+    aisle: Mapped[str | None] = mapped_column(String(24))
+    staple: Mapped[bool | None] = mapped_column(Boolean)
+    keep_separate: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
     )

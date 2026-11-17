@@ -1,9 +1,12 @@
+from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import Select, and_, delete, func, or_, select
+from sqlalchemy import Select, and_, cast, delete, exists, func, or_, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session, selectinload
 
 from cookfully.domain.common import DomainError
+from cookfully.infrastructure.models.recipe_insights import RecipeInsight
 from cookfully.infrastructure.models.recipes import (
     Ingredient,
     Recipe,
@@ -56,6 +59,7 @@ class RecipeRepository:
         limit: int = 50,
         after: tuple[str, UUID] | None = None,
         include_content: bool = False,
+        facets: Sequence[str] = (),
     ) -> list[Recipe]:
         options = [
             selectinload(Recipe.collection_memberships).selectinload(
@@ -88,6 +92,18 @@ class RecipeRepository:
             )
         if meal_role is not None:
             statement = statement.join(Recipe.meal_roles).where(RecipeMealRole.role == meal_role)
+        for facet in facets:
+            # Every requested facet must be among the recipe's stored decision-model tags.
+            statement = statement.where(
+                exists().where(
+                    RecipeInsight.recipe_id == Recipe.id,
+                    RecipeInsight.kind == "facets",
+                    RecipeInsight.status == "checked",
+                    # Only results for the recipe's current content count (not stale ones).
+                    cast(RecipeInsight.payload, JSONB)["inputHash"].astext == Recipe.input_hash,
+                    cast(RecipeInsight.payload, JSONB)["tags"].contains([{"key": facet}]),
+                )
+            )
         if after is not None:
             after_title, after_id = after
             statement = statement.where(

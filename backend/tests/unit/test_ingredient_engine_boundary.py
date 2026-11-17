@@ -21,6 +21,7 @@ def test_only_the_engine_imports_the_domain_package() -> None:
             "application/recipes.py",
             "application/corrections.py",
             "application/food_match_propagation.py",
+            "application/match_referee.py",
             "jobs/recipe_pipeline.py",
             "api/routes/foods.py",
             "domain/units.py",

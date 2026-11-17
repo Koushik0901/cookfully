@@ -101,3 +101,19 @@ def resolve_expiry(
     if is_label_required(display_name):
         return None, None, None, True
     return None, None, None, False
+
+
+# Buckets a decision model chooses from when FRESH_LIFESPANS has no entry (days to keep).
+SHELF_LIFE_BUCKETS: dict[str, tuple[int, str]] = {
+    "few_days": (3, "A few days: very perishable (fresh herbs, berries, cut fruit, fresh fish)."),
+    "week": (7, "About a week (most fresh vegetables, opened sauces, soft bread)."),
+    "two_weeks": (14, "About two weeks (hard vegetables, citrus, many cheeses)."),
+    "month": (30, "About a month (root vegetables, opened condiments, cured meats)."),
+    "months": (180, "Several months or more (dry goods, canned food, spices, frozen food)."),
+}
+
+
+def needs_model_estimate(display_name: str) -> bool:
+    """True when neither the lifespan table nor the label rule decides the expiry."""
+
+    return _norm(display_name) not in FRESH_LIFESPANS and not is_label_required(display_name)

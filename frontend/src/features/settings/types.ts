@@ -46,6 +46,10 @@ export type NutritionIntelligenceSettingsWrite = NutritionIntelligenceEstimateRe
 };
 export type RecipeImportSettings = components["schemas"]["RecipeImportSettings"];
 export type RecipeImportSettingsWrite = components["schemas"]["RecipeImportSettingsWrite"];
+export type OpenRouterSettings = components["schemas"]["OpenRouterSettings"];
+export type OpenRouterSettingsWrite = components["schemas"]["OpenRouterSettingsWrite"];
+export type DecisionFeature = components["schemas"]["DecisionFeature"];
+export type DecisionPurpose = components["schemas"]["DecisionPurpose"];
 export type NutritionIntelligenceEstimate = {
   backend: NutritionBackend;
   modelName: string;
@@ -90,3 +94,4 @@ export type DatabaseBackupStatus = {
 export type DatabaseBackupRequested = { requestId: string; status: "queued" };
 
 export type DatabaseBackupSettingsWrite = { retentionCount: number };
+export type FoodLabelSummary = components["schemas"]["FoodLabelSummary"];

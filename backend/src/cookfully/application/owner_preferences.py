@@ -29,7 +29,7 @@ class OwnerPreferenceService:
             )
         try:
             ZoneInfo(timezone)
-        except ZoneInfoNotFoundError as exc:
+        except (ZoneInfoNotFoundError, ValueError) as exc:  # "" and "../x" raise ValueError
             raise DomainError("invalid_timezone", "Select a valid IANA timezone.", 422) from exc
         if not 1 <= week_starts_on <= 7:
             raise DomainError(

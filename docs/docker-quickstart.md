@@ -66,8 +66,10 @@ needed.
 Recipe import cleanup is enabled by default. URL imports and text-based cookbook PDFs are cleaned
 once before review using the local Needle2 service, with deterministic parsing as the safe fallback.
 Scanned/image-only PDFs are intentionally rejected; no OCR or vision model is pulled. If you need a
-remote fallback, add `COOKFULLY_OPENROUTER_API_KEY` and `COOKFULLY_OPENROUTER_MODEL` to the server
-`.env`, then enable it under **Settings → Intelligence**. The key is never shown in the UI.
+remote fallback, add your OpenRouter key and a cleanup model under **Settings → Intelligence**, then
+switch the fallback on. The key is stored encrypted and is never shown again.
+
+> Planning to reach this from outside your home network? Follow [secure deployment](secure-deployment.md) first.
 
 ## 3. Choose storage and the web port
 

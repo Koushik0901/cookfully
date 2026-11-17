@@ -43,6 +43,14 @@ MICRONUTRIENT_KEYS: tuple[MicronutrientKey, ...] = (
 
 MICRONUTRIENT_MINIMUM_COVERAGE = Decimal("0.900000")
 
+# USDA nutrient codes (SR Legacy number, FDC id) for each core macro, in lookup order.
+CORE_NUTRIENT_CODES = {
+    "calories_kcal": ("208", "1008", "2047", "2048"),
+    "protein_g": ("203", "1003"),
+    "carbohydrate_g": ("205", "1005"),
+    "fat_g": ("204", "1004"),
+}
+
 
 @dataclass(frozen=True, slots=True)
 class UsdaMicronutrientMapping:

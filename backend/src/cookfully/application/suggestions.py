@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -15,6 +16,7 @@ from cookfully.application.grocery_lists import GroceryListService
 from cookfully.application.jobs import JobService
 from cookfully.application.meal_plans import MealPlanRead, MealPlanService
 from cookfully.application.recipe_queries import RecipeQueryService, RecipeRead
+from cookfully.application.taste_scores import stored_taste_scores
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     DomainError,
@@ -34,6 +36,7 @@ from cookfully.domain.meal_snapshots import (
 from cookfully.domain.nutrition import MacroValues
 from cookfully.domain.plan_totals import PeriodTotal, PlannedSnapshot, aggregate_plan
 from cookfully.domain.suggestion_solver import (
+    MAX_PREFERENCE_PENALTY,
     SuggestionCandidate,
     SuggestionProblem,
     SuggestionSolution,
@@ -102,6 +105,19 @@ class SuggestionRead:
     failure_code: str | None
     created_at: datetime
     expires_at: datetime | None
+
+
+def _penalty(score: Decimal | None, *, any_scores: bool) -> int:
+    """Taste score (0 to 1, higher is better) as a solver penalty.
+
+    With no scores at all every penalty is 0 and the solver keeps its nutrition-only behaviour. Once
+    some recipes are scored, an unscored one counts as neutral (the middle of the range).
+    """
+
+    if score is None:
+        return MAX_PREFERENCE_PENALTY // 2 if any_scores else 0
+    bounded = min(Decimal(1), max(Decimal(0), score))
+    return int(((Decimal(1) - bounded) * MAX_PREFERENCE_PENALTY).to_integral_value())
 
 
 class SuggestionService:
@@ -184,7 +200,8 @@ class SuggestionService:
             with self._session_factory() as session:
                 run = self._get_model(session, job.aggregate_id)
                 plan = MealPlanRepository(session).get_week(run.owner_id, run.week_start)
-                problem = self._problem(run, plan, recipes)
+                taste = stored_taste_scores(session, recipes)
+                problem = self._problem(run, plan, recipes, taste)
             solution = solve_suggestion(problem)
             if solution.status == "timeout":
                 raise DomainError(
@@ -499,8 +516,12 @@ class SuggestionService:
 
     @staticmethod
     def _problem(
-        run: SuggestionRun, plan: MealPlan, recipes: dict[UUID, RecipeRead]
+        run: SuggestionRun,
+        plan: MealPlan,
+        recipes: dict[UUID, RecipeRead],
+        taste: Mapping[UUID, Decimal] | None = None,
     ) -> SuggestionProblem:
+        scores = taste or {}
         candidates = tuple(
             SuggestionCandidate(
                 recipe.id,
@@ -509,6 +530,10 @@ class SuggestionService:
                 cast(Decimal, recipe.nutrition.macros.protein_g),
                 cast(Decimal, recipe.nutrition.macros.carbohydrate_g),
                 cast(Decimal, recipe.nutrition.macros.fat_g),
+                preference_penalty=_penalty(scores.get(recipe.id), any_scores=bool(scores)),
+                variety_group=next(
+                    (tag.key for tag in recipe.facets if tag.key.startswith("cuisine:")), None
+                ),
             )
             for recipe in recipes.values()
             if recipe.nutrition is not None

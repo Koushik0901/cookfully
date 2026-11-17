@@ -151,3 +151,72 @@ def test_recipe_id_tie_break_is_lexicographic_not_a_rank_sum() -> None:
 
     assert result.status == "feasible"
     assert [item.recipe_id for item in result.items] == [UUID(int=1), UUID(int=4)]
+
+
+# --- preferences (taste scores and variety) ------------------------------------------------------
+
+
+def _cand(n: int, kcal: str, penalty: int = 0, group: str | None = None) -> SuggestionCandidate:
+    return SuggestionCandidate(
+        UUID(int=n),
+        f"Recipe {n}",
+        Decimal(kcal),
+        Decimal("30"),
+        Decimal("50"),
+        Decimal("15"),
+        serving_increment=Decimal("1.000"),
+        minimum_servings=Decimal("1.000"),
+        maximum_servings=Decimal("1.000"),
+        preference_penalty=penalty,
+        variety_group=group,
+    )
+
+
+def _problem(
+    *candidates: SuggestionCandidate, kcal: str = "500", entries: int = 1
+) -> SuggestionProblem:
+    return SuggestionProblem(
+        candidates=candidates,
+        target=SuggestionTarget(
+            Decimal(kcal), Decimal("30") * entries, Decimal("50") * entries, Decimal("15") * entries
+        ),
+        tolerances=SuggestionTarget(Decimal("100"), Decimal("10"), Decimal("20"), Decimal("10")),
+        max_entries=entries,
+    )
+
+
+def _picked(problem: SuggestionProblem) -> list[int]:
+    return sorted(item.recipe_id.int for item in solve_suggestion(problem).items)
+
+
+def test_preference_chooses_between_nutritionally_near_equal_options() -> None:
+    near = (_cand(1, "500", penalty=900), _cand(2, "501", penalty=100))
+    assert _picked(_problem(*near)) == [2]
+    swapped = (_cand(1, "500", penalty=100), _cand(2, "501", penalty=900))
+    assert _picked(_problem(*swapped)) == [1]
+
+
+def test_preference_never_outweighs_clearly_better_nutrition() -> None:
+    assert _picked(_problem(_cand(1, "500", penalty=1000), _cand(2, "700", penalty=0))) == [1]
+
+
+def test_without_preferences_the_result_is_unchanged() -> None:
+    plain = (_cand(1, "500"), _cand(2, "501"))
+    assert _picked(_problem(*plain)) == [1]
+
+
+def test_variety_spreads_a_run_across_groups() -> None:
+    candidates = (
+        _cand(1, "500", group="italian"),
+        _cand(2, "500", group="italian"),
+        _cand(3, "500", group="italian"),
+        _cand(4, "501", group="thai"),
+    )
+    picked = _picked(_problem(*candidates, kcal="1500", entries=3))
+    assert 4 in picked
+
+
+def test_preference_results_are_deterministic() -> None:
+    candidates = tuple(_cand(n, str(480 + n * 3), penalty=(n * 137) % 1000) for n in range(1, 12))
+    first = _picked(_problem(*candidates, kcal="1500", entries=3))
+    assert all(_picked(_problem(*candidates, kcal="1500", entries=3)) == first for _ in range(3))

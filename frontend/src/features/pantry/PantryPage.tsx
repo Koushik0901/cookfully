@@ -170,9 +170,9 @@ function PantryItemCard({ item, today }: { item: PantryItem; today: string }) {
         <p className="pantry-staple__facts">
           <span className="pantry-staple__quantity">{formatCookingNumber(item.quantity)} {item.unit}</span>
           {expiry ? (
-            <span className={`pantry-staple__useby pantry-staple__useby--${usebyTone} expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}`}>
+            <span className={`pantry-staple__useby pantry-staple__useby--${usebyTone} expiry-chip expiry-chip--${expiry.tone}`} aria-label={`Expires ${item.expiresOn}${item.expirySource === "model" ? ", estimated by a decision model" : ""}`} title={item.expirySource === "model" ? "Estimated by a decision model; edit it if you know better." : undefined}>
               <CalendarClock aria-hidden="true" />
-              Use by {formatUseBy(item.expiresOn!)} · {expiry.label}
+              Use by {formatUseBy(item.expiresOn!)} · {expiry.label}{item.expirySource === "model" ? " (estimated)" : ""}
             </span>
           ) : (
             <span className="pantry-staple__useby pantry-staple__useby--none">No use-by date</span>

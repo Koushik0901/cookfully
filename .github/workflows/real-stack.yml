@@ -1,0 +1,179 @@
+name: Real stack
+
+# The mocked end-to-end suite cannot notice the frontend and backend drifting apart, or a worker that
+# never starts. This job boots the real composed application (nginx edge, API, worker, outbox,
+# PostgreSQL, Redis) and checks it two ways, sharing one stack so nothing is built or started twice:
+#
+#   1. a browser test with no mocks: sign in, write a recipe, see a worker pick up its job, edit it,
+#      delete it;
+#   2. an API fuzz against the OpenAPI contract: a request that makes the server crash fails the
+#      change; responses that disagree with the documented schema are reported for triage.
+#
+# Called by ci.yml; also runnable by hand from the Actions tab.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # compose/ci image names; they never leave the runner
+  COOKFULLY_IMAGE_NAMESPACE: cookfully-ci
+  COOKFULLY_IMAGE_TAG: ci
+
+jobs:
+  real-stack:
+    name: Compose smoke and API fuzz
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+
+      # The same layer caches containers.yml writes, so a warm build takes seconds. Reading only:
+      # containers.yml owns the cache contents.
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build the API image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: deploy/docker/backend.Dockerfile
+          load: true
+          tags: ${{ env.COOKFULLY_IMAGE_NAMESPACE }}/cookfully-api:${{ env.COOKFULLY_IMAGE_TAG }}
+          cache-from: type=gha,scope=cookfully-api
+      - name: Build the web image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: deploy/docker/web.Dockerfile
+          load: true
+          tags: ${{ env.COOKFULLY_IMAGE_NAMESPACE }}/cookfully-web:${{ env.COOKFULLY_IMAGE_TAG }}
+          cache-from: type=gha,scope=cookfully-web
+
+      # Fresh random secrets on every run; they exist only in this file on this runner.
+      - name: Generate the stack's environment
+        run: |
+          set -euo pipefail
+          postgres_password=$(openssl rand -hex 16)
+          secret_key=$(openssl rand -hex 32)
+          owner_password=$(openssl rand -hex 16)
+          intelligence_key=$(openssl rand -hex 32)
+          for value in "$postgres_password" "$secret_key" "$owner_password" "$intelligence_key"; do echo "::add-mask::$value"; done
+          {
+            echo "COOKFULLY_IMAGE_NAMESPACE=$COOKFULLY_IMAGE_NAMESPACE"
+            echo "COOKFULLY_IMAGE_TAG=$COOKFULLY_IMAGE_TAG"
+            echo "COOKFULLY_DATA_ROOT=$RUNNER_TEMP/cookfully-data"
+            echo "POSTGRES_PASSWORD=$postgres_password"
+            echo "COOKFULLY_SECRET_KEY=$secret_key"
+            echo "COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=$owner_password"
+            echo "COOKFULLY_INTELLIGENCE_SERVICE_KEY=$intelligence_key"
+          } > "$RUNNER_TEMP/stack.env"
+
+      # The API container runs its Alembic migrations before it serves, so a healthy answer through
+      # the web edge proves the migrations ran against the production PostgreSQL image and that
+      # nginx reaches the API. (Polling is used rather than `docker compose up --wait`, which can
+      # misreport one-shot init containers such as storage-init.)
+      - name: Start the stack
+        run: |
+          compose() {
+            docker compose --env-file "$RUNNER_TEMP/stack.env" -f deploy/compose.yaml -f deploy/compose.ci.yaml "$@"
+          }
+          compose up -d --no-build api worker-interactive outbox web
+          for attempt in $(seq 1 100); do
+            if curl -fsS http://localhost:8080/api/v1/health; then echo; echo "Healthy after attempt $attempt."; exit 0; fi
+            sleep 3
+          done
+          echo "::error::The stack did not become healthy within 5 minutes."
+          compose ps -a
+          compose logs --no-color --tail 80 api
+          exit 1
+
+      - name: Resolve Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --dir frontend exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium and system libraries
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+      - name: Install system libraries only
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --dir frontend exec playwright install-deps chromium
+
+      - name: Browser smoke test (no mocks)
+        run: |
+          E2E_OWNER_PASSWORD="$(sed -n 's/^COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=//p' "$RUNNER_TEMP/stack.env")" \
+          E2E_BASE_URL=http://localhost:8080 \
+          pnpm --dir frontend exec playwright test -c playwright.real-stack.config.ts
+
+      # Operations that must not be fuzzed on a shared runner: sign-in/out and password changes would
+      # end the fuzzer's own session, and the rest start outbound downloads, model installs or exports.
+      - name: API fuzz, server errors (blocking)
+        env:
+          EXCLUDE: ^/(auth|recipes/import|reference-data/install|nutrition-intelligence|intelligence|database-backups|exports)
+          # Pull requests use a fixed seed so an unrelated, already-existing bug cannot randomly
+          # block them; pushes to main use a fresh seed so new bugs keep being found.
+          SEED: ${{ github.event_name == 'pull_request' && '1' || github.run_id }}
+        run: |
+          owner_password=$(sed -n 's/^COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=//p' "$RUNNER_TEMP/stack.env")
+          export SCHEMATHESIS_OWNER_PASSWORD="$owner_password"
+          export SCHEMATHESIS_BASE_URL=http://localhost:8080 SCHEMATHESIS_HOOKS=schemathesis_hooks PYTHONPATH=scripts
+          uvx --with httpx schemathesis@4.33.4 run specs/001-nutrition-recipe-planner/contracts/openapi.yaml \
+            --url http://localhost:8080/api/v1 \
+            --checks not_a_server_error --max-examples 10 --workers 2 --seed "$SEED" --no-color \
+            --exclude-path-regex "$EXCLUDE"
+
+      # The documented contract and the real responses disagree in places (see docs/ci.md). Listed on
+      # the run page until they are triaged, then this step can become blocking too.
+      - name: API fuzz, schema conformance (report only)
+        continue-on-error: true
+        env:
+          EXCLUDE: ^/(auth|recipes/import|reference-data/install|nutrition-intelligence|intelligence|database-backups|exports)
+        run: |
+          owner_password=$(sed -n 's/^COOKFULLY_OWNER_BOOTSTRAP_PASSWORD=//p' "$RUNNER_TEMP/stack.env")
+          export SCHEMATHESIS_OWNER_PASSWORD="$owner_password"
+          export SCHEMATHESIS_BASE_URL=http://localhost:8080 SCHEMATHESIS_HOOKS=schemathesis_hooks PYTHONPATH=scripts
+          status=0
+          uvx --with httpx schemathesis@4.33.4 run specs/001-nutrition-recipe-planner/contracts/openapi.yaml \
+            --url http://localhost:8080/api/v1 \
+            --checks response_schema_conformance --max-examples 10 --workers 2 --seed 1 --no-color \
+            --exclude-path-regex "$EXCLUDE" 2>&1 | tee "$RUNNER_TEMP/conformance.txt" || status=$?
+          {
+            echo "### API contract conformance (report only)"
+            echo '```'
+            tail -n 25 "$RUNNER_TEMP/conformance.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Collect stack logs
+        if: failure()
+        run: |
+          docker compose --env-file "$RUNNER_TEMP/stack.env" -f deploy/compose.yaml -f deploy/compose.ci.yaml ps -a > "$RUNNER_TEMP/stack-ps.txt" || true
+          docker compose --env-file "$RUNNER_TEMP/stack.env" -f deploy/compose.yaml -f deploy/compose.ci.yaml logs --no-color --timestamps > "$RUNNER_TEMP/stack-logs.txt" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: real-stack-diagnostics
+          path: |
+            ${{ runner.temp }}/stack-ps.txt
+            ${{ runner.temp }}/stack-logs.txt
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
