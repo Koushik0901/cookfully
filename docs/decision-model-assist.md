@@ -95,6 +95,16 @@ recipe detail ("Probably …" below 0.8), can be combined as filters under **Ref
 (`GET /recipes?facet=…`, matched in SQL against stored tags), and storage tags show as badges on
 planned meals.
 
+## Taste in suggestions
+
+After processing (and in the background when favourites change) each recipe gets a stored taste score
+from the panel: "a satisfying, complete meal?" and, when there are favourites, "would someone who loves
+these recipes enjoy this one?" (`application/taste_scores.py`). The suggestion solver still puts
+nutrition first. Once the best nutrition distance is known, it may pick among options within 2% of it,
+or 2% of one calorie tolerance, preferring higher taste scores and no more than two recipes per
+cuisine. It then minimises the distance again within that band. Scores are read from storage, so
+suggestions stay deterministic. With no scores the solver behaves exactly as before.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

@@ -32,6 +32,7 @@ from cookfully.application.recipes import (
     SectionWrite,
     recipe_input_hash,
 )
+from cookfully.application.taste_scores import refresh_taste_score
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     DomainError,
@@ -498,7 +499,7 @@ class RecipePipeline:
     def _refresh_insights(self, recipe_id: UUID) -> None:
         """Best-effort decision-model checks once nutrition is done; never fails the job."""
 
-        for refresh in (refresh_hidden_ingredients, refresh_recipe_facets):
+        for refresh in (refresh_hidden_ingredients, refresh_recipe_facets, refresh_taste_score):
             try:
                 refresh(self._session_factory, recipe_id)
             except Exception:

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     Form,
@@ -61,6 +62,7 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
+from cookfully.application.taste_scores import refresh_all_taste_scores
 from cookfully.domain.common import DomainError, require_present, utc_now
 from cookfully.infrastructure.models.identity import OwnerAccount
 from cookfully.infrastructure.observability import correlation_id
@@ -191,7 +193,10 @@ def replace_recipe_organization(
     organization: Annotated[RecipeOrganizationService, Depends(recipe_organization)],
     queries: Annotated[RecipeQueryService, Depends(recipe_queries)],
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    request: Request,
+    background: BackgroundTasks,
 ) -> RecipeDetailResponse:
+    before = queries.get(recipe_id).favorite
     organization.replace(
         owner.id,
         recipe_id,
@@ -200,6 +205,9 @@ def replace_recipe_organization(
         collection_ids=payload.collection_ids,
         meal_roles=payload.meal_roles,
     )
+    if payload.favorite != before:
+        # Favourites steer taste scores for suggestions; recompute them after responding.
+        background.add_task(refresh_all_taste_scores, request.app.state.sessions)
     return RecipeDetailResponse.from_read(queries.get(recipe_id))
 
 
