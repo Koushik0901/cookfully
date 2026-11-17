@@ -32,7 +32,7 @@ AISLES: Mapping[str, str] = {
 MERGE_THRESHOLD = Decimal("0.5")
 AISLE_THRESHOLD = Decimal("0.5")
 STAPLE_THRESHOLD = Decimal("0.3")
-MAX_MERGE_OPTIONS = 40
+MAX_MERGE_OPTIONS = 120
 
 MERGE_INSTRUCTIONS = (
     "Is grocery_item the same thing to buy as one of the listed items, only named differently "
