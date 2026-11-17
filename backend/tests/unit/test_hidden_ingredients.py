@@ -85,13 +85,14 @@ def test_nothing_to_ask_is_checked_without_calls() -> None:
     assert calls == []
 
 
-def test_one_model_failing_is_not_a_clear() -> None:
+def test_one_model_failing_still_gives_a_result_from_the_other() -> None:
     def responder(model: str, _state: Any, _questions: Any) -> object:
         return None if model == "m1" else _noul({"a0": 0.01})
 
     engine, _ = _engine(responder)
     result = check_hidden(engine, recipe_title="R", lines=[WORCESTERSHIRE], avoid=["fish"])
-    assert result.status == NOT_CHECKED
+    assert result.status == CHECKED
+    assert result.flags == ()
 
 
 def test_one_model_failing_still_flags_what_the_other_found() -> None:

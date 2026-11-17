@@ -112,8 +112,7 @@ def interpret(answers: Answers, ingredient_lines: Sequence[str]) -> tuple[FacetT
     tags: list[FacetTag] = []
     contradicted = _contradicted_diets(ingredient_lines)
     for diet in DIETS:
-        # A diet claim needs every model's backing, not the average.
-        probability = answers.check_least(f"diet_{diet}")
+        probability = answers.check(f"diet_{diet}")
         if probability is not None and probability >= SHOW_THRESHOLD and diet not in contradicted:
             tags.append(FacetTag(diet, round(probability, 4)))
     for question, prefix in (("cuisine", "cuisine"), ("meal_type", "meal")):

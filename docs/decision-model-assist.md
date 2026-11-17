@@ -156,3 +156,12 @@ The matcher reads confident labels (probability 0.8 or more) as small score pena
 candidates: a raw food for a cooked line (or the reverse), a flavoured or processed variant the line
 did not ask for. Foods without labels are unaffected. On the gold set this raised top-candidate
 accuracy from 76/140 to 81/140; see `docs/decision-model-experiments/app-eval.md`.
+
+## Design stance: use the models, back them with humans and fallbacks
+
+The models are meant to do the work, not to be second-guessed by default. Where a decision could be
+wrong, the remedy is a backstop, not a refusal to ask or to act on the answer: a review step the owner can
+undo (moved import lines have "put back"), a deterministic result to fall back to when no model answers,
+or an explicit "not checked" state when nothing answered. A single answering model is a usable answer;
+thresholds are chosen by measurement (`docs/decision-model-experiments/app-eval.md`), not by caution alone.
+
