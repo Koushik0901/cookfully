@@ -30,9 +30,17 @@ describe("avoid-list warnings", () => {
     expect(screen.getByRole("link", { name: "Edit avoid list" })).toHaveAttribute("href", "/app/goals");
   });
 
-  it("renders nothing without warnings", () => {
-    const { container } = render(<MemoryRouter><AvoidNotice recipe={{ ...recipe, avoidWarnings: [] }} /></MemoryRouter>);
-    expect(container).toBeEmptyDOMElement();
+  it("renders nothing without warnings once checked or without a list", () => {
+    for (const hiddenIngredientCheck of ["checked", "no_avoid_list"] as const) {
+      const { container } = render(<MemoryRouter><AvoidNotice recipe={{ ...recipe, avoidWarnings: [], hiddenIngredientCheck }} /></MemoryRouter>);
+      expect(container).toBeEmptyDOMElement();
+      cleanup();
+    }
+  });
+
+  it("never implies safety when hidden ingredients were not checked", () => {
+    render(<MemoryRouter><AvoidNotice recipe={{ ...recipe, avoidWarnings: [], hiddenIngredientCheck: "not_checked" }} /></MemoryRouter>);
+    expect(screen.getByRole("note")).toHaveTextContent("have not been checked yet");
   });
 
   it("badges planned meals whose recipe has warnings", () => {

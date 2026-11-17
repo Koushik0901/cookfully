@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
 from cookfully.application.food_match_memories import remembered_food_choice
+from cookfully.application.hidden_ingredients import refresh_hidden_ingredients
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
 from cookfully.application.match_referee import Judgement, MatchReferee, RefereeLine
@@ -180,6 +181,7 @@ class RecipePipeline:
                 next_job = self._match(envelope.job_id)
             else:
                 next_job = self._rollup(envelope.job_id)
+                self._refresh_insights(envelope.aggregate_id)
             return PipelineResult(
                 envelope.job_id,
                 "succeeded",
@@ -491,6 +493,14 @@ class RecipePipeline:
                 session, job.id, next_kind=NEXT_KIND[job.kind]
             )
             return next_job
+
+    def _refresh_insights(self, recipe_id: UUID) -> None:
+        """Best-effort decision-model checks once nutrition is done; never fails the job."""
+
+        try:
+            refresh_hidden_ingredients(self._session_factory, recipe_id)
+        except Exception:
+            logger.exception("Recipe insight refresh failed; the recipe is unaffected.")
 
     def _match_referee(self, session: Session) -> MatchReferee | None:
         """Build the match referee from the owner's Settings; ``None`` when it cannot answer."""

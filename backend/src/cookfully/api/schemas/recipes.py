@@ -749,6 +749,7 @@ class RecipeDetailResponse(RecipeResponse):
     sections: tuple[SectionResponse, ...] = ()
     active_job: JobResponse | None = Field(alias="activeJob", default=None)
     avoid_warnings: tuple[AvoidWarningResponse, ...] = Field(alias="avoidWarnings", default=())
+    hidden_ingredient_check: str = Field(alias="hiddenIngredientCheck", default="no_avoid_list")
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeDetailResponse:
@@ -769,6 +770,7 @@ class RecipeDetailResponse(RecipeResponse):
                 )
                 for warning in value.avoid_warnings
             ),
+            hidden_ingredient_check=value.hidden_ingredient_check,
         )
 
 

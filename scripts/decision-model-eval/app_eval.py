@@ -351,6 +351,48 @@ def _deterministic_summary(cases: list[MatchCase]) -> str:
     return "\n".join(parts)
 
 
+# --- hidden ingredients --------------------------------------------------------------------------
+
+
+def report_hidden_ingredients(harness: Harness) -> str:
+    """Per-pair worst-case P(contains) from the shipped check, scored against hand labels."""
+
+    import cookfully.application.hidden_ingredients as hidden
+    from uuid import uuid4
+
+    cases = json.loads((RESULTS / "hidden_ingredients_gold.json").read_text("utf-8"))["cases"]
+    out = [f"Labelled pairs: {len(cases)} ({sum(c['contains'] for c in cases)} contain the item)", ""]
+    out.append(f"{'panel':<10}{'threshold':>10}{'flagged':>9}{'recall':>8}{'precision':>11}{'missed':>8}")
+    original = hidden.THRESHOLD
+    hidden.THRESHOLD = Decimal(0)  # keep every probability; thresholds are applied below
+    try:
+        for name, models in PANELS.items():
+            engine = harness.engine(Purpose.HIDDEN_INGREDIENTS, models)
+            scored: list[tuple[Decimal | None, bool]] = []
+            for case in cases:
+                line = hidden.HiddenLine(uuid4(), case["line"])
+                result = hidden.check_hidden(
+                    engine, recipe_title="", lines=[line], avoid=[case["item"]]
+                )
+                probability = result.flags[0].probability if result.flags else None
+                scored.append((probability, case["contains"]))
+            positives = sum(1 for _, label in scored if label)
+            for threshold in ("0.3", "0.5", "0.7"):
+                cut = Decimal(threshold)
+                flagged = [(p, label) for p, label in scored if p is not None and p >= cut]
+                hits = sum(1 for _, label in flagged if label)
+                missed = [c["line"] + " / " + c["item"] for c, (p, label) in zip(cases, scored) if label and (p is None or p < cut)]
+                out.append(
+                    f"{name:<10}{threshold:>10}{len(flagged):>9}{hits / positives:>8.0%}"
+                    f"{(hits / len(flagged) if flagged else 0):>11.0%}{len(missed):>8}"
+                )
+                if threshold == "0.5" and missed:
+                    out.append("            missed at 0.5: " + "; ".join(missed))
+    finally:
+        hidden.THRESHOLD = original
+    return "\n".join(out)
+
+
 # --- entry point ---------------------------------------------------------------------------------
 
 Evaluator = Callable[[Harness, argparse.Namespace], str]
@@ -360,7 +402,15 @@ def _match_referee(harness: Harness, args: argparse.Namespace) -> str:
     return report_match_referee(harness, match_cases(args.usda_dir), args.tolerance)
 
 
-EVALUATORS: dict[str, Evaluator] = {"match-referee": _match_referee}
+def _hidden_ingredients(harness: Harness, args: argparse.Namespace) -> str:
+    del args
+    return report_hidden_ingredients(harness)
+
+
+EVALUATORS: dict[str, Evaluator] = {
+    "match-referee": _match_referee,
+    "hidden-ingredients": _hidden_ingredients,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> None:

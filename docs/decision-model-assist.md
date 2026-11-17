@@ -60,6 +60,18 @@ line shows a "Model pick · 94%" chip with the food's name and a **Use this** bu
 the food exactly like choosing it in the picker, including the match memory. The models give no reasons,
 so only the probability is shown.
 
+## Avoid list and hidden ingredients
+
+The owner's avoid list (Goals → Personal food context) produces warnings on recipe detail and badges
+on planned meals. Lines that name an avoided item, including group members such as shrimp for
+"shellfish", are found deterministically (`domain/avoid_list.py`). For every other (line, item) pair the
+`hidden_ingredients` feature asks the panel "could this contain it?" and flags the pair when the most
+cautious answer is at least 0.5 (`application/hidden_ingredients.py`). Results are stored in
+`recipe_insights` under a fingerprint of the recipe, the list, the models and the prompt version. They
+are refreshed after nutrition processing and in the background when the list or OpenRouter settings
+change. A recipe without a fresh result shows "not checked", never "safe". Model warnings only add to
+the deterministic ones. Measured results are in `decision-model-experiments/app-eval.md`.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

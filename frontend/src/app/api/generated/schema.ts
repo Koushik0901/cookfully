@@ -1900,6 +1900,11 @@ export interface components {
             activeJob?: components["schemas"]["Job"] | null;
             /** @description Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list. */
             avoidWarnings?: components["schemas"]["AvoidWarning"][];
+            /**
+             * @description Whether decision models checked this recipe for avoid-list items its ingredients may contain without naming them. `not_checked` is never a promise of safety.
+             * @enum {string}
+             */
+            hiddenIngredientCheck?: "checked" | "not_checked" | "no_avoid_list";
         };
         AvoidWarning: {
             /** Format: uuid */

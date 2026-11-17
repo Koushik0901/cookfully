@@ -1,13 +1,14 @@
 from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 from cookfully.api.dependencies.auth import require_browser_owner
 from cookfully.api.schemas.recipes import Decimal6
 from cookfully.application import openrouter_settings as service
 from cookfully.application.decisions import FeatureConfig
+from cookfully.application.hidden_ingredients import refresh_all_hidden_ingredients
 from cookfully.domain.common import MAX_VERSION, utc_now
 from cookfully.domain.decisions import Purpose
 from cookfully.infrastructure.decision_store import PostgresDecisionStore
@@ -132,6 +133,7 @@ def update_openrouter_settings(
     payload: OpenRouterSettingsWrite,
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    background: BackgroundTasks,
 ) -> OpenRouterSettingsResponse:
     del owner
     spent = _spent_this_month(request)
@@ -151,4 +153,7 @@ def update_openrouter_settings(
             monthly_cap_usd=payload.monthly_cap_usd,
         )
         session.flush()
-        return _response(row, spent)
+        response = _response(row, spent)
+    # A new key or model panel can change hidden-ingredient results; recheck after responding.
+    background.add_task(refresh_all_hidden_ingredients, request.app.state.sessions)
+    return response

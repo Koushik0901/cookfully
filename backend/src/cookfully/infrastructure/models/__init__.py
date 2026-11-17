@@ -39,6 +39,7 @@ from cookfully.infrastructure.models.plans import (
     UserGoal,
 )
 from cookfully.infrastructure.models.recipe_import import RecipeImportSettings
+from cookfully.infrastructure.models.recipe_insights import RecipeInsight
 from cookfully.infrastructure.models.recipes import (
     Ingredient,
     Recipe,
@@ -93,6 +94,7 @@ __all__ = [
     "RecipeCollection",
     "RecipeCollectionMembership",
     "RecipeImportSettings",
+    "RecipeInsight",
     "RecipeInstruction",
     "RecipeMealRole",
     "RecipePhotoDerivative",

@@ -1924,3 +1924,4 @@
 .avoid-notice small { color: var(--color-on-surface-variant); }
 .avoid-badge { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0.2rem 0 0; color: var(--color-on-surface); font-size: 0.75rem; font-weight: 600; overflow-wrap: anywhere; }
 .avoid-badge svg { flex: none; width: 0.9rem; height: 0.9rem; color: var(--status-warning); }
+.avoid-unchecked { margin-block: 0.75rem; border-left: 3px solid var(--color-outline-variant); padding: 0.35rem 0.75rem; color: var(--color-on-surface-variant); font-size: 0.85rem; }

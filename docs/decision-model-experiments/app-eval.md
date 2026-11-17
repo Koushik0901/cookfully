@@ -85,3 +85,23 @@ The corpus lines that name a cooked or prepared form already say so in the text,
 deterministic matcher's semantic filter catches before the referee runs. The check is there for implied
 states ("leftover rice", "2 cups rice, prepared"), which this gold set does not contain, so its benefit
 is not yet measured. Extra cost: one request per line per model.
+
+## `hidden-ingredients` (2026-11-17)
+
+`results/hidden_ingredients_gold.json`: 54 hand-labelled (ingredient line, avoid item) pairs for
+typical store-bought versions, 30 of which contain the item (Worcestershire sauce / fish, pesto / nuts,
+soy sauce / gluten, marshmallows / pork…) and 24 that do not (coconut milk / dairy, rice noodles /
+gluten…). Ambiguous pairs were left out. Each pair runs through the shipped `check_hidden` with the most
+cautious answer across the panel.
+
+| panel | threshold | flagged | recall | precision |
+|---|---|---|---|---|
+| Jev | 0.5 | 30 | 100% | 100% |
+| Clef | 0.5 | 27 | 87% | 96% |
+| **Jev + Clef, worst case (default)** | **0.5** | **31** | **100%** | **97%** |
+| Jev + Clef, worst case | 0.3 | 35 | 100% | 86% |
+| Jev + Clef, worst case | 0.7 | 30 | 97% | 97% |
+
+Clef alone missed red curry paste / shellfish, kimchi / fish, marshmallows / pork and gochujang /
+gluten. Taking the worst case across the panel keeps Jev's recall, which is what a warning needs; the
+cost is one extra false alarm. The default threshold stays at 0.5. Cost: 216 answers, under $0.01.

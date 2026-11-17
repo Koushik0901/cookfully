@@ -2764,6 +2764,10 @@ components:
               type: array
               description: Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list.
               items: { $ref: "#/components/schemas/AvoidWarning" }
+            hiddenIngredientCheck:
+              type: string
+              enum: [checked, not_checked, no_avoid_list]
+              description: Whether decision models checked this recipe for avoid-list items its ingredients may contain without naming them. `not_checked` is never a promise of safety.
     AvoidWarning:
       type: object
       required: [ingredientId, item, source]

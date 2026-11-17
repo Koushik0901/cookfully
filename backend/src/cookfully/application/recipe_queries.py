@@ -13,7 +13,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.avoid_warnings import recipe_avoid_warnings
+from cookfully.application.avoid_warnings import ingredient_warnings, owner_avoid_list
+from cookfully.application.hidden_ingredients import stored_hidden
 from cookfully.application.jobs import JobProgress, JobService
 from cookfully.domain.avoid_list import AvoidWarning
 from cookfully.domain.common import DomainError, require_present
@@ -136,6 +137,7 @@ class RecipeRead:
     thumbnail_crop: ThumbnailCrop = field(default_factory=ThumbnailCrop)
     origin_kind: str = "manual"
     avoid_warnings: tuple[AvoidWarning, ...] = ()
+    hidden_ingredient_check: str = "no_avoid_list"
 
 
 @dataclass(frozen=True, slots=True)
@@ -370,8 +372,17 @@ class RecipeQueryService:
                 else ()
             ),
             active_job=active_job,
-            avoid_warnings=recipe_avoid_warnings(session, recipe) if detail else (),
+            **(self._avoid(session, recipe) if detail else {}),
         )
+
+    @staticmethod
+    def _avoid(session: Session, recipe: Recipe) -> dict[str, Any]:
+        avoid = owner_avoid_list(session)
+        named = ingredient_warnings(recipe.ingredients, avoid)
+        status, suspected = stored_hidden(session, recipe, avoid)
+        seen = {(warning.ingredient_id, warning.item) for warning in named}
+        extra = tuple(w for w in suspected if (w.ingredient_id, w.item) not in seen)
+        return {"avoid_warnings": named + extra, "hidden_ingredient_check": status}
 
     @staticmethod
     def _nutrition(
