@@ -161,3 +161,15 @@ Clef panel in one request per recipe. There are no gold labels, so this is a rea
   app the steps are included.
 
 Cost: 100 answers, about $0.02.
+
+## Shelf-life spot-check (2026-11-17)
+
+35 pantry names, live, Jev + Clef. Nine never reach the models: the lifespan table covers mushrooms,
+zucchini and sweet potato, and bacon, smoked salmon, oat milk and others need the label date. Of the 26
+that do, the panel agreed on 17, all plausible: fresh dill, fresh mint, raspberries and fresh
+mozzarella 3 days; hummus and bok choy 7; feta 14; tahini, dried lentils, canned chickpeas, miso,
+sauerkraut, frozen peas, rice, pasta, peanut butter, maple syrup, olives, capers and ground cumin
+"months" (180). It gave no date for 9 (kimchi, sourdough, mango, pineapple, tortillas, parmesan, fish
+sauce, pesto, jalapeños) because the models disagreed, which leaves the date blank as before. Coarse
+buckets (180 days for an opened jar of capers is generous) are why the date is marked "estimated" and
+editable.
