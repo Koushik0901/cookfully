@@ -309,10 +309,13 @@ def test_pipeline_does_not_call_the_model_without_candidates() -> None:
 def test_pipeline_builds_the_assist_only_with_a_usable_key_and_the_switch_on(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from cookfully.application.decisions import DEFAULT_FEATURES
     from cookfully.application.openrouter_settings import OpenRouterConfig
 
     def config(key: str | None, enabled: bool) -> OpenRouterConfig:
-        return OpenRouterConfig(key, "", enabled, "typesafe/jev-1.14", D("0.03"))
+        features = dict(DEFAULT_FEATURES)
+        features[Purpose.MATCH_REFEREE] = FeatureConfig(enabled, ("typesafe/jev-1.14",))
+        return OpenRouterConfig(key, "", D("0.03"), features)
 
     pipeline = _pipeline()
     pipeline._session_factory = None

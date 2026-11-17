@@ -2359,26 +2359,48 @@ components:
     OpenRouterSettings:
       type: object
       additionalProperties: false
-      required: [keyConfigured, keyHint, cleanupModel, decisionAssistEnabled, decisionAssistModel, decisionAssistToleranceDv, version]
+      required: [keyConfigured, keyHint, cleanupModel, decisionAssistToleranceDv, decisionFeatures, monthlyCapUsd, spentThisMonthUsd, version]
       properties:
         keyConfigured: { type: boolean }
         keyHint: { type: [string, "null"], description: Last four characters of the stored key. }
         cleanupModel: { type: string }
-        decisionAssistEnabled: { type: boolean }
-        decisionAssistModel: { type: string }
         decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
+        decisionFeatures:
+          type: array
+          description: Every decision-model feature, in a stable order.
+          items: { $ref: "#/components/schemas/DecisionFeature" }
+        monthlyCapUsd: { $ref: "#/components/schemas/Decimal6" }
+        spentThisMonthUsd: { $ref: "#/components/schemas/Decimal6" }
         version: { type: integer, minimum: 1 }
+    DecisionPurpose:
+      type: string
+      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life]
+    DecisionFeature:
+      type: object
+      additionalProperties: false
+      required: [purpose, enabled, models]
+      properties:
+        purpose: { $ref: "#/components/schemas/DecisionPurpose" }
+        enabled: { type: boolean }
+        models:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 120 }
     OpenRouterSettingsWrite:
       type: object
       additionalProperties: false
-      required: [cleanupModel, decisionAssistEnabled, decisionAssistModel, decisionAssistToleranceDv, version]
+      required: [cleanupModel, decisionAssistToleranceDv, monthlyCapUsd, version]
       properties:
         apiKey: { type: [string, "null"], format: password, minLength: 8, maxLength: 256, description: Omit to keep the stored key. }
         clearApiKey: { type: boolean, default: false }
         cleanupModel: { type: string, maxLength: 120 }
-        decisionAssistEnabled: { type: boolean }
-        decisionAssistModel: { type: string, minLength: 1, maxLength: 120 }
         decisionAssistToleranceDv: { $ref: "#/components/schemas/Decimal6" }
+        decisionFeatures:
+          type: array
+          description: Features to change; features left out keep their settings.
+          items: { $ref: "#/components/schemas/DecisionFeature" }
+        monthlyCapUsd: { $ref: "#/components/schemas/Decimal6" }
         version: { type: integer, minimum: 1 }
     NutritionIntelligenceEstimate:
       type: object

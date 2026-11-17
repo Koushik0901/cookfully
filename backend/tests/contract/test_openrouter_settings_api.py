@@ -38,9 +38,8 @@ def authenticate(client: TestClient) -> dict[str, str]:
 def _write(version: int, **overrides: object) -> dict[str, object]:
     return {
         "cleanupModel": "",
-        "decisionAssistEnabled": True,
-        "decisionAssistModel": "typesafe/jev-1.14",
         "decisionAssistToleranceDv": "0.02",
+        "monthlyCapUsd": "2.00",
         "version": version,
         **overrides,
     }
@@ -51,15 +50,85 @@ def test_requires_an_owner_session(isolated_database_url: str, tmp_path: Path) -
         assert client.get("/api/v1/openrouter/settings").status_code in {401, 403}
 
 
-def test_defaults_have_assist_on_and_no_key(isolated_database_url: str, tmp_path: Path) -> None:
+def _feature(body: dict[str, object], purpose: str) -> dict[str, object]:
+    features = body["decisionFeatures"]
+    assert isinstance(features, list)
+    return next(item for item in features if item["purpose"] == purpose)
+
+
+def test_defaults_have_every_feature_on_and_no_key(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
     with client_for(isolated_database_url, tmp_path) as client:
         authenticate(client)
         body = client.get("/api/v1/openrouter/settings").json()
         assert body["keyConfigured"] is False
         assert body["keyHint"] is None
-        assert body["decisionAssistEnabled"] is True
-        assert body["decisionAssistModel"] == "typesafe/jev-1.14"
         assert body["decisionAssistToleranceDv"] == "0.02"
+        assert body["monthlyCapUsd"] == "2"
+        assert body["spentThisMonthUsd"] == "0"
+        assert {item["purpose"] for item in body["decisionFeatures"]} >= {
+            "match_referee",
+            "recipe_facets",
+        }
+        assert all(item["enabled"] for item in body["decisionFeatures"])
+        assert _feature(body, "match_referee")["models"] == [
+            "typesafe/jev-1.14",
+            "cloudflare/clef",
+        ]
+
+
+def test_feature_edits_persist_and_untouched_features_keep_defaults(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        headers = authenticate(client)
+        version = client.get("/api/v1/openrouter/settings").json()["version"]
+        saved = client.put(
+            "/api/v1/openrouter/settings",
+            json=_write(
+                version,
+                monthlyCapUsd="5.50",
+                decisionFeatures=[
+                    {"purpose": "shelf_life", "enabled": False, "models": []},
+                    {"purpose": "match_referee", "enabled": True, "models": ["typesafe/jev-1.14"]},
+                ],
+            ),
+            headers=headers,
+        )
+        assert saved.status_code == 200, saved.text
+        body = client.get("/api/v1/openrouter/settings").json()
+        assert body["monthlyCapUsd"] == "5.5"
+        assert _feature(body, "shelf_life") == {
+            "purpose": "shelf_life",
+            "enabled": False,
+            "models": [],
+        }
+        assert _feature(body, "match_referee")["models"] == ["typesafe/jev-1.14"]
+        assert _feature(body, "recipe_facets")["enabled"] is True
+
+        # A later save that omits features leaves them as they were.
+        client.put("/api/v1/openrouter/settings", json=_write(version + 1), headers=headers)
+        again = client.get("/api/v1/openrouter/settings").json()
+        assert _feature(again, "shelf_life")["enabled"] is False
+
+
+def test_spend_this_month_comes_from_the_decision_ledger(
+    isolated_database_url: str, tmp_path: Path
+) -> None:
+    with client_for(isolated_database_url, tmp_path) as client:
+        authenticate(client)
+        engine = create_engine(isolated_database_url)
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO decision_answers (id, purpose, model, request_hash, answers, "
+                    "cost_usd) VALUES (gen_random_uuid(), 'p', 'm', 'h', '{}', 0.000123)"
+                )
+            )
+        engine.dispose()
+        body = client.get("/api/v1/openrouter/settings").json()
+        assert body["spentThisMonthUsd"] == "0.000123"
 
 
 def test_key_is_encrypted_at_rest_and_never_returned(
@@ -102,11 +171,14 @@ def test_omitting_the_key_keeps_it_and_clear_removes_it(
 
         kept = client.put(
             "/api/v1/openrouter/settings",
-            json=_write(version + 1, decisionAssistEnabled=False),
+            json=_write(
+                version + 1,
+                decisionFeatures=[{"purpose": "match_referee", "enabled": False, "models": []}],
+            ),
             headers=headers,
         )
         assert kept.json()["keyConfigured"] is True
-        assert kept.json()["decisionAssistEnabled"] is False
+        assert _feature(kept.json(), "match_referee")["enabled"] is False
 
         cleared = client.put(
             "/api/v1/openrouter/settings",
@@ -133,7 +205,45 @@ def test_rejects_stale_versions_and_invalid_input(
             _write(version, apiKey="has space in it"),
             _write(version, decisionAssistToleranceDv="0"),
             _write(version, decisionAssistToleranceDv="0.5"),
-            _write(version, decisionAssistModel="bad model!"),
+            _write(version, monthlyCapUsd="-1"),
+            _write(version, monthlyCapUsd="101"),
+            _write(
+                version,
+                decisionFeatures=[{"purpose": "match_referee", "enabled": True, "models": []}],
+            ),
+            _write(
+                version,
+                decisionFeatures=[
+                    {"purpose": "match_referee", "enabled": True, "models": ["bad model!"]}
+                ],
+            ),
+            _write(
+                version,
+                decisionFeatures=[{"purpose": "nope", "enabled": True, "models": ["a/b"]}],
+            ),
+            _write(
+                version,
+                decisionFeatures=[
+                    {"purpose": "match_referee", "enabled": True, "models": ["a/b", "a/b"]}
+                ],
+            ),
+            _write(
+                version,
+                decisionFeatures=[
+                    {
+                        "purpose": "match_referee",
+                        "enabled": True,
+                        "models": ["a/b", "c/d", "e/f", "g/h"],
+                    }
+                ],
+            ),
+            _write(
+                version,
+                decisionFeatures=[
+                    {"purpose": "shelf_life", "enabled": False, "models": []},
+                    {"purpose": "shelf_life", "enabled": True, "models": ["a/b"]},
+                ],
+            ),
             _write(version, unknownField=1),
             _write(2**40),
         ):

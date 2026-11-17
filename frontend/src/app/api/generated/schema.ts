@@ -1598,10 +1598,19 @@ export interface components {
             /** @description Last four characters of the stored key. */
             keyHint: string | null;
             cleanupModel: string;
-            decisionAssistEnabled: boolean;
-            decisionAssistModel: string;
             decisionAssistToleranceDv: components["schemas"]["Decimal6"];
+            /** @description Every decision-model feature, in a stable order. */
+            decisionFeatures: components["schemas"]["DecisionFeature"][];
+            monthlyCapUsd: components["schemas"]["Decimal6"];
+            spentThisMonthUsd: components["schemas"]["Decimal6"];
             version: number;
+        };
+        /** @enum {string} */
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life";
+        DecisionFeature: {
+            purpose: components["schemas"]["DecisionPurpose"];
+            enabled: boolean;
+            models: string[];
         };
         OpenRouterSettingsWrite: {
             /**
@@ -1612,9 +1621,10 @@ export interface components {
             /** @default false */
             clearApiKey: boolean;
             cleanupModel: string;
-            decisionAssistEnabled: boolean;
-            decisionAssistModel: string;
             decisionAssistToleranceDv: components["schemas"]["Decimal6"];
+            /** @description Features to change; features left out keep their settings. */
+            decisionFeatures?: components["schemas"]["DecisionFeature"][];
+            monthlyCapUsd: components["schemas"]["Decimal6"];
             version: number;
         };
         NutritionIntelligenceEstimate: {

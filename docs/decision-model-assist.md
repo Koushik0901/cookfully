@@ -46,9 +46,13 @@ variables for it.
 - **API key.** Write-only. It is encrypted (Fernet, key derived from `COOKFULLY_SECRET_KEY`) before
   it is stored, only its last four characters are kept for display, and no endpoint returns it. If
   the secret key changes the stored key stops decrypting and is treated as unset; enter it again.
-- **Smarter ingredient matching** switch (on by default; it only acts once a key is saved).
-- **Matching model** (default `typesafe/jev-1.14`). Thresholds are per model; re-tune if you change it.
-  The research advises against Clef Flash and Kev 4B for auto-resolution.
+- **Monthly spend cap** (default $2.00) with this month's spend from the decision ledger. When the
+  cap is reached every decision feature returns no answer until the next month or a higher cap.
+- **Decision features**: one row per feature with an on/off switch and its models (up to three,
+  comma separated). Every feature is on by default with Jev 1.14 and Clef; untouched features follow
+  the code defaults (`DEFAULT_FEATURES`), edited ones are stored in `openrouter_settings.decision_features`.
+  Thresholds are per model; re-tune if you change them. The research advises against Clef Flash and
+  Kev 4B for auto-resolution.
 - **Auto-resolve tolerance** as a percent of daily value (default 2, allowed up to 10).
 - **Import cleanup model**, used only when the import-cleanup OpenRouter fallback is switched on.
 

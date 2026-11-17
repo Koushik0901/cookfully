@@ -41,6 +41,7 @@ DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
 DECISION_TIMEOUT_SECONDS = 8.0
 DEFAULT_MONTHLY_CAP_USD = Decimal("2.00")
 DEFAULT_MODEL = "typesafe/jev-1.14"
+DEFAULT_PANEL = ("typesafe/jev-1.14", "cloudflare/clef")
 MAX_WORKERS = 8
 
 
@@ -67,6 +68,12 @@ class FeatureConfig:
     models: tuple[str, ...] = (DEFAULT_MODEL,)
 
 
+# Every feature is on by default with the two-model panel measured in PR #12.
+DEFAULT_FEATURES: Mapping[Purpose, FeatureConfig] = {
+    purpose: FeatureConfig(True, DEFAULT_PANEL) for purpose in Purpose
+}
+
+
 @dataclass(frozen=True, slots=True)
 class DecisionsConfig:
     """Resolved owner settings. Without an API key every answer is empty."""
@@ -76,7 +83,7 @@ class DecisionsConfig:
     features: Mapping[Purpose, FeatureConfig] = field(default_factory=dict)
 
     def feature(self, purpose: Purpose) -> FeatureConfig:
-        return self.features.get(purpose, FeatureConfig())
+        return self.features.get(purpose) or DEFAULT_FEATURES[purpose]
 
     def active(self, purpose: Purpose) -> bool:
         feature = self.feature(purpose)
