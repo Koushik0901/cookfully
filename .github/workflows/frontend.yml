@@ -58,6 +58,10 @@ jobs:
       - run: pnpm --dir frontend install --frozen-lockfile
       # Thresholds live in frontend/vite.config.ts and fail this step when coverage regresses.
       - run: pnpm --dir frontend test:coverage
+      - name: Coverage floor headroom
+        continue-on-error: true
+        run: python3 scripts/coverage-ratchet.py
+
       - name: Summarise coverage
         if: always()
         run: |

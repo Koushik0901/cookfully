@@ -83,7 +83,7 @@ export function OpenRouterCard() {
   const settings = useQuery({ queryKey: OPENROUTER_QUERY_KEY, queryFn: openRouterSettingsApi.get });
   const [apiKey, setApiKey] = useState("");
   const [cleanupModel, setCleanupModel] = useState("");
-  const [tolerancePercent, setTolerancePercent] = useState("2");
+  const [tolerancePercent, setTolerancePercent] = useState("8");
   const [capUsd, setCapUsd] = useState("2");
   const [features, setFeatures] = useState<FeatureDraft[]>([]);
   const [saved, setSaved] = useState(false);

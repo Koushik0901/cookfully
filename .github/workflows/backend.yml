@@ -83,11 +83,21 @@ jobs:
       # in per-test database schemas, so they run on every vCPU of the runner; a hung test fails
       # after 60 s (`timeout` in pyproject.toml) instead of stalling the job.
       - name: Run tests with coverage
+        env:
+          # Property tests replay the same examples on pull requests (so a rare random failure
+          # cannot block unrelated work) and explore fresh ones on pushes to main.
+          HYPOTHESIS_PROFILE: ${{ github.event_name == 'pull_request' && 'ci' || 'default' }}
         run: >-
           uv run --directory backend pytest
           -n 4
+          --hypothesis-profile="$HYPOTHESIS_PROFILE"
           --cov --cov-report=term-missing:skip-covered --cov-report=xml
           --durations=15
+
+      # Notices when the measured total is well above its floor, so the floor gets raised.
+      - name: Coverage floor headroom
+        continue-on-error: true
+        run: python3 scripts/coverage-ratchet.py
 
       - name: Summarise coverage
         if: always()
