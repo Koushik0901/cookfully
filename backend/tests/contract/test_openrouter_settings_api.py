@@ -64,7 +64,7 @@ def test_defaults_have_every_feature_on_and_no_key(
         body = client.get("/api/v1/openrouter/settings").json()
         assert body["keyConfigured"] is False
         assert body["keyHint"] is None
-        assert body["decisionAssistToleranceDv"] == "0.02"
+        assert body["decisionAssistToleranceDv"] == "0.08"
         assert body["monthlyCapUsd"] == "2"
         assert body["spentThisMonthUsd"] == "0"
         assert {item["purpose"] for item in body["decisionFeatures"]} >= {
