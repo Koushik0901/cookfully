@@ -13,7 +13,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.avoid_warnings import recipe_avoid_warnings
 from cookfully.application.jobs import JobProgress, JobService
+from cookfully.domain.avoid_list import AvoidWarning
 from cookfully.domain.common import DomainError, require_present
 from cookfully.domain.nutrition import (
     MICRONUTRIENT_KEYS,
@@ -133,6 +135,7 @@ class RecipeRead:
     active_job: JobProgress | None = None
     thumbnail_crop: ThumbnailCrop = field(default_factory=ThumbnailCrop)
     origin_kind: str = "manual"
+    avoid_warnings: tuple[AvoidWarning, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -367,6 +370,7 @@ class RecipeQueryService:
                 else ()
             ),
             active_job=active_job,
+            avoid_warnings=recipe_avoid_warnings(session, recipe) if detail else (),
         )
 
     @staticmethod

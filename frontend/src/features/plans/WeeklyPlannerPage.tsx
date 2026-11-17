@@ -18,6 +18,7 @@ import { WeekOverview } from "./WeekOverview";
 import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
 import { isRecipePlannable } from "../recipes/recipeEligibility";
 import { useExpiringPantry } from "./useExpiringPantry";
+import { AvoidWarningsProvider } from "./avoidWarnings";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
@@ -207,6 +208,7 @@ export function WeeklyPlannerPage() {
   const entryCounts = Object.fromEntries(dates.map((date) => [date, entries.filter((entry) => entry.localDate === date).length]));
 
   return (
+    <AvoidWarningsProvider plan={plan.data}>
     <main className="page-shell planner-page">
       <header className="plan-head">
         <h1>Plan</h1>
@@ -279,5 +281,6 @@ export function WeeklyPlannerPage() {
       {isMobile && !selectedDateIsPast ? <div className="planner-mobile-add"><Button onClick={() => { add.reset(); setPickerSlot("dinner"); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a meal</Button></div> : null}
       <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} preferredRecipeId={searchParams.get("recipe")} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
     </main>
+    </AvoidWarningsProvider>
   );
 }

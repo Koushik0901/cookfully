@@ -1898,6 +1898,25 @@ export interface components {
             instructions: components["schemas"]["Instruction"][];
             sections?: components["schemas"]["Section"][];
             activeJob?: components["schemas"]["Job"] | null;
+            /** @description Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list. */
+            avoidWarnings?: components["schemas"]["AvoidWarning"][];
+        };
+        AvoidWarning: {
+            /** Format: uuid */
+            ingredientId: string;
+            /** @description The avoid-list entry as the owner wrote it. */
+            item: string;
+            /**
+             * @description `ingredient` when the line names it; `model` when a decision model suspects it.
+             * @enum {string}
+             */
+            source: "ingredient" | "model";
+            probability?: components["schemas"]["Decimal6"] | null;
+        };
+        PlanAvoidWarning: {
+            /** Format: uuid */
+            recipeId: string;
+            items: string[];
         };
         RecipePage: {
             items: components["schemas"]["Recipe"][];
@@ -2212,6 +2231,8 @@ export interface components {
             /** @enum {string} */
             groceryStatus?: "current" | "dirty" | "generating" | "failed" | "absent";
             version: number;
+            /** @description Planned recipes whose ingredients name an item on the owner's avoid list. */
+            avoidWarnings?: components["schemas"]["PlanAvoidWarning"][];
         };
         GroceryItemWrite: {
             displayName?: string;

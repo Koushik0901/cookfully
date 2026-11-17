@@ -15,6 +15,7 @@ import { RecipeOrganizationPanel } from "./RecipeOrganizationPanel";
 import { RecipeProcessingBanner } from "./RecipeProcessingBanner";
 import type { Job, RecipeDetail, RecipePage } from "./types";
 import { formatProbability, modelPick, reviewOrder, reviewSummary } from "./matchReview";
+import { AvoidNotice } from "./AvoidNotice";
 
 const terminalStatuses = new Set(["succeeded", "failed", "cancelled", "superseded"]);
 const originLabel = { manual: "Written in Cookfully", web_import: "Imported from the web", cookbook_import: "Imported from a cookbook" } as const;
@@ -289,6 +290,7 @@ export function RecipeDetailPage() {
               </div>
             </>}
           />
+          <AvoidNotice recipe={recipe} />
           {recipe.ingredients.length ? (
             <ul className="ingredient-list">
               {orderedSections.map((section) => (

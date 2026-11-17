@@ -733,12 +733,22 @@ class RecipeResponse(ApiModel):
         )
 
 
+class AvoidWarningResponse(ApiModel):
+    """An ingredient that contains (or may contain) something on the owner's avoid list."""
+
+    ingredient_id: UUID = Field(alias="ingredientId")
+    item: str
+    source: str
+    probability: Decimal6 | None = None
+
+
 class RecipeDetailResponse(RecipeResponse):
     description: str | None = None
     ingredients: tuple[IngredientResponse, ...]
     instructions: tuple[InstructionResponse, ...]
     sections: tuple[SectionResponse, ...] = ()
     active_job: JobResponse | None = Field(alias="activeJob", default=None)
+    avoid_warnings: tuple[AvoidWarningResponse, ...] = Field(alias="avoidWarnings", default=())
 
     @classmethod
     def from_read(cls, value: RecipeRead) -> RecipeDetailResponse:
@@ -750,6 +760,15 @@ class RecipeDetailResponse(RecipeResponse):
             instructions=tuple(InstructionResponse.from_read(item) for item in value.instructions),
             sections=tuple(SectionResponse.from_read(item) for item in value.sections),
             active_job=(JobResponse.from_progress(value.active_job) if value.active_job else None),
+            avoid_warnings=tuple(
+                AvoidWarningResponse(
+                    ingredient_id=warning.ingredient_id,
+                    item=warning.item,
+                    source=warning.source,
+                    probability=warning.probability,
+                )
+                for warning in value.avoid_warnings
+            ),
         )
 
 

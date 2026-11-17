@@ -1916,3 +1916,11 @@
   .planner-views button,
   .settings-tabs button { min-height: 2.75rem; }
 }
+
+/* Avoid-list warnings */
+.avoid-notice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.75rem; margin-block: 0.75rem; border: 1px solid var(--status-warning); border-radius: var(--radius-lg); padding: 0.85rem 1rem; background: var(--color-surface-low); }
+.avoid-notice > svg { width: 1.2rem; height: 1.2rem; margin-top: 0.1rem; color: var(--status-warning); }
+.avoid-notice ul { margin: 0.35rem 0; padding-left: 1.1rem; overflow-wrap: anywhere; }
+.avoid-notice small { color: var(--color-on-surface-variant); }
+.avoid-badge { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0.2rem 0 0; color: var(--color-on-surface); font-size: 0.75rem; font-weight: 600; overflow-wrap: anywhere; }
+.avoid-badge svg { flex: none; width: 0.9rem; height: 0.9rem; color: var(--status-warning); }

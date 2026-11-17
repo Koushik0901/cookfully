@@ -2760,6 +2760,24 @@ components:
             instructions: { type: array, items: { $ref: "#/components/schemas/Instruction" } }
             sections: { type: array, items: { $ref: "#/components/schemas/Section" } }
             activeJob: { oneOf: [{ $ref: "#/components/schemas/Job" }, { type: "null" }] }
+            avoidWarnings:
+              type: array
+              description: Ingredients that name (or, per a decision model, may contain) an item on the owner's avoid list.
+              items: { $ref: "#/components/schemas/AvoidWarning" }
+    AvoidWarning:
+      type: object
+      required: [ingredientId, item, source]
+      properties:
+        ingredientId: { type: string, format: uuid }
+        item: { type: string, description: The avoid-list entry as the owner wrote it. }
+        source: { type: string, enum: [ingredient, model], description: "`ingredient` when the line names it; `model` when a decision model suspects it." }
+        probability: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+    PlanAvoidWarning:
+      type: object
+      required: [recipeId, items]
+      properties:
+        recipeId: { type: string, format: uuid }
+        items: { type: array, items: { type: string } }
     RecipePage:
       type: object
       required: [items]
@@ -3171,6 +3189,10 @@ components:
         weekTotal: { $ref: "#/components/schemas/PeriodTotal" }
         groceryStatus: { type: string, enum: [current, dirty, generating, failed, absent] }
         version: { type: integer, minimum: 1 }
+        avoidWarnings:
+          type: array
+          description: Planned recipes whose ingredients name an item on the owner's avoid list.
+          items: { $ref: "#/components/schemas/PlanAvoidWarning" }
     GroceryItemWrite:
       type: object
       additionalProperties: false
