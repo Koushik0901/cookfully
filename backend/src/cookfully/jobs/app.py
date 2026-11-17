@@ -2,7 +2,7 @@ from contextlib import AbstractContextManager
 from typing import Any
 
 from celery import Celery, signals
-from kombu import Queue  # type: ignore[import-untyped]
+from kombu.entity import Queue
 from sqlalchemy import Engine
 
 from cookfully.infrastructure.config import get_settings
@@ -24,7 +24,10 @@ celery_app.conf.update(
     task_track_started=True,
     worker_send_task_events=True,
     task_send_sent_event=True,
-    task_queues=(Queue("interactive"), Queue("bulk"), Queue("maintenance")),
+    task_queues=tuple(
+        Queue(name)  # type: ignore[no-untyped-call]
+        for name in ("interactive", "bulk", "maintenance")
+    ),
     task_default_queue="interactive",
     broker_connection_retry_on_startup=True,
     broker_transport_options={"visibility_timeout": 900},
