@@ -58,7 +58,8 @@ def test_a_valid_key_never_appears_in_any_response_log_or_error(
             saved = _put(client, headers, _write(_version(client), apiKey=SECRET))
             fetched = client.get("/api/v1/openrouter/settings")
             # A later, invalid write that happens to carry the key again.
-            bad = _put(client, headers, _write(0, apiKey=SECRET, monthlyCapUsd="-1"))
+            invalid = {**_write(0, monthlyCapUsd="-1"), "apiKey": SECRET}
+            bad = _put(client, headers, invalid)
             stale = _put(client, headers, _write(1, apiKey=SECRET))
         for response in (saved, fetched, bad, stale):
             assert SECRET not in response.text
