@@ -114,11 +114,13 @@ def _indexed_candidates(
         # rerank set rather than embedding the catalog again.
         similarity = _stored_similarity(row.embedding_vector, query_vector)
         candidates.append((similarity, _candidate_from_usda_index(food, similarity, compatibility)))
-    for row, food in owner_rows:
-        compatibility = compare_compatibility(query_profile, profile_from_text(food.display_name))
+    for row, owner_food in owner_rows:
+        compatibility = compare_compatibility(
+            query_profile, profile_from_text(owner_food.display_name)
+        )
         similarity = _stored_similarity(row.embedding_vector, query_vector)
         candidates.append(
-            (similarity, _candidate_from_owner_index(food, similarity, compatibility))
+            (similarity, _candidate_from_owner_index(owner_food, similarity, compatibility))
         )
     candidates.sort(key=lambda item: item[0], reverse=True)
     return [candidate for _, candidate in candidates[:limit]]

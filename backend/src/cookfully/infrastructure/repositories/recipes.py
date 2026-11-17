@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import Select, and_, cast, delete, exists, func, or_, select
+from sqlalchemy import and_, cast, delete, exists, func, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session, selectinload
 
@@ -69,7 +69,7 @@ class RecipeRepository:
         ]
         if include_content:
             options.extend((selectinload(Recipe.ingredients), selectinload(Recipe.instructions)))
-        statement: Select[tuple[Recipe]] = select(Recipe).options(*options)
+        statement = select(Recipe).options(*options)
         # Import placeholders are workflow state, not recipes. Keep both new
         # import_failed rows and legacy failed placeholders out of every library view.
         statement = statement.where(
