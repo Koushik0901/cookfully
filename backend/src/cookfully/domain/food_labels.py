@@ -17,7 +17,7 @@ from typing import Any
 
 from cookfully.domain.food_semantics import profile_from_text
 
-CONFIDENT = Decimal("0.8")
+CONFIDENT = Decimal("0.7")
 STATE_CONTRADICTION = Decimal("0.08")
 DEFAULT_STATE_MISMATCH = Decimal("0.04")
 FLAVORED_PENALTY = Decimal("0.05")

@@ -165,3 +165,11 @@ undo (moved import lines have "put back"), a deterministic result to fall back t
 or an explicit "not checked" state when nothing answered. A single answering model is a usable answer;
 thresholds are chosen by measurement (`docs/decision-model-experiments/app-eval.md`), not by caution alone.
 
+## Tuned thresholds
+
+Thresholds are set from hand-labeled gold sets, not by caution alone (see
+`docs/decision-model-experiments/app-eval.md`): grocery merge 0.5 (all models must still agree), staples 0.3,
+aisles 0.5, shelf-life estimates 0.3 (mean of the panel), diet tags shown at 0.6 and worded as certain
+at 0.7, food-label confidence 0.7, auto-resolve tolerance 8%. Re-run the evaluators after changing a
+prompt, a panel or a model; probabilities differ between models.
+

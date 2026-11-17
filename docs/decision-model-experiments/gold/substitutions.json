@@ -1,0 +1,723 @@
+{
+ "note": "Hand-labeled: for each recipe line, whether each table substitute (in table order) would work in that dish. Contrast cases: raw vs cooked shallot/basil, whipped vs sauce cream, fried vs baked egg, patties vs tacos.",
+ "cases": [
+  {
+   "recipe": "Buttermilk pancakes",
+   "ingredients": [
+    "2 cups flour",
+    "1 cup buttermilk",
+    "1 egg",
+    "2 tbsp sugar",
+    "1 tsp baking soda"
+   ],
+   "steps": [
+    "Whisk dry and wet ingredients.",
+    "Cook on a hot griddle."
+   ],
+   "line": "1 cup buttermilk",
+   "works": [
+    true,
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Chocolate chip cookies",
+   "ingredients": [
+    "2 cups flour",
+    "1 cup butter",
+    "1 cup sugar",
+    "2 eggs",
+    "2 cups chocolate chips"
+   ],
+   "steps": [
+    "Cream butter and sugar.",
+    "Bake at 375F."
+   ],
+   "line": "1 cup butter",
+   "works": [
+    false,
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Vanilla cake",
+   "ingredients": [
+    "2 cups flour",
+    "1 cup sugar",
+    "3 eggs",
+    "1/2 cup oil",
+    "1 cup milk"
+   ],
+   "steps": [
+    "Mix the batter.",
+    "Bake at 350F for 30 minutes."
+   ],
+   "line": "3 eggs",
+   "works": [
+    true,
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Quiche Lorraine",
+   "ingredients": [
+    "1 pie crust",
+    "4 eggs",
+    "1 cup cream",
+    "6 slices bacon",
+    "1 cup gruyere"
+   ],
+   "steps": [
+    "Blind bake the crust.",
+    "Pour in the egg filling.",
+    "Bake until set."
+   ],
+   "line": "4 eggs",
+   "works": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "recipe": "Soft scrambled eggs",
+   "ingredients": [
+    "6 eggs",
+    "2 tbsp butter",
+    "salt"
+   ],
+   "steps": [
+    "Whisk the eggs.",
+    "Cook gently, stirring."
+   ],
+   "line": "6 eggs",
+   "works": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "recipe": "Loaded baked potatoes",
+   "ingredients": [
+    "4 potatoes",
+    "1/2 cup sour cream",
+    "chives",
+    "bacon"
+   ],
+   "steps": [
+    "Bake the potatoes.",
+    "Top with sour cream and chives."
+   ],
+   "line": "1/2 cup sour cream",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Fettuccine alfredo",
+   "ingredients": [
+    "12 oz fettuccine",
+    "1 cup heavy cream",
+    "1 cup parmesan",
+    "3 tbsp butter",
+    "garlic"
+   ],
+   "steps": [
+    "Cook the pasta.",
+    "Simmer the cream with garlic and parmesan.",
+    "Toss together."
+   ],
+   "line": "1 cup heavy cream",
+   "works": [
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Berry smoothie",
+   "ingredients": [
+    "1 cup strawberries",
+    "1 banana",
+    "1 cup milk",
+    "1 tbsp honey"
+   ],
+   "steps": [
+    "Blend until smooth."
+   ],
+   "line": "1 cup milk",
+   "works": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Potato salad",
+   "ingredients": [
+    "2 lb potatoes",
+    "1/2 cup mayonnaise",
+    "2 celery stalks",
+    "3 eggs",
+    "mustard"
+   ],
+   "steps": [
+    "Boil the potatoes.",
+    "Fold with the dressing and chill."
+   ],
+   "line": "1/2 cup mayonnaise",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Mushroom risotto",
+   "ingredients": [
+    "1.5 cups arborio rice",
+    "1/2 cup white wine",
+    "5 cups stock",
+    "1 lb mushrooms",
+    "parmesan"
+   ],
+   "steps": [
+    "Toast the rice.",
+    "Add wine, then stock gradually."
+   ],
+   "line": "1/2 cup white wine",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Beef stew",
+   "ingredients": [
+    "2 lb beef chuck",
+    "1 cup red wine",
+    "3 carrots",
+    "4 potatoes",
+    "beef broth"
+   ],
+   "steps": [
+    "Brown the beef.",
+    "Braise in wine and broth for 2 hours."
+   ],
+   "line": "1 cup red wine",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Oatmeal cookies",
+   "ingredients": [
+    "1.5 cups oats",
+    "1 cup flour",
+    "1 cup butter",
+    "3/4 cup brown sugar",
+    "1 egg"
+   ],
+   "steps": [
+    "Cream butter and sugar.",
+    "Bake at 350F."
+   ],
+   "line": "3/4 cup brown sugar",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Lemon vinaigrette",
+   "ingredients": [
+    "1/4 cup lemon juice",
+    "1/2 cup olive oil",
+    "1 tsp honey",
+    "1 tsp mustard"
+   ],
+   "steps": [
+    "Whisk everything together."
+   ],
+   "line": "1 tsp honey",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Stir fry sauce",
+   "ingredients": [
+    "2 tbsp cornstarch",
+    "1/2 cup chicken broth",
+    "2 tbsp soy sauce",
+    "1 tbsp ginger"
+   ],
+   "steps": [
+    "Whisk the cornstarch into the cold broth.",
+    "Simmer until thickened."
+   ],
+   "line": "2 tbsp cornstarch",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Blueberry muffins",
+   "ingredients": [
+    "2 cups self raising flour",
+    "1 cup blueberries",
+    "1/2 cup sugar",
+    "1 egg",
+    "1 cup milk"
+   ],
+   "steps": [
+    "Fold the batter gently.",
+    "Bake at 400F for 20 minutes."
+   ],
+   "line": "2 cups self raising flour",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Meatballs",
+   "ingredients": [
+    "1 lb ground beef",
+    "1/2 cup breadcrumbs",
+    "1 egg",
+    "parmesan",
+    "garlic"
+   ],
+   "steps": [
+    "Mix and roll into balls.",
+    "Bake at 400F."
+   ],
+   "line": "1/2 cup breadcrumbs",
+   "works": [
+    true,
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Crispy chicken cutlets",
+   "ingredients": [
+    "4 chicken cutlets",
+    "1 cup breadcrumbs",
+    "2 eggs",
+    "flour",
+    "oil for frying"
+   ],
+   "steps": [
+    "Dredge in flour, egg, then breadcrumbs.",
+    "Fry until golden and crisp."
+   ],
+   "line": "1 cup breadcrumbs",
+   "works": [
+    true,
+    false,
+    true
+   ]
+  },
+  {
+   "recipe": "Lemon dressing",
+   "ingredients": [
+    "1/4 cup lemon juice",
+    "1/2 cup olive oil",
+    "salt",
+    "pepper"
+   ],
+   "steps": [
+    "Shake in a jar."
+   ],
+   "line": "1/4 cup lemon juice",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Beef short ribs",
+   "ingredients": [
+    "3 lb short ribs",
+    "2 shallots",
+    "red wine",
+    "beef stock",
+    "thyme"
+   ],
+   "steps": [
+    "Brown the ribs.",
+    "Braise for 3 hours."
+   ],
+   "line": "2 shallots",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Raw shallot vinaigrette",
+   "ingredients": [
+    "2 shallots",
+    "3 tbsp red wine vinegar",
+    "1/2 cup olive oil",
+    "mustard"
+   ],
+   "steps": [
+    "Finely mince the shallots and let them macerate in the vinegar.",
+    "Whisk in the oil."
+   ],
+   "line": "2 shallots",
+   "works": [
+    false
+   ]
+  },
+  {
+   "recipe": "Slow cooker chili",
+   "ingredients": [
+    "2 lb ground beef",
+    "2 cans beans",
+    "4 cloves garlic",
+    "chili powder",
+    "tomatoes"
+   ],
+   "steps": [
+    "Combine everything in the slow cooker.",
+    "Cook on low for 8 hours."
+   ],
+   "line": "4 cloves garlic",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Garden salsa",
+   "ingredients": [
+    "4 tomatoes",
+    "1 onion",
+    "1 jalapeno",
+    "1/4 cup cilantro",
+    "2 limes"
+   ],
+   "steps": [
+    "Chop and mix.",
+    "Chill."
+   ],
+   "line": "1/4 cup cilantro",
+   "works": [
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Spaghetti with parmesan",
+   "ingredients": [
+    "12 oz spaghetti",
+    "1 cup parmesan",
+    "3 tbsp butter",
+    "black pepper"
+   ],
+   "steps": [
+    "Cook the pasta.",
+    "Toss with butter and cheese."
+   ],
+   "line": "1 cup parmesan",
+   "works": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Vegetable stir fry",
+   "ingredients": [
+    "2 cups broccoli",
+    "1 red pepper",
+    "2 tbsp soy sauce",
+    "ginger",
+    "garlic"
+   ],
+   "steps": [
+    "Stir fry the vegetables.",
+    "Add the sauce."
+   ],
+   "line": "2 tbsp soy sauce",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Sushi rice",
+   "ingredients": [
+    "2 cups sushi rice",
+    "1/4 cup rice vinegar",
+    "2 tbsp sugar",
+    "1 tsp salt"
+   ],
+   "steps": [
+    "Cook the rice.",
+    "Fold in the seasoned vinegar."
+   ],
+   "line": "1/4 cup rice vinegar",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Caprese salad",
+   "ingredients": [
+    "4 tomatoes",
+    "8 oz mozzarella",
+    "1/4 cup fresh basil",
+    "olive oil"
+   ],
+   "steps": [
+    "Slice and layer with fresh basil.",
+    "Drizzle with oil."
+   ],
+   "line": "1/4 cup fresh basil",
+   "works": [
+    false
+   ]
+  },
+  {
+   "recipe": "Slow-simmered marinara",
+   "ingredients": [
+    "2 cans tomatoes",
+    "1/4 cup fresh basil",
+    "4 cloves garlic",
+    "olive oil"
+   ],
+   "steps": [
+    "Simmer for 2 hours."
+   ],
+   "line": "1/4 cup fresh basil",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Roast chicken",
+   "ingredients": [
+    "1 whole chicken",
+    "4 sprigs fresh thyme",
+    "1 lemon",
+    "butter"
+   ],
+   "steps": [
+    "Rub the chicken with butter and thyme.",
+    "Roast at 425F for 75 minutes."
+   ],
+   "line": "4 sprigs fresh thyme",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Buttermilk biscuits",
+   "ingredients": [
+    "2 cups flour",
+    "1 tbsp baking powder",
+    "1/2 cup butter",
+    "3/4 cup buttermilk"
+   ],
+   "steps": [
+    "Cut in the butter.",
+    "Bake at 450F."
+   ],
+   "line": "1 tbsp baking powder",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Chicken noodle soup",
+   "ingredients": [
+    "2 chicken breasts",
+    "8 oz noodles",
+    "carrots",
+    "celery",
+    "8 cups chicken stock"
+   ],
+   "steps": [
+    "Simmer everything for 30 minutes."
+   ],
+   "line": "8 cups chicken stock",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "French onion soup",
+   "ingredients": [
+    "4 onions",
+    "6 cups beef stock",
+    "1/2 cup wine",
+    "gruyere",
+    "baguette"
+   ],
+   "steps": [
+    "Caramelize the onions.",
+    "Simmer with stock."
+   ],
+   "line": "6 cups beef stock",
+   "works": [
+    true
+   ]
+  },
+  {
+   "recipe": "Taco night",
+   "ingredients": [
+    "1 lb ground beef",
+    "taco seasoning",
+    "tortillas",
+    "cheese",
+    "salsa"
+   ],
+   "steps": [
+    "Brown the meat with the seasoning.",
+    "Fill the tortillas."
+   ],
+   "line": "1 lb ground beef",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Grilled burgers",
+   "ingredients": [
+    "1.5 lb ground beef",
+    "4 buns",
+    "cheese",
+    "onion"
+   ],
+   "steps": [
+    "Form patties.",
+    "Grill 4 minutes per side."
+   ],
+   "line": "1.5 lb ground beef",
+   "works": [
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Sushi rolls",
+   "ingredients": [
+    "2 cups rice",
+    "nori",
+    "cucumber",
+    "avocado",
+    "raw tuna"
+   ],
+   "steps": [
+    "Spread rice on the nori.",
+    "Roll tightly and slice."
+   ],
+   "line": "2 cups rice",
+   "works": [
+    false,
+    false
+   ]
+  },
+  {
+   "recipe": "Mushroom risotto",
+   "ingredients": [
+    "1.5 cups rice",
+    "5 cups stock",
+    "mushrooms",
+    "parmesan",
+    "butter"
+   ],
+   "steps": [
+    "Stir the rice, adding stock gradually, until creamy."
+   ],
+   "line": "1.5 cups rice",
+   "works": [
+    false,
+    false
+   ]
+  },
+  {
+   "recipe": "Bechamel sauce",
+   "ingredients": [
+    "3 tbsp butter",
+    "3 tbsp flour",
+    "2 cups milk",
+    "nutmeg"
+   ],
+   "steps": [
+    "Make a roux.",
+    "Whisk in the milk and simmer until thick."
+   ],
+   "line": "2 cups milk",
+   "works": [
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "recipe": "Chicken marinade",
+   "ingredients": [
+    "4 chicken thighs",
+    "1 cup yogurt",
+    "lemon",
+    "garlic",
+    "paprika"
+   ],
+   "steps": [
+    "Marinate for 4 hours.",
+    "Grill."
+   ],
+   "line": "1 cup yogurt",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Waffles",
+   "ingredients": [
+    "2 cups flour",
+    "2 eggs",
+    "1.5 cups milk",
+    "1/4 cup maple syrup",
+    "baking powder"
+   ],
+   "steps": [
+    "Whisk and cook in the waffle iron."
+   ],
+   "line": "1/4 cup maple syrup",
+   "works": [
+    true,
+    true
+   ]
+  },
+  {
+   "recipe": "Guacamole",
+   "ingredients": [
+    "3 avocados",
+    "2 tbsp lime juice",
+    "1/4 cup cilantro",
+    "onion"
+   ],
+   "steps": [
+    "Mash and mix."
+   ],
+   "line": "2 tbsp lime juice",
+   "works": [
+    true
+   ]
+  }
+ ]
+}

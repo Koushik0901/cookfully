@@ -1,0 +1,367 @@
+{
+ "note": "Hand-labeled aisles for unambiguous items, and staple (most home cooks already have it) yes/no for clear cases only.",
+ "aisle": [
+  [
+   "spinach",
+   "produce"
+  ],
+  [
+   "avocado",
+   "produce"
+  ],
+  [
+   "fresh basil",
+   "produce"
+  ],
+  [
+   "strawberries",
+   "produce"
+  ],
+  [
+   "red onion",
+   "produce"
+  ],
+  [
+   "lemon",
+   "produce"
+  ],
+  [
+   "cilantro",
+   "produce"
+  ],
+  [
+   "bell pepper",
+   "produce"
+  ],
+  [
+   "zucchini",
+   "produce"
+  ],
+  [
+   "bananas",
+   "produce"
+  ],
+  [
+   "chicken breast",
+   "meat_seafood"
+  ],
+  [
+   "salmon fillet",
+   "meat_seafood"
+  ],
+  [
+   "ground beef",
+   "meat_seafood"
+  ],
+  [
+   "shrimp",
+   "meat_seafood"
+  ],
+  [
+   "bacon",
+   "meat_seafood"
+  ],
+  [
+   "pork chops",
+   "meat_seafood"
+  ],
+  [
+   "cod",
+   "meat_seafood"
+  ],
+  [
+   "milk",
+   "dairy_eggs"
+  ],
+  [
+   "eggs",
+   "dairy_eggs"
+  ],
+  [
+   "cheddar",
+   "dairy_eggs"
+  ],
+  [
+   "butter",
+   "dairy_eggs"
+  ],
+  [
+   "greek yogurt",
+   "dairy_eggs"
+  ],
+  [
+   "heavy cream",
+   "dairy_eggs"
+  ],
+  [
+   "mozzarella",
+   "dairy_eggs"
+  ],
+  [
+   "sour cream",
+   "dairy_eggs"
+  ],
+  [
+   "baguette",
+   "bakery"
+  ],
+  [
+   "flour tortillas",
+   "bakery"
+  ],
+  [
+   "bagels",
+   "bakery"
+  ],
+  [
+   "sourdough bread",
+   "bakery"
+  ],
+  [
+   "hamburger buns",
+   "bakery"
+  ],
+  [
+   "olive oil",
+   "pantry"
+  ],
+  [
+   "canned tomatoes",
+   "pantry"
+  ],
+  [
+   "rice",
+   "pantry"
+  ],
+  [
+   "spaghetti",
+   "pantry"
+  ],
+  [
+   "flour",
+   "pantry"
+  ],
+  [
+   "soy sauce",
+   "pantry"
+  ],
+  [
+   "black beans",
+   "pantry"
+  ],
+  [
+   "peanut butter",
+   "pantry"
+  ],
+  [
+   "honey",
+   "pantry"
+  ],
+  [
+   "vegetable broth",
+   "pantry"
+  ],
+  [
+   "cumin",
+   "spices"
+  ],
+  [
+   "paprika",
+   "spices"
+  ],
+  [
+   "dried oregano",
+   "spices"
+  ],
+  [
+   "cinnamon",
+   "spices"
+  ],
+  [
+   "chili powder",
+   "spices"
+  ],
+  [
+   "black pepper",
+   "spices"
+  ],
+  [
+   "garlic powder",
+   "spices"
+  ],
+  [
+   "frozen peas",
+   "frozen"
+  ],
+  [
+   "ice cream",
+   "frozen"
+  ],
+  [
+   "frozen pizza",
+   "frozen"
+  ],
+  [
+   "frozen spinach",
+   "frozen"
+  ],
+  [
+   "frozen berries",
+   "frozen"
+  ],
+  [
+   "orange juice",
+   "drinks"
+  ],
+  [
+   "sparkling water",
+   "drinks"
+  ],
+  [
+   "cold brew coffee",
+   "drinks"
+  ],
+  [
+   "apple juice",
+   "drinks"
+  ],
+  [
+   "paper towels",
+   "other"
+  ],
+  [
+   "dish soap",
+   "other"
+  ],
+  [
+   "aluminum foil",
+   "other"
+  ],
+  [
+   "trash bags",
+   "other"
+  ]
+ ],
+ "staple": [
+  [
+   "salt",
+   true
+  ],
+  [
+   "black pepper",
+   true
+  ],
+  [
+   "olive oil",
+   true
+  ],
+  [
+   "vegetable oil",
+   true
+  ],
+  [
+   "sugar",
+   true
+  ],
+  [
+   "flour",
+   true
+  ],
+  [
+   "baking powder",
+   true
+  ],
+  [
+   "baking soda",
+   true
+  ],
+  [
+   "garlic powder",
+   true
+  ],
+  [
+   "cumin",
+   true
+  ],
+  [
+   "paprika",
+   true
+  ],
+  [
+   "soy sauce",
+   true
+  ],
+  [
+   "white vinegar",
+   true
+  ],
+  [
+   "dried oregano",
+   true
+  ],
+  [
+   "cinnamon",
+   true
+  ],
+  [
+   "chicken breast",
+   false
+  ],
+  [
+   "salmon fillet",
+   false
+  ],
+  [
+   "spinach",
+   false
+  ],
+  [
+   "fresh basil",
+   false
+  ],
+  [
+   "heavy cream",
+   false
+  ],
+  [
+   "ground beef",
+   false
+  ],
+  [
+   "flour tortillas",
+   false
+  ],
+  [
+   "fresh mozzarella",
+   false
+  ],
+  [
+   "strawberries",
+   false
+  ],
+  [
+   "firm tofu",
+   false
+  ],
+  [
+   "shrimp",
+   false
+  ],
+  [
+   "avocado",
+   false
+  ],
+  [
+   "lamb shoulder",
+   false
+  ],
+  [
+   "fresh dill",
+   false
+  ],
+  [
+   "cherry tomatoes",
+   false
+  ]
+ ]
+}

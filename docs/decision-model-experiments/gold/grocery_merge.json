@@ -1,0 +1,314 @@
+{
+ "note": "Hand-labeled. 'merges' are same-product pairs; every other pair in the list must stay separate. Distractors are deliberately close (red onion, parmesan vs cheddar, baking soda vs powder).",
+ "lists": [
+  {
+   "names": [
+    "scallions",
+    "green onions",
+    "onion",
+    "red onion",
+    "garlic",
+    "ginger",
+    "lime",
+    "cilantro"
+   ],
+   "merges": [
+    [
+     "green onions",
+     "scallions"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "chickpeas",
+    "garbanzo beans",
+    "black beans",
+    "kidney beans",
+    "rice",
+    "olive oil",
+    "cumin",
+    "lemon"
+   ],
+   "merges": [
+    [
+     "chickpeas",
+     "garbanzo beans"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "cilantro",
+    "coriander leaves",
+    "parsley",
+    "basil",
+    "mint",
+    "dill",
+    "tomatoes",
+    "avocado"
+   ],
+   "merges": [
+    [
+     "cilantro",
+     "coriander leaves"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "zucchini",
+    "courgette",
+    "eggplant",
+    "bell pepper",
+    "mushrooms",
+    "spinach",
+    "carrots",
+    "celery"
+   ],
+   "merges": [
+    [
+     "courgette",
+     "zucchini"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "eggplant",
+    "aubergine",
+    "tomatoes",
+    "cherry tomatoes",
+    "onion",
+    "garlic",
+    "olive oil",
+    "basil"
+   ],
+   "merges": [
+    [
+     "aubergine",
+     "eggplant"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "arugula",
+    "rocket",
+    "spinach",
+    "kale",
+    "romaine lettuce",
+    "cucumber",
+    "lemon",
+    "parmesan"
+   ],
+   "merges": [
+    [
+     "arugula",
+     "rocket"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "powdered sugar",
+    "icing sugar",
+    "brown sugar",
+    "granulated sugar",
+    "flour",
+    "baking powder",
+    "baking soda",
+    "vanilla extract"
+   ],
+   "merges": [
+    [
+     "icing sugar",
+     "powdered sugar"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "shrimp",
+    "prawns",
+    "salmon fillet",
+    "cod",
+    "butter",
+    "lemon",
+    "garlic",
+    "parsley"
+   ],
+   "merges": [
+    [
+     "prawns",
+     "shrimp"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "cornstarch",
+    "cornflour",
+    "all-purpose flour",
+    "bread flour",
+    "sugar",
+    "salt",
+    "eggs",
+    "milk"
+   ],
+   "merges": [
+    [
+     "cornflour",
+     "cornstarch"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "bell pepper",
+    "capsicum",
+    "jalapeno",
+    "onion",
+    "tomatoes",
+    "rice",
+    "black beans",
+    "corn"
+   ],
+   "merges": [
+    [
+     "bell pepper",
+     "capsicum"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "cheddar",
+    "parmesan",
+    "mozzarella",
+    "butter",
+    "milk",
+    "heavy cream",
+    "sour cream",
+    "yogurt"
+   ],
+   "merges": []
+  },
+  {
+   "names": [
+    "chicken breast",
+    "chicken thighs",
+    "ground beef",
+    "ground turkey",
+    "bacon",
+    "eggs",
+    "onion",
+    "garlic"
+   ],
+   "merges": []
+  },
+  {
+   "names": [
+    "onion",
+    "red onion",
+    "yellow onion",
+    "shallot",
+    "leek",
+    "garlic",
+    "ginger",
+    "scallions"
+   ],
+   "merges": [
+    [
+     "onion",
+     "yellow onion"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "baking soda",
+    "baking powder",
+    "flour",
+    "sugar",
+    "eggs",
+    "butter",
+    "milk",
+    "vanilla extract"
+   ],
+   "merges": []
+  },
+  {
+   "names": [
+    "spring onions",
+    "scallions",
+    "chives",
+    "onion",
+    "garlic",
+    "cilantro",
+    "parsley",
+    "lime"
+   ],
+   "merges": [
+    [
+     "scallions",
+     "spring onions"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "heavy cream",
+    "double cream",
+    "whole milk",
+    "half and half",
+    "butter",
+    "sugar",
+    "vanilla extract",
+    "eggs"
+   ],
+   "merges": [
+    [
+     "double cream",
+     "heavy cream"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "sour cream",
+    "yogurt",
+    "greek yogurt",
+    "cream cheese",
+    "cottage cheese",
+    "butter",
+    "milk",
+    "cheddar"
+   ],
+   "merges": [
+    [
+     "greek yogurt",
+     "yogurt"
+    ]
+   ]
+  },
+  {
+   "names": [
+    "ground beef",
+    "minced beef",
+    "ground pork",
+    "onion",
+    "garlic",
+    "tomato paste",
+    "pasta",
+    "parmesan"
+   ],
+   "merges": [
+    [
+     "ground beef",
+     "minced beef"
+    ]
+   ]
+  }
+ ]
+}

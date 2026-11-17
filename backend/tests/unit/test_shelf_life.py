@@ -43,13 +43,20 @@ def test_an_agreed_bucket_becomes_days_and_repeat_names_are_cached() -> None:
     assert calls[0] == {"pantry_item": "kimchi"}
 
 
-def test_disagreement_low_confidence_or_no_answer_gives_no_date() -> None:
+def test_split_panel_uses_the_mean_and_low_confidence_or_no_answer_gives_no_date() -> None:
+    # Measured on a hand-labeled set: requiring every model to agree dropped right answers.
     split, _ = _engine(
-        lambda model, _s, _q: _choice({"month": 0.9} if model == "m1" else {"week": 0.9})
+        lambda model, _s, _q: _choice(
+            {"month": 0.9} if model == "m1" else {"week": 0.6, "month": 0.4}
+        )
     )
-    assert estimate_days(split, "kimchi") is None
-    unsure, _ = _engine(lambda _m, _s, _q: _choice({"month": 0.4, "week": 0.35, "months": 0.25}))
-    assert estimate_days(unsure, "kimchi") is None
+    assert estimate_days(split, "kimchi") == 30
+    flat, _ = _engine(
+        lambda _m, _s, _q: _choice(
+            {"few_days": 0.2, "week": 0.2, "two_weeks": 0.2, "month": 0.2, "months": 0.2}
+        )
+    )
+    assert estimate_days(flat, "kimchi") is None
     down, _ = _engine(lambda _m, _s, _q: None)
     assert estimate_days(down, "kimchi") is None
 
