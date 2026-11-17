@@ -16,16 +16,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from cookfully.application.decision_assist import AssistLine, DecisionAssist
+from cookfully.application.decisions import build_decisions
+from cookfully.application.food_labels import load_labels
 from cookfully.application.food_match_memories import remembered_food_choice
+from cookfully.application.hidden_ingredients import refresh_hidden_ingredients
 from cookfully.application.ingredient_engine import engine
 from cookfully.application.jobs import JobService
-from cookfully.application.openrouter_settings import (
-    DECISION_MAX_OPTIONS,
-    DECISION_TIMEOUT_SECONDS,
-    DECISIONS_URL,
-)
+from cookfully.application.match_referee import Judgement, MatchReferee, RefereeLine
+from cookfully.application.openrouter_settings import decisions_config
 from cookfully.application.openrouter_settings import load_config as load_openrouter_config
+from cookfully.application.recipe_facets import refresh_recipe_facets
 from cookfully.application.recipes import (
     IngredientWrite,
     InstructionWrite,
@@ -33,6 +33,7 @@ from cookfully.application.recipes import (
     SectionWrite,
     recipe_input_hash,
 )
+from cookfully.application.taste_scores import refresh_taste_score
 from cookfully.domain.common import (
     NUTRIENT_SCALE,
     DomainError,
@@ -41,6 +42,7 @@ from cookfully.domain.common import (
     utc_now,
     uuid7,
 )
+from cookfully.domain.decisions import Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
 from cookfully.domain.nutrition import (
     CORE_NUTRIENT_CODES,
@@ -59,7 +61,6 @@ from cookfully.domain.units import IngredientMeasure, coverage_ratio, to_grams
 from cookfully.domain.volume_assumptions import density_for
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.database import create_database_engine, create_session_factory
-from cookfully.infrastructure.decision_client import OpenRouterDecisionClient
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.media_store import MediaStore, StoredMedia
 from cookfully.infrastructure.models.identity import OwnerAccount
@@ -183,6 +184,7 @@ class RecipePipeline:
                 next_job = self._match(envelope.job_id)
             else:
                 next_job = self._rollup(envelope.job_id)
+                self._refresh_insights(envelope.aggregate_id)
             return PipelineResult(
                 envelope.job_id,
                 "succeeded",
@@ -404,11 +406,12 @@ class RecipePipeline:
                 repository,
                 embedder=self._session_embedder(session),
                 candidate_pool_limit=256,
+                labels_for=lambda foods: load_labels(session, [food.id for food in foods]),
             )
             owner_id = session.scalar(
                 select(OwnerAccount.id).order_by(OwnerAccount.created_at).limit(1)
             )
-            assist = self._decision_assist(session)
+            referee = self._match_referee(session)
             job.progress_current = 0
             job.progress_total = len(recipe.ingredients)
             for position, ingredient in enumerate(recipe.ingredients, start=1):
@@ -455,11 +458,10 @@ class RecipePipeline:
                     continue
                 remembered = remembered_choice.food_reference if remembered_choice else None
                 decision = matcher.decide(ingredient.food_name or "", preferred_food=remembered)
-                assist_evidence: dict[str, object] | None = None
-                if assist is not None and decision.method != "memory":
-                    decision, assist_evidence = self._assisted(
-                        assist, decision, ingredient, recipe.title
-                    )
+                referee_evidence: dict[str, object] | None = None
+                if referee is not None and decision.method != "memory":
+                    judgement = self._refereed(referee, decision, ingredient, recipe.title)
+                    decision, referee_evidence = judgement.decision, judgement.evidence
                 candidate = decision.candidate
                 density = (
                     density_for(candidate.food.description)
@@ -486,7 +488,7 @@ class RecipePipeline:
                         ),
                         input_hash=recipe.input_hash,
                         active=True,
-                        candidate_evidence=[assist_evidence] if assist_evidence else None,
+                        candidate_evidence=[referee_evidence] if referee_evidence else None,
                     )
                 )
                 job.progress_current = position
@@ -496,54 +498,45 @@ class RecipePipeline:
             )
             return next_job
 
-    @staticmethod
-    def _decision_assist(session: Session) -> DecisionAssist | None:
-        """Build the decision assist from the owner's Settings; ``None`` without a usable key."""
+    def _refresh_insights(self, recipe_id: UUID) -> None:
+        """Best-effort decision-model checks once nutrition is done; never fails the job."""
+
+        for refresh in (refresh_hidden_ingredients, refresh_recipe_facets, refresh_taste_score):
+            try:
+                refresh(self._session_factory, recipe_id)
+            except Exception:
+                logger.exception("Recipe insight refresh failed; the recipe is unaffected.")
+
+    def _match_referee(self, session: Session) -> MatchReferee | None:
+        """Build the match referee from the owner's Settings; ``None`` when it cannot answer."""
 
         config = load_openrouter_config(session)
-        if not config.decision_assist_active or config.api_key is None:
+        decisions = build_decisions(self._session_factory, decisions_config(config))
+        if not decisions.active(Purpose.MATCH_REFEREE):
             return None
-        chooser = OpenRouterDecisionClient(
-            api_key=config.api_key,
-            model=config.decision_assist_model,
-            url=DECISIONS_URL,
-            timeout_seconds=DECISION_TIMEOUT_SECONDS,
-        )
-        return DecisionAssist(
-            chooser,
+        return MatchReferee(
+            decisions,
+            panel=config.features[Purpose.MATCH_REFEREE].models,
             tolerance_dv=config.decision_assist_tolerance_dv,
-            max_options=DECISION_MAX_OPTIONS,
         )
 
-    def _assisted(
+    def _refereed(
         self,
-        assist: DecisionAssist,
+        referee: MatchReferee,
         decision: MatchDecision,
         ingredient: Ingredient,
         recipe_title: str,
-    ) -> tuple[MatchDecision, dict[str, object] | None]:
+    ) -> Judgement:
         candidates = (
             (decision.candidate,) if decision.candidate is not None else ()
         ) + decision.alternatives
-        if not candidates:
-            return decision, None
-        density = density_for(candidates[0].food.description)
+        density = density_for(candidates[0].food.description) if candidates else None
         grams_min, _, _, _ = self._grams(ingredient, density_g_per_ml=density)
-        outcome = assist.resolve(
-            AssistLine(
-                ingredient.original_text,
-                ingredient.food_name or "",
-                recipe_title,
-                grams_min,
+        return referee.judge(
+            RefereeLine(
+                ingredient.original_text, ingredient.food_name or "", recipe_title, grams_min
             ),
-            candidates,
-        )
-        if outcome is None:
-            return decision, None
-        rest = tuple(item for item in candidates if item is not outcome.candidate)
-        return (
-            MatchDecision("matched", "decision_assist", outcome.candidate, rest),
-            outcome.evidence,
+            decision,
         )
 
     def _session_embedder(self, session: Session) -> TextEmbedder:

@@ -1,6 +1,7 @@
 import { apiRequest } from "../recipes/api";
 import type {
   AccessToken,
+  FoodLabelSummary,
   AccessTokenCreated,
   AccessTokenWrite,
   DatabaseBackupRequested,
@@ -87,6 +88,15 @@ export const recipeImportSettingsApi = {
       method: "PUT",
       body: JSON.stringify(value),
     });
+  },
+};
+
+export const foodLabelsApi = {
+  summary() {
+    return apiRequest<FoodLabelSummary>("/jobs/food-labels");
+  },
+  run() {
+    return apiRequest<{ jobId: string; status: string }>("/jobs/food-labels", { method: "POST" });
   },
 };
 

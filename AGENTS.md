@@ -57,6 +57,10 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   precedence in every code path.
 - Background handlers must be idempotent and reject stale input hashes.
 - Use fixed-precision decimals for stored nutrition and scaled integers for solver inputs.
+- Decision models: do not be overly conservative about using them. Let the model panel decide by default
+  and put a backstop behind it (a human review step with an undo, a deterministic fallback, or an
+  "unchecked" state) instead of withholding the model's answer. This applies to every decision-model
+  feature, merged, in progress or not started. Measure before loosening or tightening a threshold.
 - Owner-facing configuration lives in Settings (database-backed, versioned singleton rows), not environment
   variables; env vars are for deployment infrastructure only. Credentials entered in the UI are encrypted
   with `SecretBox`, write-only over the API (return a configured flag and last-four hint), and never logged.

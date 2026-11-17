@@ -2,7 +2,7 @@ import type { components } from "../../app/api/generated/schema";
 
 export type PantryItem = components["schemas"]["PantryItem"] & {
   purchasedAt?: string | null;
-  expirySource?: "auto" | "label" | "manual" | null;
+  expirySource?: "auto" | "label" | "manual" | "model" | null;
 };
 export type PantryItemWrite = components["schemas"]["PantryItemWrite"];
 export type PantryRecipeMatch = components["schemas"]["PantryRecipeMatch"];

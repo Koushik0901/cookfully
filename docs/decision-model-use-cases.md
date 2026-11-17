@@ -94,15 +94,16 @@ That is a measurement from our own runs, not a price list; re-check before budge
 
 | Priority | Idea | Why |
 |---|---|---|
-| 1 | #2 Pre-label USDA foods | Cheap, one-time, helps every match |
-| 2 | #1 Verify all matches with two models | Builds on tested matching; feeds off #2 |
+| 1 | #1 Verify all matches with two models | Builds on tested matching and an existing gold set |
+| 2 | #2 Pre-label USDA foods | Cheap, one-time, helps every match |
 | 3 | #6 Hidden-ingredient check | Highest safety value |
 | 4 | #8 and #9 Import guard and cleanup verifier | Closes a real gap for the remote deployment |
 | 5 | #7 and #15 Tags and recipe attributes | Unlocks search and planning |
 | 6 | #14 and #16 Soft-preference scoring, substitutions | New user-facing value |
 
-Start with #2 and #1 together, and measure the gain with the offline harness in
-`scripts/decision-model-eval/` before shipping anything.
+Measure each gain with the offline harness in `scripts/decision-model-eval/` before shipping anything.
+The design and pull-request plan is in
+[`decision-model-implementation-plan.md`](decision-model-implementation-plan.md).
 
 ## Cautions
 

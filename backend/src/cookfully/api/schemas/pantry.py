@@ -29,7 +29,7 @@ class PantryItemResponse(PantryItemWriteRequest):
     match_confidence: str | None = Field(alias="matchConfidence")
     version: int
     purchased_at: datetime | None = Field(alias="purchasedAt", default=None)
-    expiry_source: Literal["auto", "label", "manual"] | None = Field(
+    expiry_source: Literal["auto", "label", "manual", "model"] | None = Field(
         alias="expirySource", default=None
     )
 

@@ -1,0 +1,3 @@
+# Test fixtures: a literal Idempotency-Key header value, not a credential.
+e05a5503ecd62bc83be3ee042f3229f41b6c3ed3:backend/tests/contract/test_grocery_tidy_api.py:generic-api-key:73
+e05a5503ecd62bc83be3ee042f3229f41b6c3ed3:backend/tests/contract/test_grocery_tidy_api.py:generic-api-key:98

@@ -14,6 +14,12 @@ SolverStatus = Literal["feasible", "infeasible", "timeout"]
 FIELDS = ("calories_kcal", "protein_g", "carbohydrate_g", "fat_g")
 WEIGHTS = (4, 3, 1, 1)
 MICRO = Decimal("1000000")
+# Preferences may trade at most this share of the best nutrition distance (near-equal options).
+NEAR_EQUAL_SLACK = Decimal("0.02")
+MAX_PREFERENCE_PENALTY = 1000
+# Extra penalty per recipe beyond ``VARIETY_FREE_PER_GROUP`` from the same variety group (cuisine).
+VARIETY_PENALTY = 300
+VARIETY_FREE_PER_GROUP = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +42,10 @@ class SuggestionCandidate:
     minimum_servings: Decimal = Decimal("0.500")
     maximum_servings: Decimal = Decimal("3.000")
     available: bool = True
+    preference_penalty: int = 0
+    """0 (preferred) to ``MAX_PREFERENCE_PENALTY``; from stored taste scores, never live calls."""
+    variety_group: str | None = None
+    """Recipes sharing a group (for example a cuisine) cost extra beyond two in one run."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +117,36 @@ def _zero_solution() -> SuggestionSolution:
         zero,
         SuggestionDistanceComponents(zero, zero, zero, zero, 0, 0),
     )
+
+
+def _preference_expression(
+    model: cp_model.CpModel,
+    candidates: tuple[SuggestionCandidate, ...],
+    selected: list[cp_model.IntVar],
+) -> cp_model.LinearExpr | None:
+    """Taste penalties plus a variety penalty, or ``None`` when no candidate carries either."""
+
+    penalties = [
+        max(0, min(MAX_PREFERENCE_PENALTY, item.preference_penalty)) for item in candidates
+    ]
+    groups: dict[str, list[int]] = {}
+    for index, item in enumerate(candidates):
+        if item.variety_group:
+            groups.setdefault(item.variety_group, []).append(index)
+    if not any(penalties) and not any(
+        len(indexes) > VARIETY_FREE_PER_GROUP for indexes in groups.values()
+    ):
+        return None
+    terms: list[cp_model.LinearExpr] = [cp_model.LinearExpr.weighted_sum(selected, penalties)]
+    for group, indexes in sorted(groups.items()):
+        if len(indexes) <= VARIETY_FREE_PER_GROUP:
+            continue
+        overage = model.new_int_var(0, len(indexes), f"variety_{group}")
+        model.add_max_equality(
+            overage, [0, sum(selected[index] for index in indexes) - VARIETY_FREE_PER_GROUP]
+        )
+        terms.append(overage * VARIETY_PENALTY)
+    return sum(terms)  # type: ignore[return-value]
 
 
 def solve_suggestion(problem: SuggestionProblem) -> SuggestionSolution:
@@ -219,22 +259,31 @@ def solve_suggestion(problem: SuggestionProblem) -> SuggestionSolution:
         )
         coefficient = max(1, round(WEIGHTS[field_index] * normalization / denominator))
         distance_terms.append(deviation * coefficient)
+        if field_index == 0:
+            # The distance a deviation of one full calorie tolerance adds.
+            calorie_tolerance_distance = denominator * coefficient
     distance = (
         sum(distance_terms)
         + sum(repetition_overages) * 2 * normalization
         + sum(missing_required) * 5 * normalization
     )
 
+    preference = _preference_expression(model, candidates, selected)
+
     solver = cp_model.CpSolver()
     solver.parameters.num_search_workers = 1
     solver.parameters.random_seed = 0
     deadline = monotonic() + problem.time_limit_seconds
-    objectives = (
-        unmet,
-        distance,
-        entry_count,
-    )
-    for objective in objectives:
+    # Nutrition always comes first. With preferences, the distance stage only bounds the distance
+    # to within NEAR_EQUAL_SLACK of its best value; preferences choose among those options, and the
+    # distance is then minimized again inside that band.
+    stages: list[tuple[cp_model.LinearExprT, str]] = [(unmet, "exact")]
+    if preference is None:
+        stages += [(distance, "exact")]
+    else:
+        stages += [(distance, "near"), (preference, "exact"), (distance, "exact")]
+    stages += [(entry_count, "exact")]
+    for objective, mode in stages:
         remaining = deadline - monotonic()
         if remaining <= 0:
             return _zero_solution()
@@ -245,7 +294,19 @@ def solve_suggestion(problem: SuggestionProblem) -> SuggestionSolution:
             return _zero_solution()
         # Read the exact integer expression value; objective_value is a float and can represent 1
         # as 0.9999999999999998 for large scaled models, which would freeze an impossible stage.
-        model.add(objective == int(solver.value(objective)))
+        best = int(solver.value(objective))
+        if mode == "near":
+            # A share of the best distance, but never less than the same share of one full
+            # calorie tolerance, so a perfect match still leaves room for near-equal options.
+            floor = Decimal(calorie_tolerance_distance)
+            slack = int(
+                (max(Decimal(best), floor) * NEAR_EQUAL_SLACK).to_integral_value(
+                    rounding=ROUND_HALF_UP
+                )
+            )
+            model.add(objective <= best + slack)
+        else:
+            model.add(objective == best)
 
     # With the entry count fixed, minimizing each selected candidate index in order is the exact
     # lexicographic recipe-ID tie-break. AddElement lets the rank variables point only at selected

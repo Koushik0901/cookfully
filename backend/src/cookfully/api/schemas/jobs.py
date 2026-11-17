@@ -120,3 +120,13 @@ class JobResponse(BaseModel):
             ),
             recovery_actions=actions,
         )
+
+
+class FoodLabelSummaryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    labelled: int = Field(ge=0)
+    total: int = Field(ge=0)
+    active: int = Field(ge=0)
+    waiting: int = Field(ge=0)
+    poll_after_seconds: int | None = Field(alias="pollAfterSeconds", default=None, ge=1)

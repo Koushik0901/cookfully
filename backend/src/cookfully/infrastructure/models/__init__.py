@@ -1,9 +1,12 @@
 from cookfully.infrastructure.models.base import Base
+from cookfully.infrastructure.models.decisions import DecisionAnswer
+from cookfully.infrastructure.models.food_labels import FoodLabel
 from cookfully.infrastructure.models.grocery import (
     GroceryItem,
     GroceryItemSource,
     GroceryList,
     GroceryShoppingStop,
+    GroceryTidyMemory,
     RememberedGroceryPlacement,
 )
 from cookfully.infrastructure.models.idempotency import IdempotencyRecord
@@ -38,6 +41,7 @@ from cookfully.infrastructure.models.plans import (
     UserGoal,
 )
 from cookfully.infrastructure.models.recipe_import import RecipeImportSettings
+from cookfully.infrastructure.models.recipe_insights import RecipeInsight
 from cookfully.infrastructure.models.recipes import (
     Ingredient,
     Recipe,
@@ -58,6 +62,8 @@ from cookfully.infrastructure.models.suggestions import SuggestionItem, Suggesti
 __all__ = [
     "AccessToken",
     "Base",
+    "DecisionAnswer",
+    "FoodLabel",
     "FoodMatchMemory",
     "FoodNutrient",
     "FoodReference",
@@ -66,6 +72,7 @@ __all__ = [
     "GroceryItemSource",
     "GroceryList",
     "GroceryShoppingStop",
+    "GroceryTidyMemory",
     "IdempotencyRecord",
     "ImportPreviewRecord",
     "Ingredient",
@@ -91,6 +98,7 @@ __all__ = [
     "RecipeCollection",
     "RecipeCollectionMembership",
     "RecipeImportSettings",
+    "RecipeInsight",
     "RecipeInstruction",
     "RecipeMealRole",
     "RecipePhotoDerivative",
