@@ -107,20 +107,22 @@ def _indexed_candidates(
     ).all()
     query_profile = profile_from_text(query)
     candidates: list[tuple[Decimal, FoodCandidateResponse]] = []
-    for row, food in usda_rows:
-        compatibility = compare_compatibility(query_profile, profile_from_text(food.description))
+    for row, usda_food in usda_rows:
+        compatibility = compare_compatibility(
+            query_profile, profile_from_text(usda_food.description)
+        )
         # The ANN ordering is authoritative; the SQL distance is not exposed by
         # the ORM row, so use a deterministic Python dot product for the 25-row
         # rerank set rather than embedding the catalog again.
         similarity = _stored_similarity(row.embedding_vector, query_vector)
-        candidates.append((similarity, _candidate_from_usda_index(food, similarity, compatibility)))
-    for row, owner_food in owner_rows:
-        compatibility = compare_compatibility(
-            query_profile, profile_from_text(owner_food.display_name)
+        candidates.append(
+            (similarity, _candidate_from_usda_index(usda_food, similarity, compatibility))
         )
+    for row, food in owner_rows:
+        compatibility = compare_compatibility(query_profile, profile_from_text(food.display_name))
         similarity = _stored_similarity(row.embedding_vector, query_vector)
         candidates.append(
-            (similarity, _candidate_from_owner_index(owner_food, similarity, compatibility))
+            (similarity, _candidate_from_owner_index(food, similarity, compatibility))
         )
     candidates.sort(key=lambda item: item[0], reverse=True)
     return [candidate for _, candidate in candidates[:limit]]
