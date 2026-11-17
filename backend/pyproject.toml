@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "cookfully"
 version = "0.1.1"
 description = "Self-hosted gym-focused recipe and nutrition planner"
-readme = "../README.md"
 requires-python = ">=3.13,<3.14"
 license = { text = "Proprietary" }
 authors = [{ name = "Cookfully" }]
