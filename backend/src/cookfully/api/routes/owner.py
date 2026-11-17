@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from cookfully.api.dependencies.auth import require_browser_owner
@@ -11,6 +11,7 @@ from cookfully.api.schemas.pantry import PantryItemResponse, PantryRecipeMatchRe
 from cookfully.api.schemas.plans import MealPlanResponse
 from cookfully.api.schemas.recipes import RecipePageResponse
 from cookfully.application.grocery_lists import GroceryListService
+from cookfully.application.hidden_ingredients import refresh_all_hidden_ingredients
 from cookfully.application.meal_plans import MealPlanService
 from cookfully.application.owner_onboarding import OwnerOnboardingService
 from cookfully.application.owner_preferences import OwnerPreferenceService
@@ -226,8 +227,10 @@ def update_preferences(
     payload: OwnerPreferences,
     request: Request,
     owner: Annotated[OwnerAccount, Depends(require_browser_owner)],
+    background: BackgroundTasks,
 ) -> OwnerPreferences:
     service: OwnerPreferenceService = request.app.state.owner_preferences
+    previous_avoid = HealthProfile.model_validate(owner.health_profile or {}).avoid_ingredients
     updated = service.update(
         owner.id,
         display_name=payload.display_name,
@@ -238,4 +241,7 @@ def update_preferences(
         ).model_dump(mode="json", by_alias=True),
         expected_version=payload.version,
     )
+    if payload.health_profile.normalized_avoid_ingredients != tuple(previous_avoid):
+        # Hidden-ingredient checks depend on the avoid list; recheck recipes after responding.
+        background.add_task(refresh_all_hidden_ingredients, request.app.state.sessions)
     return _preferences(updated)

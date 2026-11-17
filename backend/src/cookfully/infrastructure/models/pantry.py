@@ -40,7 +40,7 @@ class PantryItem(TimestampMixin, Base):
         ),
         CheckConstraint("version > 0", name="positive_version"),
         CheckConstraint(
-            "expiry_source IN ('auto', 'label', 'manual')",
+            "expiry_source IN ('auto', 'label', 'manual', 'model')",
             name="valid_expiry_source",
         ),
         Index("ix_pantry_items_owner_name", "owner_id", "normalized_food_name"),

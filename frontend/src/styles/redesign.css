@@ -418,6 +418,8 @@
   .recipe-editor--step-ingredients .recipe-editor__identity,
   .recipe-editor--step-method .recipe-editor__identity,
   .recipe-editor--step-nutrition .recipe-editor__identity { display: none; }
+  /* The food-match review lives in the Nutrition step; keep it visible there on phones. */
+  .recipe-editor--step-nutrition .recipe-editor__nutrition-review .structured-review { display: block; }
 
   .week-overview > .section-heading { display: grid; align-items: start; }
   .week-placement-bar { grid-template-columns: auto minmax(0, 1fr); gap: 0.65rem; padding: 0.7rem; }

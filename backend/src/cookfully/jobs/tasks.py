@@ -6,6 +6,7 @@ from uuid import UUID
 from redis import Redis
 
 from cookfully.application.food_embedding_index import run_food_embedding_job
+from cookfully.application.food_labels import run_food_label_job
 from cookfully.application.intelligence_drafts import IntelligenceDraftService
 from cookfully.application.jobs import JobService
 from cookfully.application.model_download import run_model_download_job
@@ -202,6 +203,9 @@ def process_job(self: Any, envelope: dict[str, Any]) -> dict[str, str | None] | 
             return None
         if envelope["kind"] == "reference_data_install":
             run_reference_data_install_job(sessions, UUID(str(envelope["jobId"])))
+            return None
+        if envelope["kind"] == "food_labeling":
+            run_food_label_job(sessions, UUID(str(envelope["jobId"])))
             return None
         if envelope["kind"] == "food_embedding_index":
             run_food_embedding_job(sessions, UUID(str(envelope["jobId"])))

@@ -111,6 +111,8 @@ _OPERATION_IDS = {
     "preview_uploaded_cookbook": "previewCookbookPdfImport",
     "confirm_recipe_import": "confirmRecipeImport",
     "get_recipe": "getRecipe",
+    "keep_grocery_item_separate": "keepGroceryItemSeparate",
+    "get_ingredient_substitutes": "getIngredientSubstitutes",
     "update_recipe": "updateRecipe",
     "replace_recipe_photo": "replaceRecipePhoto",
     "remove_recipe_photo": "removeRecipePhoto",

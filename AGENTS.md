@@ -57,6 +57,10 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   precedence in every code path.
 - Background handlers must be idempotent and reject stale input hashes.
 - Use fixed-precision decimals for stored nutrition and scaled integers for solver inputs.
+- Decision models: do not be overly conservative about using them. Let the model panel decide by default
+  and put a backstop behind it (a human review step with an undo, a deterministic fallback, or an
+  "unchecked" state) instead of withholding the model's answer. This applies to every decision-model
+  feature, merged, in progress or not started. Measure before loosening or tightening a threshold.
 - Owner-facing configuration lives in Settings (database-backed, versioned singleton rows), not environment
   variables; env vars are for deployment infrastructure only. Credentials entered in the UI are encrypted
   with `SecretBox`, write-only over the API (return a configured flag and last-four hint), and never logged.
@@ -139,4 +143,19 @@ should start with: "Does this help someone plan, cook, and eat better food with 
 - Do not presume either this repository or an inspiration project has the best design. Challenge both
   sets of assumptions, account for their different scale/persona/history, and validate adopted patterns
   through this project's contracts and tests.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `Koushik0901/cookfully`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`,
+`wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` plus `docs/adr/`, created lazily. See `docs/agents/domain.md`.
 <!-- MANUAL ADDITIONS END -->

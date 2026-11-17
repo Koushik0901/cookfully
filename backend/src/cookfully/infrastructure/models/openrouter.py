@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, Integer, Numeric, String, Text, true
+from sqlalchemy import JSON, CheckConstraint, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from cookfully.infrastructure.models.base import Base, TimestampMixin
@@ -23,6 +24,10 @@ class OpenRouterSettings(TimestampMixin, Base):
             "decision_assist_tolerance_dv > 0 AND decision_assist_tolerance_dv <= 0.1",
             name="valid_decision_assist_tolerance",
         ),
+        CheckConstraint(
+            "decision_monthly_cap_usd >= 0 AND decision_monthly_cap_usd <= 100",
+            name="valid_decision_monthly_cap",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
@@ -31,11 +36,13 @@ class OpenRouterSettings(TimestampMixin, Base):
     cleanup_model: Mapped[str] = mapped_column(
         String(120), nullable=False, default="", server_default=""
     )
-    decision_assist_enabled: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=true()
+    # Owner overrides per decision feature: {purpose: {"enabled": bool, "models": [str]}}. A feature
+    # without an entry uses the defaults in ``application.decisions.DEFAULT_FEATURES``.
+    decision_features: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
     )
-    decision_assist_model: Mapped[str] = mapped_column(
-        String(120), nullable=False, default="typesafe/jev-1.14", server_default="typesafe/jev-1.14"
+    decision_monthly_cap_usd: Mapped[Decimal] = mapped_column(
+        Numeric(8, 2), nullable=False, default=Decimal("2.00"), server_default="2.00"
     )
     decision_assist_tolerance_dv: Mapped[Decimal] = mapped_column(
         Numeric(7, 6), nullable=False, default=Decimal("0.02"), server_default="0.02"

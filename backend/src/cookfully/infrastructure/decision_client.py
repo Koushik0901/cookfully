@@ -1,91 +1,134 @@
-"""OpenRouter Decisions API client (alpha endpoint) for optional matching assist.
+"""Transports for the OpenRouter Decisions API (alpha endpoint).
 
-Every failure path returns ``None`` so callers fall back to the deterministic result. The API key
-is never logged and no ingredient text appears in log output.
+The only code that knows the wire format. ``OpenRouterDecisionTransport`` calls the real endpoint;
+``ScriptedDecisionTransport`` answers from a function, for tests and offline replay. Both return
+``None`` on any failure so callers keep their deterministic result. The API key is never logged and
+no request content appears in log output.
 """
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
+_RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 
-class OpenRouterDecisionClient:
+
+@dataclass(frozen=True, slots=True)
+class RawDecision:
+    """The ``answers`` object as returned, what the call cost, and which model served it."""
+
+    answers: object
+    cost_usd: Decimal = Decimal(0)
+    served_model: str | None = None
+
+
+class OpenRouterDecisionTransport:
     def __init__(
         self,
         *,
         api_key: str,
-        model: str,
         url: str,
         timeout_seconds: float,
         client: httpx.Client | None = None,
+        retries: int = 1,
     ) -> None:
         self._api_key = api_key
-        self._model = model
         self._url = url
         self._timeout = timeout_seconds
         self._client = client or httpx.Client()
+        self._retries = retries
 
-    @property
-    def model(self) -> str:
-        return self._model
-
-    def choose(
+    def post(
         self,
-        *,
+        model: str,
         state: Mapping[str, str],
-        instructions: str,
-        criteria: Mapping[str, str],
-    ) -> dict[str, float] | None:
-        """Ask one ``choice`` question; return probability per criteria key or ``None``."""
-
-        body = {
-            "model": self._model,
-            "state": dict(state),
-            "questions": {
-                "match": {
-                    "type": "choice",
-                    "instructions": instructions,
-                    "criteria": dict(criteria),
-                }
-            },
-        }
-        try:
-            response = self._client.post(
-                self._url,
-                headers={"Authorization": f"Bearer {self._api_key}"},
-                json=body,
-                timeout=self._timeout,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except (httpx.HTTPError, ValueError):
-            logger.warning("Decision assist request failed; keeping the deterministic match.")
-            return None
-        return _choice_probabilities(payload)
-
-
-def _choice_probabilities(payload: object) -> dict[str, float] | None:
-    if not isinstance(payload, dict):
+        questions: Mapping[str, Mapping[str, object]],
+    ) -> RawDecision | None:
+        body = {"model": model, "state": dict(state), "questions": dict(questions)}
+        for attempt in range(self._retries + 1):
+            try:
+                response = self._client.post(
+                    self._url,
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=body,
+                    timeout=self._timeout,
+                )
+            except httpx.HTTPError as exc:
+                logger.warning(
+                    "Decision request to %s failed (%s), attempt %d.",
+                    model,
+                    type(exc).__name__,
+                    attempt + 1,
+                )
+                continue
+            if response.status_code in _RETRY_STATUSES:
+                logger.warning(
+                    "Decision request to %s returned %d, attempt %d.",
+                    model,
+                    response.status_code,
+                    attempt + 1,
+                )
+                continue
+            if response.status_code != 200:
+                logger.warning("Decision request to %s returned %d.", model, response.status_code)
+                return None
+            return _raw(response)
         return None
-    answers = payload.get("answers")
-    answer = answers.get("match") if isinstance(answers, dict) else None
-    if not isinstance(answer, dict) or answer.get("type") != "choice":
+
+
+def _raw(response: httpx.Response) -> RawDecision | None:
+    try:
+        payload = response.json()
+    except ValueError:
+        logger.warning("Decision response was not JSON.")
         return None
-    raw = answer.get("probabilities")
-    if isinstance(raw, dict) and raw:
+    if not isinstance(payload, dict) or "answers" not in payload:
+        logger.warning("Decision response had no answers.")
+        return None
+    usage = payload.get("usage")
+    cost = Decimal(0)
+    if isinstance(usage, dict) and usage.get("cost") is not None:
         try:
-            return {str(key): float(value) for key, value in raw.items()}
-        except (TypeError, ValueError):
-            return None
-    choice = answer.get("choice")
-    if isinstance(choice, str):
-        try:
-            return {choice: float(answer.get("confidence") or 1.0)}
-        except (TypeError, ValueError):
-            return None
-    return None
+            cost = Decimal(str(usage["cost"]))
+        except InvalidOperation:
+            cost = Decimal(0)
+        if not cost.is_finite() or cost < 0:
+            cost = Decimal(0)
+    served = payload.get("model")
+    return RawDecision(payload["answers"], cost, served if isinstance(served, str) else None)
+
+
+Responder = Callable[[str, Mapping[str, str], Mapping[str, Mapping[str, object]]], object]
+
+
+@dataclass
+class ScriptedDecisionTransport:
+    """Answers from ``responder(model, state, questions)``.
+
+    The responder returns the raw ``answers`` object (as the API would), a ``RawDecision``, or
+    ``None`` to simulate a failure. Every call is recorded.
+    """
+
+    responder: Responder
+    cost_usd: Decimal = Decimal("0.00003")
+    calls: list[dict[str, Any]] = field(default_factory=list)
+
+    def post(
+        self,
+        model: str,
+        state: Mapping[str, str],
+        questions: Mapping[str, Mapping[str, object]],
+    ) -> RawDecision | None:
+        self.calls.append({"model": model, "state": dict(state), "questions": dict(questions)})
+        result = self.responder(model, state, questions)
+        if result is None or isinstance(result, RawDecision):
+            return result
+        return RawDecision(result, self.cost_usd, model)

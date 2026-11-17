@@ -13,7 +13,7 @@ import json
 import logging
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from typing import Any, Literal, Protocol
 
@@ -21,8 +21,11 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy.orm import Session, sessionmaker
 
+from cookfully.application.decisions import build_decisions
+from cookfully.application.import_decisions import ImportDecisions, MovedLine, ScreenResult
 from cookfully.application.openrouter_settings import OpenRouterConfig
 from cookfully.application.openrouter_settings import load_config as load_openrouter_config
+from cookfully.domain.decisions import Purpose
 from cookfully.infrastructure.config import Settings, get_settings
 from cookfully.infrastructure.ingredient_parser import parse_ingredient_line
 from cookfully.infrastructure.models.nutrition_intelligence import NutritionIntelligenceSettings
@@ -245,11 +248,13 @@ class RecipeCleanupService:
         *,
         total_deadline_seconds: float = 60.0,
         remote_factory: Callable[[OpenRouterConfig], RecipeCleanupProvider | None] | None = None,
+        decisions_factory: Callable[[], ImportGuard | None] | None = None,
     ) -> None:
         self._sessions = sessions
         self._local = local
         self._remote = remote
         self._remote_factory = remote_factory
+        self._decisions_factory = decisions_factory
         self._deadline = total_deadline_seconds
 
     def _remote_provider(self) -> RecipeCleanupProvider | None:
@@ -282,9 +287,16 @@ class RecipeCleanupService:
         source_kind: Literal["url", "text_pdf"],
     ) -> ImportedRecipe | ImportedCookbook:
         settings, intelligence = self._settings()
-        if not settings.cleanup_enabled:
-            return imported
-        remote = self._remote_provider() if settings.openrouter_fallback_enabled else None
+        guard = (
+            await asyncio.to_thread(self._decisions_factory)
+            if self._decisions_factory is not None
+            else None
+        )
+        remote = (
+            self._remote_provider()
+            if settings.cleanup_enabled and settings.openrouter_fallback_enabled
+            else None
+        )
         local_enabled = intelligence is None or intelligence.intelligence_enabled
         started = time.perf_counter()
         if isinstance(imported, ImportedCookbook):
@@ -302,10 +314,12 @@ class RecipeCleanupService:
                     continue
                 try:
                     cleaned = await asyncio.wait_for(
-                        self._cleanup_one(
+                        self._process_one(
                             recipe,
                             source_kind,
                             remote,
+                            guard,
+                            cleanup_enabled=settings.cleanup_enabled,
                             local_enabled=local_enabled,
                         ),
                         timeout=remaining,
@@ -318,12 +332,47 @@ class RecipeCleanupService:
                     )
                 recipes.append(cleaned)
             return replace(imported, recipes=tuple(recipes))
-        return await self._cleanup_one(
+        return await self._process_one(
             imported,
             source_kind,
             remote,
+            guard,
+            cleanup_enabled=settings.cleanup_enabled,
             local_enabled=local_enabled,
         )
+
+    async def _process_one(
+        self,
+        recipe: ImportedRecipe,
+        source_kind: Literal["url", "text_pdf"],
+        remote: RecipeCleanupProvider | None,
+        guard: ImportGuard | None,
+        *,
+        cleanup_enabled: bool,
+        local_enabled: bool,
+    ) -> ImportedRecipe:
+        """Decision-model checks first, then (when enabled) the cleanup provider chain."""
+
+        screen: ScreenResult | None = None
+        notes: list[str] = []
+        if guard is not None:
+            recipe = await asyncio.to_thread(_gate, guard, recipe)
+            screen = await asyncio.to_thread(
+                guard.screen, recipe.title, recipe.ingredients, recipe.instructions
+            )
+            if screen.injection:
+                remote = None
+                notes.append("import_injection_suspected")
+            if screen.not_recipe:
+                notes.append("import_not_a_recipe")
+        if not cleanup_enabled:
+            return _with_warnings(recipe, notes)
+        if screen is not None and screen.clean:
+            return _with_warnings(recipe, [*notes, "cleanup_skipped_clean"])
+        cleaned = await self._cleanup_one(
+            recipe, source_kind, remote, local_enabled=local_enabled, guard=guard
+        )
+        return _with_warnings(cleaned, notes)
 
     async def _cleanup_one(
         self,
@@ -332,6 +381,7 @@ class RecipeCleanupService:
         remote: RecipeCleanupProvider | None,
         *,
         local_enabled: bool,
+        guard: ImportGuard | None = None,
     ) -> ImportedRecipe:
         candidate = CleanupCandidate(
             title=recipe.title,
@@ -360,6 +410,13 @@ class RecipeCleanupService:
                 failures.append("cleanup_invalid_output")
                 continue
             ingredients, sections, instructions, changes, warnings = applied
+            if guard is not None:
+                invented = await asyncio.to_thread(
+                    guard.invented, candidate.ingredients, ingredients
+                )
+                if invented:
+                    failures.append("cleanup_invented_ingredient")
+                    continue
             return replace(
                 recipe,
                 ingredients=ingredients,
@@ -376,6 +433,70 @@ class RecipeCleanupService:
             cleanup_provider=providers[-1].name,
             cleanup_warnings=tuple(dict.fromkeys(failures)),
         )
+
+
+class ImportGuard(Protocol):
+    def gate_lines(self, title: str, lines: Sequence[str]) -> tuple[MovedLine, ...]: ...
+
+    def screen(
+        self, title: str, ingredients: Sequence[str], steps: Sequence[str]
+    ) -> ScreenResult: ...
+
+    def invented(self, source: Sequence[str], cleaned: Sequence[str]) -> tuple[str, ...]: ...
+
+
+def _gate(guard: ImportGuard, recipe: ImportedRecipe) -> ImportedRecipe:
+    """Move lines the panel agrees are not ingredients out of the list, keeping their text."""
+
+    moved = guard.gate_lines(recipe.title, recipe.ingredients)
+    if not moved:
+        return recipe
+    drop = {line.index for line in moved}
+    keep = [index for index in range(len(recipe.ingredients)) if index not in drop]
+    if not keep:
+        return recipe  # never empty an ingredient list on the models' word alone
+    sections = recipe.ingredient_sections
+    return replace(
+        recipe,
+        ingredients=tuple(recipe.ingredients[index] for index in keep),
+        ingredient_sections=(
+            tuple(sections[index] for index in keep)
+            if len(sections) == len(recipe.ingredients)
+            else sections
+        ),
+        cleanup_changes=(
+            *recipe.cleanup_changes,
+            *(
+                {
+                    "kind": "ingredient",
+                    "action": "moved",
+                    "sourceIndex": str(line.index),
+                    "before": line.text,
+                    "after": "",
+                    "reason": "not_an_ingredient",
+                    "probability": str(line.probability),
+                }
+                for line in moved
+            ),
+        ),
+        cleanup_warnings=(*recipe.cleanup_warnings, *("moved_ingredient" for _ in moved)),
+    )
+
+
+def _with_warnings(recipe: ImportedRecipe, notes: Sequence[str]) -> ImportedRecipe:
+    if not notes:
+        return recipe
+    return replace(recipe, cleanup_warnings=(*recipe.cleanup_warnings, *notes))
+
+
+def build_import_guard(sessions: sessionmaker[Session]) -> ImportGuard | None:
+    """The owner's decision engine wrapped for imports; ``None`` when no import check can run."""
+
+    decisions = build_decisions(sessions)
+    purposes = (Purpose.IMPORT_LINE_GATE, Purpose.IMPORT_SCREEN, Purpose.CLEANUP_VERIFIER)
+    if not any(decisions.active(purpose) for purpose in purposes):
+        return None
+    return ImportDecisions(decisions)
 
 
 _NUMBER_TOKEN = re.compile(r"(?<!\w)(?:\d+(?:[.,]\d+)?|[¼½¾⅓⅔⅛⅜⅝⅞])(?:\s*[a-zA-Z]+)?")
@@ -570,7 +691,13 @@ def build_recipe_cleanup_service(
             timeout_ms=resolved.intelligence_inline_timeout_ms,
             threshold=resolved.intelligence_inline_threshold,
         )
-    return RecipeCleanupService(sessions, local, None, remote_factory=_openrouter_cleanup_provider)
+    return RecipeCleanupService(
+        sessions,
+        local,
+        None,
+        remote_factory=_openrouter_cleanup_provider,
+        decisions_factory=lambda: build_import_guard(sessions),
+    )
 
 
 def _openrouter_cleanup_provider(config: OpenRouterConfig) -> RecipeCleanupProvider | None:
