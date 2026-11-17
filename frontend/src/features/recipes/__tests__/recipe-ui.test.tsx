@@ -265,6 +265,41 @@ describe("recipe UI", () => {
     expect(screen.getByText("Mix the oats.")).toBeVisible();
   });
 
+  it("offers a timer for the timed wait found in the current step, and degrades quietly without one", async () => {
+    window.sessionStorage.clear(); // an earlier test leaves its cook step behind
+    const steps = [
+      { position: 0, text: "Simmer 20-25 minutes." },
+      { position: 1, text: "Serve." },
+    ];
+    vi.mocked(fetch).mockImplementation((input) =>
+      String(input).includes("/step-timers")
+        ? response({ timers: [{ step: 0, minutes: 20, longestMinutes: 25, text: "20-25 minutes", passive: true }, { step: 5, minutes: 9, longestMinutes: 9, text: "9 minutes", passive: null }] })
+        : response({ ...recipe, instructions: steps }),
+    );
+    renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
+    const user = userEvent.setup();
+    const offered = await screen.findByRole("button", { name: /Start 20 min timer \(up to 25\) · hands-free/ });
+    await user.click(offered);
+    expect(screen.getByRole("status", { name: "Timer 20 min" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.queryByRole("button", { name: /Start 20 min timer/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Start 9 min timer/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start 15 min timer" })).toBeInTheDocument();
+  });
+
+  it("keeps the manual timer when step timers cannot be loaded", async () => {
+    window.sessionStorage.clear();
+    vi.mocked(fetch).mockImplementation((input) =>
+      String(input).includes("/step-timers")
+        ? Promise.reject(new Error("offline"))
+        : response({ ...recipe, instructions: [{ position: 0, text: "Mix the oats." }] }),
+    );
+    renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
+    expect(await screen.findByText("Mix the oats.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /hands-free|Start 20/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start 15 min timer" })).toBeInTheDocument();
+  });
+
   it("resumes a planned cooking session and saves leftovers with undo", async () => {
     const weekStart = "2026-03-09";
     const entry = {

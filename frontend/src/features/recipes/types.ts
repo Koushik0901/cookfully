@@ -27,4 +27,5 @@ export type RecipePhotoAttachWrite = components["schemas"]["RecipePhotoAttach"];
 export type ThumbnailCrop = components["schemas"]["ThumbnailCrop"];
 export type ThumbnailCropWrite = ThumbnailCrop;
 
+export type StepTimers = components["schemas"]["StepTimers"];
 export type IngredientSubstitutes = components["schemas"]["IngredientSubstitutes"];

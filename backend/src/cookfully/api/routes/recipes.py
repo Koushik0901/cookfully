@@ -53,6 +53,8 @@ from cookfully.api.schemas.recipes import (
     RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
+    StepTimerResponse,
+    StepTimersResponse,
     SubstituteResponse,
     SubstitutionsResponse,
     ThumbnailCropRequest,
@@ -64,6 +66,7 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
+from cookfully.application.step_timers import timers_for_recipe
 from cookfully.application.substitutions import suggest_for_ingredient
 from cookfully.application.taste_scores import refresh_all_taste_scores
 from cookfully.domain.common import DomainError, require_present, utc_now
@@ -668,6 +671,30 @@ def get_ingredient_substitutes(
             for entry in result.substitutes
         ),
         ranked=result.ranked,
+    )
+
+
+@router.get(
+    "/{recipeId}/step-timers",
+    response_model=StepTimersResponse,
+    response_model_by_alias=True,
+)
+def get_step_timers(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
+) -> StepTimersResponse:
+    return StepTimersResponse(
+        timers=tuple(
+            StepTimerResponse(
+                step=item.step,
+                minutes=item.minutes,
+                longest_minutes=item.longest_minutes,
+                text=item.text,
+                passive=item.passive,
+            )
+            for item in timers_for_recipe(request.app.state.sessions, recipe_id)
+        )
     )
 
 

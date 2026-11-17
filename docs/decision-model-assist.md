@@ -115,6 +115,15 @@ choice is remembered for that food (`grocery_tidy_memories`). When a checked-off
 lifespan and needs no label date, the `shelf_life` feature picks a lifespan bucket. The date is marked
 "(estimated)" in the pantry.
 
+## Step timers in cook mode
+
+Durations are found in each step's text by rule (`domain/step_timers.py`: "20-25 minutes", "1 1/2 hours",
+"half an hour"; seconds and anything over twelve hours are ignored). The `step_timers` feature then
+chooses which duration, if any, is a timed wait ("ready in 30 minutes" and "keeps 5 days" are not) and
+whether the cook is free meanwhile. `GET /recipes/{id}/step-timers` returns them; cook mode offers
+"Start 20 min timer (up to 25) · hands-free" on that step. Answers are cached by step text. With no key,
+a silent panel or a failed request, nothing is offered and the manual 15-minute timer remains.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment

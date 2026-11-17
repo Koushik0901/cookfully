@@ -268,3 +268,19 @@
   .cook-mode__stage--forward,
   .cook-mode__stage--backward { animation: none; }
 }
+
+.cook-mode__step-timer {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.75rem;
+  align-items: center;
+  border: 1px solid var(--color-on-dark-line);
+  border-radius: var(--radius-full);
+  padding-inline: 0.9rem;
+  color: var(--color-accent);
+  background: var(--color-on-dark-hover);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}

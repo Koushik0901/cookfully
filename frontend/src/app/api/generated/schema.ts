@@ -277,6 +277,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/{recipeId}/step-timers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timers for the steps of a recipe, found in the step text and confirmed by decision models. */
+        get: operations["getRecipeStepTimers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -1656,7 +1673,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life";
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "step_timers";
         DecisionFeature: {
             purpose: components["schemas"]["DecisionPurpose"];
             enabled: boolean;
@@ -1975,6 +1992,19 @@ export interface components {
                 amount: string;
                 note: string;
                 probability?: components["schemas"]["Decimal6"] | null;
+            }[];
+        };
+        StepTimers: {
+            timers: {
+                /** @description Zero-based step index. */
+                step: number;
+                minutes: number;
+                /** @description Upper end when the step gives a range. */
+                longestMinutes: number;
+                /** @description The duration as written in the step. */
+                text: string;
+                /** @description True when the cook is free while it runs; null when no model said. */
+                passive?: boolean | null;
             }[];
         };
         AvoidWarning: {
@@ -3110,6 +3140,37 @@ export interface operations {
                 };
             };
             /** @description Recipe or ingredient not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getRecipeStepTimers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Timed waits by step (empty when none were found or no model answered). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepTimers"];
+                };
+            };
+            /** @description Recipe not found. */
             404: {
                 headers: {
                     [name: string]: unknown;

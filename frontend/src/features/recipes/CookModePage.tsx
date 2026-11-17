@@ -15,6 +15,7 @@ import { formatCookingText, servingLabel } from "./formatCooking";
 import { RecipeMetadata } from "./RecipeMetadata";
 
 type CookSession = { currentStep: number; complete: boolean; checkedIngredients: number[] };
+const MAX_TIMER_MINUTES = 720;
 const COMPACT_COOK_MODE_QUERY = "(max-width: 63.99rem)";
 
 function loadCookSession(recipeId?: string): CookSession | null {
@@ -28,7 +29,7 @@ function loadCookSession(recipeId?: string): CookSession | null {
 }
 
 function TimerChip({ minutes }: { minutes: number }) {
-  const clamped = Math.min(120, Math.max(1, Math.floor(minutes)));
+  const clamped = Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.floor(minutes)));
   const [remaining, setRemaining] = useState(clamped * 60);
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
@@ -70,6 +71,13 @@ export function CookModePage() {
     queryKey: ["recipe", recipeId],
     queryFn: () => recipesApi.get(recipeId!),
     enabled: Boolean(recipeId),
+  });
+  const stepTimers = useQuery({
+    queryKey: ["recipe", recipeId, "step-timers"],
+    queryFn: () => recipesApi.stepTimers(recipeId!),
+    enabled: Boolean(recipeId),
+    retry: false,
+    staleTime: 10 * 60 * 1000,
   });
   const [currentStep, setCurrentStep] = useState(() => loadCookSession(recipeId)?.currentStep ?? 0);
   const [stepDirection, setStepDirection] = useState<"forward" | "backward">("forward");
@@ -188,7 +196,7 @@ export function CookModePage() {
   }, [plannedEntry, saveProgress]);
 
   const startTimer = useCallback((minutes: number) => {
-    setTimer({ minutes: Math.min(120, Math.max(1, Math.floor(minutes))), run: Date.now() });
+    setTimer({ minutes: Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.floor(minutes))), run: Date.now() });
   }, []);
 
   useEffect(() => {
@@ -457,6 +465,12 @@ export function CookModePage() {
                 <p className="cook-mode__step-text">{steps[currentStep]?.text}</p>
               </div>
               <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
+              {(stepTimers.data?.timers ?? []).filter((item) => item.step === currentStep).map((item) => (
+                <button key={`${item.step}-${item.text}`} type="button" className="cook-mode__step-timer" onClick={() => startTimer(item.minutes)}>
+                  Start {item.minutes} min timer{item.longestMinutes > item.minutes ? ` (up to ${item.longestMinutes})` : ""}
+                  {item.passive === true ? " · hands-free" : ""}
+                </button>
+              ))}
               <button type="button" className="cook-mode__quick-timer" onClick={() => startTimer(15)}>Start 15 min timer</button>
               {timer ? <div className="cook-mode__timer-status"><TimerChip key={timer.run} minutes={timer.minutes} /></div> : null}
             </div>

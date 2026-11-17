@@ -761,6 +761,18 @@ class SubstitutionsResponse(ApiModel):
     ranked: bool
 
 
+class StepTimerResponse(ApiModel):
+    step: int = Field(ge=0, description="Zero-based step index.")
+    minutes: int = Field(ge=1, le=720)
+    longest_minutes: int = Field(alias="longestMinutes", ge=1, le=720)
+    text: str
+    passive: bool | None = None
+
+
+class StepTimersResponse(ApiModel):
+    timers: tuple[StepTimerResponse, ...]
+
+
 class AvoidWarningResponse(ApiModel):
     """An ingredient that contains (or may contain) something on the owner's avoid list."""
 

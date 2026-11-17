@@ -1,6 +1,7 @@
 import type {
   ImportConfirmWrite,
   IngredientSubstitutes,
+  StepTimers,
   ImportMergeWrite,
   ImportPreview,
   Job,
@@ -30,6 +31,9 @@ export async function apiRequest<T>(path: string, options: KitchenRequestOptions
 }
 
 export const recipesApi = {
+  stepTimers(recipeId: string) {
+    return apiRequest<StepTimers>(`/recipes/${recipeId}/step-timers`);
+  },
   substitutes(recipeId: string, ingredientId: string) {
     return apiRequest<IngredientSubstitutes>(`/recipes/${recipeId}/ingredients/${ingredientId}/substitutes`);
   },

@@ -420,6 +420,24 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/Problem" }
+  /recipes/{recipeId}/step-timers:
+    get:
+      operationId: getRecipeStepTimers
+      tags: [Recipes]
+      summary: Timers for the steps of a recipe, found in the step text and confirmed by decision models.
+      parameters:
+        - { name: recipeId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Timed waits by step (empty when none were found or no model answered).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StepTimers" }
+        "404":
+          description: Recipe not found.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /recipes/{recipeId}:
     parameters:
       - $ref: "#/components/parameters/RecipeId"
@@ -2445,7 +2463,7 @@ components:
         version: { type: integer, minimum: 1 }
     DecisionPurpose:
       type: string
-      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life]
+      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life, step_timers]
     DecisionFeature:
       type: object
       additionalProperties: false
@@ -2871,6 +2889,21 @@ components:
               amount: { type: string }
               note: { type: string }
               probability: { oneOf: [{ $ref: "#/components/schemas/Decimal6" }, { type: "null" }] }
+    StepTimers:
+      type: object
+      required: [timers]
+      properties:
+        timers:
+          type: array
+          items:
+            type: object
+            required: [step, minutes, longestMinutes, text]
+            properties:
+              step: { type: integer, minimum: 0, description: Zero-based step index. }
+              minutes: { type: integer, minimum: 1, maximum: 720 }
+              longestMinutes: { type: integer, minimum: 1, maximum: 720, description: Upper end when the step gives a range. }
+              text: { type: string, description: The duration as written in the step. }
+              passive: { type: [boolean, "null"], description: True when the cook is free while it runs; null when no model said. }
     AvoidWarning:
       type: object
       required: [ingredientId, item, source]

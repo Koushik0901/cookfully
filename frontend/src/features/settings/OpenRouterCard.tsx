@@ -52,6 +52,10 @@ const DECISION_FEATURE_COPY: Record<DecisionPurpose, { label: string; descriptio
     label: "Shelf life",
     description: "Estimates how long pantry items without a known lifespan keep.",
   },
+  step_timers: {
+    label: "Step timers",
+    description: "Offers a timer in cook mode for the timed waits written in a recipe's steps.",
+  },
 };
 
 type FeatureDraft = { purpose: DecisionPurpose; enabled: boolean; models: string };

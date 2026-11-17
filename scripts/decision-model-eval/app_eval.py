@@ -723,6 +723,45 @@ def report_shelf_life(harness: Harness) -> str:
     return "\n".join(out)
 
 
+def report_step_timers(harness: Harness) -> str:
+    from cookfully.application.step_timers import timers_for_steps
+
+    items = _gold("step_timers")["items"]
+    engine = harness.engine(Purpose.STEP_TIMERS, PANELS["jev+clef"])
+    timers = timers_for_steps(engine, [text for text, _, _ in items])
+    by_step = {t.step: t for t in timers}
+    right = wrong_value = missed = false_timer = passive_right = passive_total = 0
+    problems: list[str] = []
+    for index, (text, minutes, passive) in enumerate(items):
+        got = by_step.get(index)
+        if minutes is None:
+            if got is None:
+                right += 1
+            else:
+                false_timer += 1
+                problems.append(f"  false timer {got.minutes} min: {text}")
+            continue
+        if got is None:
+            missed += 1
+            problems.append(f"  missed {minutes} min: {text}")
+        elif got.minutes != minutes:
+            wrong_value += 1
+            problems.append(f"  {got.minutes} min instead of {minutes}: {text}")
+        else:
+            right += 1
+            if got.passive is not None:
+                passive_total += 1
+                passive_right += got.passive == passive
+    return "\n".join(
+        [
+            f"{len(items)} steps: {right} right, {wrong_value} wrong duration, "
+            f"{missed} missed, {false_timer} false timers",
+            f"hands-free flag right on {passive_right}/{passive_total} correct timers",
+            *problems,
+        ]
+    )
+
+
 def report_diet(harness: Harness) -> str:
     from cookfully.application.recipe_facets import facet_ask
     from cookfully.domain.recipe_facets import DIETS, _contradicted_diets
@@ -947,6 +986,7 @@ EVALUATORS: dict[str, Evaluator] = {
     "grocery-merge": lambda harness, _args: report_grocery_merge(harness),
     "grocery-labels": lambda harness, _args: report_grocery_labels(harness),
     "shelf-life": lambda harness, _args: report_shelf_life(harness),
+    "step-timers": lambda harness, _args: report_step_timers(harness),
     "diet": lambda harness, _args: report_diet(harness),
     "clean-pages": lambda harness, _args: report_clean_pages(harness),
     "substitutions": lambda harness, _args: report_substitutions(harness),

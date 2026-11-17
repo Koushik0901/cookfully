@@ -273,3 +273,13 @@ real hidden items, with 1 false alarm in 16 (fish sauce flagged for shellfish). 
 (gelatin, pork), oat milk (gluten cross-contact), curry paste (shrimp paste) and a 70% dark chocolate (tree
 nut traces). All four are trace or ambiguous cases. This check only ever adds warnings to the deterministic
 list, and it is never the only allergen safeguard.
+
+## Step timers (#21, 2026-11-17)
+
+`app_eval.py step-timers` on 30 hand-written steps (gold `step_timers.json`): durations are found by rule,
+the panel (Jev + Clef) picks the timed wait or none. 28/30 right, 0 false timers (the distractors, such as
+"ready in 30 minutes", "makes 12 cookies, total time 25 minutes", "keeps up to 5 days", were all rejected),
+1 missed (kneading 8 minutes, a hands-on task), 1 arguable (pressure cook 8 min then release 10 min: it
+chose the release). The hands-free flag was right on 19 of 22 correct timers. A missed timer costs the
+cook one tap on the manual button; a false timer would be an annoying nudge, so there is no threshold to
+loosen and none was added.
