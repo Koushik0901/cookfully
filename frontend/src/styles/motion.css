@@ -1,0 +1,162 @@
+/* -------------------------------------------------------------------------
+   Motion contract: four causal moments
+   (cook-step progress, serving recalculation, planning drop, shared media).
+
+   Rules (DESIGN.md, Law_of_UX.md §10):
+   - 110 press / 160 feedback / 220 state / 280 entrance; exits ~75%.
+   - transform + opacity only; colour fades are allowed for state fields.
+   - no page-entry transforms on narrow mobile; motion stays inside a region.
+   - every effect has a static path under prefers-reduced-motion.
+   Loaded last so it can retune earlier, longer experiments.
+   ------------------------------------------------------------------------- */
+
+/* 1. Cook step progress ---------------------------------------------------- */
+.cook-progress {
+  order: -2;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.375rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cook-progress__segment {
+  position: relative;
+  height: 0.375rem;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-on-dark-line);
+  transition: background-color var(--motion-fast) ease;
+}
+.cook-progress__segment--current { background: var(--color-on-dark-line-strong); }
+.cook-progress__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-primary-container);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-state) var(--ease-out-quart);
+}
+.cook-progress__segment--done .cook-progress__fill { transform: scaleX(1); }
+.cook-progress__fill--filling { animation: cook-progress-fill var(--motion-state) var(--ease-out-quart) both; }
+@keyframes cook-progress-fill {
+  from { transform: scaleX(var(--fill-from, 0)); }
+  to { transform: scaleX(var(--fill-to, 1)); }
+}
+/* Long methods collapse to one continuous track so segments stay legible. */
+.cook-progress--continuous { grid-auto-flow: row; }
+.cook-progress--continuous .cook-progress__segment--current { background: var(--color-on-dark-line); }
+
+/* The step rises a few pixels inside the stage; the page itself never slides. */
+.cook-mode__stage--forward { animation: cook-step-rise var(--motion-entrance) var(--ease-out) both; }
+.cook-mode__stage--backward { animation: cook-step-fall var(--motion-entrance) var(--ease-out) both; }
+@keyframes cook-step-rise {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cook-step-fall {
+  from { opacity: 0; transform: translateY(-0.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Peak-end: the one warmer moment, at the end of the job. */
+.cook-mode__complete-media { animation: motion-fade var(--motion-entrance) var(--ease-out) both; }
+.cook-mode__complete-copy > * { animation: motion-fade var(--motion-entrance) var(--ease-out) both; }
+.cook-mode__complete-copy > :nth-child(2) { animation-delay: 60ms; }
+.cook-mode__complete-copy > :nth-child(3) { animation-delay: 100ms; }
+.cook-mode__complete-copy > :nth-child(n + 4) { animation-delay: 140ms; }
+
+@keyframes motion-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* 2. Serving recalculation ------------------------------------------------- */
+/* Keyed on the rendered text, so only quantities that changed replay.
+   Direction comes from a custom property, which never restarts an animation. */
+.qty-tick {
+  display: inline-block;
+  animation: qty-tick var(--motion-fast) var(--ease-out-quart) both;
+}
+@keyframes qty-tick {
+  from { opacity: 0; transform: translateY(var(--tick-from, 0.375rem)); }
+  to { opacity: 1; transform: none; }
+}
+.qty-tick--initial { animation: none; }
+
+/* 3. Planning drop --------------------------------------------------------- */
+.plan-entry,
+.week-meal { transition: background-color var(--motion-state) ease, border-color var(--motion-state) ease; }
+.plan-entry--landed,
+.week-meal--landed {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-container) !important;
+  animation: plan-land var(--motion-entrance) var(--ease-out) both;
+}
+@keyframes plan-land {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.day-tab__count--ticked { display: inline-block; animation: qty-tick var(--motion-fast) var(--ease-out-quart) both; }
+.planner-day__feedback.success-text { animation: motion-rise-in var(--motion-state) var(--ease-out) both; }
+@keyframes motion-rise-in {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 4. Shared recipe media --------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (view-transition-name: none) {
+    /* Desktop/tablet: the card photo travels into the hero (shared element). */
+    ::view-transition-group(*) {
+      animation-duration: var(--motion-entrance);
+      animation-timing-function: var(--ease-out-expo);
+    }
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: var(--motion-entrance);
+      animation-timing-function: var(--ease-out-expo);
+    }
+    ::view-transition-old(root) { animation-duration: 210ms; }
+  }
+}
+
+@media (max-width: 47.99rem) {
+  /* Phones: no cross-screen flight past the fixed dock. The page crossfades
+     and the hero grows in place. !important beats the inline transition name. */
+  .recipe-card__media,
+  .recipe-card h2,
+  .recipe-hero__media,
+  .recipe-hero h1 { view-transition-name: none !important; }
+}
+@media (max-width: 47.99rem) and (prefers-reduced-motion: no-preference) {
+  /* The inner media animates so the wrapper keeps its scroll-linked recession. */
+  .recipe-detail-page .recipe-hero__media > * {
+    transform-origin: center top;
+    animation: media-grow-in var(--motion-entrance) var(--ease-out-expo) both;
+  }
+}
+@keyframes media-grow-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Reduced motion: keep state changes, drop movement. ------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .cook-progress__fill,
+  .cook-progress__segment,
+  .plan-entry,
+  .week-meal { transition: none; }
+  .cook-mode__stage--forward,
+  .cook-mode__stage--backward,
+  .cook-mode__complete-media,
+  .cook-mode__complete-copy > *,
+  .qty-tick,
+  .cook-progress__fill--filling,
+  .plan-entry--landed,
+  .week-meal--landed,
+  .day-tab__count--ticked,
+  .planner-day__feedback.success-text,
+  /* The inner media animates so the wrapper keeps its scroll-linked recession. */
+  .recipe-detail-page .recipe-hero__media > * { animation: none; }
+}

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, CookingPot, HeartPulse, LayoutGrid, Plus, Sparkles } from "lucide-react";
 
@@ -19,6 +19,7 @@ import type { MealPlan, MealPlanEntry as PlannedEntry } from "./types";
 import { isRecipePlannable } from "../recipes/recipeEligibility";
 import { useExpiringPantry } from "./useExpiringPantry";
 import { AvoidWarningsProvider } from "./avoidWarnings";
+import { PLAN_LANDING_MS, PlanLandingContext, type PlanLanding } from "./planLanding";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 type PlannerView = "week" | "day" | "prep";
@@ -80,12 +81,23 @@ export function WeeklyPlannerPage() {
   const { expiring: expiringPantry } = useExpiringPantry(3, todayForBanner);
   const planMissing = plan.error instanceof ApiProblem && plan.error.status === 404;
   const goalMissing = goal.error instanceof ApiProblem && goal.error.status === 404;
+  const [landing, setLanding] = useState<PlanLanding>(null);
+  const landingTimer = useRef<number | null>(null);
+  // Show the saved meal in place straight away (the refetch confirms it), so
+  // the card, its day count and the landing motion all arrive together.
+  const land = (entry: PlannedEntry) => {
+    queryClient.setQueryData<MealPlan>(["meal-plan", weekStart], (current) => current && !current.entries.some((item) => item.id === entry.id) ? { ...current, entries: [...current.entries, entry] } : current);
+    if (landingTimer.current) window.clearTimeout(landingTimer.current);
+    setLanding({ entryId: entry.id, localDate: entry.localDate });
+    landingTimer.current = window.setTimeout(() => setLanding(null), PLAN_LANDING_MS);
+  };
+  useEffect(() => () => { if (landingTimer.current) window.clearTimeout(landingTimer.current); }, []);
   const add = useMutation({
     mutationFn: ({ recipeId, mealSlot }: { recipeId: string; mealSlot: string }) => {
       if (selectedDate < todayInTimezone(preferences.data!.timezone)) throw new Error("Past days are read-only. Choose today or a future day.");
       return planningApi.addEntry(weekStart, { localDate: selectedDate, mealSlot, recipeId, servings: "1.000", refreshNutrition: false });
     },
-    onSuccess: () => { setAddMessage("Meal added to your plan."); setPickerOpen(false); void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] }); },
+    onSuccess: (saved) => { setAddMessage("Meal added to your plan."); setPickerOpen(false); land(saved); void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] }); },
     onError: (error) => { setAddMessage(error instanceof Error ? error.message : "Past days are read-only. Choose today or a future day."); setPickerOpen(true); },
   });
   const move = useMutation({
@@ -137,6 +149,7 @@ export function WeeklyPlannerPage() {
     onError: () => setAddMessage("That meal could not be copied. The original is still in its usual spot."),
     onSuccess: (saved) => {
       setAddMessage(`${saved.recipeTitle} copied to ${saved.mealSlot}.`);
+      land(saved);
       void queryClient.invalidateQueries({ queryKey: ["meal-plan", weekStart] });
     },
   });
@@ -209,6 +222,7 @@ export function WeeklyPlannerPage() {
 
   return (
     <AvoidWarningsProvider plan={plan.data}>
+    <PlanLandingContext.Provider value={landing}>
     <main className="page-shell planner-page">
       <header className="plan-head">
         <h1>Plan</h1>
@@ -281,6 +295,7 @@ export function WeeklyPlannerPage() {
       {isMobile && !selectedDateIsPast ? <div className="planner-mobile-add"><Button onClick={() => { add.reset(); setPickerSlot("dinner"); setAddMessage(""); setPickerOpen(true); }}><Plus aria-hidden="true" />Add a meal</Button></div> : null}
       <RecipePickerSheet open={pickerOpen} onOpenChange={setPickerOpen} recipes={availableRecipes} mealSlot={pickerSlot} dateLabel={longDate(selectedDate)} pendingRecipeId={add.isPending ? add.variables?.recipeId : undefined} error={add.error instanceof Error ? add.error.message : undefined} loading={recipes.isPending} unavailableRecipeCount={Math.max(0, (recipes.data?.items.length ?? 0) - availableRecipes.length)} preferredRecipeId={searchParams.get("recipe")} libraryError={recipes.error instanceof Error ? recipes.error.message : undefined} onRetry={() => void recipes.refetch()} onChoose={(chosenRecipeId) => add.mutate({ recipeId: chosenRecipeId, mealSlot: pickerSlot })} />
     </main>
+    </PlanLandingContext.Provider>
     </AvoidWarningsProvider>
   );
 }

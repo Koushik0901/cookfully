@@ -101,6 +101,9 @@ test("starts food-first planning before a nutrition guide exists", async ({ page
   await expect(page.getByRole("heading", { name: "Protein oats" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Add nutrition guide" })).toHaveCount(mobile ? 0 : 1);
   await expect(page.getByText("Meal added to your plan.")).toBeVisible();
+  // The new meal lands with a brief mint hold, then settles; capture the settled state.
+  await expect(page.locator(".plan-entry--landed")).toHaveCount(1);
+  await expect(page.locator(".plan-entry--landed")).toHaveCount(0, { timeout: 4000 });
   await captureUi(page, testInfo, "planner-day", { focus: page.getByRole("heading", { name: "Protein oats" }) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

@@ -8,6 +8,7 @@ import { RecipeFallbackArt } from "../../components/cookfully/RecipeFallbackArt"
 import { formatCookingNumber } from "../recipes/formatCooking";
 import { RecipeMetadata } from "../recipes/RecipeMetadata";
 import { longDate } from "./dates";
+import { usePlanLanding } from "./planLanding";
 import type { MealPlanEntry, RecipePage } from "./types";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"] as const;
@@ -28,9 +29,10 @@ function weekday(value: string, format: "long" | "short" = "long") {
 
 function DraggableWeekMeal({ entry, recipe, onCopy, onDelete, pending, readOnly }: { entry: MealPlanEntry; recipe?: Recipe; onCopy: () => void; onDelete: () => void; pending: boolean; readOnly: boolean }) {
   const cooked = entry.cookingStatus === "cooked";
+  const landed = usePlanLanding()?.entryId === entry.id;
   const { ref, isDragging } = useDraggable<MealDragData>({ id: entry.id, data: { kind: "meal", entry }, disabled: !entry.recipeId || pending || readOnly || cooked });
   return (
-    <article ref={ref} className={`week-meal${isDragging ? " is-dragging" : ""}`}>
+    <article ref={ref} className={`week-meal${isDragging ? " is-dragging" : ""}${landed ? " week-meal--landed" : ""}`}>
       {entry.recipeId ? <Link className="week-meal__body" to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`} draggable={false}><span className="week-meal__media">{recipe ? <RecipeMedia recipe={recipe} sizes="64px" /> : <RecipeFallbackArt title={entry.recipeTitle} />}</span><div className="week-meal__copy"><strong>{entry.recipeTitle}</strong><span>{cooked ? "Cooked" : entry.cookingStatus === "cooking" ? `Cooking · step ${(entry.cookingStep ?? 0) + 1}` : `${formatCookingNumber(entry.servings)} ${Number(entry.servings) === 1 ? "serving" : "servings"}`}</span>{recipe ? <RecipeMetadata recipe={recipe} compact /> : null}</div></Link> : <div className="week-meal__body"><span className="week-meal__media"><RecipeFallbackArt title={entry.recipeTitle} /></span><div className="week-meal__copy"><strong>{entry.recipeTitle}</strong><span>{formatCookingNumber(entry.servings)} {Number(entry.servings) === 1 ? "serving" : "servings"}</span></div></div>}
       <div className="week-meal__actions">
         <button type="button" className="week-meal__copy-action" disabled={!entry.recipeId || pending || readOnly || cooked} onPointerDownCapture={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onClick={onCopy} aria-label={`Copy ${entry.recipeTitle}`} title="Copy meal"><Copy aria-hidden="true" /></button>
