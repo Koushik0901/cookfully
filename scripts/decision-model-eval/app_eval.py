@@ -723,6 +723,58 @@ def report_shelf_life(harness: Harness) -> str:
     return "\n".join(out)
 
 
+def report_gram_estimate(harness: Harness) -> str:
+    from cookfully.application.gram_estimate import INSTRUCTIONS
+    from cookfully.domain.count_weights import COUNT_WEIGHT_BUCKETS, weight_range
+    from cookfully.domain.decisions import Ask, Choice
+
+    items = _gold("count_weights")["items"]
+    engine = harness.engine(Purpose.GRAM_ESTIMATE, PANELS["jev+clef"])
+    options = {k: d for k, (_, _, d) in COUNT_WEIGHT_BUCKETS.items()}
+    asks = [
+        Ask(
+            Purpose.GRAM_ESTIMATE,
+            {"ingredient": text, "food": ""},
+            {"weight": Choice(INSTRUCTIONS, options)},
+        )
+        for text, _ in items
+    ]
+    answers = engine.ask(asks)
+    inside = unanswered = 0
+    midpoint_errors: list[float] = []
+    geometric_errors: list[float] = []
+    widths: list[float] = []
+    misses: list[str] = []
+    for (text, grams), a in zip(items, answers, strict=True):
+        spread = weight_range(a.choice("weight") or {})
+        if spread is None:
+            unanswered += 1
+            continue
+        low, high = float(spread[0]), float(spread[1])
+        widths.append(high / low)
+        midpoint_errors.append(abs((low + high) / 2 - grams) / grams)
+        geometric_errors.append(abs((low * high) ** 0.5 - grams) / grams)
+        if low <= grams <= high:
+            inside += 1
+        else:
+            misses.append(f"  {text}: true {grams} g, range {low:g}-{high:g} g")
+    answered = len(items) - unanswered
+    midpoint_errors.sort()
+    widths.sort()
+    out = [
+        f"{len(items)} counted ingredients, {answered} answered",
+        f"true weight inside p10-p90 range: {inside}/{answered}",
+        f"median range width (high/low): {widths[len(widths) // 2]:.1f}x" if widths else "",
+        f"median midpoint error: {midpoint_errors[len(midpoint_errors) // 2]:.0%}" if midpoint_errors else "",
+        f"median geometric-mean error: {sorted(geometric_errors)[len(geometric_errors) // 2]:.0%}"
+        if geometric_errors
+        else "",
+        "misses:",
+        *misses,
+    ]
+    return "\n".join(out)
+
+
 def report_step_timers(harness: Harness) -> str:
     from cookfully.application.step_timers import timers_for_steps
 
@@ -1034,6 +1086,7 @@ EVALUATORS: dict[str, Evaluator] = {
     "grocery-merge": lambda harness, _args: report_grocery_merge(harness),
     "grocery-labels": lambda harness, _args: report_grocery_labels(harness),
     "shelf-life": lambda harness, _args: report_shelf_life(harness),
+    "gram-estimate": lambda harness, _args: report_gram_estimate(harness),
     "step-timers": lambda harness, _args: report_step_timers(harness),
     "cook-commands": lambda harness, _args: report_cook_commands(harness),
     "diet": lambda harness, _args: report_diet(harness),

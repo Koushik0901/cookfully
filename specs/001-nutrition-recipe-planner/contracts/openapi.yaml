@@ -2488,7 +2488,7 @@ components:
         version: { type: integer, minimum: 1 }
     DecisionPurpose:
       type: string
-      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life, step_timers, cook_command]
+      enum: [match_referee, food_labels, import_line_gate, import_screen, cleanup_verifier, hidden_ingredients, recipe_facets, substitutions, grocery_tidy, shelf_life, gram_estimate, step_timers, cook_command]
     DecisionFeature:
       type: object
       additionalProperties: false

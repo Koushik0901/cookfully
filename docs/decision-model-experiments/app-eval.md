@@ -301,3 +301,17 @@ with each other, or the top probability is under 0.6. It never edits a gold file
 sets: `cook-commands` 54/57 confirmed, 3 flagged ("what do I do now", a genuinely ambiguous one, and two
 low-agreement items); `shelf-life` 26/30 confirmed, 4 flagged (cottage cheese, parmesan, carrots, apples,
 all debatable lifespans). Custom tasks use a small JSON file (see the script's docstring).
+
+## Counted-ingredient weights (#4, 2026-11-17)
+
+`app_eval.py gram-estimate` on 61 hand-labeled lines (gold `count_weights.json`, typical USDA weight of
+one item). Jev + Clef, 10 buckets about 2x wide:
+
+- true weight inside the p10-p90 range: 54/61 (89%, nominal 80%);
+- median range width 5.0x; median error of the arithmetic midpoint 45%, of the geometric mean 33%, so the
+  roll-up uses the geometric mean;
+- misses are borderline buckets (a lemon at 58 g against 90-150 g, bacon at 8 g, a very small bay leaf)
+  and one large eggplant; none are order-of-magnitude errors.
+
+The range is wide on purpose: the model is unsure about size words, and the nutrition card already shows
+partial coverage and estimates. No threshold applies; every answer is used and labelled as an estimate.

@@ -36,6 +36,7 @@ class Purpose(StrEnum):
     SHELF_LIFE = "shelf_life"
     STEP_TIMERS = "step_timers"
     COOK_COMMAND = "cook_command"
+    GRAM_ESTIMATE = "gram_estimate"
 
 
 @dataclass(frozen=True, slots=True)

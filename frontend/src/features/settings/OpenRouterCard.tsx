@@ -60,6 +60,10 @@ const DECISION_FEATURE_COPY: Record<DecisionPurpose, { label: string; descriptio
     label: "Cook commands",
     description: "Understands typed or spoken commands in cook mode (next, repeat, timer 10 minutes).",
   },
+  gram_estimate: {
+    label: "Item weights",
+    description: "Estimates the weight of counted ingredients (such as one onion) so their nutrition is included, as a range.",
+  },
 };
 
 type FeatureDraft = { purpose: DecisionPurpose; enabled: boolean; models: string };

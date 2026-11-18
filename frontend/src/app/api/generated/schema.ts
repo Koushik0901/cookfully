@@ -1690,7 +1690,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "step_timers" | "cook_command";
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "gram_estimate" | "step_timers" | "cook_command";
         DecisionFeature: {
             purpose: components["schemas"]["DecisionPurpose"];
             enabled: boolean;

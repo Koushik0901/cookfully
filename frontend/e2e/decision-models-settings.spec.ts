@@ -14,6 +14,7 @@ const PURPOSES = [
   "shelf_life",
   "step_timers",
   "cook_command",
+  "gram_estimate",
 ] as const;
 const PANEL = ["typesafe/jev-1.14", "cloudflare/clef"];
 

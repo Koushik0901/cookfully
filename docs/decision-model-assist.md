@@ -134,6 +134,15 @@ timer's length is read from the words by rule (digits or "twenty five minutes", 
 model, and a timer without a length asks for one. Voice never finishes the session: "next" on the last
 step says so. With no key or a failed request the box says so and the buttons are unchanged.
 
+## Weights for counted ingredients
+
+"1 medium onion" or "2 large eggs" has no gram weight, so it used to be left out of the nutrition
+roll-up. The `gram_estimate` feature asks the panel which weight bucket one such item falls in
+(`domain/count_weights.py`). The probabilities give a gram range (about the 10th to 90th percentile),
+stored on the match as `count_weight_model` with the range in the assumption text; the roll-up uses
+the geometric mean of the range. An owner food serving or manual correction always wins, and a panel
+that cannot answer leaves the line unresolved exactly as before.
+
 ## Operating it
 
 Everything is set in the app under **Settings → Intelligence → OpenRouter**; there are no environment
