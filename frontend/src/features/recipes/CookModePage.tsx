@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { Button, DecimalInput, ErrorRecovery, Field, KitchenCompanion, PageState, RecipeMedia, Skeleton } from "../../components";
@@ -53,6 +53,44 @@ function TimerChip({ minutes }: { minutes: number }) {
   const displaySec = remaining % 60;
   const remainingLabel = `${displayMin}:${String(displaySec).padStart(2, "0")}`;
   return <div role="status" aria-live="polite" aria-label={`Timer ${clamped} min`}>{remaining ? `Timer set for ${clamped} min — ${remainingLabel} remaining` : "Timer finished"}</div>;
+}
+
+const MAX_PROGRESS_SEGMENTS = 12;
+
+/** Segmented step progress: finished steps fill (goal gradient), the current one is lit. */
+// The stage remounts per step, so the segment just finished replays its fill
+// with a keyframe rather than relying on a transition between renders.
+function CookProgress({ done, current, total, label, direction }: { done: number; current: number; total: number; label: string; direction: "forward" | "backward" }) {
+  const continuous = total > MAX_PROGRESS_SEGMENTS;
+  const filling = direction === "forward" ? done - 1 : -1;
+  return (
+    <div
+      className={`cook-progress${continuous ? " cook-progress--continuous" : ""}`}
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={total}
+      aria-valuenow={current + 1}
+    >
+      {continuous ? (
+        <span className="cook-progress__segment">
+          <span
+            className={`cook-progress__fill${filling >= 0 ? " cook-progress__fill--filling" : ""}`}
+            style={{ "--fill-from": total ? Math.max(0, done - 1) / total : 0, "--fill-to": total ? done / total : 0, transform: `scaleX(${total ? done / total : 0})` } as CSSProperties}
+          />
+        </span>
+      ) : (
+        Array.from({ length: total }, (_, index) => (
+          <span
+            key={index}
+            className={`cook-progress__segment${index < done ? " cook-progress__segment--done" : ""}${index === current ? " cook-progress__segment--current" : ""}`}
+          >
+            <span className={`cook-progress__fill${index === filling ? " cook-progress__fill--filling" : ""}`} />
+          </span>
+        ))
+      )}
+    </div>
+  );
 }
 
 export function CookModePage() {
@@ -465,7 +503,7 @@ export function CookModePage() {
                 </span>
                 <p className="cook-mode__step-text">{steps[currentStep]?.text}</p>
               </div>
-              <progress className="cook-mode__progress" value={progress} max={total} aria-label={"Step " + (currentStep + 1) + " of " + total} />
+              <CookProgress done={currentStep} current={currentStep} total={total} direction={stepDirection} label={"Step " + progress + " of " + total} />
               {(stepTimers.data?.timers ?? []).filter((item) => item.step === currentStep).map((item) => (
                 <button key={`${item.step}-${item.text}`} type="button" className="cook-mode__step-timer" onClick={() => startTimer(item.minutes)}>
                   Start {item.minutes} min timer{item.longestMinutes > item.minutes ? ` (up to ${item.longestMinutes})` : ""}

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Minus, Pencil, Plus, ShoppingBasket, Sparkles } from "lucide-react";
@@ -170,6 +170,18 @@ export function RecipeDetailPage() {
     const sourceYield = Number(detail.data?.yieldQuantity ?? 1);
     return sourceYield > 0 ? scale / sourceYield : 1;
   }, [scale, detail.data?.yieldQuantity]);
+  // Serving recalculation motion: quantities that change tick in the direction
+  // of the change. Nothing animates until the cook actually adjusts servings.
+  const [scaleTouched, setScaleTouched] = useState(false);
+  const previousScale = useRef(scale);
+  const tickStyle = { "--tick-from": scale < previousScale.current ? "-0.375rem" : "0.375rem" } as CSSProperties;
+  useEffect(() => {
+    previousScale.current = scale;
+  }, [scale]);
+  const adjustScale = (update: (value: number) => number) => {
+    setScaleTouched(true);
+    setScale(update);
+  };
 
   if (detail.isPending) return <PageState><Skeleton label="Loading recipe" lines={8} /></PageState>;
   if (detail.isError || !detail.data) return <PageState><ErrorRecovery title="Recipe could not be loaded" onRetry={() => void detail.refetch()} /></PageState>;
@@ -209,6 +221,22 @@ export function RecipeDetailPage() {
     const key = item.sectionId ?? null;
     instructionGroups.set(key, [...(instructionGroups.get(key) ?? []), item]);
   }
+  const renderIngredient = (item: (typeof recipe.ingredients)[number]) => {
+    const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+    const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
+    const friendlyIngredient = scaleFactor !== 1 && scaledMin
+      ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
+      : formatCookingText(item.originalText);
+    const scalable = scaledMin != null;
+    return (
+      <li key={item.id}>
+        <span className="ingredient-text">
+          {scaleTouched && scalable ? <span key={friendlyIngredient} className="qty-tick" style={tickStyle}>{friendlyIngredient}</span> : friendlyIngredient}
+        </span>
+        {item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}
+      </li>
+    );
+  };
   const orderedSections = (recipe.sections ?? []).filter((section) => (ingredientGroups.get(section.id)?.length ?? 0) > 0 || (instructionGroups.get(section.id)?.length ?? 0) > 0);
 
   return (
@@ -272,10 +300,11 @@ export function RecipeDetailPage() {
       </nav>
 
       <div className="recipe-mobile-serving-control" aria-label="Recipe servings">
-        <button type="button" aria-label="Decrease servings" disabled={scale <= 0.25} onClick={() => setScale((value) => Math.max(0.25, value - 0.5))}>−</button>
-        <strong>{Number.isInteger(scale) ? scale : scale.toFixed(1)} {recipe.yieldUnit}</strong>
-        <button type="button" aria-label="Increase servings" onClick={() => setScale((value) => value + 0.5)}>+</button>
+        <button type="button" aria-label="Decrease servings" disabled={scale <= 0.25} onClick={() => adjustScale((value) => Math.max(0.25, value - 0.5))}>−</button>
+        <strong><span key={scale} className={scaleTouched ? "qty-tick" : undefined} style={tickStyle}>{Number.isInteger(scale) ? scale : scale.toFixed(1)}</span> {recipe.yieldUnit}</strong>
+        <button type="button" aria-label="Increase servings" onClick={() => adjustScale((value) => value + 0.5)}>+</button>
       </div>
+      <p className="sr-only" aria-live="polite">{scaleTouched ? `Ingredients updated for ${Number.isInteger(scale) ? scale : scale.toFixed(1)} ${recipe.yieldUnit ?? "servings"}` : ""}</p>
 
       <section className="recipe-reading-grid">
         <section className={`recipe-reading-panel recipe-reading-panel--ingredients${mobilePanel === "ingredients" ? " is-mobile-active" : ""}`} aria-labelledby="ingredients-heading">
@@ -287,9 +316,9 @@ export function RecipeDetailPage() {
               {/* Scaling sits beside the quantities it changes. Phones use the
                   dedicated stepper above the panels instead. */}
               <div className="recipe-servings" role="group" aria-label="Scale recipe">
-                <button type="button" aria-label="Fewer servings" disabled={scale <= 0.25} onClick={() => setScale((value) => Math.max(0.25, value - (value > 1 ? 1 : 0.25)))}><Minus aria-hidden="true" /></button>
-                <label><span className="sr-only">Scale to</span><input className="portion-scale__input" type="number" inputMode="decimal" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) setScale(value); }} /><span>{recipe.yieldUnit}</span></label>
-                <button type="button" aria-label="More servings" onClick={() => setScale((value) => value + (value >= 1 ? 1 : 0.25))}><Plus aria-hidden="true" /></button>
+                <button type="button" aria-label="Fewer servings" disabled={scale <= 0.25} onClick={() => adjustScale((value) => Math.max(0.25, value - (value > 1 ? 1 : 0.25)))}><Minus aria-hidden="true" /></button>
+                <label><span className="sr-only">Scale to</span><input className="portion-scale__input" type="number" inputMode="decimal" min={0.25} step={0.5} value={scale} onChange={(event) => { const value = parseFloat(event.target.value); if (value > 0) adjustScale(() => value); }} /><span>{recipe.yieldUnit}</span></label>
+                <button type="button" aria-label="More servings" onClick={() => adjustScale((value) => value + (value >= 1 ? 1 : 0.25))}><Plus aria-hidden="true" /></button>
               </div>
             </>}
           />
@@ -300,25 +329,11 @@ export function RecipeDetailPage() {
                 <li key={section.id} className="ingredient-section" aria-label={`${section.title} ingredients`}>
                   <h3>{section.title}</h3>
                   <ul>
-                    {(ingredientGroups.get(section.id) ?? []).map((item) => {
-                      const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-                      const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-                      const friendlyIngredient = scaleFactor !== 1 && scaledMin
-                        ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
-                        : formatCookingText(item.originalText);
-                      return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
-                    })}
+                    {(ingredientGroups.get(section.id) ?? []).map(renderIngredient)}
                   </ul>
                 </li>
               ))}
-              {(ingredientGroups.get(null) ?? []).map((item) => {
-                const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-                const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-                const friendlyIngredient = scaleFactor !== 1 && scaledMin
-                  ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
-                  : formatCookingText(item.originalText);
-                return <li key={item.id}><span className="ingredient-text">{friendlyIngredient}</span>{item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}</li>;
-              })}
+              {(ingredientGroups.get(null) ?? []).map(renderIngredient)}
             </ul>
           ) : <p className="muted">No ingredients were provided.</p>}
         </section>

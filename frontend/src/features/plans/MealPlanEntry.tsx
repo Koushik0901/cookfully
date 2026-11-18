@@ -14,6 +14,7 @@ const PLAN_FACETS = ["keeps_4_days", "reheats_well", "freezes_well"];
 import { nutritionConfidenceLabel } from "./nutritionConfidence";
 import { useMealPlanMutations } from "./useMealPlanMutations";
 import { addDays, weekDates } from "./dates";
+import { usePlanLanding } from "./planLanding";
 
 const SLOTS = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -27,6 +28,7 @@ export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false, toda
   const dayOptions = weekDates(weekStart).filter((day) => day === entry.localDate || !today || day >= today);
   useEffect(() => setServings(formatCookingInput(entry.servings)), [entry.servings]);
   const mutations = useMealPlanMutations(weekStart);
+  const landed = usePlanLanding()?.entryId === entry.id;
   const canCopyToNextDay = entry.localDate < addDays(weekStart, 6);
   const cooked = entry.cookingStatus === "cooked";
   const disabled = !entry.recipeId || readOnly || cooked;
@@ -41,7 +43,7 @@ export function MealPlanEntry({ entry, weekStart, recipe, readOnly = false, toda
   });
 
   return (
-    <article className={`plan-entry${readOnly ? " plan-entry--past" : ""}${cooked ? " plan-entry--cooked" : ""}`}>
+    <article className={`plan-entry${readOnly ? " plan-entry--past" : ""}${cooked ? " plan-entry--cooked" : ""}${landed ? " plan-entry--landed" : ""}`}>
       <div className="plan-entry__main">
         {entry.recipeId ? (
           <Link className={`plan-entry__media ${recipe?.imageUrl ? "" : "plan-entry__media--fallback"}`} to={`/app/recipes/${entry.recipeId}`} aria-label={`Open ${entry.recipeTitle}`}>
