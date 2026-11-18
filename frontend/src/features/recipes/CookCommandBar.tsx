@@ -135,7 +135,7 @@ export function CookCommandBar({ recipeId, step, actions }: { recipeId: string; 
       <button type="submit" disabled={!text.trim() || interpret.isPending}>
         {interpret.isPending ? "Working…" : "Go"}
       </button>
-      <div role="status" aria-live="polite" className="cook-command__status">
+      <div aria-live="polite" aria-atomic="true" className="cook-command__status">
         {message}
         {options.map((option) => (
           <button
