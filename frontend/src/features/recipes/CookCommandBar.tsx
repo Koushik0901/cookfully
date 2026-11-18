@@ -124,7 +124,7 @@ export function CookCommandBar({ recipeId, step, actions }: { recipeId: string; 
         value={text}
         maxLength={400}
         aria-label="Say or type a command"
-        placeholder="Say or type: next, repeat, timer 10 minutes"
+        placeholder="Say or type a command"
         onChange={(event) => setText(event.target.value)}
       />
       {Speech ? (
