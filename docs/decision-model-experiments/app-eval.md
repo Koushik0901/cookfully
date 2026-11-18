@@ -274,6 +274,34 @@ real hidden items, with 1 false alarm in 16 (fish sauce flagged for shellfish). 
 nut traces). All four are trace or ambiguous cases. This check only ever adds warnings to the deterministic
 list, and it is never the only allergen safeguard.
 
+## Step timers (#21, 2026-11-17)
+
+`app_eval.py step-timers` on 30 hand-written steps (gold `step_timers.json`): durations are found by rule,
+the panel (Jev + Clef) picks the timed wait or none. 28/30 right, 0 false timers (the distractors, such as
+"ready in 30 minutes", "makes 12 cookies, total time 25 minutes", "keeps up to 5 days", were all rejected),
+1 missed (kneading 8 minutes, a hands-on task), 1 arguable (pressure cook 8 min then release 10 min: it
+chose the release). The hands-free flag was right on 19 of 22 correct timers. A missed timer costs the
+cook one tap on the manual button; a false timer would be an annoying nudge, so there is no threshold to
+loosen and none was added.
+
+## Cook commands (#20, 2026-11-17)
+
+`app_eval.py cook-commands` on 57 utterances (gold `cook_commands.json`: clean and misheard phrasings of
+next/previous/repeat/timer/ingredient, plus 15 non-commands such as "the dog is barking", "next to the
+stove", "call mom"). Jev + Clef top-1 was right on 56/57. The one miss, "what do I do now" (meant repeat,
+answered next at 0.51), is genuinely ambiguous. Acting threshold sweep: at 0.3-0.5 one wrong action; at 0.6
+and above none, with only that ambiguous line and one other asked. The app acts at 0.6: the extra
+confirmation lands only on ambiguous lines, and clear commands are unaffected.
+
+## Model-assisted labeling (#23, 2026-11-17)
+
+`label_assist.py` asks the Jev + Clef panel the same question as the gold label and writes a Markdown review
+sheet of only the items worth a human's time: the panel disagrees with the label, the two models disagree
+with each other, or the top probability is under 0.6. It never edits a gold file. Dogfooded on our own gold
+sets: `cook-commands` 54/57 confirmed, 3 flagged ("what do I do now", a genuinely ambiguous one, and two
+low-agreement items); `shelf-life` 26/30 confirmed, 4 flagged (cottage cheese, parmesan, carrots, apples,
+all debatable lifespans). Custom tasks use a small JSON file (see the script's docstring).
+
 ## Counted-ingredient weights (#4, 2026-11-17)
 
 `app_eval.py gram-estimate` on 61 hand-labeled lines (gold `count_weights.json`, typical USDA weight of

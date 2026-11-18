@@ -26,6 +26,8 @@ from cookfully.api.dependencies.auth import require_browser_owner, require_scope
 from cookfully.api.schemas.foods import OwnerFoodSelectionRequest
 from cookfully.api.schemas.jobs import JobAcceptedResponse
 from cookfully.api.schemas.recipes import (
+    CookCommandRequest,
+    CookCommandResponse,
     DuplicateSummary,
     ImportConfirmRequest,
     ImportMergeRequest,
@@ -53,10 +55,13 @@ from cookfully.api.schemas.recipes import (
     RecipeSourceImageResponse,
     RecipeWriteRequest,
     ResolvedNutritionResponse,
+    StepTimerResponse,
+    StepTimersResponse,
     SubstituteResponse,
     SubstitutionsResponse,
     ThumbnailCropRequest,
 )
+from cookfully.application.cook_command import interpret_for_recipe
 from cookfully.application.corrections import CorrectionService
 from cookfully.application.idempotency import IdempotencyService
 from cookfully.application.import_preview import ImportPreviewCoordinator
@@ -64,6 +69,7 @@ from cookfully.application.recipe_organization import RecipeOrganizationService
 from cookfully.application.recipe_photos import RecipePhotoService
 from cookfully.application.recipe_queries import RecipeQueryService
 from cookfully.application.recipes import RecipeService
+from cookfully.application.step_timers import timers_for_recipe
 from cookfully.application.substitutions import suggest_for_ingredient
 from cookfully.application.taste_scores import refresh_all_taste_scores
 from cookfully.domain.common import DomainError, require_present, utc_now
@@ -668,6 +674,58 @@ def get_ingredient_substitutes(
             for entry in result.substitutes
         ),
         ranked=result.ranked,
+    )
+
+
+@router.get(
+    "/{recipeId}/step-timers",
+    response_model=StepTimersResponse,
+    response_model_by_alias=True,
+)
+def get_step_timers(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_scopes("recipes:read"))],
+) -> StepTimersResponse:
+    return StepTimersResponse(
+        timers=tuple(
+            StepTimerResponse(
+                step=item.step,
+                minutes=item.minutes,
+                longest_minutes=item.longest_minutes,
+                text=item.text,
+                passive=item.passive,
+            )
+            for item in timers_for_recipe(request.app.state.sessions, recipe_id)
+        )
+    )
+
+
+@router.post(
+    "/{recipeId}/cook-command",
+    response_model=CookCommandResponse,
+    response_model_by_alias=True,
+)
+def post_cook_command(
+    recipe_id: Annotated[UUID, Path(alias="recipeId")],
+    payload: CookCommandRequest,
+    request: Request,
+    _: Annotated[OwnerAccount, Depends(require_browser_owner)],
+) -> CookCommandResponse:
+    result = interpret_for_recipe(
+        request.app.state.sessions, recipe_id, payload.utterance, payload.step
+    )
+    return CookCommandResponse.model_validate(
+        {
+            "intent": result.intent,
+            "probability": result.probability,
+            "minutes": result.minutes,
+            "act": result.act,
+            "alternatives": [
+                {"intent": item.intent, "probability": item.probability}
+                for item in result.alternatives
+            ],
+        }
     )
 
 

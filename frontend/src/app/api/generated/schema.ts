@@ -277,6 +277,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recipes/{recipeId}/step-timers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timers for the steps of a recipe, found in the step text and confirmed by decision models. */
+        get: operations["getRecipeStepTimers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recipes/{recipeId}/cook-command": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Interpret a spoken or typed cook-mode command with decision models. */
+        post: operations["postCookCommand"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recipes/{recipeId}": {
         parameters: {
             query?: never;
@@ -1656,7 +1690,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "gram_estimate";
+        DecisionPurpose: "match_referee" | "food_labels" | "import_line_gate" | "import_screen" | "cleanup_verifier" | "hidden_ingredients" | "recipe_facets" | "substitutions" | "grocery_tidy" | "shelf_life" | "gram_estimate" | "step_timers" | "cook_command";
         DecisionFeature: {
             purpose: components["schemas"]["DecisionPurpose"];
             enabled: boolean;
@@ -1975,6 +2009,37 @@ export interface components {
                 amount: string;
                 note: string;
                 probability?: components["schemas"]["Decimal6"] | null;
+            }[];
+        };
+        StepTimers: {
+            timers: {
+                /** @description Zero-based step index. */
+                step: number;
+                minutes: number;
+                /** @description Upper end when the step gives a range. */
+                longestMinutes: number;
+                /** @description The duration as written in the step. */
+                text: string;
+                /** @description True when the cook is free while it runs; null when no model said. */
+                passive?: boolean | null;
+            }[];
+        };
+        CookCommandRequest: {
+            utterance: string;
+            /** @description Zero-based step the cook is on. */
+            step: number;
+        };
+        CookCommand: {
+            /** @enum {string} */
+            intent: "next" | "previous" | "repeat" | "timer" | "ingredient" | "none";
+            probability?: components["schemas"]["Decimal6"] | null;
+            /** @description Timer length read from the words (timer intent only). */
+            minutes?: number | null;
+            act: boolean;
+            alternatives: {
+                /** @enum {string} */
+                intent: "next" | "previous" | "repeat" | "timer" | "ingredient";
+                probability: components["schemas"]["Decimal6"];
             }[];
         };
         AvoidWarning: {
@@ -3118,6 +3183,73 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+        };
+    };
+    getRecipeStepTimers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Timed waits by step (empty when none were found or no model answered). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepTimers"];
+                };
+            };
+            /** @description Recipe not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    postCookCommand: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recipeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CookCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description The leading intent. `act` is true when the client should do it now and false when it should ask which the cook meant (`alternatives`). `none` when no model answered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CookCommand"];
+                };
+            };
+            /** @description Recipe not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["ValidationError"];
         };
     };
     getRecipe: {

@@ -34,6 +34,8 @@ class Purpose(StrEnum):
     SUBSTITUTIONS = "substitutions"
     GROCERY_TIDY = "grocery_tidy"
     SHELF_LIFE = "shelf_life"
+    STEP_TIMERS = "step_timers"
+    COOK_COMMAND = "cook_command"
     GRAM_ESTIMATE = "gram_estimate"
 
 

@@ -1,0 +1,233 @@
+{
+ "note": "Utterances (clean or noisy speech-to-text) -> intended intent. 'none' = not a command for the app. 'start a timer' with no length is a timer intent that needs a length.",
+ "items": [
+  [
+   "next",
+   "next"
+  ],
+  [
+   "next step",
+   "next"
+  ],
+  [
+   "okay what's next",
+   "next"
+  ],
+  [
+   "go on",
+   "next"
+  ],
+  [
+   "done, continue",
+   "next"
+  ],
+  [
+   "I'm ready for the next part",
+   "next"
+  ],
+  [
+   "move on please",
+   "next"
+  ],
+  [
+   "nexxt step",
+   "next"
+  ],
+  [
+   "skip ahead",
+   "next"
+  ],
+  [
+   "finished that, what now",
+   "next"
+  ],
+  [
+   "back",
+   "previous"
+  ],
+  [
+   "previous step",
+   "previous"
+  ],
+  [
+   "go back",
+   "previous"
+  ],
+  [
+   "wait go back one",
+   "previous"
+  ],
+  [
+   "what was the last step",
+   "previous"
+  ],
+  [
+   "previous",
+   "previous"
+  ],
+  [
+   "take me back to before",
+   "previous"
+  ],
+  [
+   "undo that step",
+   "previous"
+  ],
+  [
+   "repeat that",
+   "repeat"
+  ],
+  [
+   "say that again",
+   "repeat"
+  ],
+  [
+   "what was that",
+   "repeat"
+  ],
+  [
+   "read the step again",
+   "repeat"
+  ],
+  [
+   "can you repeat",
+   "repeat"
+  ],
+  [
+   "I missed that",
+   "repeat"
+  ],
+  [
+   "again please",
+   "repeat"
+  ],
+  [
+   "what do I do now",
+   "repeat"
+  ],
+  [
+   "set a timer for ten minutes",
+   "timer"
+  ],
+  [
+   "timer 25 minutes",
+   "timer"
+  ],
+  [
+   "start a timer",
+   "timer"
+  ],
+  [
+   "remind me in 5 minutes",
+   "timer"
+  ],
+  [
+   "time this for twenty minutes",
+   "timer"
+  ],
+  [
+   "set a timer for an hour",
+   "timer"
+  ],
+  [
+   "count down fifteen minutes",
+   "timer"
+  ],
+  [
+   "start the timer",
+   "timer"
+  ],
+  [
+   "timer for half an hour",
+   "timer"
+  ],
+  [
+   "how much garlic",
+   "ingredient"
+  ],
+  [
+   "how much flour do I need",
+   "ingredient"
+  ],
+  [
+   "what's the amount of butter",
+   "ingredient"
+  ],
+  [
+   "how many eggs",
+   "ingredient"
+  ],
+  [
+   "how much salt again",
+   "ingredient"
+  ],
+  [
+   "what size onion",
+   "ingredient"
+  ],
+  [
+   "what's the weather like",
+   "none"
+  ],
+  [
+   "play some music",
+   "none"
+  ],
+  [
+   "call mom",
+   "none"
+  ],
+  [
+   "hmm",
+   "none"
+  ],
+  [
+   "the dog is barking",
+   "none"
+  ],
+  [
+   "is the oven hot yet",
+   "none"
+  ],
+  [
+   "order pizza",
+   "none"
+  ],
+  [
+   "thanks",
+   "none"
+  ],
+  [
+   "oh no I burnt it",
+   "none"
+  ],
+  [
+   "honey stop that",
+   "none"
+  ],
+  [
+   "what time is it",
+   "none"
+  ],
+  [
+   "I'll take the next bus tomorrow",
+   "none"
+  ],
+  [
+   "turn the heat down",
+   "none"
+  ],
+  [
+   "next to the stove",
+   "none"
+  ],
+  [
+   "the timer on the oven is broken",
+   "none"
+  ],
+  [
+   "we need to go back to the store",
+   "none"
+  ]
+ ]
+}

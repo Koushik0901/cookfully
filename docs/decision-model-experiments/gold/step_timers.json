@@ -1,0 +1,155 @@
+{
+ "note": "Step text -> expected timer minutes (shortest of any range) or null when no duration is a timed wait; third field is whether the cook is free meanwhile.",
+ "items": [
+  [
+   "Bring to a boil, then reduce heat and simmer 20-25 minutes until the sauce thickens.",
+   20,
+   true
+  ],
+  [
+   "Bake at 375\u00b0F for 35 minutes, until golden.",
+   35,
+   true
+  ],
+  [
+   "Whisk the eggs and sugar for 3 minutes until pale.",
+   3,
+   false
+  ],
+  [
+   "Let the dough rise in a warm place for 1 hour.",
+   60,
+   true
+  ],
+  [
+   "Chill in the refrigerator for at least 2 hours before serving.",
+   120,
+   true
+  ],
+  [
+   "Season the chicken and let it marinate for 30 minutes.",
+   30,
+   true
+  ],
+  [
+   "This quick dinner is ready in 30 minutes: chop the vegetables and heat the oil.",
+   null,
+   null
+  ],
+  [
+   "Makes 12 cookies. Total time 25 minutes.",
+   null,
+   null
+  ],
+  [
+   "Heat the oil, then sear the steak 3 minutes per side.",
+   3,
+   false
+  ],
+  [
+   "Saut\u00e9 the onions for 5 to 7 minutes, stirring often, until soft.",
+   5,
+   false
+  ],
+  [
+   "Roast for 1 1/2 hours, basting every 30 minutes.",
+   90,
+   true
+  ],
+  [
+   "Cook the pasta according to package directions, about 10 minutes.",
+   10,
+   true
+  ],
+  [
+   "Rest the meat for 10 minutes before slicing.",
+   10,
+   true
+  ],
+  [
+   "Stir in the flour and cook 1 minute.",
+   1,
+   false
+  ],
+  [
+   "Prepare the dressing up to 3 days ahead; keep covered in the fridge.",
+   null,
+   null
+  ],
+  [
+   "Pour into the pan and bake 12 to 15 minutes.",
+   12,
+   true
+  ],
+  [
+   "Pressure cook on high for 8 minutes, then natural release for 10 minutes.",
+   8,
+   true
+  ],
+  [
+   "Simmer gently for 45 minutes, stirring occasionally.",
+   45,
+   true
+  ],
+  [
+   "Toast the nuts in a dry pan for 4 minutes, shaking often.",
+   4,
+   false
+  ],
+  [
+   "Steep the tea for 5 minutes.",
+   5,
+   true
+  ],
+  [
+   "Freeze for 4 hours, or until firm.",
+   240,
+   true
+  ],
+  [
+   "Add the garlic and cook for about 30 seconds.",
+   null,
+   null
+  ],
+  [
+   "Cover and cook on low for 6 hours.",
+   360,
+   true
+  ],
+  [
+   "Serves 4 and keeps up to 5 days.",
+   null,
+   null
+  ],
+  [
+   "Soak the beans for 8 hours or overnight, then drain.",
+   480,
+   true
+  ],
+  [
+   "Preheat the oven to 400\u00b0F. This takes about 15 minutes.",
+   15,
+   true
+  ],
+  [
+   "Boil the potatoes for 15-20 minutes until tender.",
+   15,
+   true
+  ],
+  [
+   "Let cool for 10 minutes, then remove from the pan.",
+   10,
+   true
+  ],
+  [
+   "Knead the dough for 8 minutes until smooth and elastic.",
+   8,
+   false
+  ],
+  [
+   "Slice the onion thinly. About 2 minutes of work.",
+   null,
+   null
+  ]
+ ]
+}

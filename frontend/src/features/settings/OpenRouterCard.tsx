@@ -52,6 +52,14 @@ const DECISION_FEATURE_COPY: Record<DecisionPurpose, { label: string; descriptio
     label: "Shelf life",
     description: "Estimates how long pantry items without a known lifespan keep.",
   },
+  step_timers: {
+    label: "Step timers",
+    description: "Offers a timer in cook mode for the timed waits written in a recipe's steps.",
+  },
+  cook_command: {
+    label: "Cook commands",
+    description: "Understands typed or spoken commands in cook mode (next, repeat, timer 10 minutes).",
+  },
   gram_estimate: {
     label: "Item weights",
     description: "Estimates the weight of counted ingredients (such as one onion) so their nutrition is included, as a range.",
