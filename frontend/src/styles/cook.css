@@ -109,20 +109,6 @@
   overflow-y: auto;
   padding: clamp(1.25rem, 4vw, 3rem) var(--cook-pad);
 }
-.cook-mode__progress {
-  order: -2;
-  width: 100%;
-  height: 0.4rem;
-  flex: none;
-  appearance: none;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: var(--color-on-dark-line);
-  overflow: hidden;
-}
-.cook-mode__progress::-webkit-progress-bar { border-radius: var(--radius-full); background: var(--color-on-dark-line); }
-.cook-mode__progress::-webkit-progress-value { border-radius: var(--radius-full); background: var(--cook-accent); }
-.cook-mode__progress::-moz-progress-bar { border-radius: var(--radius-full); background: var(--cook-accent); }
 .cook-mode__stage-heading { order: -1; align-items: baseline; }
 .cook-mode__stage-heading .eyebrow { flex: none; white-space: nowrap; }
 .cook-mode__stage-heading .eyebrow { color: var(--cook-accent); font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none; }
@@ -262,11 +248,6 @@
   .cook-mode__title { font-size: 1.35rem; }
   .cook-mode__stage { justify-content: center; padding-inline: clamp(2rem, 6vw, 5rem); }
   .cook-mode__step-controls { padding-inline: clamp(2rem, 6vw, 5rem); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cook-mode__stage--forward,
-  .cook-mode__stage--backward { animation: none; }
 }
 
 .cook-mode__step-timer {

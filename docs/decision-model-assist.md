@@ -132,7 +132,10 @@ previous, repeat, timer, ingredient, or none) from the transcript. It acts at on
 more; below that it asks "Did you mean ...?" with the leading choices, so a mis-hearing costs one tap. A
 timer's length is read from the words by rule (digits or "twenty five minutes", "an hour"), never by the
 model, and a timer without a length asks for one. Voice never finishes the session: "next" on the last
-step says so. With no key or a failed request the box says so and the buttons are unchanged.
+step says so. The box is offered only when the panel can answer (key configured and the feature on in
+Settings → Intelligence → OpenRouter); otherwise it is not shown and the buttons are the whole interface.
+A request that fails or finds no command says so in the box and leaves the buttons unchanged. The
+`ingredient` intent opens the ingredient checklist.
 
 ## Weights for counted ingredients
 

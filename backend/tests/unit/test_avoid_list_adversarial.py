@@ -103,6 +103,8 @@ def test_everyday_ways_to_write_an_allergen_are_caught(avoid: str, line: str) ->
         ("dairy", "cream of tartar"),
         ("dairy", "1 cup oat milk"),
         ("dairy", "custard apple"),
+        ("nut", "1 can water chestnuts"),
+        ("tree nut", "sliced water chestnut"),
         ("dairy", "1 cup dairy free cheese"),
         ("dairy", "vegan cheese shreds"),
         ("gluten", "gluten free pasta"),

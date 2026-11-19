@@ -18,7 +18,6 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -28,7 +27,7 @@ from cookfully.application.avoid_warnings import ingredient_warnings, owner_avoi
 from cookfully.application.decisions import build_decisions
 from cookfully.application.openrouter_settings import decisions_config, load_config
 from cookfully.domain.avoid_list import AvoidWarning
-from cookfully.domain.decisions import Answers, Ask, Check, Purpose
+from cookfully.domain.decisions import Ask, Check, DecisionAsker, Purpose
 from cookfully.infrastructure.models.recipe_insights import RecipeInsight
 from cookfully.infrastructure.models.recipes import Recipe
 
@@ -46,10 +45,6 @@ INSTRUCTIONS = (
 CHECKED = "checked"
 NOT_CHECKED = "not_checked"
 NO_LIST = "no_avoid_list"
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)

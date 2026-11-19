@@ -156,6 +156,20 @@ Advisories change daily, so they must not block unrelated work. Only *production
 change, and only when a manifest or lockfile changes. Build-time tooling (`shadcn`, ESLint, Vite, …) is
 reported daily instead. Dependabot opens grouped weekly updates.
 
+## Secret scan allowlist
+
+`.gitleaks.toml` allows only the fake keys that tests use to prove a key is never echoed, logged or
+stored, and only in the named test files (both the pattern and the path must match). A new fake key needs
+a new entry there; never allowlist a path on its own.
+
+## End-to-end decision-model specs
+
+`frontend/e2e/decision-models-*.spec.ts` drive the cook, grocery, pantry, recipe and settings surfaces
+against mocked decision-model endpoints, so they cover the "no key", "feature off" and "model failed"
+backstops without a provider. Run one with
+`CI=1 pnpm --dir frontend exec playwright test e2e/decision-models-cook.spec.ts` after `pnpm --dir frontend
+build` (the dev server compiles on first load and can trip the 5 s `expect` timeout).
+
 ## Visual baselines
 
 See `frontend/e2e/README.md`. CI skips pixel comparisons, with a warning, until `-linux.png` baselines are

@@ -222,6 +222,10 @@ def is_counted(measure: IngredientMeasure) -> bool:
         return False
 
 
+COUNT_WEIGHT_MODEL_METHOD = "count_weight_model"
+"""``conversion_method`` of a gram range estimated from a model's per-item weight."""
+
+
 def counted_grams(
     measure: IngredientMeasure, item_low_g: Decimal, item_high_g: Decimal
 ) -> GramRange:
@@ -237,7 +241,7 @@ def counted_grams(
     return GramRange(
         quantize_decimal(measure.minimum * item_low_g, NUTRIENT_SCALE),
         quantize_decimal(maximum * item_high_g, NUTRIENT_SCALE),
-        "count_weight_model",
+        COUNT_WEIGHT_MODEL_METHOD,
         f"model-estimated {item_low_g}-{item_high_g} g per item",
     )
 

@@ -12,11 +12,15 @@ import { addDays } from "../plans/dates";
 import type { MealPlan, MealPlanEntry } from "../plans/types";
 import { recipesApi } from "./api";
 import { formatCookingText, servingLabel } from "./formatCooking";
+import { openRouterSettingsApi } from "../settings/api";
 import { CookCommandBar } from "./CookCommandBar";
 import { RecipeMetadata } from "./RecipeMetadata";
 
 type CookSession = { currentStep: number; complete: boolean; checkedIngredients: number[] };
 const MAX_TIMER_MINUTES = 720;
+
+/** Whole minutes, at least 1 and at most the 12-hour cap the API and the panel share. */
+const clampTimerMinutes = (minutes: number) => Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.floor(minutes)));
 const COMPACT_COOK_MODE_QUERY = "(max-width: 63.99rem)";
 
 function loadCookSession(recipeId?: string): CookSession | null {
@@ -30,7 +34,7 @@ function loadCookSession(recipeId?: string): CookSession | null {
 }
 
 function TimerChip({ minutes }: { minutes: number }) {
-  const clamped = Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.floor(minutes)));
+  const clamped = clampTimerMinutes(minutes);
   const [remaining, setRemaining] = useState(clamped * 60);
   const timerRef = useRef<number | null>(null);
   useEffect(() => {
@@ -118,6 +122,17 @@ export function CookModePage() {
     retry: false,
     staleTime: 10 * 60 * 1000,
   });
+  // The command box is only offered when the panel can answer (key present, feature on); otherwise
+  // the manual buttons are the whole interface and nothing extra appears.
+  const openRouter = useQuery({
+    queryKey: ["openrouter-settings"],
+    queryFn: openRouterSettingsApi.get,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const commandsAvailable = Boolean(
+    openRouter.data?.keyConfigured && openRouter.data.decisionFeatures.some((feature) => feature.purpose === "cook_command" && feature.enabled),
+  );
   const [currentStep, setCurrentStep] = useState(() => loadCookSession(recipeId)?.currentStep ?? 0);
   const [stepDirection, setStepDirection] = useState<"forward" | "backward">("forward");
   const [complete, setComplete] = useState(() => loadCookSession(recipeId)?.complete ?? false);
@@ -235,7 +250,9 @@ export function CookModePage() {
   }, [plannedEntry, saveProgress]);
 
   const startTimer = useCallback((minutes: number) => {
-    setTimer({ minutes: Math.min(MAX_TIMER_MINUTES, Math.max(1, Math.floor(minutes))), run: Date.now() });
+    const clamped = clampTimerMinutes(minutes);
+    setTimer({ minutes: clamped, run: Date.now() });
+    return clamped;
   }, []);
 
   useEffect(() => {
@@ -511,7 +528,7 @@ export function CookModePage() {
                 </button>
               ))}
               <button type="button" className="cook-mode__quick-timer" onClick={() => startTimer(15)}>Start 15 min timer</button>
-              {recipeId ? (
+              {recipeId && commandsAvailable ? (
                 <CookCommandBar
                   recipeId={recipeId}
                   step={currentStep}
@@ -527,10 +544,11 @@ export function CookModePage() {
                       return "Previous step.";
                     },
                     repeat: () => `Step ${currentStep + 1}: ${steps[currentStep]?.text ?? ""}`,
-                    timer: (minutes) => {
-                      startTimer(minutes);
-                      return `Timer set for ${Math.min(MAX_TIMER_MINUTES, minutes)} min.`;
+                    ingredient: () => {
+                      setIngredientsOpen(true);
+                      return "Ingredient checklist opened.";
                     },
+                    timer: (minutes) => `Timer set for ${startTimer(minutes)} min.`,
                   }}
                 />
               ) : null}

@@ -411,21 +411,13 @@
 
    1. Shared recipe media/title morphs use the existing React Router view
       transition names.
-   2. Cook Mode gets a physical-feeling step settle and ingredient feedback.
+   2. Cook Mode gets ingredient feedback (step motion lives in motion.css).
    3. Recipe reading follows the user's scroll with a gentle hero recession and
       row reveals. Every effect has a no-motion/static path below.
    ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
   @supports (view-transition-name: none) {
-    ::view-transition-group(*) {
-      animation-duration: 520ms;
-      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    ::view-transition-old(*),
-    ::view-transition-new(*) {
-      animation-duration: 520ms;
-      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    /* Durations and easing for the view transitions live in motion.css. */
     ::view-transition-old(recipe-media-*),
     ::view-transition-new(recipe-media-*) { mix-blend-mode: normal; }
   }
@@ -443,14 +435,7 @@
     .recipe-reading-panel.is-mobile-active .ingredient-list > li:nth-child(n + 5),
     .recipe-reading-panel.is-mobile-active .instruction-list > li:nth-child(n + 5) { animation-delay: 130ms; }
 
-    .cook-mode__stage--forward { animation: cook-step-settle 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-    .cook-mode__stage--backward { animation: cook-step-return-soft 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
     .cook-mode__checked { animation: cook-ingredient-check 280ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-    .cook-mode__progress::-webkit-progress-value {
-      transform-origin: left center;
-      transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1), transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .cook-mode__progress::-moz-progress-bar { transition: width 420ms cubic-bezier(0.16, 1, 0.3, 1); }
   }
 }
 
@@ -481,17 +466,6 @@
 @keyframes recipe-hero-recede {
   from { opacity: 1; transform: scale(1); }
   to { opacity: 0.86; transform: scale(0.965); }
-}
-
-@keyframes cook-step-settle {
-  0% { opacity: 0; transform: translate3d(1.6rem, 0, 0) scale(0.985); }
-  68% { opacity: 1; transform: translate3d(-0.1rem, 0, 0) scale(1.002); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@keyframes cook-step-return-soft {
-  from { opacity: 0; transform: translate3d(-1rem, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes cook-ingredient-check {

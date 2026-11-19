@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ArrowLeft, CalendarPlus, ChefHat, ExternalLink, Minus, Pencil, Plus, ShoppingBasket, Sparkles } from "lucide-react";
@@ -173,14 +173,14 @@ export function RecipeDetailPage() {
   // Serving recalculation motion: quantities that change tick in the direction
   // of the change. Nothing animates until the cook actually adjusts servings.
   const [scaleTouched, setScaleTouched] = useState(false);
-  const previousScale = useRef(scale);
-  const tickStyle = { "--tick-from": scale < previousScale.current ? "-0.375rem" : "0.375rem" } as CSSProperties;
-  useEffect(() => {
-    previousScale.current = scale;
-  }, [scale]);
+  // The tick direction is decided where the change is made, so unrelated re-renders cannot flip it.
+  const [tickFrom, setTickFrom] = useState("0.375rem");
+  const tickStyle = { "--tick-from": tickFrom } as CSSProperties;
   const adjustScale = (update: (value: number) => number) => {
+    const next = update(scale);
     setScaleTouched(true);
-    setScale(update);
+    setTickFrom(next < scale ? "-0.375rem" : "0.375rem");
+    setScale(next);
   };
 
   if (detail.isPending) return <PageState><Skeleton label="Loading recipe" lines={8} /></PageState>;
@@ -224,15 +224,24 @@ export function RecipeDetailPage() {
   const renderIngredient = (item: (typeof recipe.ingredients)[number]) => {
     const scaledMin = item.quantityMin != null ? (Number(item.quantityMin) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
     const scaledMax = item.quantityMax != null ? (Number(item.quantityMax) * scaleFactor).toFixed(2).replace(/\.?0+$/, "") : null;
-    const friendlyIngredient = scaleFactor !== 1 && scaledMin
-      ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null, item.unit, item.food, item.preparation].filter(Boolean).join(" ")
-      : formatCookingText(item.originalText);
+    const scaled = scaleFactor !== 1 && scaledMin;
+    const quantityText = scaled ? [scaledMin, scaledMax && scaledMax !== scaledMin ? `–${scaledMax}` : null].filter(Boolean).join(" ") : null;
+    const restText = scaled ? [item.unit, item.food, item.preparation].filter(Boolean).join(" ") : null;
+    const friendlyIngredient = scaled ? [quantityText, restText].filter(Boolean).join(" ") : formatCookingText(item.originalText);
     const scalable = scaledMin != null;
+    // Only the quantity ticks; the unit and food stay still. At the original size the stored text is
+    // shown whole, so that case ticks as one piece.
+    const rendered = !scaleTouched || !scalable ? friendlyIngredient : quantityText ? (
+      <>
+        <span key={quantityText} className="qty-tick" style={tickStyle}>{quantityText}</span>
+        {restText ? ` ${restText}` : ""}
+      </>
+    ) : (
+      <span key={friendlyIngredient} className="qty-tick" style={tickStyle}>{friendlyIngredient}</span>
+    );
     return (
       <li key={item.id}>
-        <span className="ingredient-text">
-          {scaleTouched && scalable ? <span key={friendlyIngredient} className="qty-tick" style={tickStyle}>{friendlyIngredient}</span> : friendlyIngredient}
-        </span>
+        <span className="ingredient-text">{rendered}</span>
         {item.substitutable ? <SubstituteDisclosure recipeId={recipe.id} ingredientId={item.id} /> : null}
       </li>
     );

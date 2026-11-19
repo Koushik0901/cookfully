@@ -335,7 +335,9 @@ Full-screen dark focus view (`src/styles/cook.css`, cook-scoped `--cook-*` token
 
 Modernity comes from clear interaction design first. Motion reinforces causality and orientation.
 
-- Fast feedback/hover/focus: 160ms. Disclosure/sheet: 220ms. Meaningful entrance: 280ms.
+- Fast feedback/hover/focus: 160ms. Disclosure/sheet: 220ms. Meaningful entrance: 280ms. Exits run at
+  about 75% of the entrance (`--motion-exit`, 210ms) and staggers use `--motion-stagger-1..3`; use the
+  tokens in `tokens.css` instead of literal durations.
 - Use opacity and transform with an ease-out curve. Recipe image hover may scale to 1.035; quick-action
   arrows may move a few pixels; cards may lift subtly. Never animate layout dimensions or cause content jumps.
 - Good signature moments: recipe shelf → detail shared image, plan drop snapping into a day, serving/macros

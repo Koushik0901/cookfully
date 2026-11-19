@@ -306,9 +306,12 @@ describe("recipe UI", () => {
       { position: 1, text: "Chill and serve." },
     ];
 
-    function mockCommand(result: unknown | "fail") {
+    const commandsOn = { keyConfigured: true, decisionFeatures: [{ purpose: "cook_command", enabled: true, models: ["model/a"] }] };
+
+    function mockCommand(result: unknown | "fail", settings: unknown = commandsOn) {
       vi.mocked(fetch).mockImplementation((input, init) => {
         const path = String(input);
+        if (path.includes("/openrouter/settings")) return response(settings);
         if (path.includes("/cook-command")) {
           return result === "fail" ? response({ title: "Boom" }, 500) : response(result);
         }
@@ -318,13 +321,39 @@ describe("recipe UI", () => {
       });
     }
 
-    async function ready() {
+    async function ready(expectBox = true) {
       window.sessionStorage.clear();
       renderRoute(<CookModePage />, `/app/recipes/${recipe.id}/cook`);
       const user = userEvent.setup();
       expect(await screen.findByText("Mix the oats.")).toBeVisible();
+      // The box appears once the settings say the feature can answer.
+      if (expectBox) expect(await screen.findByLabelText("Say or type a command")).toBeVisible();
       return user;
     }
+
+    it("offers no command box without a key or with the feature off, leaving the buttons as the whole interface", async () => {
+      mockCommand({ intent: "next", probability: "0.9", minutes: null, act: true, alternatives: [] }, { keyConfigured: false, decisionFeatures: commandsOn.decisionFeatures });
+      await ready(false);
+      expect(screen.getByRole("button", { name: "Next step" })).toBeVisible();
+      await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes("/openrouter/settings"))).toBe(true));
+      expect(screen.queryByLabelText("Say or type a command")).not.toBeInTheDocument();
+      cleanup();
+      mockCommand({ intent: "next", probability: "0.9", minutes: null, act: true, alternatives: [] }, { keyConfigured: true, decisionFeatures: [{ purpose: "cook_command", enabled: false, models: [] }] });
+      await ready(false);
+      await waitFor(() => expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).includes("/openrouter/settings")).length).toBeGreaterThan(1));
+      expect(screen.queryByLabelText("Say or type a command")).not.toBeInTheDocument();
+    });
+
+    it("opens the ingredient checklist for an ingredient command", async () => {
+      mockCommand({ intent: "ingredient", probability: "0.9", minutes: null, act: true, alternatives: [] });
+      const user = await ready();
+      const checklist = document.querySelector<HTMLDetailsElement>(".cook-mode__ingredients details");
+      checklist?.removeAttribute("open");
+      await user.type(await screen.findByLabelText("Say or type a command"), "how much oats");
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      expect(await screen.findByText("Ingredient checklist opened.")).toBeVisible();
+      expect(document.querySelector<HTMLDetailsElement>(".cook-mode__ingredients details")?.open).toBe(true);
+    });
 
     it("acts on a clear command and sends the current step", async () => {
       mockCommand({ intent: "next", probability: "0.9", minutes: null, act: true, alternatives: [{ intent: "next", probability: "0.9" }] });
@@ -558,6 +587,25 @@ describe("recipe UI", () => {
 
     expect(await screen.findByText(/Available offline/)).toBeVisible();
     expect(offlineCache.readOfflineResponse).toHaveBeenCalledWith(`/api/v1/recipes/${recipe.id}`);
+  });
+
+  it("ticks only the quantity when servings change, in the direction of the change, and not on load", async () => {
+    renderRoute(<RecipeDetailPage />);
+    expect(await screen.findByRole("heading", { name: "Exact oats" })).toBeVisible();
+    expect(document.querySelector(".qty-tick")).toBeNull();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Increase servings" }));
+    const up = document.querySelector<HTMLElement>(".ingredient-text .qty-tick");
+    expect(up).toHaveTextContent(/^1\.5$/);
+    expect(up?.parentElement).toHaveTextContent("1.5 cups rolled oats");
+    expect(up?.style.getPropertyValue("--tick-from")).toBe("0.375rem");
+
+    await user.click(screen.getByRole("button", { name: "Decrease servings" }));
+    await user.click(screen.getByRole("button", { name: "Decrease servings" }));
+    const down = document.querySelector<HTMLElement>(".ingredient-text .qty-tick");
+    expect(down?.style.getPropertyValue("--tick-from")).toBe("-0.375rem");
+    expect(screen.getByText(/Ingredients updated for 2 servings/)).toBeInTheDocument();
   });
 
   it("keeps the phone recipe sections focused while making nutrition reachable", async () => {

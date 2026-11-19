@@ -863,26 +863,13 @@
 }
 .cook-mode__steps { display: grid; min-width: 0; grid-template-rows: minmax(0, 1fr) auto; padding: clamp(1.5rem, 4vw, 4rem); }
 .cook-mode__stage { display: grid; align-content: center; gap: 2rem; }
-.cook-mode__stage--forward { animation: cook-step-arrive var(--motion-entrance) var(--ease-out-expo) both; }
-.cook-mode__stage--backward { animation: cook-step-return var(--motion-entrance) var(--ease-out-expo) both; }
-@keyframes cook-step-arrive {
-  from { opacity: 0; transform: translateX(1rem); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes cook-step-return {
-  from { opacity: 0; transform: translateX(-1rem); }
-  to { opacity: 1; transform: translateX(0); }
-}
 .cook-mode__stage-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .cook-mode__stage-heading .eyebrow { color: var(--color-accent); }
 .cook-mode__stage-heading span { color: var(--color-on-herb-subtle); font-size: 0.72rem; }
 .cook-mode__step { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: clamp(1.25rem, 4vw, 3rem); }
 .cook-mode__step-number { color: var(--color-accent); font-family: var(--font-display); font-size: clamp(3rem, 7vw, 6rem); font-weight: 680; line-height: 0.85; }
 .cook-mode__step-text { max-width: 24ch; color: var(--color-on-primary); font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3.75rem); font-weight: 580; letter-spacing: -0.025em; line-height: 1.1; text-wrap: balance; }
-.cook-mode__progress { background: var(--color-on-dark-line); }
 .cook-mode__offline-ready { color: var(--color-on-herb-muted); }
-.cook-mode__progress::-webkit-progress-bar { background: var(--color-on-dark-line); }
-.cook-mode__progress::-webkit-progress-value { background: var(--color-accent); transition: transform var(--motion-state) var(--ease-out-expo); }
 .cook-mode__quick-timer { display: none; }
 .cook-mode__step-controls { display: flex; justify-content: space-between; gap: 1rem; padding-top: 2rem; }
 .cook-mode__complete { display: grid; min-height: calc(100dvh - 5rem); grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr); align-items: center; gap: clamp(2rem, 6vw, 6rem); padding: clamp(1.5rem, 5vw, 5rem); }

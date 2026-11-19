@@ -12,9 +12,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Protocol
 
-from cookfully.domain.decisions import Answers, Ask, Check, Choice, Purpose
+from cookfully.domain.decisions import Ask, Check, Choice, DecisionAsker, Purpose
 
 NONE_KEY = "none"
 
@@ -44,10 +43,6 @@ STAPLE_INSTRUCTIONS = (
     "Is this a pantry staple most home cooks already have and rarely need to buy for one recipe "
     "(salt, pepper, cooking oil, common spices, sugar, flour)?"
 )
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)

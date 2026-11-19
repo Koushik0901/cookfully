@@ -16,9 +16,16 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
+from typing import Protocol
 
 _ZERO = Decimal(0)
 _ONE = Decimal(1)
+
+
+class DecisionAsker(Protocol):
+    """What features need from the engine: ask questions, get one ``Answers`` per ask, in order."""
+
+    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 class Purpose(StrEnum):

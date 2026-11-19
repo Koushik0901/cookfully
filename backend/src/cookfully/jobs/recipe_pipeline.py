@@ -45,7 +45,11 @@ from cookfully.domain.common import (
 )
 from cookfully.domain.decisions import Purpose
 from cookfully.domain.ingredient_nutrition.matching import FoodMatcher, MatchDecision
-from cookfully.domain.ingredient_nutrition.quantities import counted_grams, is_counted
+from cookfully.domain.ingredient_nutrition.quantities import (
+    COUNT_WEIGHT_MODEL_METHOD,
+    counted_grams,
+    is_counted,
+)
 from cookfully.domain.nutrition import (
     CORE_NUTRIENT_CODES,
     MICRONUTRIENT_KEYS,
@@ -88,8 +92,6 @@ from cookfully.infrastructure.repositories.nutrition import NutritionRepository
 from cookfully.infrastructure.repositories.recipes import RecipeRepository
 from cookfully.infrastructure.safe_fetch import SafeFetcher
 from cookfully.infrastructure.semantic_embeddings import TextEmbedder
-
-MODEL_COUNT_METHOD = "count_weight_model"
 
 
 def _section_at(
@@ -570,7 +572,7 @@ class RecipePipeline:
 
         if match is None or match.grams_min is None:
             return None
-        if match.conversion_method == MODEL_COUNT_METHOD and match.grams_max is not None:
+        if match.conversion_method == COUNT_WEIGHT_MODEL_METHOD and match.grams_max is not None:
             return (match.grams_min * match.grams_max).sqrt()
         return match.grams_min
 
@@ -636,7 +638,7 @@ class RecipePipeline:
                         grams
                         if grams is not None
                         and match is not None
-                        and match.conversion_method == MODEL_COUNT_METHOD
+                        and match.conversion_method == COUNT_WEIGHT_MODEL_METHOD
                         else (match.grams_max if match else None),
                         "gram",
                         ingredient.optional,

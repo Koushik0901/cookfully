@@ -15,7 +15,6 @@ import json
 import logging
 from collections.abc import Iterable, Sequence
 from decimal import Decimal, InvalidOperation
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -23,7 +22,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
 from cookfully.application.openrouter_settings import decisions_config, load_config
-from cookfully.domain.decisions import Answers, Ask, Check, Choice, Purpose, Question, Score
+from cookfully.domain.decisions import (
+    Ask,
+    Check,
+    Choice,
+    DecisionAsker,
+    Purpose,
+    Question,
+    Score,
+)
 from cookfully.domain.recipe_facets import (
     ACTIVE_TIME_LEVELS,
     CUISINES,
@@ -42,10 +49,6 @@ logger = logging.getLogger(__name__)
 KIND = "facets"
 PROMPT_VERSION = "recipe-facets-v1"
 TEXT_LIMIT = 6000
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 def facet_questions() -> dict[str, Question]:

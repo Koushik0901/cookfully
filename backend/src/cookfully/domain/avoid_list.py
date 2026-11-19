@@ -270,6 +270,7 @@ _FALSE_FRIENDS: Mapping[str, tuple[str, ...]] = {
     "ale": ("ginger ale",),
     "beer": ("root beer", "ginger beer"),
     "custard": ("custard apple",),
+    "chestnut": ("water chestnut",),
 }
 
 _WORD = re.compile(r"[a-z]+")

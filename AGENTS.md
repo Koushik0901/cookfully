@@ -68,6 +68,15 @@ should start with: "Does this help someone plan, cook, and eat better food with 
   and explicit loading/empty/partial/estimated/manual/stale/failed states.
 
 ## Recent Changes
+- **Cook-mode decision features + motion contract** — Cook mode offers step timers (`GET /recipes/{id}/step-timers`)
+  and a typed/spoken command box (`POST /recipes/{id}/cook-command`, acts at 0.6; the `ingredient` intent opens
+  the checklist). The box is shown only when Settings has a key and the `cook_command` feature on, so with no
+  key the manual buttons are the whole interface. Counted ingredients ("1 medium onion") get a model-estimated
+  gram range (`gram_estimate`, stored as `COUNT_WEIGHT_MODEL_METHOD`; owner foods and corrections still win).
+  `DecisionAsker` is defined once in `domain/decisions.py`. Motion durations and staggers are tokens
+  (`--motion-exit`, `--motion-stagger-*`); `motion.css` is the only place cook-step, serving, planning and
+  media motion is defined. The avoid list no longer flags "water chestnut" as a tree nut. See
+  `docs/decision-model-assist.md` and `docs/ci.md`.
 - **Test quality** — property tests (`tests/unit/test_domain_properties.py`, Hypothesis; pull requests use
   `--hypothesis-profile=ci`) guard the domain rules, `test_process_job_dispatch.py` covers the Celery
   dispatcher, and `scripts/coverage-ratchet.py` reports when a coverage floor can be raised. Pantry

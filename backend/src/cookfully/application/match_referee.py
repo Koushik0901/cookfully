@@ -12,10 +12,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Protocol
 
 from cookfully.domain.decision_assist import NONE_KEY, TRACKED_DAILY_VALUES, AssistOption
-from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
+from cookfully.domain.decisions import Answers, Ask, Choice, DecisionAsker, Purpose
 from cookfully.domain.food_semantics import profile_from_text
 from cookfully.domain.ingredient_nutrition.matching import FoodCandidate, MatchDecision
 from cookfully.domain.match_referee import (
@@ -45,10 +44,6 @@ NONE_CRITERION = (
 PROVENANCE_VERSION = "match-referee-v2"
 METHOD = "decision_referee"
 DEFAULT_MAX_OPTIONS = 12
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)
