@@ -9,14 +9,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
 from cookfully.domain.common import DomainError
-from cookfully.domain.decisions import Answers, Ask, Check, Purpose
+from cookfully.domain.decisions import Ask, Check, DecisionAsker, Purpose
 from cookfully.domain.substitutions import TABLE, RankedSubstitute, rank, table_key
 from cookfully.infrastructure.models.recipes import Recipe
 
@@ -26,10 +25,6 @@ INSTRUCTIONS = (
     "recipe, keeping the dish good to eat? Consider the cooking method and the role the "
     "ingredient plays (structure, moisture, fat, acid, flavour)."
 )
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)

@@ -689,13 +689,7 @@ def get_step_timers(
 ) -> StepTimersResponse:
     return StepTimersResponse(
         timers=tuple(
-            StepTimerResponse(
-                step=item.step,
-                minutes=item.minutes,
-                longest_minutes=item.longest_minutes,
-                text=item.text,
-                passive=item.passive,
-            )
+            StepTimerResponse.model_validate(item, from_attributes=True)
             for item in timers_for_recipe(request.app.state.sessions, recipe_id)
         )
     )
@@ -715,18 +709,7 @@ def post_cook_command(
     result = interpret_for_recipe(
         request.app.state.sessions, recipe_id, payload.utterance, payload.step
     )
-    return CookCommandResponse.model_validate(
-        {
-            "intent": result.intent,
-            "probability": result.probability,
-            "minutes": result.minutes,
-            "act": result.act,
-            "alternatives": [
-                {"intent": item.intent, "probability": item.probability}
-                for item in result.alternatives
-            ],
-        }
-    )
+    return CookCommandResponse.model_validate(result, from_attributes=True)
 
 
 @router.patch("/{recipeId}", response_model=RecipeDetailResponse, response_model_by_alias=True)

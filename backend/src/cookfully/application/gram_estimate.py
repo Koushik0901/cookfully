@@ -8,22 +8,16 @@ or a recorded owner-food serving always wins over it.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from decimal import Decimal
-from typing import Protocol
 
 from cookfully.domain.count_weights import COUNT_WEIGHT_BUCKETS, weight_range
-from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
+from cookfully.domain.decisions import Ask, Choice, DecisionAsker, Purpose
 
 INSTRUCTIONS = (
     "How much does ONE of this ingredient weigh, as written (size words such as small, medium or "
     "large count), edible weight as used in the recipe?"
 )
 MAX_TEXT_CHARS = 200
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 def item_weight_range(

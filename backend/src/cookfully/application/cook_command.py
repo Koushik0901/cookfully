@@ -8,10 +8,8 @@ Actions here only move through steps or start a timer, all trivially undone.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -19,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from cookfully.application.decisions import build_decisions
 from cookfully.domain.common import DomainError
 from cookfully.domain.cook_command import INTENTS, clean, spoken_minutes
-from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
+from cookfully.domain.decisions import Ask, Choice, DecisionAsker, Purpose
 from cookfully.infrastructure.models.recipes import Recipe
 
 ACT_AT = Decimal(
@@ -31,10 +29,6 @@ INSTRUCTIONS = (
     "transcript, so allow for mishearing. If it is not clearly an instruction to the app, "
     "choose none."
 )
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 @dataclass(frozen=True, slots=True)

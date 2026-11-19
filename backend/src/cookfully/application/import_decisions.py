@@ -18,9 +18,9 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
-from cookfully.domain.decisions import Answers, Ask, Check, Choice, Purpose
+from cookfully.domain.decisions import Ask, Check, Choice, DecisionAsker, Purpose
 
 GATE_MAX_INGREDIENT_PROBABILITY = Decimal("0.2")
 INJECTION_THRESHOLD = Decimal("0.5")
@@ -111,8 +111,11 @@ _STOP = frozenset(
 )
 
 
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
+@runtime_checkable
+class ActivityAware(Protocol):
+    """An asker that also reports whether a feature has a key and is switched on."""
+
+    def active(self, purpose: Purpose) -> bool: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,8 +223,10 @@ class ImportDecisions:
         )
 
     def _active(self, purpose: Purpose) -> bool:
-        active = getattr(self._decisions, "active", None)
-        return bool(callable(active) and active(purpose))
+        """Whether the engine can answer for ``purpose``; a plain asker cannot say."""
+
+        decisions = self._decisions
+        return isinstance(decisions, ActivityAware) and decisions.active(purpose)
 
     def invented(self, source: Sequence[str], cleaned: Sequence[str]) -> tuple[str, ...]:
         """Cleaned ingredient lines that every model agrees are not in the source."""

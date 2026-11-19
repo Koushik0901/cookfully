@@ -7,15 +7,13 @@ edit it. Answers are cached by normalized name, so a repeat item costs nothing.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Protocol
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
-from cookfully.domain.decisions import Answers, Ask, Choice, Purpose
+from cookfully.domain.decisions import Ask, Choice, DecisionAsker, Purpose
 from cookfully.domain.expiry_lifespans import SHELF_LIFE_BUCKETS, needs_model_estimate
 
 MIN_PROBABILITY = Decimal("0.3")
@@ -23,10 +21,6 @@ INSTRUCTIONS = (
     "Roughly how long does this item usually keep once bought, stored the usual way (fridge for "
     "perishables, cupboard for dry goods)?"
 )
-
-
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
 
 
 def estimate_days(decisions: DecisionAsker, display_name: str) -> int | None:

@@ -12,14 +12,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from cookfully.application.decisions import build_decisions
 from cookfully.domain.common import DomainError
-from cookfully.domain.decisions import Answers, Ask, Check, Choice, Purpose
+from cookfully.domain.decisions import Ask, Check, Choice, DecisionAsker, Purpose
 from cookfully.domain.step_timers import Duration, durations
 from cookfully.infrastructure.models.recipes import Recipe
 
@@ -34,10 +33,6 @@ INSTRUCTIONS = (
 PASSIVE = "Is the cook free to do other things while this runs, rather than stirring or watching?"
 
 
-class DecisionAsker(Protocol):
-    def ask(self, asks: Sequence[Ask]) -> list[Answers]: ...
-
-
 @dataclass(frozen=True, slots=True)
 class StepTimer:
     step: int  # zero-based
@@ -45,6 +40,18 @@ class StepTimer:
     longest_minutes: int
     text: str
     passive: bool | None  # None when the panel did not say
+
+
+def _choice_key(position: int) -> str:
+    return f"d{position}"
+
+
+def _choice_position(key: str | None) -> int | None:
+    """The duration index a ``_choice_key`` names; ``None`` for "none" or anything else."""
+
+    if key is None or not key.startswith("d") or not key[1:].isdigit():
+        return None
+    return int(key[1:])
 
 
 def timers_for_steps(decisions: DecisionAsker, steps: Sequence[str]) -> list[StepTimer]:
@@ -65,7 +72,7 @@ def timers_for_steps(decisions: DecisionAsker, steps: Sequence[str]) -> list[Ste
                     INSTRUCTIONS,
                     {
                         **{
-                            f"d{position}": f"{item.text}, about {item.minutes} minutes"
+                            _choice_key(position): f"{item.text}, about {item.minutes} minutes"
                             for position, item in enumerate(found)
                         },
                         NONE: "None of these is a timed wait.",
@@ -79,10 +86,8 @@ def timers_for_steps(decisions: DecisionAsker, steps: Sequence[str]) -> list[Ste
     timers: list[StepTimer] = []
     for (index, _, found), answers in zip(candidates, decisions.ask(asks), strict=True):
         top = answers.top("timer")
-        if top is None or top == NONE or not top.startswith("d"):
-            continue
-        position = int(top[1:])
-        if position >= len(found):
+        position = _choice_position(top)
+        if position is None or position >= len(found):
             continue
         chosen = found[position]
         passive = answers.check("passive")

@@ -65,9 +65,9 @@
 /* Peak-end: the one warmer moment, at the end of the job. */
 .cook-mode__complete-media { animation: motion-fade var(--motion-entrance) var(--ease-out) both; }
 .cook-mode__complete-copy > * { animation: motion-fade var(--motion-entrance) var(--ease-out) both; }
-.cook-mode__complete-copy > :nth-child(2) { animation-delay: 60ms; }
-.cook-mode__complete-copy > :nth-child(3) { animation-delay: 100ms; }
-.cook-mode__complete-copy > :nth-child(n + 4) { animation-delay: 140ms; }
+.cook-mode__complete-copy > :nth-child(2) { animation-delay: var(--motion-stagger-1); }
+.cook-mode__complete-copy > :nth-child(3) { animation-delay: var(--motion-stagger-2); }
+.cook-mode__complete-copy > :nth-child(n + 4) { animation-delay: var(--motion-stagger-3); }
 
 @keyframes motion-fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -87,10 +87,11 @@
 /* 3. Planning drop --------------------------------------------------------- */
 .plan-entry,
 .week-meal { transition: background-color var(--motion-state) ease, border-color var(--motion-state) ease; }
-.plan-entry--landed,
-.week-meal--landed {
-  border-color: var(--color-primary) !important;
-  background: var(--color-primary-container) !important;
+/* Doubled class beats the planner's own border/background rules without !important. */
+.plan-entry.plan-entry--landed,
+.week-meal.week-meal--landed {
+  border-color: var(--color-primary);
+  background: var(--color-primary-container);
   animation: plan-land var(--motion-entrance) var(--ease-out) both;
 }
 @keyframes plan-land {
@@ -117,7 +118,7 @@
       animation-duration: var(--motion-entrance);
       animation-timing-function: var(--ease-out-expo);
     }
-    ::view-transition-old(root) { animation-duration: 210ms; }
+    ::view-transition-old(root) { animation-duration: var(--motion-exit); }
   }
 }
 
@@ -143,10 +144,11 @@
 
 /* Reduced motion: keep state changes, drop movement. ------------------------ */
 @media (prefers-reduced-motion: reduce) {
-  .cook-progress__fill,
+  .cook-progress__fill { transition: none; }
+  /* Colour state changes stay (a finished step still reads as filled); movement goes. */
   .cook-progress__segment,
   .plan-entry,
-  .week-meal { transition: none; }
+  .week-meal { transition-duration: 0.01ms; }
   .cook-mode__stage--forward,
   .cook-mode__stage--backward,
   .cook-mode__complete-media,

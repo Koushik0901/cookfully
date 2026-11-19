@@ -10,7 +10,7 @@ const steps = [
 
 type Command = { intent: string; probability: string | null; minutes: number | null; act: boolean; alternatives: { intent: string; probability: string }[] };
 
-async function mockCook(page: Page, command: (utterance: string) => Command | "fail") {
+async function mockCook(page: Page, command: (utterance: string) => Command | "fail", { keyConfigured = true }: { keyConfigured?: boolean } = {}) {
   const base = accessibleRecipe();
   const recipe = {
     ...base,
@@ -28,6 +28,9 @@ async function mockCook(page: Page, command: (utterance: string) => Command | "f
     const json = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (path === "/api/v1/owner/preferences") return json({ locale: "en-CA" });
     if (path === "/api/v1/owner/onboarding") return json({ state: "completed", version: 1 });
+    if (path === "/api/v1/openrouter/settings") {
+      return json({ keyConfigured, decisionFeatures: [{ purpose: "cook_command", enabled: true, models: ["model/a"] }] });
+    }
     if (path === `/api/v1/recipes/${accessibleRecipeId}`) return json(recipe);
     if (path === `/api/v1/recipes/${accessibleRecipeId}/step-timers`) {
       return json({ timers: [{ step: 0, minutes: 30, longestMinutes: 30, text: "30 minutes", passive: true }, { step: 1, minutes: 20, longestMinutes: 25, text: "20-25 minutes", passive: false }] });
@@ -99,6 +102,13 @@ test("an unsure answer asks which was meant; nonsense and failures explain thems
   await expect(page.getByText(/unavailable right now/)).toBeVisible();
   await page.getByRole("button", { name: "Next step" }).click();
   await expect(page.locator(".cook-mode__stage-heading .eyebrow")).toHaveText("Step 2 of 3");
+});
+
+test("with no key the command box is not offered and the buttons are the whole interface", async ({ page }) => {
+  await mockCook(page, () => none, { keyConfigured: false });
+  await page.goto(`/app/recipes/${accessibleRecipeId}/cook`);
+  await expect(page.getByRole("button", { name: "Next step" })).toBeVisible();
+  await expect(page.getByLabel("Say or type a command")).toHaveCount(0);
 });
 
 test("the command box fits the viewport without horizontal overflow", async ({ page }) => {

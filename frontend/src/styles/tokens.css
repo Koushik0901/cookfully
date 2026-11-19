@@ -143,6 +143,10 @@
   --motion-state: 220ms;
   --motion-disclosure: 220ms;
   --motion-entrance: 280ms;
+  --motion-exit: 210ms; /* exits run at ~75% of the entrance */
+  --motion-stagger-1: 60ms;
+  --motion-stagger-2: 100ms;
+  --motion-stagger-3: 140ms;
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

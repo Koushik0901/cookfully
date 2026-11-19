@@ -5,7 +5,9 @@ import { type FormEvent, useRef, useState } from "react";
 import { recipesApi } from "./api";
 import type { CookCommand } from "./types";
 
-type Intent = "next" | "previous" | "repeat" | "timer" | "ingredient";
+type Intent = Exclude<CookCommand["intent"], "none">;
+
+const ASK_DURATION = "For how long? Say, for example, “timer 10 minutes”.";
 
 const LABELS: Record<Intent, string> = {
   next: "Next step",
@@ -38,6 +40,7 @@ export type CookCommandActions = {
   next: () => string;
   previous: () => string;
   repeat: () => string;
+  ingredient: () => string;
   timer: (minutes: number) => string;
 };
 
@@ -55,11 +58,8 @@ export function CookCommandBar({ recipeId, step, actions }: { recipeId: string; 
   const Speech = recognitionConstructor();
 
   function perform(intent: Intent, minutes: number | null | undefined): string {
-    if (intent === "next") return actions.next();
-    if (intent === "previous") return actions.previous();
-    if (intent === "repeat") return actions.repeat();
-    if (intent === "timer") return minutes ? actions.timer(minutes) : "For how long? Say, for example, “timer 10 minutes”.";
-    return "Ingredient amounts are in the checklist.";
+    if (intent === "timer") return minutes ? actions.timer(minutes) : ASK_DURATION;
+    return actions[intent]();
   }
 
   const interpret = useMutation({
@@ -74,12 +74,12 @@ export function CookCommandBar({ recipeId, step, actions }: { recipeId: string; 
         return;
       }
       if (result.act) {
-        setMessage(perform(result.intent as Intent, result.minutes));
+        setMessage(perform(result.intent, result.minutes));
         setText("");
         return;
       }
       setOptions(result.alternatives);
-      setMessage(result.intent === "timer" && !result.minutes ? "For how long? Say, for example, “timer 10 minutes”." : "Did you mean:");
+      setMessage(result.intent === "timer" && !result.minutes ? ASK_DURATION : "Did you mean:");
     },
     onError: () => setMessage("Voice commands are unavailable right now. The buttons still work."),
   });
@@ -97,7 +97,7 @@ export function CookCommandBar({ recipeId, step, actions }: { recipeId: string; 
       return;
     }
     const session = new Speech();
-    session.lang = "en-US";
+    session.lang = typeof navigator === "undefined" ? "en-US" : navigator.language || "en-US";
     session.interimResults = false;
     session.maxAlternatives = 1;
     session.onresult = (event) => {
