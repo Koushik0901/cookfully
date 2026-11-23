@@ -76,7 +76,7 @@ jobs:
       # handlers that Playwright exercises show up as uncovered; until browser coverage is merged
       # in, the result is reported on the run page and as a warning instead of failing the check.
       # Set FRONTEND_DIFF_COVERAGE_BLOCKING to "true" to make it a gate.
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         if: github.event_name == 'pull_request'
       - name: Report coverage on changed lines
         if: github.event_name == 'pull_request'
